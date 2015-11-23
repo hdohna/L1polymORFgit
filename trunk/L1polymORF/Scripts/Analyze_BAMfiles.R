@@ -75,7 +75,7 @@ ReadCoverPerChrom <- function(InputFile) {
   lapply(Chromosomes, function(Chrom){
      ChromLength <- length(BSgenome.Hsapiens.UCSC.hg19[[Chrom]])
      R1 <- GRanges(seqnames = Chrom, ranges = IRanges(start = 1, end = ChromLength))
-     Reads <- extractReads(R1, InputFile)
+     Reads <- extractReads(bam.file = InputFile, region = R1)
      ReadCov <- coverage(Reads)
    })
 }
