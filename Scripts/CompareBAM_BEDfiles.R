@@ -33,6 +33,7 @@ list.files("D:/L1polymORF/Data/")
 cat("*******   Turning BAM files into GRanges ...   *******\n")
 
 InputFile = "D:/L1polymORF/Data/NA12878-L1HS_S1_L001_R1_001_16b02f092319.bam"
+InputFile = "D:/L1polymORF/Data/download"
 Chrom = "chr1"
 MinPerIsland = 1
 ChromLength <- length(BSgenome.Hsapiens.UCSC.hg38[[Chrom]])
@@ -52,4 +53,4 @@ NA12878Peaks_chr1 <- NA12878Peaks[seqnames(NA12878Peaks) == "chr1"]
 sum(NA12878Peaks_chr1 %over% Islands) / length(NA12878Peaks_chr1)
 
 
-
+list.files("D:/L1polymORF/Data/")
