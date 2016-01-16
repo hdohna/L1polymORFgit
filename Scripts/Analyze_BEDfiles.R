@@ -23,6 +23,7 @@
 library(ShortRead)
 library(csaw)
 library(chipseq)
+library(Rsamtools)
 library(BSgenome.Hsapiens.UCSC.hg38)
 #library(VennDiagram)
 
