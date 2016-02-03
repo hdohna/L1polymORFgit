@@ -46,14 +46,18 @@ Chromosomes <- paste("chr", 1:22, sep = "")
 MinReadPerPeak <- 500
 
 # Files and folders
-DataFolder <- "D:/L1polymORF/Data/"
+GenomeID           <- "NA12878"
+DataFolder         <- "D:/L1polymORF/Data/"
 L1ReferenceBedFile <- "D:/L1polymORF/Data/hg38.fa_L1HS_6kb.bed"
-PeakBedFile <- "D:/L1polymORF/Data/NA12878_L1_capt_IDTx_peaks.bed"
-PeakBamFile <- "D:/L1polymORF/Data/NA12878.recal.sorted.bam"
-#FastQFolder <- "D:/L1polymORF/Data/L1HS cap-22668675/LHS0001trmIDXRCNMP3NMP3Q20430-25326778"
-FastQFolder <- "D:/L1polymORF/Data/FastQ"
-L1HSTableFileName <- "D:/L1polymORF/Data/L1HS_repeat_table.csv"
-
+PeakBedFile        <- "D:/L1polymORF/Data/NA12878_L1_capt_IDTx_peaks.bed"
+PeakBamFile        <- "D:/L1polymORF/Data/NA12878.recal.sorted.bam"
+#FastQFolder       <- "D:/L1polymORF/Data/L1HS cap-22668675/LHS0001trmIDXRCNMP3NMP3Q20430-25326778"
+FastQFolder        <- "D:/L1polymORF/Data/FastQ"
+DateStamp          <- date()
+DateStamp          <- gsub(" ", "_", DateStamp)
+L1FastQFolder      <- paste("D:/L1polymORF/Data/", GenomeID, "L1FastQ", 
+                            DateStamp, sep = "_")
+L1HSTableFileName  <- "D:/L1polymORF/Data/L1HS_repeat_table.csv"
 # Load functions
 
 #######################################
@@ -93,6 +97,15 @@ OverlapsWithL1HS <- findOverlaps(NA12878Peaks, L1GRanges)
 L1Seq      <- getSeq(BSgenome.Hsapiens.UCSC.hg38, L1GRanges, as.character = T)
 L1SeqNames <- paste(as.vector(seqnames(L1GRanges)), start(L1GRanges), end(L1GRanges),
                     strand(L1GRanges), sep = "_")
+# Open one connection per fastq file
+FastQFileNames <- list.files(FastQFolder, full.names = T)
+NrReadsPerIter <- 10^6
+Stream1 <- FastqStreamer(FastQFileNames[1], NrReadsPerIter)
+Stream2 <- FastqStreamer(FastQFileNames[2], NrReadsPerIter)
+NrReadsRead <- 1
+ReadCounter <- 0
+WriteCounter <- 0
+
 # Loop over chromosomes      
 cat("*******   Looping over chromosomes ...   *******\n")
 Chrom <- "chr1"
@@ -150,15 +163,6 @@ for (i in 1:length(FilePrefixes)){
 #   write.table(FileTable, FilePathMat[i,1], sep = "\t", quote = F, 
 #               row.names = F, col.names = F)
 # }
-
-# Open one connection per fastq file
-FastQFileNames <- list.files(FastQFolder, full.names = T)
-NrReadsPerIter <- 10^6
-Stream1 <- FastqStreamer(FastQFileNames[1], NrReadsPerIter)
-Stream2 <- FastqStreamer(FastQFileNames[2], NrReadsPerIter)
-NrReadsRead <- 1
-ReadCounter <- 0
-WriteCounter <- 0
 
 # Loop through fastq file and append to little peak-specific fastq files
 while (NrReadsRead > 0){
