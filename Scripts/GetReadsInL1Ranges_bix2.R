@@ -1,4 +1,3 @@
-#!/share/diskarray1/Updated_RNA_software/R/R-3.2.1-download/bin/Rscript
 
 ##############################################
 #
