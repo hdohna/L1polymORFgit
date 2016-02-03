@@ -1,3 +1,5 @@
+#!/share/diskarray1/Updated_RNA_software/R/R-3.2.1-download/bin/Rscript
+
 ##############################################
 #
 # General description:
@@ -24,7 +26,7 @@
 ########################################
 
 # Source start script
-#source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
+# source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
 
 # Load packages
 library(Rsamtools)
