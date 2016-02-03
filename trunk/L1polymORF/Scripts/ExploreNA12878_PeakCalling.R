@@ -39,7 +39,6 @@ IslRange    <- 10000
 CalcNew_IslandPerCoverage <- T
 
 # Files and folders
-list.files('D:/L1polymORF/Data')
 BamFile            <- "D:/L1polymORF/Data/NA12878-L1HS_S1_L001.dedup.unique.sorted.bam"
 L1HSTableFileName  <- "D:/L1polymORF/Data/L1HS_repeat_table.csv"
 
@@ -71,6 +70,13 @@ CoverList <- lapply(Chroms, function(Chrom){
   ReadCov <- coverage(Reads)
 })
 
+#######################################
+#                                     #
+#    Determine 'islands' and          #
+#        overlap with L1              #
+#                                     #
+#######################################
+
 # Determine separate islands with continuous read coverage and turn islands into
 # genomic ranges
 IslandList <- lapply(CoverList, function(x){
@@ -87,7 +93,6 @@ IslandGRanges <- unlist(IslandGRanges)
 RangeHist1    <- hist(width(IslandGRanges), breaks = seq(0, 25000, 100), 
                    plot = F)
 IslandGRanges@elementMetadata@listData$coverTotal
-
 
 # Get the coverage sum and maximum
 SumList <- lapply(IslandList, function(x) viewSums(x))
@@ -111,23 +116,29 @@ lines(RangeHist2$mids, RangeHist2$density, col = "red")
 LargeL1Ranges <- resize(L1GRanges,10^4, fix = "center")
 ReadsPerL1 <- lapply(LargeL1Ranges, function(x) extractReads(bam.file = BamFile , x))
 
-# Determine receiver-operating curves based on 
-cat("*******   Turning BAM files into GRanges ...   *******\n")
-rocTotal <- pROC::roc(response = blnOverlapIslands,
-                predictor = IslandGRanges@elementMetadata@listData$coverTotal)
-rocMax   <- pROC::roc(response = blnOverlapIslands,
-                predictor = IslandGRanges@elementMetadata@listData$coverMax)
+#######################################
+#                                     #
+#    Explore peak calling             #
+#                                     #
+#######################################
 
-# Plot ROCs
-Cols <- rainbow(2)
-plot(1 - rocTotal$specificities, rocTotal$sensitivities,
-     xlab = "1 - specificity", ylab = "Sensitivity", col = Cols[1])
-points(1 - rocMax$specificities, rocMax$sensitivities, col = Cols[2])
-legend("bottomright", legend = c("Total coverage", "Maximum coverage"),
-       col = Cols, lty = c(1,1))
-CreateDisplayPdf('D:/L1polymORF/Figures/PeakCallingROC.pdf')
-
-rocMax$thresholds[rocMax$specificities > 0.9 & rocMax$sensitivities > 0.6]
+# Determine receiver-operating curves based on total and maximum coverage 
+cat("*******   Calculating ROC curves ...   *******\n")
+# rocTotal <- pROC::roc(response = blnOverlapIslands,
+#                 predictor = IslandGRanges@elementMetadata@listData$coverTotal)
+# rocMax   <- pROC::roc(response = blnOverlapIslands,
+#                 predictor = IslandGRanges@elementMetadata@listData$coverMax)
+# 
+# # Plot ROCs
+# Cols <- rainbow(2)
+# plot(1 - rocTotal$specificities, rocTotal$sensitivities,
+#      xlab = "1 - specificity", ylab = "Sensitivity", col = Cols[1])
+# points(1 - rocMax$specificities, rocMax$sensitivities, col = Cols[2])
+# legend("bottomright", legend = c("Total coverage", "Maximum coverage"),
+#        col = Cols, lty = c(1,1))
+# CreateDisplayPdf('D:/L1polymORF/Figures/PeakCallingROC.pdf')
+# 
+# rocMax$thresholds[rocMax$specificities > 0.9 & rocMax$sensitivities > 0.6]
 hist(IslandGRanges@elementMetadata@listData$coverMax,
      breaks = 0:2500, xlim = c(0, 300), ylim  = c(0, 1000))
 
