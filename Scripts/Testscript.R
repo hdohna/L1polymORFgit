@@ -1,0 +1,1 @@
+writeLines("This is the result of a test", "/home/hzudohna/Testfile.txt")
