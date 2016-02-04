@@ -31,8 +31,8 @@
 library(Rsamtools)
 
 # Files and folders
-BamFile            <- "/home/hzudohna/BoData/NA12878-L1HS_S1_L001.dedup.unique.sorted.bam"
-L1HSTableFileName  <- "/home/hzudohna/L1polymORF/Data/L1HS_repeat_table.csv"
+BamFile            <- "/home/hzudohna/sorted_final_merged.bam"
+L1HSTableFileName  <- "/home/hzudohna/L1polymORF/Data/L1HS_repeat_table_Hg19.csv"
 OutputFileName     <- "/home/hzudohna/L1polymORF/Data/ReadsPerL1.RData"
 
 #######################################
