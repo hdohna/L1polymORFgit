@@ -40,7 +40,7 @@ InFastQFolder     <- "/home/hzudohna/L1polymORF/Data/FastQ"
 OutFastQFolder    <- "/home/hzudohna/L1polymORF/Data/FastqPerSuspectPeak/"
 SampleFileFolder  <- "/home/hzudohna/L1polymORF/Data/"
 L1TableFileName   <- "/home/hzudohna/L1polymORF/Data/L1_repeat_table.csv"
-L1Consensus       <- "/home/hzudohna/L1polymORF/Data/FastqPerSuspectPeak/Homo_sapiens_L1_consensus.fa"
+L1Consensus       <- "/home/hzudohna/L1polymORF/Data/Homo_sapiens_L1_consensus.fa"
 CoverSummaryPlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverNonReference.pdf'
 CoverComparePlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverNonReference.pdf'
 OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference.Rdata'
