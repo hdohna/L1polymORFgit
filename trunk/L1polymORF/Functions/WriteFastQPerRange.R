@@ -18,6 +18,8 @@
 #          fastq files that are written out. Should be same length as Ranges
 #     NrReadsPerIter: integer value indicating how many reads from the fastq
 #          file should be read in per iteration
+#     DefaultWriteMode: single character equal to either 'w' or 'a' to write
+#          to a new file or append to an existing file, respectively.
 
 
 # Output:
@@ -31,7 +33,7 @@
 
 
 WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
-  OutFilePaths, NrReadsPerIter = 10^6) {
+  OutFilePaths, NrReadsPerIter = 10^6, DefaultWriteMode = 'w') {
   
   # Check that Ranges and OutFilePaths have the same length
   if (length(Ranges) !=  length(OutFilePaths)) {
@@ -53,7 +55,7 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
   NrReadsRead  <- 1
   ReadCounter  <- 0
   WriteCounter <- 0
-  wqModes      <- rep("w", length(OutFilePaths))
+  wqModes      <- rep(DefaultWriteMode, length(OutFilePaths))
   
   # Loop through fastq file and append to little range-specific fastq files
   while (NrReadsRead > 0){

@@ -155,6 +155,10 @@ WriteFastQPerRange(Ranges = SuspectL1Ranges,
 
 cat("*******   Mapping little fastqs to L1 ...   *******\n")
 
+# Create index file
+CmdIndex <- paste('bwa index', L1Consensus)
+system(CmdIndex)
+
 # Run BWA for each little fastq file  
 OutFiles <- paste(substr(FastQPaths, 1, nchar(FastQPaths) - 6), SamSuffix, sep = "")
 CmdLines <- paste(BWAcommand,  L1Consensus, FastQPaths)
