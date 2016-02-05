@@ -23,7 +23,7 @@
 ########################################
 
 # Source start script
-source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.r')
+source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
 
 # Load packages
 library(ShortRead)
