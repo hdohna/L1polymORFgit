@@ -122,6 +122,7 @@ blnOverlapIslands_All <- overlapsAny(IslandGRanges, L1GRanges)
 #######################################################
 
 # Get ranges of suspected L1s
+maxCover      <- IslandGRanges@elementMetadata@listData$coverMax
 idxSuspectL1Ranges <- which(maxCover > MinMaxCover & (!blnOverlapIslands_All))
 SuspectL1Ranges    <- IslandGRanges[idxSuspectL1Ranges]
 
