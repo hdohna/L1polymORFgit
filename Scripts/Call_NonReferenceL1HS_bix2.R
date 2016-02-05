@@ -42,7 +42,7 @@ L1TableFileName   <- "/home/hzudohna/L1polymORF/Data/L1_repeat_table.csv"
 L1Consensus       <- "/home/hzudohna/L1polymORF/Data/FastqPerSuspectPeak/Homo_sapiens_L1_consensus.fa"
 CoverSummaryPlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverNonReference.pdf'
 CoverComparePlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverNonReference.pdf'
-OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference.pdf'
+OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference.Rdata'
 
 # Suffices for alignment files created by BWA
 SamSuffix <- "_aln.sam"
