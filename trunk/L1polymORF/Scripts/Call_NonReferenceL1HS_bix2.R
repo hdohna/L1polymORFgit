@@ -29,6 +29,7 @@ source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
 library(ShortRead)
 library(csaw)
 library(chipseq)
+library(BSgenome.Hsapiens.UCSC.hg19)
 
 # Get all ranges of reads for per chromosome
 Chroms       <- paste('chr', c(1:22, "X", "Y"), sep = "")
