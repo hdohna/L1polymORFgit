@@ -53,6 +53,7 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
   NrReadsRead  <- 1
   ReadCounter  <- 0
   WriteCounter <- 0
+  wqModes      <- rep("w", length(OutFilePaths))
   
   # Loop through fastq file and append to little range-specific fastq files
   while (NrReadsRead > 0){
@@ -80,8 +81,11 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
         ReadSubset  <- ReadIDs %in% ReadNames
         Reads1Local <- Reads1[ReadSubset]
         Reads2Local <- Reads2[ReadSubset]
-        writeFastq(Reads1Local, OutFilePaths[i], mode = "a", compress = F) 
-        writeFastq(Reads2Local, OutFilePaths[i], mode = "a", compress = F) 
+        writeFastq(Reads1Local, OutFilePaths[i], mode = wqModes[i], 
+                   compress = F) 
+        writeFastq(Reads2Local, OutFilePaths[i], mode = wqModes[i], 
+                   compress = F) 
+        wqModes[i] <- "a"
         WriteCounter <- WriteCounter + 2*sum(ReadSubset)
         
       }
