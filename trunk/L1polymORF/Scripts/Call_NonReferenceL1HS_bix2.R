@@ -212,18 +212,20 @@ CoverMat <- t(sapply(ReadsPerL1, function(x){
 QuantileMat <- apply(CoverMat, 2, FUN = function(x) quantile(x, c(0.05, 0.5, 0.95)))
 idxFw <- 1:ncol(CoverMat)
 idxRv <- ncol(CoverMat):1
-plot(QuantileMat[2,], type = "n", ylim = c(0, 30), 
+pdf(file = CoverSummaryPlot)
+plot(QuantileMat[2,], type = "n", ylim = c(0, max(QuantileMat)), 
      ylab = 'Coverage', xlab = "Genomic position")
 polygon(c(idxFw, idxRv), c(QuantileMat[1, idxFw], QuantileMat[3, idxRv]),
         col = "grey", border = NA)
 lines(QuantileMat[2,], lwd = 1.2)
-dev.copy2pdf(file = CoverSummaryPlot)
+dev.off()
 
 # Determine range index from file name 
+pdf(file = CoverComparePlot)
 idxRange <- sapply(FileNames, function(x) as.numeric(strsplit(x, "_")[[1]][2]))
 plot(maxCover[idxRange], NrMapped2L1, xlab = "Maximum coverage in range", 
      ylab = "Number reads mapped to L1HS")
-dev.copy2pdf(file = CoverComparePlot)
+dev.off()
 
 # Save results
 cat("*******  Saving results ...   *******\n")
