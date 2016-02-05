@@ -75,7 +75,7 @@ SubFamiliesLookUp <- sapply(unique(repNChar), function(x){
 NameMatch <- match(repNChar, SubFamiliesLookUp["Name",])
 SubFamilies <- SubFamiliesLookUp["SubFam", NameMatch]
 
-# Make some corrections to create a proper GRanges object with L1 Seqences
+# Create GRanges objects with L1 Seqences
 L1IRanges <- IRanges(start = L1Table$genoStart,
                      end = L1Table$genoEnd)
 L1GRanges <- GRanges(seqnames = L1Table$genoName, ranges = L1IRanges,
@@ -115,7 +115,7 @@ for (i in idxNegative){
 # Get means and 95% quantiles 
 QuantileMat <- apply(CoverMat, 2, FUN = function(x) quantile(x, c(0.05, 0.5, 0.95)))
 idxFw <- 1:ncol(CoverMat)
-idxRv <- CoverMat:1
+idxRv <- ncol(CoverMat):1
 plot(QuantileMat[2,], type = "n", ylim = c(0, 150), ylab = 'Coverage', xlab = "Genomic position")
 polygon(c(idxFw, idxRv), c(QuantileMat[1, idxFw], QuantileMat[3, idxRv]),
         col = "grey", border = NA)
@@ -129,7 +129,7 @@ TotalCov  <- rowSums(CoverMat)
 higestCov <- order(TotalCov, decreasing = T)
 PlotCoverExamples(idxHighest = 0)
 CreateDisplayPdf('D:/L1polymORF/Figures/L1HSCoverageUnique_exampleHigh.pdf')
-PlotCoverExamples(idxHighest = 200)
+PlotCoverExamples(idxHighest = 3000)
 CreateDisplayPdf('D:/L1polymORF/Figures/L1HSCoverageUnique_exampleMedium.pdf')
 PlotCoverExamples(idxHighest = 300)
 CreateDisplayPdf('D:/L1polymORF/Figures/LHS1CoverageUnique_exampleLow.pdf')
@@ -218,16 +218,14 @@ PlotCoverExamples(idxHighest = 0)
 CreateDisplayPdf('D:/L1polymORF/Figures/L1PACoverageUnique_exampleHigh.pdf')
 PlotCoverExamples(idxHighest = 3000)
 CreateDisplayPdf('D:/L1polymORF/Figures/L1PACoverageUnique_exampleMedium.pdf')
-PlotCoverExamples(idxHighest = 6500)
+PlotCoverExamples(idxHighest = 5000)
 CreateDisplayPdf('D:/L1polymORF/Figures/LHPACoverageUnique_exampleLow.pdf')
-hist(TotalCov, breaks = seq(0, 4*10^5, 10000))
-TotalCov[higestCov[200]]
-nrow(CoverMat)
+hist(TotalCov, breaks = seq(0, 2*10^6, 10000), ylim = c(0, 400),
+     xlim = c(0, 500000))
 
 # Get reads for L1 ranges
-param <- ScanBamParam(which = LargeL1Ranges, what = scanBamWhat())
-ScannedReads <- scanBam(file = BamFile, 
-                        param = param)
+param <- ScanBamParam(which = LargeL1Ranges, what = c("pos", "mpos"))
+ScannedReads <- scanBam(file = BamFile, param = param)
 
 # Create a matrix that counts paired reads
 PairMatrix <- matrix(0, 200, 200)
