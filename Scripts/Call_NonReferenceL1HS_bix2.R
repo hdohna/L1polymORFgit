@@ -29,7 +29,7 @@ source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
 library(ShortRead)
 library(csaw)
 library(chipseq)
-library(BSgenome.Hsapiens.UCSC.hg19)
+library(BSgenome.Hsapiens.UCSC.hg38)
 
 # Get all ranges of reads for per chromosome
 Chroms       <- paste('chr', c(1:22, "X", "Y"), sep = "")
@@ -85,7 +85,7 @@ cat("*******   Turning BAM files into GRanges ...   *******\n")
 # Read coverage per chromosome
 CoverList <- lapply(Chroms, function(Chrom){
   cat("Reading reads for chromosome", Chrom, "\n")
-  ChromLength <- length(BSgenome.Hsapiens.UCSC.hg19[[Chrom]])
+  ChromLength <- length(BSgenome.Hsapiens.UCSC.hg38[[Chrom]])
   R1 <- GRanges(seqnames = Chrom, ranges = IRanges(start = 1, end = ChromLength))
   Reads   <- extractReads(bam.file = BamFile , region = R1)
   ReadCov <- coverage(Reads)
