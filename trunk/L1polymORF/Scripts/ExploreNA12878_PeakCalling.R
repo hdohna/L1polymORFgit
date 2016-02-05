@@ -30,7 +30,7 @@ library(pROC)
 library(ShortRead)
 library(csaw)
 library(chipseq)
-library(BSgenome.Hsapiens.UCSC.hg19)
+library(BSgenome.Hsapiens.UCSC.hg38)
 library(QuasR)
 
 # Get all ranges of reads for per chromosome
@@ -74,7 +74,7 @@ cat("*******   Turning BAM files into GRanges ...   *******\n")
 # Read coverage per chromosome
 CoverList <- lapply(Chroms, function(Chrom){
   cat("Reading reads for chromosome", Chrom, "\n")
-  ChromLength <- length(BSgenome.Hsapiens.UCSC.hg19[[Chrom]])
+  ChromLength <- length(BSgenome.Hsapiens.UCSC.hg38[[Chrom]])
   R1 <- GRanges(seqnames = Chrom, ranges = IRanges(start = 1, end = ChromLength))
   Reads   <- extractReads(bam.file = BamFile , region = R1)
   ReadCov <- coverage(Reads)
