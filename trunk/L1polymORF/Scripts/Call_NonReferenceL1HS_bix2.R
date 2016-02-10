@@ -53,7 +53,7 @@ BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
 BWAcommand <- 'bwa mem'
 
 # Peak calling parameters
-MinMaxCover <- 40    # minimum maximum coverage to be called a peak 
+MinMaxCover <- 20    # minimum maximum coverage to be called a peak 
 MinGap      <- 6000
 MinDist2L1  <- 3*10^4 # minimum distance to L1 to be called a peak 
 
@@ -114,10 +114,11 @@ IslandGRanges <- GRangesList(IslandGRanges)
 IslandGRanges <- unlist(IslandGRanges)
 
 # Merge ranges that are less than MinGap bp apart
-IslandGRanges <- reduce(IslandGRanges, min.gapwidth = MinGap)
+IslGRanges_reduced <- reduce(IslandGRanges, min.gapwidth = MinGap,
+                        with.revmap = T)
 
 # Find overlaps between islands and L1HS ranges
-blnOverlapIslands_All <- overlapsAny(IslandGRanges, L1GRanges)
+blnOverlapIslands_All <- overlapsAny(IslGRanges_reduced, L1GRanges)
 
 #######################################################
 #                                                     #
@@ -126,14 +127,16 @@ blnOverlapIslands_All <- overlapsAny(IslandGRanges, L1GRanges)
 #######################################################
 
 # Get ranges of suspected L1s
-maxCover      <- IslandGRanges@elementMetadata@listData$coverMax
+maxCoverOriginal   <- IslandGRanges@elementMetadata@listData$coverMax
+maxCover <- sapply(IslGRanges_reduced@elementMetadata@listData$revmap, 
+                   function(x) max(maxCoverOriginal[x]))
 idxSuspectL1Ranges <- which(maxCover > MinMaxCover & (!blnOverlapIslands_All))
-SuspectL1Ranges    <- IslandGRanges[idxSuspectL1Ranges]
+SuspectL1Ranges    <- IslGRanges_reduced[idxSuspectL1Ranges]
 
 # Remove ranges of suspected L1s that are too c
 DistToNearestL1    <- nearest(SuspectL1Ranges, L1GRanges)
 idxSuspectL1Ranges <- idxSuspectL1Ranges[DistToNearestL1 >= MinDist2L1]
-SuspectL1Ranges    <- IslandGRanges[idxSuspectL1Ranges]
+SuspectL1Ranges    <- IslGRanges_reduced[idxSuspectL1Ranges]
 
 # Create a vector of fastq file names
 FastQnames <- paste(as.vector(seqnames(SuspectL1Ranges)), 
@@ -233,5 +236,5 @@ dev.off()
 
 # Save results
 cat("*******  Saving results ...   *******\n")
-save(list = c("IslandGRanges", "L1GRanges", "ScannedL1Ranges", "ReadsPerL1", 
+save(list = c("IslGRanges_reduced", "L1GRanges", "ScannedL1Ranges", "ReadsPerL1", 
               "CoverMat", "QuantileMat", "idxRange"), file = OutResults)
