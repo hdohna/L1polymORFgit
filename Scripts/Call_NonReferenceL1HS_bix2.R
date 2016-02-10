@@ -54,6 +54,7 @@ BWAcommand <- 'bwa mem'
 
 # Peak calling parameters
 MinMaxCover <- 40    # minimum maximum coverage to be called a peak 
+MinGap      <- 6000
 MinDist2L1  <- 3*10^4 # minimum distance to L1 to be called a peak 
 
 #######################################
@@ -111,6 +112,9 @@ IslandGRanges <- lapply(1:length(IslandList), function(i){
 })
 IslandGRanges <- GRangesList(IslandGRanges)
 IslandGRanges <- unlist(IslandGRanges)
+
+# Merge ranges that are less than MinGap bp apart
+IslandGRanges <- reduce(IslandGRanges, min.gapwidth = MinGap)
 
 # Find overlaps between islands and L1HS ranges
 blnOverlapIslands_All <- overlapsAny(IslandGRanges, L1GRanges)
