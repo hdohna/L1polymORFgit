@@ -44,7 +44,7 @@ sapply(AllFunctions, source)
 #                                     #
 #######################################
 
-# Subset to get only L1HS rows and save
+# Read in alignment
 L1HSAlign <- read.dna(AlignFileName, format = "fasta")
 
 # Create a tree and plot it
