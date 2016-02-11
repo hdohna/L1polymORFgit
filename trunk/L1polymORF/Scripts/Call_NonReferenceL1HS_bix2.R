@@ -53,7 +53,7 @@ BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
 BWAcommand <- 'bwa mem'
 
 # Peak calling parameters
-MinMaxCover <- 20    # minimum maximum coverage to be called a peak 
+MinMaxCover <- 5    # minimum maximum coverage to be called a peak 
 MinGap      <- 6000
 MinDist2L1  <- 3*10^4 # minimum distance to L1 to be called a peak 
 
