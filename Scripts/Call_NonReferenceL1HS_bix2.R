@@ -236,5 +236,6 @@ dev.off()
 
 # Save results
 cat("*******  Saving results ...   *******\n")
-save(list = c("IslGRanges_reduced", "L1GRanges", "ScannedL1Ranges", "ReadsPerL1", 
+save(list = c("IslGRanges_reduced", "L1GRanges", "ScannedL1Ranges", 
+              "SuspectL1Ranges", "ReadsPerL1", 
               "CoverMat", "QuantileMat", "idxRange"), file = OutResults)

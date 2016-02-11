@@ -22,23 +22,24 @@
 ##############################################
 
 # Source start script
-source('D:/HumanGenome/Scripts/_Start_HumanGenome.r')
+#source('D:/HumanGenome/Scripts/_Start_HumanGenome.r')
 
 # Read in data
-Families    <- read.delim("D:/L1polymORF/Data/Family_eul1db", skip = 5)
-Individuals <- read.delim("D:/L1polymORF/Data/Individuals_eul1db", skip = 5)
-Methods     <- read.delim("D:/L1polymORF/Data/Methods_eul1db", skip = 5)
-Studies     <- read.delim("D:/L1polymORF/Data/Study_eul1db", skip = 5)
-Samples     <- read.delim("D:/L1polymORF/Data/Samples_eul1db", skip = 5)
-MRIP        <- read.delim("D:/L1polymORF/Data/MRIP_eul1db", skip = 5)
-SRIP        <- read.delim("D:/L1polymORF/Data/SRIP_eul1db", skip = 5)
+Families    <- read.delim("D:/HumanGenome/Data/Family_eul1db", skip = 5)
+Individuals <- read.delim("D:/HumanGenome/Data/Individuals_eul1db", skip = 5)
+Methods     <- read.delim("D:/HumanGenome/Data/Methods_eul1db", skip = 5)
+Studies     <- read.delim("D:/HumanGenome/Data/Study_eul1db", skip = 5)
+Samples     <- read.delim("D:/HumanGenome/Data/Samples_eul1db", skip = 5)
+MRIP        <- read.delim("D:/HumanGenome/Data/MRIP_eul1db", skip = 5)
+#SRIP        <- read.delim("D:/HumanGenome/Data/SRIP_eul1db", skip = 5)
 #Reference        <- read.delim("Data/ReferenceL1HS_eul1db", skip = 5)
 
+grep("Beck", MRIP$studies, v)
 
 # Check study with many samples p
-sort(table(Samples$Individual_id))
-Samples[Samples$Individual_id == 447, ]
-
+Samples[Samples$Sample_name == "NA12878",]
+ID1878 <- Samples$Individual_id[Samples$Sample_name == "NA12878"][1]
+grep(ID1878, MRIP$samples)
 # Get all rows samples from individual 447
 Samples447 <- which(Samples$Individual_id == 447)
 
