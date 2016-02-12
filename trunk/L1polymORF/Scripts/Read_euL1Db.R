@@ -34,27 +34,10 @@ MRIP        <- read.delim("D:/HumanGenome/Data/MRIP_eul1db", skip = 5)
 #SRIP        <- read.delim("D:/HumanGenome/Data/SRIP_eul1db", skip = 5)
 #Reference        <- read.delim("Data/ReferenceL1HS_eul1db", skip = 5)
 
-grep("Beck", MRIP$studies, v)
 
 # Check study with many samples p
 Samples[Samples$Sample_name == "NA12878",]
 ID1878 <- Samples$Individual_id[Samples$Sample_name == "NA12878"][1]
-grep(ID1878, MRIP$samples)
-# Get all rows samples from individual 447
-Samples447 <- which(Samples$Individual_id == 447)
 
-# Get all SRIPs found in indvivdual 447
-SRIP447 <- SRIP[SRIP$sampleID %in% Samples447,]
-SRIP447 <- SRIP447[!duplicated(SRIP447$mrip),]
-
-# determine for each sample which 
-AllMrips <- SRIP447$mrip
-MutMat <- sapply(Samples447, function(x) x == SRIP447$sampleID)
-rownames(MutMat) <-  SRIP447$mrip
-colnames(MutMat) <- Samples447
-lapply(2:14, function(j) table(MutMat[,1], MutMat[,j]))
-
-
-unique(SRIP$chromosome)
-SRIP[(SRIP$chromosome == 1 & SRIP$g_start > 121485100 & SRIP$g_start < 121485300),]
-SRIP[(SRIP$chromosome == 2 & SRIP$g_start > 92325000 & SRIP$g_start < 92325500),]
+idxMRIP_NA12878 <- grep(ID1878, MRIP$samples)
+MRIP[idxMRIP_NA12878, c("chromosome", "start", "stop")]
