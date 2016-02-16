@@ -72,7 +72,7 @@ SubFamiliesLookUp <- sapply(unique(repNChar), function(x){
   c(Name = x,
     SubFam = paste(strsplit(x, '[1-9]')[[1]][1:2], collapse = "1"))
 })
-NameMatch <- match(repNChar, SubFamiliesLookUp["Name",])
+NameMatch   <- match(repNChar, SubFamiliesLookUp["Name",])
 SubFamilies <- SubFamiliesLookUp["SubFam", NameMatch]
 
 # Create GRanges objects with L1 Seqences
@@ -80,6 +80,8 @@ L1IRanges <- IRanges(start = L1Table$genoStart,
                      end = L1Table$genoEnd)
 L1GRanges <- GRanges(seqnames = L1Table$genoName, ranges = L1IRanges,
                      strand = L1Table$strand)
+idxL1Hs <- width(L1GRanges) >= 6000 & SubFamilies == "L1HS"
+GRanges_L1HSFL <- L1GRanges[idxL1Hs]
 
 cat("*******   Turning BAM files into GRanges ...   *******\n")
 
@@ -87,8 +89,9 @@ cat("*******   Turning BAM files into GRanges ...   *******\n")
 CoverList <- lapply(Chroms, function(Chrom){
   cat("Reading reads for chromosome", Chrom, "\n")
   ChromLength <- length(BSgenome.Hsapiens.UCSC.hg38[[Chrom]])
-  R1 <- GRanges(seqnames = Chrom, ranges = IRanges(start = 1, end = ChromLength))
-  Reads   <- extractReads(bam.file = BamFile , region = R1)
+  R1 <- GRanges(seqnames = Chrom, ranges = IRanges(start = 1, 
+                                                   end = ChromLength))
+  Reads   <- extractReads(bam.file = BamFile, region = R1)
   ReadCov <- coverage(Reads)
 })
 
