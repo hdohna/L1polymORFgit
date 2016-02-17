@@ -29,6 +29,7 @@
 
 # Load packages
 library(Rsamtools)
+library(rtracklayer)
 
 # Load results
 load("/home/hzudohna/L1polymORF/Data/L1NonReference.Rdata")
@@ -48,6 +49,10 @@ idxRange <- sapply(FileNames, function(x) as.numeric(strsplit(x, "_")[[1]][2]))
 
 # Create Ranges
 L1NonRefRanges <- IslGRanges_reduced[idxRange]
+
+# Match coordinates to hg19
+L1NonRefRanges <- liftOver(L1NonRefRanges, 
+   chain = import.chain("/home/hzudohna/L1polymORF/Data/hg38ToHg19.over.chain"))
 
 # Get reads for L1 ranges
 param <- ScanBamParam(which = L1NonRefRanges, what = scanBamWhat())
