@@ -84,10 +84,10 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
         Reads1Local <- Reads1[ReadSubset]
         Reads2Local <- Reads2[ReadSubset]
         writeFastq(Reads1Local, OutFilePaths[i], mode = wqModes[i], 
-                   compress = F) 
+                   compress = F, full = T) 
         wqModes[i] <- "a"
         writeFastq(Reads2Local, OutFilePaths[i], mode = wqModes[i], 
-                   compress = F) 
+                   compress = F, full = T) 
         WriteCounter <- WriteCounter + 2*sum(ReadSubset)
         
       }
