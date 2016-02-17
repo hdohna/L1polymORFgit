@@ -35,8 +35,9 @@ library(rtracklayer)
 load("/home/hzudohna/L1polymORF/Data/L1NonReference.Rdata")
 
 # Files and folders
-BamFile            <- "/home/hzudohna/sorted_final_merged.bam"
-OutputFileName     <- "/home/hzudohna/L1polymORF/Data/ReadsPerNonRefL1.RData"
+BamFile        <- "/home/hzudohna/sorted_final_merged.bam"
+OutputFileName <- "/home/hzudohna/L1polymORF/Data/ReadsPerNonRefL1.RData"
+ChainFilePath  <- "/home/hzudohna/L1polymORF/Data/hg38ToHg19.over.chain"
 
 #######################################
 #                                                   #
@@ -51,9 +52,9 @@ idxRange <- sapply(FileNames, function(x) as.numeric(strsplit(x, "_")[[1]][2]))
 L1NonRefRanges <- IslGRanges_reduced[idxRange]
 
 # Match coordinates to hg19
-L1NonRefRanges <- liftOver(L1NonRefRanges, 
-   chain = import.chain("/home/hzudohna/L1polymORF/Data/hg38ToHg19.over.chain"))
-
+L1NonRefRanges <- liftOver(L1NonRefRanges, chain = import.chain(ChainFilePath))
+L1NonRefRanges <- unlist(L1NonRefRanges) 
+                           
 # Get reads for L1 ranges
 param <- ScanBamParam(which = L1NonRefRanges, what = scanBamWhat())
 ScannedReads <- scanBam(file = BamFile, 
