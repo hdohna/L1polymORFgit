@@ -14,7 +14,7 @@
 
 # Output:
 #   
-#    : ...
+#    ReadsPerNonRefL1.RData: ...
 
 ##############################################
 
@@ -32,6 +32,7 @@ library(Rsamtools)
 library(rtracklayer)
 
 # Load results
+cat("Load results from non-reference peak calling \n")
 load("/home/hzudohna/L1polymORF/Data/L1NonReference.Rdata")
 
 # Files and folders
@@ -52,14 +53,22 @@ idxRange <- sapply(FileNames, function(x) as.numeric(strsplit(x, "_")[[1]][2]))
 L1NonRefRanges <- IslGRanges_reduced[idxRange]
 
 # Match coordinates to hg19
-L1NonRefRanges <- liftOver(L1NonRefRanges, chain = import.chain(ChainFilePath))
-L1NonRefRanges <- unlist(L1NonRefRanges) 
-                           
+L1NonRefRanges19 <- liftOver(L1NonRefRanges, 
+                             chain = import.chain(ChainFilePath))
+NrMapped <- sapply(L1NonRefRanges19, length)
+
+# Retain only the coordinates that are uniquely mapped
+L1NonRefRanges19Mapped <- unlist(L1NonRefRanges19[NrMapped == 1])
+idxMapped <- idxRange[NrMapped == 1]
+
 # Get reads for L1 ranges
-param <- ScanBamParam(which = L1NonRefRanges, what = scanBamWhat())
+cat("Read Pacbio reads per range \n")
+param <- ScanBamParam(which = L1NonRefRanges19Mapped, 
+                      what = scanBamWhat())
 ScannedReads <- scanBam(file = BamFile, 
                         param = param)
 
 # Save scanned reads as Rdata file
+cat("Save results \n")
 save.image(file = OutputFileName)
 
