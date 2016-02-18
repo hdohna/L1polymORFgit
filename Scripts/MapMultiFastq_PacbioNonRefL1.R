@@ -2,62 +2,29 @@
 #
 # General description:
 #
-#   The following script writes fastq files from pacbio reads of peaks
-#   outside known L1 and aligns them to the reference L1
+#   The following script aligns all fastq files in a folder
+#   to the same reference using bwa
 
 # Input:
 #
-#     BamFile: path to file that contains mapped reads
-#     L1HSTableFileName: path to file that contains L1HS ranges in a table
-
+#     FastQFolder: folder that contains the fastq files to be mapped
+#     Homo_sapiens_L1_consensus.fa: L1 consensus sequence
 
 # Output:
 #   
-#    ReadsPerNonRefL1.RData: ...
+#    Little sam file for each fastq file
 
 ##############################################
 
 # Source start script
 source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
-source('D:/L1polymORF/Scripts/_Start_L1polymORF.R')
 
+# Specify file paths 
 OutFastQFolder    <- "/home/hzudohna/L1polymORF/Data/PacbioFastqPerSuspectPeak/"
 L1Consensus       <- "/home/hzudohna/L1polymORF/Data/Homo_sapiens_L1_consensus.fa"
 CoverSummaryPlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverNonReference_Pacbio.pdf'
 CoverComparePlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverComparison_Pacbio.pdf'
 OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference_Pacbio.Rdata'
-
-# Suffices for alignment files created by BWA
-SamSuffix <- "_aln.sam"
-BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
-
-# BWA command (options can be added here)
-BWAcommand <- '/home/txw/bwa/bwa-0.7.12/bwa mem'
-
-# Load reads intersecting with suspected L1 ranges
-load("/home/hzudohna/L1polymORF/Data/ReadsPerNonRefL1.RData")
-load("D:/L1polymORF/Data/ReadsPerNonRefL1.RData")
-OutFastQFolder    <- "D:/L1polymORF/Data/PacbioFastqPerSuspectPeak/"
-
-#######################################################
-#                                                     #
-#    Write fastq of suspected L1 not in reference     #
-#                                                     #
-#######################################################
-
-cat("*******   Writing little fastq files ...   *******\n")
-
-# creat a vector of file prefixes
-FilePrefix <- names(ScannedReads)
-FilePrefix <- gsub(":", "_", FilePrefix)
-
-FilePaths <- t(sapply (1:length(ScannedReads), function(i){
-    cat("Writing reads for peak", i, "of", length(ScannedReads), "\n")
-  Reads <- ScannedReads[[i]]
-  WriteFastqAndSample(Reads, OutFastQFolder, FilePrefix[i])
-}))
-
-FastQPaths <- FilePaths[,"FilePathFastq"]
 
 #######################################
 #                                     #
@@ -66,18 +33,10 @@ FastQPaths <- FilePaths[,"FilePathFastq"]
 #                                     #
 #######################################
 
-cat("*******   Mapping little fastqs to L1 ...   *******\n")
-
-# Create index file
-CmdIndex <- paste('bwa index', L1Consensus)
-system(CmdIndex)
-
-# Run BWA for each little fastq file  
-OutFiles <- paste(substr(FastQPaths, 1, nchar(FastQPaths) - 6), SamSuffix, sep = "")
-CmdLines <- paste(BWAcommand,  L1Consensus, FastQPaths)
-CmdLines <- paste(CmdLines, OutFiles, sep = " > ")
-for (CmdL in CmdLines) system(CmdL)
-
+# Map all fastq files in FastQFolder to L1 consensus 
+FilePaths <- MapMultiFastq(FastQFolder = OutFastQFolder, 
+              Reference = L1Consensus)
+                          
 #######################################
 #                                     #
 #     Import reads mapped to L1       #
@@ -87,8 +46,7 @@ for (CmdL in CmdLines) system(CmdL)
 cat("*******  Reading and analyzing mapped reads ...   *******\n")
 
 # Get all names of sam files created by BWA
-SamFileNames <- list.files(OutFastQFolder, pattern = SamSuffix,
-                           full.names = T)
+SamFileNames <- FilePaths$SamPath
 
 # Turn sam files into bam files
 for (fn in SamFileNames) {
