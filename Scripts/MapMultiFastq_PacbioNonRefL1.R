@@ -19,6 +19,11 @@
 # Source start script
 source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
 
+# Load necessary libraries
+library(GenomicRanges)
+library(Rsamtools)
+library(csaw)
+
 # Specify file paths 
 OutFastQFolder    <- "/home/hzudohna/L1polymORF/Data/PacbioFastqPerSuspectPeak/"
 L1Consensus       <- "/home/hzudohna/L1polymORF/Data/Homo_sapiens_L1_consensus.fa"

@@ -11,6 +11,7 @@
 #          the fastq files to be mapped
 #     Reference: character string providing path to file containing the 
 #          common reference
+#     IndexCommand: text string providing command to create an index file
 #     AlignCommand: text string providing the alignment command (options can be
 #          added here)
 #     SamSuffix: suffix for sam files created by alignment
@@ -23,7 +24,8 @@
 ##############################################
 
 MapMultiFastq <- function(FastQFolder, Reference, 
-                              AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem',
+                          IndexCommand = '/home/txw/bwa/bwa-0.7.12/bwa index',
+                          AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem',
                               SamSuffix = "_aln.sam") {
   
   # Bam suffices for alignment files created 
@@ -35,7 +37,7 @@ MapMultiFastq <- function(FastQFolder, Reference,
   FastQPaths <- list.files(FastQFolder, pattern = ".fastq", full.names = T)
   
   # Create index file
-  CmdIndex <- paste('bwa index', Reference)
+  CmdIndex <- paste(IndexCommand, Reference)
   system(CmdIndex)
   
   # Run BWA for each little fastq file  
