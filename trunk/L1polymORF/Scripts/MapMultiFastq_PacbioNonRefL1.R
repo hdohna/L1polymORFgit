@@ -104,12 +104,12 @@ polygon(c(idxFw, idxRv), c(QuantileMat[1, idxFw], QuantileMat[3, idxRv]),
 lines(QuantileMat[2,], lwd = 1.2)
 dev.off()
 
-# Determine range index from file name 
-pdf(file = CoverComparePlot)
-idxRange <- sapply(FileNames, function(x) as.numeric(strsplit(x, "_")[[1]][2]))
-plot(maxCover[idxRange], NrMapped2L1, xlab = "Maximum coverage in range", 
-     ylab = "Number reads mapped to L1HS")
-dev.off()
+# # Determine range index from file name 
+# pdf(file = CoverComparePlot)
+# idxRange <- sapply(FileNames, function(x) as.numeric(strsplit(x, "_")[[1]][2]))
+# plot(maxCover[idxRange], NrMapped2L1, xlab = "Maximum coverage in range", 
+#      ylab = "Number reads mapped to L1HS")
+# dev.off()
 
 # Save results
 cat("*******  Saving results ...   *******\n")
