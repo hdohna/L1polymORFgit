@@ -35,7 +35,7 @@ BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
 BWAcommand <- '/home/txw/bwa/bwa-0.7.12/bwa mem'
 
 # Load reads intersecting with suspected L1 ranges
-load("D:/L1polymORF/Data/ReadsPerNonRefL1.RData")
+load("/home/hzudohna/L1polymORF/Data/ReadsPerNonRefL1.RData")
 
 
 #######################################################
