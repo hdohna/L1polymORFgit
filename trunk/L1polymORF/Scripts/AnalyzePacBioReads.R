@@ -42,7 +42,8 @@ CalcNew_IslandPerCoverage <- T
 
 # Files and folders
 BamFile            <- "D:/L1polymORF/Data/NA12878-L1HS_S1_L001.dedup.unique.sorted.bam"
-L1HSTableFileName  <- "D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv"
+L1HSTableFileName  <- "D:/L1polymORF/Data/L1HS_repeat_table.csv"
+L1HSTableFileName19  <- "D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv"
 AlignFileName      <- "D:/L1polymORF/Data/L1Sequences_reptab_alignedMAFFT"
 
 # Define a function to plot several coverage examples
