@@ -35,6 +35,7 @@ library(seqinr)
 RepeatFile          <- "D:/L1polymORF/Data/repeatsHg38"
 TabOutfileName_L1HS <- "D:/L1polymORF/Data/L1HS_repeat_table.csv"
 SeqOutfileName_L1HS <- "D:/L1polymORF/Data/L1Sequences_reptab.fas"
+SeqOutfileName_L1HS_length100 <- "D:/L1polymORF/Data/L1HSSequences_reptab_L100.fas"
 TabOutfileName_L1   <- "D:/L1polymORF/Data/L1_repeat_table.csv"
 SeqOutfileName_L1   <- "D:/L1polymORF/Data/L1AllSequences_reptab.fas"
 
@@ -64,6 +65,8 @@ L1HSIRanges <- IRanges(start = L1HSTable$genoStart,
                      end = L1HSTable$genoEnd)
 L1HSGRanges <- GRanges(seqnames = L1HSTable$genoName, ranges = L1HSIRanges,
                      strand = L1HSTable$strand)
+L1HSGRanges_L100 <- L1HSGRanges[width(L1HSGRanges) >= 100]
+
 L1HSGRanges <- L1HSGRanges[width(L1HSGRanges) >= 6000]
 
 # Get all L1 sequences  
@@ -75,6 +78,17 @@ L1HSSeqNames <- paste(as.vector(seqnames(L1HSGRanges)), start(L1HSGRanges), end(
 # Write L1 sequences as fasta file
 L1HSList <- lapply(L1HSSeq, s2c)
 write.fasta(L1HSList, L1HSSeqNames, SeqOutfileName_L1HS)
+
+# Get all L1 sequences above 100 Nucs  
+cat("Get sequences for L1 element \n")
+L1HSSeq_L100 <- getSeq(BSgenome.Hsapiens.UCSC.hg38, L1HSGRanges_L100, as.character = T)
+L1HSSeqNames_L100 <- paste(as.vector(seqnames(L1HSGRanges_L100)), 
+                           start(L1HSGRanges_L100), end(L1HSGRanges_L100),
+                      strand(L1HSGRanges_L100), sep = "_")
+
+# Write L1 sequences as fasta file
+L1HSList_L100 <- lapply(L1HSSeq_L100, s2c)
+write.fasta(L1HSList_L100, L1HSSeqNames_L100, SeqOutfileName_L1HS_length100)
 
 ######
 # All L1s

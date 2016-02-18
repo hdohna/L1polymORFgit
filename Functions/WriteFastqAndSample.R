@@ -9,6 +9,8 @@
 #    Folder: character string indicating the path where the fastq and sample
 #       file should be saved
 #    FilePrefix: character string indicating the prefix of a file name
+#    WriteSample: boolean indicating whether a sample file for qAlign should
+#        be written out
 
 # Output:
 #   
@@ -17,8 +19,9 @@
 # Comment:
 
 WriteFastqAndSample <- function(ReadList, 
-                                Folder = DataFolder,
-                                FilePrefix = "Peak"){
+                                Folder,
+                                FilePrefix = "Peak",
+                                WriteSample = F){
   # Create file name and path for fastq file
   FileNameFastq <- paste(FilePrefix, "fastq", sep = ".")
   FilePathFastq <- paste(Folder, FileNameFastq, sep = "")
@@ -37,14 +40,18 @@ WriteFastqAndSample <- function(ReadList,
   writeLines(FastQLinesAll, FilePathFastq)
   
   # Create lines of the sample file (for function qAlign) and save them
-  FileTable <- rbind(c("FileName",	"SampleName"), 
-                     c(FileNameFastq, FilePrefix))
-  
-  # Create file name and path for fastq file
-  FileNameSample <- paste(FilePrefix, "Sample", sep = "")
-  FilePathSample <- paste(Folder, FileNameSample, sep = "")
-  write.table(FileTable, FilePathSample, sep = "\t", quote = F, 
-              row.names = F, col.names = F)
+  FilePathSample <- NULL
+  if (WriteSample) {
+    FileTable <- rbind(c("FileName",	"SampleName"), 
+                       c(FileNameFastq, FilePrefix))
+    
+    # Create file name and path for fastq file
+    FileNameSample <- paste(FilePrefix, "Sample", sep = "")
+    FilePathSample <- paste(Folder, FileNameSample, sep = "")
+    write.table(FileTable, FilePathSample, sep = "\t", quote = F, 
+                row.names = F, col.names = F)
+    
+  }
   FilePathSample
 }
 

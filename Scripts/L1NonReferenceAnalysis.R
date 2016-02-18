@@ -64,6 +64,7 @@ GR_NA12878 <- GRanges(seqnames = as.character(MRIP_NA12878$chromosome),
 # Match coordinates to hg38
 GR_NA12878_Hg38 <- liftOver(GR_NA12878, 
    chain = import.chain("D:/L1polymORF/Data/hg19ToHg38.over.chain"))
+sapply(GR_NA12878_Hg38, length)
 
 ############
 # Find NA12878 entries in SRIP
