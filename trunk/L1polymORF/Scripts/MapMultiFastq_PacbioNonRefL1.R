@@ -31,6 +31,10 @@ CoverSummaryPlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverNonReference_Pa
 CoverComparePlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverComparison_Pacbio.pdf'
 OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference_Pacbio.Rdata'
 
+# Suffices for alignment files created by BWA
+SamSuffix <- "_aln.sam"
+BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
+
 #######################################
 #                                     #
 #     Map fastq file per range        #
@@ -39,8 +43,8 @@ OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference_Pacbio.Rdata
 #######################################
 
 # Map all fastq files in FastQFolder to L1 consensus 
-FilePaths <- MapMultiFastq(FastQFolder = OutFastQFolder, 
-              Reference = L1Consensus)
+# FilePaths <- MapMultiFastq(FastQFolder = OutFastQFolder, 
+#               Reference = L1Consensus)
                           
 #######################################
 #                                     #
@@ -51,7 +55,11 @@ FilePaths <- MapMultiFastq(FastQFolder = OutFastQFolder,
 cat("*******  Reading and analyzing mapped reads ...   *******\n")
 
 # Get all names of sam files created by BWA
-SamFileNames <- FilePaths$SamPath
+#SamFileNames <- FilePaths$SamPath
+
+# Get all names of sam files created by BWA
+SamFileNames <- list.files(OutFastQFolder, pattern = SamSuffix,
+                           full.names = T)
 
 # Turn sam files into bam files
 for (fn in SamFileNames) {
