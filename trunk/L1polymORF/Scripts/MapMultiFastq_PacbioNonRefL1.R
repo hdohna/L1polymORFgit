@@ -28,7 +28,7 @@ library(csaw)
 OutFastQFolder    <- "/home/hzudohna/L1polymORF/Data/PacbioFastqPerSuspectPeak/"
 L1Consensus       <- "/home/hzudohna/L1polymORF/Data/Homo_sapiens_L1_consensus.fa"
 CoverSummaryPlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverNonReference_Pacbio.pdf'
-CoverComparePlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverComparison_Pacbio.pdf'
+CoverComparePlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverExamples_Pacbio.pdf'
 OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference_Pacbio.Rdata'
 
 # Suffices for alignment files created by BWA
@@ -43,8 +43,9 @@ BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
 #######################################
 
 # Map all fastq files in FastQFolder to L1 consensus 
-# FilePaths <- MapMultiFastq(FastQFolder = OutFastQFolder, 
-#               Reference = L1Consensus)
+FilePaths <- MapMultiFastq(FastQFolder = OutFastQFolder,
+   AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem -k17 -W40 -r10 -A2 -B5 -O2 -E1 -L0',
+   Reference = L1Consensus)
                           
 #######################################
 #                                     #
@@ -105,11 +106,15 @@ lines(QuantileMat[2,], lwd = 1.2)
 dev.off()
 
 # # Determine range index from file name 
-# pdf(file = CoverComparePlot)
-# idxRange <- sapply(FileNames, function(x) as.numeric(strsplit(x, "_")[[1]][2]))
-# plot(maxCover[idxRange], NrMapped2L1, xlab = "Maximum coverage in range", 
-#      ylab = "Number reads mapped to L1HS")
-# dev.off()
+pdf(file = CoverComparePlot)
+plot(CoverMat[1,], type = "s", xlab = "Position on L1",
+     ylab = "Coverage", ylim = c(0, 100))
+Cols <- rainbow(17)
+for (i in 1:20){
+  lines(CoverMat[i,], type = "s", col = Cols[i])
+  
+}
+dev.off()
 
 # Save results
 cat("*******  Saving results ...   *******\n")
