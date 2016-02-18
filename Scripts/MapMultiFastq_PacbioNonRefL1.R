@@ -114,4 +114,4 @@ dev.off()
 # Save results
 cat("*******  Saving results ...   *******\n")
 save(list = c("FileNames", "ScannedL1Ranges", "ReadsPerL1", 
-              "CoverMat", "QuantileMat", "idxRange"), file = OutResults)
+              "CoverMat", "QuantileMat"), file = OutResults)
