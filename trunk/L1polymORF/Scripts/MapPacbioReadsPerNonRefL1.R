@@ -21,7 +21,7 @@
 source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
 #source('D:/L1polymORF/Scripts/_Start_L1polymORF.R')
 
-OutFastQFolder    <- "/home/hzudohna/L1polymORF/Data/FastqPerSuspectPeak/"
+OutFastQFolder    <- "/home/hzudohna/L1polymORF/Data/PacbioFastqPerSuspectPeak/"
 L1Consensus       <- "/home/hzudohna/L1polymORF/Data/Homo_sapiens_L1_consensus.fa"
 CoverSummaryPlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverNonReference_Pacbio.pdf'
 CoverComparePlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverComparison_Pacbio.pdf'
@@ -36,7 +36,6 @@ BWAcommand <- '/home/txw/bwa/bwa-0.7.12/bwa mem'
 
 # Load reads intersecting with suspected L1 ranges
 load("/home/hzudohna/L1polymORF/Data/ReadsPerNonRefL1.RData")
-
 
 #######################################################
 #                                                     #
