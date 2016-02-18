@@ -29,11 +29,13 @@
 
 # Load packages
 library(Rsamtools)
+library(rtracklayer)
 
 # Files and folders
 BamFile            <- "/home/hzudohna/sorted_final_merged.bam"
-L1HSTableFileName  <- "/home/hzudohna/L1polymORF/Data/L1HS_repeat_table_Hg19.csv"
+L1HSTableFileName  <- "/home/hzudohna/L1polymORF/Data/L1HS_repeat_table.csv"
 OutputFileName     <- "/home/hzudohna/L1polymORF/Data/ReadsPerL1.RData"
+ChainFilePath      <- "/home/hzudohna/L1polymORF/Data/hg38ToHg19.over.chain"
 
 #######################################
 #                                     #
@@ -50,9 +52,15 @@ L1IRanges <- IRanges(start = L1Table$genoStart,
 L1GRanges <- GRanges(seqnames = L1Table$genoName, ranges = L1IRanges,
                      strand = L1Table$strand)
 L1GRanges <- L1GRanges[width(L1GRanges) >= 6000] 
-                            
+
+# Map to hg19 and retain only the coordinates that are uniquely mapped
+L1GRanges19 <- liftOver(L1GRanges, chain = import.chain(ChainFilePath))
+NrMapped    <- sapply(L1GRanges19, length)
+idxMapped   <- which(NrMapped == 1)
+L1GRanges19Mapped <- unlist(L1GRanges19[idxMapped])
+
 # Get reads for L1 ranges
-param <- ScanBamParam(which = L1GRanges, what = scanBamWhat())
+param <- ScanBamParam(which = L1GRanges19Mapped, what = scanBamWhat())
 ScannedReads <- scanBam(file = BamFile, 
                         param = param)
 
