@@ -40,7 +40,7 @@ WriteFastqAndSample <- function(ReadList,
   writeLines(FastQLinesAll, FilePathFastq)
   
   # Create lines of the sample file (for function qAlign) and save them
-  FilePathSample <- NULL
+  FilePathSample <- NA
   if (WriteSample) {
     FileTable <- rbind(c("FileName",	"SampleName"), 
                        c(FileNameFastq, FilePrefix))
@@ -52,7 +52,7 @@ WriteFastqAndSample <- function(ReadList,
                 row.names = F, col.names = F)
     
   }
-  FilePathSample
+  c(FilePathSample = FilePathSample, FilePathFastq = FilePathFastq)
 }
 
 

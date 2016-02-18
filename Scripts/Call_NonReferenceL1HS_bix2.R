@@ -50,7 +50,7 @@ SamSuffix <- "_aln.sam"
 BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
 
 # BWA command (options can be added here)
-BWAcommand <- '/home/txw/bwa/bwa-0.7.12/bwa mem -R@RG\tID:foo\tSM:bar'
+BWAcommand <- '/home/txw/bwa/bwa-0.7.12/bwa mem'
 
 # Peak calling parameters
 MinMaxCover <- 5    # minimum maximum coverage to be called a peak 

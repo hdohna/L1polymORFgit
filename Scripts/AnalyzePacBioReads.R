@@ -128,6 +128,8 @@ CoverOutL1/CoverInL1
 hist(CoverInL1, breaks = seq(0, 290000, 1000))
 min(CoverInL1)
 
-plot(NrMapped, CoverInL1, xlim = c(0, 1000))
-plot(NrMapped, CoverOutL1/CoverInL1, xlim = c(0, 1000),
+plot(NrMapped, CoverInL1[idxMapped], xlim = c(0, 1000), 
+     xlab = "Number of mapped pacbio reads",
+     ylab = "Total coverage in L1 (Bo's data)")
+plot(NrMapped, CoverOutL1/CoverInL1[idxMapped], xlim = c(0, 1000),
      ylim = c(0, 1))
