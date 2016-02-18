@@ -63,7 +63,7 @@ SamFileNames <- list.files(OutFastQFolder, pattern = SamSuffix,
 
 # Turn sam files into bam files
 for (fn in SamFileNames) {
-  asBam(fn, destination = substr(fn, 1, nchar(fn) - 4))
+  asBam(fn, destination = substr(fn, 1, nchar(fn) - 4), overwrite = T)
 }
 
 # get names of newly created bam files
