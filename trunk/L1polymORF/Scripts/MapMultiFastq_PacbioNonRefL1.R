@@ -42,10 +42,10 @@ BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
 #                                     #
 #######################################
 
-# Map all fastq files in FastQFolder to L1 consensus 
-FilePaths <- MapMultiFastq(FastQFolder = OutFastQFolder,
-   AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem -k17 -W40 -r10 -A2 -B5 -O2 -E1 -L0',
-   Reference = L1Consensus)
+# # Map all fastq files in FastQFolder to L1 consensus 
+# FilePaths <- MapMultiFastq(FastQFolder = OutFastQFolder,
+#    AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem -k17 -W40 -r10 -A2 -B5 -O2 -E1 -L0',
+#    Reference = L1Consensus)
                           
 #######################################
 #                                     #
@@ -109,8 +109,8 @@ dev.off()
 pdf(file = CoverComparePlot)
 plot(CoverMat[1,], type = "s", xlab = "Position on L1",
      ylab = "Coverage", ylim = c(0, 100))
-Cols <- rainbow(17)
-for (i in 1:20){
+Cols <- rainbow(nrow(CoverMat))
+for (i in 1:nrow(CoverMat)){
   lines(CoverMat[i,], type = "s", col = Cols[i])
   
 }
