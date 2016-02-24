@@ -122,6 +122,7 @@ IslGRanges_reduced <- reduce(IslandGRanges, min.gapwidth = MinGap,
 
 # Find overlaps between islands and L1HS ranges
 blnOverlapIslands_All <- overlapsAny(IslGRanges_reduced, L1GRanges)
+sum(blnOverlapIslands_All)
 
 #######################################################
 #                                                     #
