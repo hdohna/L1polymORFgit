@@ -38,7 +38,7 @@ OutFilePath       <- "/home/hzudohna/L1polymORF/Data/PacBioIDsMapped2RefL1"
 # Get L1 ranges                    
 #######                                     
 
-c("Getting reference L1 ranges \n")
+cat("Getting reference L1 ranges \n")
 
 # Read in table with L1 ranges
 L1Table <- read.csv(L1TableFileName)
@@ -54,6 +54,6 @@ L1GRanges[1]
 # Write IDs of reads in L1Ranges                        
 #####
 
-c("Writing reference L1 ranges \n")
+cat("Writing reference L1 ranges \n")
 WriteReadIDsInRanges(L1GRanges, InBamfilePath = BamFile, OutFilePath) 
   
