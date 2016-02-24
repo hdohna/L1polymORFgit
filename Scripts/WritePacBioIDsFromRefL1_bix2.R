@@ -55,5 +55,5 @@ L1GRanges[1]
 #####
 
 cat("Writing reference L1 ranges \n")
-WriteReadIDsInRanges(L1GRanges[1], InBamfilePath = BamFile, OutFilePath) 
+WriteReadIDsInRanges(L1GRanges[2], InBamfilePath = BamFile, OutFilePath) 
   
