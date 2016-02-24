@@ -30,7 +30,7 @@ library(csaw)
 library(GenomicRanges)
 
 # Files and folders
-L1TableFileName   <- "/home/hzudohna/L1polymORF/Data/L1_repeat_table.csv"
+L1TableFileName   <- "/home/hzudohna/L1polymORF/Data/L1_repeat_table_Hg19.csv"
 BamFile           <- "/home/hzudohna/NA12878PacBio_alnMapped.bam"
 OutFilePath       <- "/home/hzudohna/L1polymORF/Data/PacBioIDsMapped2RefL1"
 
