@@ -27,7 +27,7 @@
 #    : ...
 
 # Comments:
-#    This function requires packages ...
+#    This function requires packages Rsamtools and ShortRead
 
 ##############################################
 

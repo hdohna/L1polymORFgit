@@ -46,7 +46,7 @@ BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
 # FilePaths <- MapMultiFastq(FastQFolder = OutFastQFolder,
 #    AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem -k17 -W40 -r10 -A2 -B5 -O2 -E1 -L0',
 #    Reference = L1Consensus)
-                          
+
 #######################################
 #                                     #
 #     Import reads mapped to L1       #
@@ -89,8 +89,14 @@ ReadsPerL1 <- lapply(FileNames[NrMapped2L1 > 0], function(x) {
 
 # Calculate a coverage matrix
 CoverMat <- t(sapply(ReadsPerL1, function(x){
-  Cov <- coverage(x)
-  as.vector(Cov$L1HS_L1_Homo_sapiens)
+  idxNeg   <- which(strand(x) == "-")
+  NewStart <- as.vector(start(x))
+  NewEnd   <- as.vector(end(x))
+  NewStart[idxNeg]  <- 6065 - NewEnd[idxNeg]
+  NewEnd[idxNeg]    <- 6065 - start(x)[idxNeg]
+  NewX <- IRanges(start = NewStart, end = NewEnd)
+  Cov <- coverage(NewX, width = 6064)
+  as.vector(Cov)
 }))
 
 # Get means and 95% quantiles 
