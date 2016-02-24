@@ -48,12 +48,11 @@ L1IRanges <- IRanges(start = L1Table$genoStart,
                      end = L1Table$genoEnd)
 L1GRanges <- GRanges(seqnames = L1Table$genoName, ranges = L1IRanges,
                      strand = L1Table$strand)
-L1GRanges[1]
 
 #####                                   
 # Write IDs of reads in L1Ranges                        
 #####
 
 cat("Writing reference L1 ranges \n")
-WriteReadIDsInRanges(L1GRanges[2], InBamfilePath = BamFile, OutFilePath) 
+WriteReadIDsInRanges(L1GRanges, InBamfilePath = BamFile, OutFilePath) 
   
