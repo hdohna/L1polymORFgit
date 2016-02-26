@@ -69,12 +69,19 @@ if(blnWriteFastq){
   # creat a vector of file prefixes
   FilePrefix <- paste(seqnames(SuspectL1Ranges19Mapped), idxMapped2hg19, 
                       sep = "_")
+  if (any(duplicated(FilePrefix))){
+    stop("Duplicated fastq file names")
+  }
 
   FilePaths <- t(sapply (1:length(ScannedReads), function(i){
     cat("Writing reads for peak", i, "of", length(ScannedReads), "\n")
     Reads <- ScannedReads[[i]]
     if (length(Reads$seq) > 0){
       WriteFastqAndSample(Reads, OutFastQFolder, FilePrefix[i])
+      cat("Written fastq file ", FilePrefix[i], "\n")
+      
+    } else {
+      cat("No read in range - no fastq file written out\n")
     }
   }))
 }
