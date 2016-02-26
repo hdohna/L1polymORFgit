@@ -26,6 +26,7 @@ library(Rsamtools)
 library(csaw)
 
 # Specify file paths 
+BamFilePacBio     <- "/home/hzudohna/sorted_final_merged.bam"
 OutFastQFolder    <- "/home/hzudohna/L1polymORF/Data/PacbioFastqPerSuspectPeak/"
 L1Consensus       <- "/home/hzudohna/L1polymORF/Data/Homo_sapiens_L1_consensus.fa"
 CoverSummaryPlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverNonRef_Pacbio.pdf'
@@ -63,7 +64,7 @@ if(blnWriteFastq){
   cat("Reading Pacbio reads per range \n")
   param <- ScanBamParam(which = SuspectL1Ranges19Mapped, 
                         what = scanBamWhat())
-  ScannedReads <- scanBam(file = BamFile, 
+  ScannedReads <- scanBam(file = BamFilePacBio, 
                           param = param)
   
   # creat a vector of file prefixes
