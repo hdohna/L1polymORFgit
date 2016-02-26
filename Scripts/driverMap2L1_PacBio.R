@@ -42,7 +42,7 @@ SamSuffix <- "_aln.sam"
 BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
 
 # Load results from script 'getNonRefL1Ranges_bix2.R
-load("D:/L1polymORF/Data/NonRefL1Ranges.Rdata")
+#load("D:/L1polymORF/Data/NonRefL1Ranges.Rdata")
 load("/home/hzudohna/L1polymORF/Data/NonRefL1Ranges.Rdata")
 
 #######################################################
