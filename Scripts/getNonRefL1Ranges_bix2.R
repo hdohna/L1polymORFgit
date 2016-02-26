@@ -140,6 +140,7 @@ NrMapped <- sapply(SuspectL1Ranges19, length)
 
 # Retain only the coordinates that are uniquely mapped
 SuspectL1Ranges19Mapped <- unlist(SuspectL1Ranges19[NrMapped == 1])
+SuspectL1Ranges19Mapped <- resize(SuspectL1Ranges19Mapped, 2000, fix = "center")
 idxMapped2hg19 <- idxSuspectL1Ranges[NrMapped == 1]
 
 #######################################################
