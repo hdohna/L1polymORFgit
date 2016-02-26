@@ -33,6 +33,7 @@ CoverComparePlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverEx_Pacbio.pdf'
 OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference_Pacbio_L1No5UTR.Rdata'
 
 # Boolean indicators for different actions
+blnRun_getNonRefL1 <- F
 blnWriteFastq <- F
 blnMap2L1     <- TRUE
 blnAnalyze    <- TRUE
@@ -43,7 +44,11 @@ BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
 
 # Load results from script 'getNonRefL1Ranges_bix2.R
 #load("D:/L1polymORF/Data/NonRefL1Ranges.Rdata")
-load("/home/hzudohna/L1polymORF/Data/NonRefL1Ranges.Rdata")
+if (blnRun_getNonRefL1) {
+  source('/home/hzudohna/L1polymORF/Scripts/getNonRefL1Ranges_bix2.R')
+} else {
+  load("/home/hzudohna/L1polymORF/Data/NonRefL1Ranges.Rdata")
+}
 
 #######################################################
 #                                                     #
@@ -83,7 +88,7 @@ if(blnWriteFastq){
 if(blnMap2L1){
 
     FilePaths <- MapMultiFastq(FastQFolder = OutFastQFolder,
-     AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem -k17 -W40 -r10 -A2 -B5 -O2 -E1 -L0 -R @RG1',
+     AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem -k17 -W40 -r10 -A2 -B5 -O2 -E1 -L0',
      Reference = L1Consensus)
 }
 
