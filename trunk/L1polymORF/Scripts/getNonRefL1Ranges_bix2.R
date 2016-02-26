@@ -138,17 +138,17 @@ SuspL1PeakRanges <- GRanges(seqnames = seqnames(SuspectL1Ranges),
 if (any(!overlapsAny(SuspL1PeakRanges, SuspectL1Ranges))){
   stop("Maximum coverage positions not within ranges!")
 }
-# SuspectL1Ranges19 <- liftOver(SuspL1PeakRanges, 
-#                              chain = import.chain(ChainFilePath))
-SuspectL1Ranges19 <- liftOver(SuspectL1Ranges, 
-                              chain = import.chain(ChainFilePath))
+SuspectL1Ranges19 <- liftOver(SuspL1PeakRanges, 
+                             chain = import.chain(ChainFilePath))
+# SuspectL1Ranges19 <- liftOver(SuspectL1Ranges, 
+#                               chain = import.chain(ChainFilePath))
 NrMapped <- sapply(SuspectL1Ranges19, length)
 sum(NrMapped == 1)
 
 # Retain only the coordinates that are uniquely mapped
 SuspectL1Ranges19Mapped <- unlist(SuspectL1Ranges19[NrMapped == 1])
-# SuspectL1Ranges19Mapped <- resize(SuspectL1Ranges19Mapped, PacBioWindow, 
-#                                   fix = "center")
+SuspectL1Ranges19Mapped <- resize(SuspectL1Ranges19Mapped, PacBioWindow, 
+                                  fix = "center")
 cat(length(SuspectL1Ranges19Mapped), "peaks mapped to hg19\n")
 idxMapped2hg19 <- idxSuspectL1Ranges[NrMapped == 1]
 
