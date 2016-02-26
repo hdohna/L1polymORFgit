@@ -42,9 +42,10 @@ blnAnalyze    <- TRUE
 SamSuffix <- "_aln.sam"
 BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
 
-# Load results from script 'getNonRefL1Ranges_bix2.R
+# Run or load results from script 'getNonRefL1Ranges_bix2.R
 #load("D:/L1polymORF/Data/NonRefL1Ranges.Rdata")
 if (blnRun_getNonRefL1) {
+  cat("*******   Running script getNonRefL1Ranges_bix2.R   *******\n")
   source('/home/hzudohna/L1polymORF/Scripts/getNonRefL1Ranges_bix2.R')
 } else {
   load("/home/hzudohna/L1polymORF/Data/NonRefL1Ranges.Rdata")
