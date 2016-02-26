@@ -51,6 +51,7 @@ OutResults      <- '/home/hzudohna/L1polymORF/Data/NonRefL1Ranges.Rdata'
 MinMaxCover <- 5    # minimum maximum coverage to be called a peak 
 MinGap      <- 6000
 MinDist2L1  <- 3*10^4 # minimum distance to L1 to be called a peak 
+PacBioWindow <- 10000
 
 #######################################
 #                                     #
@@ -140,7 +141,7 @@ NrMapped <- sapply(SuspectL1Ranges19, length)
 
 # Retain only the coordinates that are uniquely mapped
 SuspectL1Ranges19Mapped <- unlist(SuspectL1Ranges19[NrMapped == 1])
-SuspectL1Ranges19Mapped <- resize(SuspectL1Ranges19Mapped, 2000, fix = "center")
+SuspectL1Ranges19Mapped <- resize(SuspectL1Ranges19Mapped, PacBioWindow, fix = "center")
 idxMapped2hg19 <- idxSuspectL1Ranges[NrMapped == 1]
 
 #######################################################
