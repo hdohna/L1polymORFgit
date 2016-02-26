@@ -14,15 +14,20 @@
 # Comment:
 
 ConsensFromPileup <- function(Pileup, NullSeq = rep("-", max(Pileup$pos))){
-  NucPosTab <- table(Pileup$pos, Pileup$nucleotide)
-  NucPosTabNonZero <- NucPosTab > 0
-  NrDiffNucs <- rowSums(NucPosTabNonZero)
-  if (any(NrDiffNucs > 1)){
-    cat("Ambiguous nucleotides at positions", 
-        rownames(NucPosTab)[NrDiffNucs > 1], "\n")
+  
+  if (length(Pileup$pos) > 0){
+    NucPosTab <- table(Pileup$pos, Pileup$nucleotide)
+    NucPosTabNonZero <- NucPosTab > 0
+    NrDiffNucs <- rowSums(NucPosTabNonZero)
+    if (any(NrDiffNucs > 1)){
+      cat("Ambiguous nucleotides at positions", 
+          rownames(NucPosTab)[NrDiffNucs > 1], "\n")
+    }
+    ReplaceNuc <- tolower(colnames(NucPosTab))
+    Consens <- apply(NucPosTab, 1, FUN = function(x) ReplaceNuc[which.max(x)])
+    NullSeq[as.numeric(names(Consens))] <- Consens
+    
   }
-  Consens <- apply(NucPosTab, 1, FUN = function(x) colnames(NucPosTab)[which.max(x)])
-  NullSeq[as.numeric(names(Consens))] <- Consens
   NullSeq
 }
 
