@@ -33,7 +33,7 @@ CoverComparePlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverEx_Pacbio.pdf'
 OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference_Pacbio_L1No5UTR.Rdata'
 
 # Boolean indicators for different actions
-blnWriteFastq <- TRUE
+blnWriteFastq <- F
 blnMap2L1     <- TRUE
 blnAnalyze    <- TRUE
 
@@ -83,7 +83,7 @@ if(blnWriteFastq){
 if(blnMap2L1){
 
     FilePaths <- MapMultiFastq(FastQFolder = OutFastQFolder,
-     AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem -k17 -W40 -r10 -A2 -B5 -O2 -E1 -L0 -R RG1',
+     AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem -k17 -W40 -r10 -A2 -B5 -O2 -E1 -L0 -R @RG1',
      Reference = L1Consensus)
 }
 
