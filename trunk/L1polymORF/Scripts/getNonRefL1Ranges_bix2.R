@@ -51,7 +51,7 @@ OutResults      <- '/home/hzudohna/L1polymORF/Data/NonRefL1Ranges.Rdata'
 MinMaxCover <- 5    # minimum maximum coverage to be called a peak 
 MinGap      <- 6000
 MinDist2L1  <- 3*10^4 # minimum distance to L1 to be called a peak 
-PacBioWindow <- 30000
+PacBioWindow <- 1000
 
 #######################################
 #                                     #
@@ -117,7 +117,7 @@ maxCoverPosOriginal <- IslandGRanges@elementMetadata@listData$coverMaxPos
 maxCover <- sapply(IslGRanges_reduced@elementMetadata@listData$revmap, 
                    function(x) max(maxCoverOriginal[x]))
 maxCoverPos <- sapply(IslGRanges_reduced@elementMetadata@listData$revmap, 
-   function(x) maxCoverPosOriginal[which.max(maxCoverOriginal[x])])
+   function(x) maxCoverPosOriginal[x[which.max(maxCoverOriginal[x])]])
 idxSuspectL1Ranges <- which(maxCover > MinMaxCover & (!blnOverlapIslands_All))
 SuspectL1Ranges    <- IslGRanges_reduced[idxSuspectL1Ranges]
 cat("\n", length(idxSuspectL1Ranges), "peaks have maximum coverage of at least",
