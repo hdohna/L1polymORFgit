@@ -106,7 +106,7 @@ IslandGRanges <- unlist(IslandGRanges)
 
 # Merge ranges that are less than MinGap bp apart
 IslGRanges_reduced <- reduce(IslandGRanges, min.gapwidth = MinGap,
-                        with.revmap = T)
+                             with.revmap = T)
 
 # Find overlaps between islands and L1HS ranges
 blnOverlapIslands_All <- overlapsAny(IslGRanges_reduced, L1GRanges)
@@ -117,7 +117,7 @@ maxCoverPosOriginal <- IslandGRanges@elementMetadata@listData$coverMaxPos
 maxCover <- sapply(IslGRanges_reduced@elementMetadata@listData$revmap, 
                    function(x) max(maxCoverOriginal[x]))
 maxCoverPos <- sapply(IslGRanges_reduced@elementMetadata@listData$revmap, 
-   function(x) maxCoverPosOriginal[x[which.max(maxCoverOriginal[x])]])
+                      function(x) maxCoverPosOriginal[x[which.max(maxCoverOriginal[x])]])
 idxSuspectL1Ranges <- which(maxCover > MinMaxCover & (!blnOverlapIslands_All))
 SuspectL1Ranges    <- IslGRanges_reduced[idxSuspectL1Ranges]
 cat("\n", length(idxSuspectL1Ranges), "peaks have maximum coverage of at least",
@@ -135,13 +135,20 @@ cat(length(idxSuspectL1Ranges), "of the above peaksare at least", MinDist2L1,
 SuspL1PeakRanges <- GRanges(seqnames = seqnames(SuspectL1Ranges),
                             ranges = IRanges(start = maxCoverPos_SuspL1Ranges,
                                              end = maxCoverPos_SuspL1Ranges))
-SuspectL1Ranges19 <- liftOver(SuspL1PeakRanges, 
-                             chain = import.chain(ChainFilePath))
+if (any(!overlapsAny(SuspL1PeakRanges, SuspectL1Ranges))){
+  stop("Maximum coverage positions not within ranges!")
+}
+# SuspectL1Ranges19 <- liftOver(SuspL1PeakRanges, 
+#                              chain = import.chain(ChainFilePath))
+SuspectL1Ranges19 <- liftOver(SuspectL1Ranges, 
+                              chain = import.chain(ChainFilePath))
 NrMapped <- sapply(SuspectL1Ranges19, length)
+sum(NrMapped == 1)
 
 # Retain only the coordinates that are uniquely mapped
 SuspectL1Ranges19Mapped <- unlist(SuspectL1Ranges19[NrMapped == 1])
-SuspectL1Ranges19Mapped <- resize(SuspectL1Ranges19Mapped, PacBioWindow, fix = "center")
+SuspectL1Ranges19Mapped <- resize(SuspectL1Ranges19Mapped, PacBioWindow, 
+                                  fix = "center")
 idxMapped2hg19 <- idxSuspectL1Ranges[NrMapped == 1]
 
 #######################################################
