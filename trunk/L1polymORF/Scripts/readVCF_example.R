@@ -1,16 +1,18 @@
 library("VariantAnnotation")
-library("VariantTools")
 library("seqinr")
 
-source("https://bioconductor.org/biocLite.R")
-biocLite("VariantTools")
 
 GenomeList <- read.fasta("D:/L1polymORF/Data/Homo_sapiens_L1_consensus.fa")
 Genome <- paste(GenomeList[[1]], collapse = "")
 names(Genome) <- names(GenomeList)
+
+SampleVCFDelim <- read.delim(file = "D:/L1polymORF/Data/chr3_1161_aln.vcf", skip = 21)
+
 SampleVCF <- readVcf(file = "D:/L1polymORF/Data/chr3_1161_aln.vcf", 
                      genome = Genome)
 VCFDF <- as.data.frame(SampleVCF@fixed)
+
+eval(parse(text = VCFDF$ALT[1]))
 
 gVCF <- geno(SampleVCF)
 
