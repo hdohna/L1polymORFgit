@@ -67,7 +67,9 @@ if(blnWriteFastq){
   FilePaths <- t(sapply (1:length(ScannedReads), function(i){
     cat("Writing reads for peak", i, "of", length(ScannedReads), "\n")
     Reads <- ScannedReads[[i]]
-    WriteFastqAndSample(Reads, OutFastQFolder, FilePrefix[i])
+    if (length(Reads$seq) > 0){
+      WriteFastqAndSample(Reads, OutFastQFolder, FilePrefix[i])
+    }
   }))
 }
 
