@@ -79,8 +79,7 @@ if(blnWriteFastq){
     Reads <- ScannedReads[[i]]
     if (length(Reads$seq) > 0){
       WriteFastqAndSample(Reads, OutFastQFolder, FilePrefix[i])
-      cat("Written fastq file ", FilePrefix[i], "\n")
-      
+      cat("Written", length(Reads$seq),"reads to fastq file ", FilePrefix[i], "\n")
     } else {
       cat("No read in range - no fastq file written out\n")
     }
