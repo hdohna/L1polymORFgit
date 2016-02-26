@@ -51,7 +51,7 @@ OutResults      <- '/home/hzudohna/L1polymORF/Data/NonRefL1Ranges.Rdata'
 MinMaxCover <- 5    # minimum maximum coverage to be called a peak 
 MinGap      <- 6000
 MinDist2L1  <- 3*10^4 # minimum distance to L1 to be called a peak 
-PacBioWindow <- 10000
+PacBioWindow <- 30000
 
 #######################################
 #                                     #
