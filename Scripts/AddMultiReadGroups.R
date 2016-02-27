@@ -11,10 +11,14 @@ OptionLines <- c("RGLB=lib1", "RGPL=illumina", "RGPU=unit1", "RGSM=20")
 FileNames <- list.files(BamFolder, pattern = ".bam", full.names = T)
 FileNames <- FileNames[-grep(".bam.", FileNames)]
 
+# Create output file names
+OutFileNames <- substr(FileNames, 1, nchar(FileNames) - 4)
+OutFileNames <- paste(OutFileNames, "withRG.bam", sep = "_")
+
 # Create a command per file 
 OptionLines <- paste(OptionLines, collapse = " ")
 InFiles  <- paste("I=", FileNames, sep = "")
-OutFiles <- paste("O=", FileNames, sep = "")
+OutFiles <- paste("O=", OutFileNames, sep = "")
 CmdLines <- paste(PicardCmd,  InFiles, OutFiles, OptionLines)
 
 # Loop over command line and run them 
