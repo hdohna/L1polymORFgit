@@ -34,9 +34,9 @@ CoverComparePlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverEx_Pacbio.pdf'
 OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference_Pacbio_L1No5UTR.Rdata'
 
 # Boolean indicators for different actions
-blnRun_getNonRefL1 <- TRUE
-blnWriteFastq <- TRUE
-blnMap2L1     <- TRUE
+blnRun_getNonRefL1 <- F
+blnWriteFastq <- F
+blnMap2L1     <- F
 blnAnalyze    <- TRUE
 
 # Suffices for alignment files created by BWA
