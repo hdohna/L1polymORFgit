@@ -34,7 +34,10 @@ CallMultiVariants <- function(BamFolder,
   
   # Get all paths to fastq files in the folder
   FileNames <- list.files(BamFolder, pattern = BamSuffix, full.names = T)
-  FileNames <- FileNames[-grep(".bam.", FileNames)]
+  Bam.Pattern <- grep(".bam.", FileNames)
+  if (length(Bam.Pattern) > 0){
+    FileNames <- FileNames[-grep(".bam.", FileNames)]
+  }
 
   # Create output file names
   OutFileNames <- substr(FileNames, 1, nchar(FileNames) - 4)
@@ -44,7 +47,7 @@ CallMultiVariants <- function(BamFolder,
   OptionLines <- paste(OptionLines, collapse = " ")
   RefFile  <- paste("-R", RefSeqPath)
   InFiles  <- paste("-I", FileNames)
-  OutFiles <- paste("-o", OutFileNames, sep = "")
+  OutFiles <- paste("-o", OutFileNames)
   CmdLines <- paste(HapTypeCallCmd,  RefFile, InFiles, OutFiles, OptionLines)
   
   # Loop over command line and run them 
