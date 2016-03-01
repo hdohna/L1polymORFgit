@@ -34,14 +34,17 @@ CoverComparePlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverEx_Pacbio.pdf'
 OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference_Pacbio.Rdata'
 
 # Boolean indicators for different actions
-blnRun_getNonRefL1 <- F
-blnWriteFastq <- F
-blnMap2L1     <- F
+blnRun_getNonRefL1  <- F
+blnWriteFastq       <- F
+blnMap2L1           <- F
+blnAddReadGroups    <- F
+blnCallHaplotypes   <- T
 blnAnalyze    <- TRUE
 
 # Suffices for alignment files created by BWA
 SamSuffix <- "_aln.sam"
 BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
+ReadGroupSuffix <- "withRG.bam"
 
 # Run or load results from script 'getNonRefL1Ranges_bix2.R
 #load("D:/L1polymORF/Data/NonRefL1Ranges.Rdata")
@@ -99,6 +102,36 @@ if(blnMap2L1){
      AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem -k17 -W40 -r10 -A2 -B5 -O2 -E1 -L0',
      Reference = L1Consensus)
 }
+
+#######################################
+#                                     #
+#     Add read groups                 #
+#                                     #
+#######################################
+
+if(blnAddReadGroups){
+  
+  FilePathsRG <- AddMultiReadGroups(FastQFolder = OutFastQFolder,
+     PicardCmd   = "java -jar /home/txw/picard/picard-tools-1.131/picard.jar AddOrReplaceReadGroups",
+        OptionLines = c("RGLB=lib1", "RGPL=illumina", "RGPU=unit1", "RGSM=20",
+               "SORT_ORDER=null", "CREATE_INDEX=TRUE", "VALIDATION_STRINGENCY=LENIENT"))
+}
+
+#######################################
+#                                     #
+#     Call haplotypes                #
+#                                     #
+#######################################
+
+if(blnCallHaplotypes){
+  
+  FilePathsVCF <- CallMultiVariants(BamFolder = OutFastQFolder,  
+     HapTypeCallCmd = "java -jar /home/txw/GATK/GenomeAnalysisTK-2.1-11-g13c0244/GenomeAnalysisTK.jar -T HaplotypeCaller",
+     RefSeqPath = L1Consensus,
+     OptionLines = "--emitRefConfidence GVCF",
+     BamSuffix = "withRG.bam",
+     VCFSuffix = ".vcf") {
+  }
 
 #######################################
 #                                     #
