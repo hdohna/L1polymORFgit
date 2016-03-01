@@ -34,9 +34,11 @@ CoverComparePlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverEx_Pacbio_Round
 OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference_Pacbio_Round2.Rdata'
 
 # Boolean indicators for different actions
-blnRun_getNonRefL1 <- F
-blnWriteFastq <- TRUE
-blnMap2L1     <- TRUE
+blnRun_getNonRefL1  <- F
+blnWriteFastq       <- F
+blnMap2L1           <- F
+blnAddReadGroups    <- T
+blnCallHaplotypes   <- T
 blnAnalyze    <- TRUE
 
 # Suffices for alignment files created by BWA
@@ -100,6 +102,35 @@ if(blnMap2L1){
      Reference = L1Consensus)
 }
 
+#######################################
+#                                     #
+#     Add read groups                 #
+#                                     #
+#######################################
+
+if(blnAddReadGroups){
+  
+  FilePathsRG <- AddMultiReadGroups(FastQFolder = OutFastQFolder,
+                                    PicardCmd   = "java -jar /home/txw/picard/picard-tools-1.131/picard.jar AddOrReplaceReadGroups",
+                                    OptionLines = c("RGLB=lib1", "RGPL=illumina", "RGPU=unit1", "RGSM=20",
+                                                    "SORT_ORDER=null", "CREATE_INDEX=TRUE", "VALIDATION_STRINGENCY=LENIENT"))
+}
+
+#######################################
+#                                     #
+#     Call haplotypes                 #
+#                                     #
+#######################################
+
+if(blnCallHaplotypes){
+  
+  FilePathsVCF <- CallMultiVariants(BamFolder = OutFastQFolder,  
+                                    HapTypeCallCmd = "java -jar /home/txw/GATK/GenomeAnalysisTK-2.1-11-g13c0244/GenomeAnalysisTK.jar -T HaplotypeCaller",
+                                    RefSeqPath = L1Consensus,
+                                    OptionLines = "--emitRefConfidence GVCF",
+                                    BamSuffix = "withRG.bam",
+                                    VCFSuffix = ".vcf") 
+}
 #######################################
 #                                     #
 #     Import reads mapped to L1       #
