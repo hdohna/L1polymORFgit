@@ -1,0 +1,59 @@
+##############################################
+#
+# General description:
+#
+#   The following function adds read groups to all bam files in a folder
+#   
+
+# Input:
+#
+#     BamFolder: character string providing path to folder that contains 
+#          the fastq files to be mapped
+#     Reference: character string providing path to file containing the 
+#          common reference
+#     IndexCommand: text string providing command to create an index file
+#     AlignCommand: text string providing the alignment command (options can be
+#          added here)
+#     SamSuffix: suffix for sam files created by alignment
+
+
+# Output:
+#   
+#     ...
+
+##############################################
+
+AddMultiReadGroups <- function(BamFolder,  
+    PicardCmd   = "java -jar /home/txw/picard/picard-tools-1.131/picard.jar AddOrReplaceReadGroups",
+    OptionLines = c("RGLB=lib1", "RGPL=illumina", "RGPU=unit1", "RGSM=20",
+                    "SORT_ORDER=null", "CREATE_INDEX=TRUE", "VALIDATION_STRINGENCY=LENIENT"),
+                     ReadGroupSuffix = "withRG.bam") {
+  
+  # Bam suffices for alignment files created 
+  BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
+  
+  cat("*******   Mapping little fastq files in", FastQFolder, "...   *******\n")
+  
+  # Get all paths to fastq files in the folder
+  FileNames <- list.files(BamFolder, pattern = ".bam", full.names = T)
+  FileNames <- FileNames[-grep(".bam.", FileNames)]
+  FileNames <- FileNames[-grep(ReadGroupSuffix, FileNames)]
+  
+  # Create output file names
+  OutFileNames <- substr(FileNames, 1, nchar(FileNames) - 4)
+  OutFileNames <- paste(OutFileNames, ReadGroupSuffix, sep = "_")
+  
+  # Create a command per file 
+  OptionLines <- paste(OptionLines, collapse = " ")
+  InFiles  <- paste("I=", FileNames, sep = "")
+  OutFiles <- paste("O=", OutFileNames, sep = "")
+  CmdLines <- paste(PicardCmd,  InFiles, OutFiles, OptionLines)
+  
+  # Loop over command line and run them 
+  for (CmdL in CmdLines) system(CmdL)
+  
+  # Return paths to fastq files and sam files
+  cbind.data.frame(InFileNames = FileNames, OutFileNames = OutFileNames)
+}
+
+
