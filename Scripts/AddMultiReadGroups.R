@@ -5,7 +5,8 @@ BamFolder <- "/home/hzudohna/L1polymORF/Data/PacbioFastqPerSuspectPeak/"
 
 # Picard command
 PicardCmd   <- "java -jar /home/txw/picard/picard-tools-1.131/picard.jar AddOrReplaceReadGroups"
-OptionLines <- c("RGLB=lib1", "RGPL=illumina", "RGPU=unit1", "RGSM=20")
+OptionLines <- c("RGLB=lib1", "RGPL=illumina", "RGPU=unit1", "RGSM=20",
+                 "SORT_ORDER=null", "CREATE_INDEX=TRUE", "VALIDATION_STRINGENCY=LENIENT")
 
 # Get all paths to fastq files in the folder
 FileNames <- list.files(BamFolder, pattern = ".bam", full.names = T)
