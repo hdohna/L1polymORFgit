@@ -130,7 +130,7 @@ if(blnCallHaplotypes){
      RefSeqPath = L1Consensus,
      OptionLines = "--emitRefConfidence GVCF",
      BamSuffix = "withRG.bam",
-     VCFSuffix = ".vcf") {
+     VCFSuffix = ".vcf") 
   }
 
 #######################################
