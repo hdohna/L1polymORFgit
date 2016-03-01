@@ -3,7 +3,7 @@
 # General description:
 #
 #   The following script reads in ranges of non-reference L1 peaks, and a 
-#   PavBio bam file, writes out a fastq file aligns all fastq files in a folder
+#   PacBio bam file, writes out a fastq file aligns all fastq files in a folder
 #   to the same reference using bwa
 
 # Input:
@@ -31,7 +31,7 @@ OutFastQFolder    <- "/home/hzudohna/L1polymORF/Data/PacbioFastqPerSuspectPeak/"
 L1Consensus       <- "/home/hzudohna/L1polymORF/Data/Homo_sapiens_L1_consensus.fa"
 CoverSummaryPlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverNonRef_Pacbio.pdf'
 CoverComparePlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverEx_Pacbio.pdf'
-OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference_Pacbio_L1No5UTR.Rdata'
+OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference_Pacbio.Rdata'
 
 # Boolean indicators for different actions
 blnRun_getNonRefL1 <- F

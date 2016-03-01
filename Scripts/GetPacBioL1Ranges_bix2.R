@@ -43,7 +43,7 @@ load(file = "/home/hzudohna/L1polymORF/Data/ChromLengthsHg19.Rdata")
 
 cat("*******   Turning BAM file into GRanges ...   *******\n")
 
-# Function to get read coverage per chromosome
+# Get reads per chromosome
 ReadsPerChromPacBioL1 <- lapply(1:length(ChromLengthsHg19), function(i){
    Chrom       <- names(ChromLengthsHg19)[i]
    ChromLength <- ChromLengthsHg19[i]
