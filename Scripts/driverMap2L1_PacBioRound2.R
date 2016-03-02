@@ -34,12 +34,12 @@ CoverComparePlot  <- '/home/hzudohna/L1polymORF/Figures/L1HSCoverEx_Pacbio_Round
 OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference_Pacbio_Round2.Rdata'
 
 # Boolean indicators for different actions
-blnRun_getNonRefL1  <- F
-blnWriteFastq       <- F
-blnMap2L1           <- F
-blnAddReadGroups    <- F
-blnCallHaplotypes   <- F
-blnAnalyze    <- TRUE
+blnRun_getNonRefL1  <- TRUE
+blnWriteFastq       <- TRUE
+blnMap2L1           <- TRUE
+blnAddReadGroups    <- TRUE
+blnCallHaplotypes   <- TRUE
+blnAnalyze         <- TRUE
 
 # Suffices for alignment files created by BWA
 SamSuffix <- "_aln.sam"

@@ -39,7 +39,7 @@ OutFile         <- "/home/hzudohna/L1polymORF/Data/AnalyzedPacBioL1Ranges.RData"
 
 # Peak calling parameters
 MinMaxCover <- 5    # minimum maximum coverage to be called a peak 
-MinGap      <- 500
+MinGap      <- 10
 MinDist2L1  <- 3*10^4 # minimum distance to L1 to be called a peak 
 PacBioWindow <- 1000
 
