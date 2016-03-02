@@ -37,8 +37,8 @@ OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference_Pacbio_Round
 blnRun_getNonRefL1  <- F
 blnWriteFastq       <- F
 blnMap2L1           <- F
-blnAddReadGroups    <- T
-blnCallHaplotypes   <- T
+blnAddReadGroups    <- F
+blnCallHaplotypes   <- F
 blnAnalyze    <- TRUE
 
 # Suffices for alignment files created by BWA
@@ -175,14 +175,8 @@ if (blnAnalyze){
   
   # Calculate a coverage matrix
   CoverMat <- t(sapply(ReadsPerL1, function(x){
-    idxNeg   <- which(strand(x) == "-")
-    NewStart <- as.vector(start(x))
-    NewEnd   <- as.vector(end(x))
-    NewStart[idxNeg]  <- 6065 - NewEnd[idxNeg]
-    NewEnd[idxNeg]    <- 6065 - start(x)[idxNeg]
-    NewX <- IRanges(start = NewStart, end = NewEnd)
-    Cov <- coverage(NewX, width = 6064)
-    as.vector(Cov)
+    Cov <- coverage(x)
+    as.vector(Cov[[1]])
   }))
   
   # Get means and 95% quantiles 
@@ -210,7 +204,7 @@ if (blnAnalyze){
   
   # Save results
   cat("*******  Saving results ...   *******\n")
-  save(list = c("FileNames", "ScannedL1Ranges", "ReadsPerL1", 
+  save(list = c("IslGRanges_reduced", "FileNames", "ScannedL1Ranges", "ReadsPerL1", 
                 "CoverMat", "QuantileMat"), file = OutResults)
   
 }

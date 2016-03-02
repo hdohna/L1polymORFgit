@@ -170,21 +170,15 @@ if (blnAnalyze){
   
   # Get aligned reads per peak
   R1 <- GRanges(seqnames = "L1HS_L1_Homo_sapiens", 
-                ranges = IRanges(start = 1, end = 6000))
+                ranges = IRanges(start = 1, end = 6064))
   ReadsPerL1 <- lapply(FileNames[NrMapped2L1 > 0], function(x) {
     Reads <- extractReads(x, R1)
   })
   
   # Calculate a coverage matrix
   CoverMat <- t(sapply(ReadsPerL1, function(x){
-    idxNeg   <- which(strand(x) == "-")
-    NewStart <- as.vector(start(x))
-    NewEnd   <- as.vector(end(x))
-    NewStart[idxNeg]  <- 6065 - NewEnd[idxNeg]
-    NewEnd[idxNeg]    <- 6065 - start(x)[idxNeg]
-    NewX <- IRanges(start = NewStart, end = NewEnd)
-    Cov <- coverage(NewX, width = 6064)
-    as.vector(Cov)
+    Cov <- coverage(x)
+    as.vector(Cov[[1]])
   }))
   
   # Get means and 95% quantiles 
