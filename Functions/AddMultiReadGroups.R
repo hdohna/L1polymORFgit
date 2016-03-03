@@ -11,10 +11,10 @@
 #          the fastq files to be mapped
 #     Reference: character string providing path to file containing the 
 #          common reference
-#     IndexCommand: text string providing command to create an index file
+#     AddGroupCmd: text string providing command to add read groups
 #     AlignCommand: text string providing the alignment command (options can be
 #          added here)
-#     SamSuffix: suffix for sam files created by alignment
+#     ReadGroupSuffix: suffix for bam files created after adding read groups
 
 
 # Output:
@@ -24,10 +24,10 @@
 ##############################################
 
 AddMultiReadGroups <- function(BamFolder,  
-    PicardCmd   = "java -jar /home/txw/picard/picard-tools-1.131/picard.jar AddOrReplaceReadGroups",
-    OptionLines = c("RGLB=lib1", "RGPL=illumina", "RGPU=unit1", "RGSM=20",
+   AddGroupCmd   = "java -jar /home/txw/picard/picard-tools-1.131/picard.jar AddOrReplaceReadGroups",
+   AddGroupOptions = c("RGLB=lib1", "RGPL=illumina", "RGPU=unit1", "RGSM=20",
                     "SORT_ORDER=null", "CREATE_INDEX=TRUE", "VALIDATION_STRINGENCY=LENIENT"),
-                     ReadGroupSuffix = "withRG.bam") {
+   ReadGroupSuffix = "withRG.bam") {
   
   # Bam suffices for alignment files created 
   BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
