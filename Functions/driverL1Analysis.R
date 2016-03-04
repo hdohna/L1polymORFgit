@@ -122,8 +122,9 @@ driverL1Analysis <- function(
   
   if(blnFilterRefL1){
     
-    # Write little fastq files per suspected peak
+    # Filtering reads intersecting with full-length L1HS
     cat("*******   Filtering  ...   *******\n")
+    
   }
 
     #######################################
