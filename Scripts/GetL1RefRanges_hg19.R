@@ -32,12 +32,12 @@ library(csaw)
 library(chipseq)
 library(BSgenome.Hsapiens.UCSC.hg19)
 
-L1TableFileName   <- "/home/hzudohna/L1polymORF/Data/L1_repeat_table_Hg19.csv"
-OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference.Rdata'
+# L1TableFileName   <- "/home/hzudohna/L1polymORF/Data/L1_repeat_table_Hg19.csv"
+# OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference.Rdata'
 L1TableFileName   <- "D:/L1polymORF/Data/L1_repeat_table_Hg19.csv"
 OutResults        <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
 
-FullLength <- 6064
+FullLength     <- 6000
 
 #######################################
 #                                     #
@@ -47,7 +47,7 @@ FullLength <- 6064
 
 # Loop through chromosomes and calculate length
 Chromosomes <- paste("chr", c(1:22, "X", "Y"), sep = "")
-ChromLengthsHg19 <- sapply(Chromosomes, function(x) {
+ChromLengths <- sapply(Chromosomes, function(x) {
   length(BSgenome.Hsapiens.UCSC.hg19[[x]])})
 
 # Read in table with L1 ranges
@@ -74,5 +74,5 @@ L1HSFullLength_GRanges <- L1GRanges[idxL1HsFullLength]
 
 # Save results
 cat("*******  Saving results ...   *******\n")
-save(list = c("L1GRanges", "L1HSFullLength_GRanges", "ChromLengthsHg19"), 
+save(list = c("L1GRanges", "L1HSFullLength_GRanges", "ChromLengths"), 
      file = OutResults)
