@@ -29,5 +29,5 @@ driverL1Analysis(
   blnAnalyze        = F,
   AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem',
   HapTypeCallOptions = "",
-  BamSuffixHapTypeCall = ".sam"
+  BamSuffixHapTypeCall = ".bam"
 )
