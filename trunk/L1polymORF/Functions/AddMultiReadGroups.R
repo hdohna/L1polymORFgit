@@ -29,10 +29,11 @@ AddMultiReadGroups <- function(BamFolder,
                     "SORT_ORDER=null", "CREATE_INDEX=TRUE", "VALIDATION_STRINGENCY=LENIENT"),
    ReadGroupSuffix = "withRG.bam") {
   
-  # Bam suffices for alignment files created 
-  BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
-  
-  cat("*******   Mapping little fastq files in", FastQFolder, "...   *******\n")
+  cat("*******************************************************\n")
+  cat("**                                                   **\n")
+  cat("**    Running function AddMultiReadGroups ...        **\n")
+  cat("**                                                   **\n")
+  cat("*******************************************************\n\n")
   
   # Get all paths to fastq files in the folder
   FileNames <- list.files(BamFolder, pattern = ".bam", full.names = T)
