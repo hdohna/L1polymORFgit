@@ -51,7 +51,10 @@ AddMultiReadGroups <- function(BamFolder,
   CmdLines <- paste(AddGroupCmd,  InFiles, OutFiles, OptionLines)
   
   # Loop over command line and run them 
-  for (CmdL in CmdLines) system(CmdL)
+  for (CmdL in CmdLines) {
+    cat("Calling command:\n", CmdL, "\n")
+    system(CmdL)
+  }
   
   # Return paths to fastq files and sam files
   cbind.data.frame(InFileNames = FileNames, OutFileNames = OutFileNames)
