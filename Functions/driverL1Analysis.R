@@ -221,8 +221,8 @@ driverL1Analysis <- function(
     
     FilePathsVCF <- CallMultiVariants(BamFolder = OutFolderName_NonRef,  
                                       HapTypeCallCmd = HapTypeCallCmd,
-                                      RefSeqPath = L1HSConsensus,
-                                      HapTypeCallOptions = HapTypeCallOptions,
+                                      RefSeqPath  = L1HSConsensus,
+                                      OptionLines = HapTypeCallOptions,
                                       BamSuffix = BamSuffixHapTypeCall,
                                       VCFSuffix = VCFSuffix) 
   }

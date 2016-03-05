@@ -23,7 +23,7 @@ driverL1Analysis(
   MinDist2L1 = 20000, 
   blnComparePeaksWithRefL1 = F,
   blnWriteFastq     = F,
-  blnMap2L1         = T, 
+  blnMap2L1         = F, 
   blnAddReadGroups  = F, 
   blnCallHaplotypes = T, 
   blnAnalyze        = F,
