@@ -207,7 +207,7 @@ driverL1Analysis <- function(
     
     BamSuffix   <- ReadGroupSuffix
     BamSuffixHapTypeCall <- ReadGroupSuffix
-    FilePathsRG <- AddMultiReadGroups(FastQFolder = OutFolderName_NonRef,
+    FilePathsRG <- AddMultiReadGroups(BamFolder = OutFolderName_NonRef,
                                       AddGroupCmd   = AddGroupCmd,
                                       AddGroupOptions = AddGroupOptions,
                                       ReadGroupSuffix = ReadGroupSuffix)
