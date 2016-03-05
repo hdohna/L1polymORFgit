@@ -27,5 +27,6 @@ driverL1Analysis(
   blnAddReadGroups  = F, 
   blnCallHaplotypes = T, 
   blnAnalyze        = F,
-  AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem'
+  AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem',
+  HapTypeCallOptions = ""
 )
