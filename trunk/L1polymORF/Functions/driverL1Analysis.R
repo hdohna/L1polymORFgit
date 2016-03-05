@@ -174,7 +174,8 @@ driverL1Analysis <- function(
     
     FilePaths <- MapMultiFastq(FastQFolder  = OutFolderName_NonRef,
                                AlignCommand = AlignCommand,
-                               Reference = L1HSConsensus)
+                               Reference = L1HSConsensus,
+                               SamSuffix = SamSuffix)
   }
   
   ###################################################
