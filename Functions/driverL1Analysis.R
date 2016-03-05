@@ -72,6 +72,7 @@ driverL1Analysis <- function(
                       "SORT_ORDER=null", "CREATE_INDEX=TRUE", "VALIDATION_STRINGENCY=LENIENT"),
   HapTypeCallCmd = "java -jar /home/txw/GATK/GenomeAnalysisTK-2.1-11-g13c0244/GenomeAnalysisTK.jar -T HaplotypeCaller",
   HapTypeCallOptions = "--emitRefConfidence GVCF",
+  ReadGroupSuffix = "withRG.bam",
   BamSuffixHapTypeCall = ".bam",
   SamSuffix = ".sam",
   VCFSuffix = ".vcf" 
@@ -205,6 +206,7 @@ driverL1Analysis <- function(
   if(blnAddReadGroups){
     
     BamSuffix   <- ReadGroupSuffix
+    BamSuffixHapTypeCall <- ReadGroupSuffix
     FilePathsRG <- AddMultiReadGroups(FastQFolder = OutFolderName_NonRef,
                                       AddGroupCmd   = AddGroupCmd,
                                       AddGroupOptions = AddGroupOptions,
