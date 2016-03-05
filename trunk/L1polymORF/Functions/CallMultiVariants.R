@@ -24,7 +24,7 @@
 ##############################################
 
 CallMultiVariants <- function(BamFolder,  
- HapTypeCallCmd = "java -jar /home/txw/GATK/GenomeAnalysisTK-2.1-11-g13c0244/GenomeAnalysisTK.jar -T HaplotypeCaller",
+    HapTypeCallCmd = "java -jar /home/txw/GATK/GenomeAnalysisTK-2.1-11-g13c0244/GenomeAnalysisTK.jar -T HaplotypeCaller",
     RefSeqPath,
     OptionLines = "--filter_mismatching_base_and_quals",
     BamSuffix = "withRG.bam",
