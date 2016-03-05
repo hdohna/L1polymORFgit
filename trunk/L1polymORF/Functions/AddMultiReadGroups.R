@@ -48,7 +48,7 @@ AddMultiReadGroups <- function(BamFolder,
   OptionLines <- paste(AddGroupOptions, collapse = " ")
   InFiles  <- paste("I=", FileNames, sep = "")
   OutFiles <- paste("O=", OutFileNames, sep = "")
-  CmdLines <- paste(PicardCmd,  InFiles, OutFiles, OptionLines)
+  CmdLines <- paste(AddGroupCmd,  InFiles, OutFiles, OptionLines)
   
   # Loop over command line and run them 
   for (CmdL in CmdLines) system(CmdL)
