@@ -26,10 +26,7 @@
 MapMultiFastq <- function(FastQFolder, Reference, 
                           IndexCommand = '/home/txw/bwa/bwa-0.7.12/bwa index',
                           AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem',
-                              SamSuffix = "_aln.sam") {
-  
-  # Bam suffices for alignment files created 
-  BamSuffix <- paste(substr(SamSuffix, 1, nchar(SamSuffix) - 4), ".bam", sep = "")
+                          SamSuffix = "_aln.sam") {
   
   cat("*******   Mapping little fastq files in", FastQFolder, "...   *******\n")
   

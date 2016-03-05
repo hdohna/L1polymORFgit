@@ -36,7 +36,7 @@ AddMultiReadGroups <- function(BamFolder,
   cat("*******************************************************\n\n")
   
   # Get all paths to fastq files in the folder
-  FileNames <- list.files(BamFolder, pattern = ".bam", full.names = T)
+  FileNames <- list.files(BamFolder, pattern = ".sam", full.names = T)
   Bam.Pattern <- grep(".bam.", FileNames)
   if (length(Bam.Pattern) > 0){
     FileNames <- FileNames[-grep(".bam.", FileNames)]
