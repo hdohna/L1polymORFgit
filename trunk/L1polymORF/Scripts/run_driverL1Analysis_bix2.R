@@ -23,11 +23,12 @@ driverL1Analysis(
   MinDist2L1 = 20000, 
   blnComparePeaksWithRefL1 = F,
   blnWriteFastq     = F,
-  blnMap2L1         = T, 
-  blnAddReadGroups  = F, 
+  blnMap2L1         = F, 
+  blnAddReadGroups  = T, 
   blnCallHaplotypes = T, 
   blnAnalyze        = F,
-  AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem -R @RG\tID:foo\tSM:bar',
+  AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem',
+  ReadGroupSuffix = "withRG.bam",
   HapTypeCallOptions = "",
   BamSuffixHapTypeCall = ".bam"
 )
