@@ -21,10 +21,11 @@ driverL1Analysis(
   MinMaxCover = 5, 
   MinGap = 6000, 
   MinDist2L1 = 20000, 
-  blnComparePeaksWithRefL1 = T,
-  blnWriteFastq     = T,
+  blnComparePeaksWithRefL1 = F,
+  blnWriteFastq     = F,
   blnMap2L1         = T, 
   blnAddReadGroups  = F, 
   blnCallHaplotypes = T, 
-  blnAnalyze        = F
+  blnAnalyze        = F,
+  AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem'
 )
