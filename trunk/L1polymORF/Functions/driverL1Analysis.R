@@ -180,6 +180,22 @@ driverL1Analysis <- function(
                                SamSuffix = SamSuffix)
   }
   
+  #######################################
+  #                                     #
+  #     Turn sam files into bam files   #
+  #                                     #
+  #######################################
+  
+  # Get all names of sam files created by BWA
+  SamFileNames <- list.files(OutFolderName_NonRef, pattern = SamSuffix,
+                             full.names = T)
+
+  # Turn sam files into bam files
+  for (fn in SamFileNames) {
+    cat("Turning", fn, "into a bam file\n")
+    asBam(fn, destination = substr(fn, 1, nchar(fn) - 4), overwrite = T)
+  }
+  
   ###################################################
   #                                                 #
   #     Filter bam file with reads mapped to L1HS   #
@@ -228,21 +244,6 @@ driverL1Analysis <- function(
                                                    BamSuffix = BamSuffix)
   }
 
-    #######################################
-  #                                     #
-  #     Call haplotypes                 #
-  #                                     #
-  #######################################
-  
-  # # Get all names of sam files created by BWA
-  # SamFileNames <- list.files(OutFolderName_NonRef, pattern = SamSuffix,
-  #                            full.names = T)
-  # 
-  # # Turn sam files into bam files
-  # for (fn in SamFileNames) {
-  #   cat("Turning", fn, "into a bam file\n")
-  #   asBam(fn, destination = substr(fn, 1, nchar(fn) - 4), overwrite = T)
-  # }
   
   
   if(blnCallHaplotypes){

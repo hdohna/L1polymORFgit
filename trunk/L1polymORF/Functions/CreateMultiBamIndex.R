@@ -30,7 +30,7 @@ CreateMultiBamIndex <- function(BamFolder,
   
   cat("*******************************************************\n")
   cat("**                                                   **\n")
-  cat("**    Running function CreateMultiBam ...        **\n")
+  cat("**    Running function CreateMultiBamIndex ...       **\n")
   cat("**                                                   **\n")
   cat("*******************************************************\n\n")
   
