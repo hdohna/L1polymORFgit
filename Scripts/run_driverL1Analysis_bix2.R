@@ -24,11 +24,13 @@ driverL1Analysis(
   blnComparePeaksWithRefL1 = F,
   blnWriteFastq     = F,
   blnMap2L1         = F, 
-  blnAddReadGroups  = T, 
+  blnAddReadGroups  = F, 
+  blnCreateBamIndices = T,
   blnCallHaplotypes = T, 
   blnAnalyze        = F,
   AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem',
   ReadGroupSuffix = "withRG.bam",
+  BamSuffix = "withRG.bam",
   HapTypeCallOptions = "",
-  BamSuffixHapTypeCall = ".bam"
+  BamSuffixHapTypeCall = "withRG.bam"
 )

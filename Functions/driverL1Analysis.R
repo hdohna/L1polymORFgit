@@ -60,18 +60,20 @@ driverL1Analysis <- function(
   CoverSummaryPlot, CoverComparePlot, ResultFileName,
   MinMaxCover, MinGap, 
   MinDist2L1, 
-  blnComparePeaksWithRefL1 = T,
-  blnWriteFastq     = T,
-  blnMap2L1         = T, 
-  blnAddReadGroups  = F, 
-  blnCallHaplotypes = T, 
-  blnAnalyze        = T,
+  blnComparePeaksWithRefL1 = F,
+  blnWriteFastq     = F,
+  blnMap2L1         = F, 
+  blnAddReadGroups  = F,
+  blnCreateBamIndices = F,
+  blnCallHaplotypes = F, 
+  blnAnalyze        = F,
   AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem -k17 -W40 -r10 -A2 -B5 -O2 -E1 -L0',
   AddGroupCmd  = "java -jar /home/txw/picard/picard-tools-1.131/picard.jar AddOrReplaceReadGroups",
   AddGroupOptions = c("RGLB=lib1", "RGPL=illumina", "RGPU=unit1", "RGSM=20",
                       "SORT_ORDER=null", "CREATE_INDEX=TRUE", "VALIDATION_STRINGENCY=LENIENT"),
   HapTypeCallCmd = "java -jar /home/txw/GATK/GenomeAnalysisTK-2.1-11-g13c0244/GenomeAnalysisTK.jar -T HaplotypeCaller",
   HapTypeCallOptions = "--emitRefConfidence GVCF",
+  BamSuffix = ".bam",
   ReadGroupSuffix = "withRG.bam",
   BamSuffixHapTypeCall = ".bam",
   SamSuffix = ".sam",
@@ -215,6 +217,18 @@ driverL1Analysis <- function(
   }
   
   #######################################
+  #                                     #
+  #     Create bam indices              #
+  #                                     #
+  #######################################
+  
+  if(blnCreateBamIndices){
+    
+        FilePathsRG <- CreateMultiBamIndex(BamFolder  = OutFolderName_NonRef,  
+                                                   BamSuffix = BamSuffix)
+  }
+
+    #######################################
   #                                     #
   #     Call haplotypes                 #
   #                                     #
