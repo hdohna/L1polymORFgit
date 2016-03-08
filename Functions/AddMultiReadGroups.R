@@ -36,7 +36,11 @@ AddMultiReadGroups <- function(BamFolder,
   cat("*******************************************************\n\n")
   
   # Get all paths to sam files in the folder
-  FileNames <- list.files(BamFolder, pattern = ".sam", full.names = T)
+  FileNames <- list.files(BamFolder, pattern = ".bam", full.names = T)
+  Bam.Pattern <- grep(".bam.", FileNames)
+  if (length(Bam.Pattern) > 0){
+    FileNames <- FileNames[-grep(".bam.", FileNames)]
+  }
   RG.Pattern <- grep(ReadGroupSuffix, FileNames)
   if (length(RG.Pattern) > 0){
     FileNames <- FileNames[-grep(ReadGroupSuffix, FileNames)]
