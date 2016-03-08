@@ -23,35 +23,26 @@
 
 ##############################################
 
-AddMultiReadGroups <- function(BamFolder,  
-   AddGroupCmd   = "java -jar /home/txw/picard/picard-tools-1.131/picard.jar AddOrReplaceReadGroups",
-   AddGroupOptions = c("RGLB=lib1", "RGPL=illumina", "RGPU=unit1", "RGSM=20",
-                    "SORT_ORDER=null", "CREATE_INDEX=TRUE", "VALIDATION_STRINGENCY=LENIENT"),
-   ReadGroupSuffix = "withRG.bam") {
+CreateMultiBamIndex <- function(BamFolder,  
+   CreateBamIndexCmd   = "/home/txw/samtools/samtools-1.2/samtools index",
+   BamSuffix = ".bam"
+) {
   
   cat("*******************************************************\n")
   cat("**                                                   **\n")
-  cat("**    Running function AddMultiReadGroups ...        **\n")
+  cat("**    Running function CreateMultiBam ...        **\n")
   cat("**                                                   **\n")
   cat("*******************************************************\n\n")
   
   # Get all paths to sam files in the folder
-  FileNames <- list.files(BamFolder, pattern = ".sam", full.names = T)
-  RG.Pattern <- grep(ReadGroupSuffix, FileNames)
-  if (length(RG.Pattern) > 0){
-    FileNames <- FileNames[-grep(ReadGroupSuffix, FileNames)]
+  FileNames <- list.files(BamFolder, pattern = BamSuffix, full.names = T)
+  Bam.Pattern <- grep(".bam.", FileNames)
+  if (length(Bam.Pattern) > 0){
+    FileNames <- FileNames[-grep(".bam.", FileNames)]
   }
   
-  
-  # Create output file names
-  OutFileNames <- substr(FileNames, 1, nchar(FileNames) - 4)
-  OutFileNames <- paste(OutFileNames, ReadGroupSuffix, sep = "_")
-  
   # Create a command per file 
-  OptionLines <- paste(AddGroupOptions, collapse = " ")
-  InFiles  <- paste("I=", FileNames, sep = "")
-  OutFiles <- paste("O=", OutFileNames, sep = "")
-  CmdLines <- paste(AddGroupCmd,  InFiles, OutFiles, OptionLines)
+  CmdLines <- paste(CreateBamIndexCmd,  FileNames)
   
   # Loop over command line and run them 
   for (CmdL in CmdLines) {
