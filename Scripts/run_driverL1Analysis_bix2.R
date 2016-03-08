@@ -24,7 +24,7 @@ driverL1Analysis(
   blnComparePeaksWithRefL1 = F,
   blnWriteFastq     = F,
   blnMap2L1         = F, 
-  blnAddReadGroups  = F, 
+  blnAddReadGroups  = T, 
   blnCreateBamIndices = T,
   blnCallHaplotypes = T, 
   blnAnalyze        = F,
