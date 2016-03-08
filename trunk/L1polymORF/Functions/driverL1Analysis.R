@@ -105,7 +105,8 @@ driverL1Analysis <- function(
   }
   
   # Create path to result file
-  OutResults_RangeComparison  <- paste(OutputFolder, FolderPrefix, "_L1Ranges.RData", sep = "")
+  OutResults_RangeComparison  <- paste(OutputFolder, FolderPrefix, 
+                                       "_L1Ranges.RData", sep = "")
   OutResults  <- paste(OutputFolder, ResultFileName)
   
   #######################################################
