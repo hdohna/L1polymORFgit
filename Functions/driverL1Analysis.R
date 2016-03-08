@@ -186,14 +186,18 @@ driverL1Analysis <- function(
   #                                     #
   #######################################
   
-  # Get all names of sam files created by BWA
-  SamFileNames <- list.files(OutFolderName_NonRef, pattern = SamSuffix,
-                             full.names = T)
+  if(is.null(L1HSBamFile)){
+    
+    # Get all names of sam files created by BWA
+    SamFileNames <- list.files(OutFolderName_NonRef, pattern = SamSuffix,
+                               full.names = T)
+    
+    # Turn sam files into bam files
+    for (fn in SamFileNames) {
+      cat("Turning", fn, "into a bam file\n")
+      asBam(fn, destination = substr(fn, 1, nchar(fn) - 4), overwrite = T)
+    }
 
-  # Turn sam files into bam files
-  for (fn in SamFileNames) {
-    cat("Turning", fn, "into a bam file\n")
-    asBam(fn, destination = substr(fn, 1, nchar(fn) - 4), overwrite = T)
   }
   
   ###################################################
@@ -240,7 +244,7 @@ driverL1Analysis <- function(
   
   if(blnCreateBamIndices){
     
-        FilePathsRG <- CreateMultiBamIndex(BamFolder  = OutFolderName_NonRef,  
+        CreateMultiBamIndex(BamFolder  = OutFolderName_NonRef,  
                                                    BamSuffix = BamSuffix)
   }
 
