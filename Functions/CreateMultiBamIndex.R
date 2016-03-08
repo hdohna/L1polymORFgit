@@ -50,8 +50,6 @@ CreateMultiBamIndex <- function(BamFolder,
     system(CmdL)
   }
   
-  # Return paths to fastq files and sam files
-  cbind.data.frame(InFileNames = FileNames, OutFileNames = OutFileNames)
 }
 
 
