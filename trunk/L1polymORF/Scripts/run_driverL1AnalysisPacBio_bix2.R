@@ -9,8 +9,8 @@ library(csaw)
 
 # Run function
 driverL1Analysis(
-  PeakBam = "/home/hzudohna/NA12878PacBio_alnMappedSorted.bam", 
-  L1HSBamFile = "/home/hzudohna/L1polymORF/Data/NA12878PacBio_L1hg19.bam", 
+  PeakBam = "/home/hzudohna/L1polymORF/Data/NA12878PacBio_L1hg19.bam", 
+  L1HSBamFile = "/home/hzudohna/NA12878PacBio_alnMappedSorted.bam", 
   FastQFolder = NULL, 
   L1HSConsensus = "/home/hzudohna/L1polymORF/Data/Homo_sapiens_L1_consensus.fa",
   L1RefRanges    = '/home/hzudohna/L1polymORF/Data/L1RefRanges_hg19.Rdata',
