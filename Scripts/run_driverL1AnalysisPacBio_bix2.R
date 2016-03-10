@@ -26,6 +26,7 @@ driverL1Analysis(
   blnMap2L1         = F, 
   blnAddReadGroups  = F, 
   blnCreateBamIndices = F,
+  blnFilterBam = F,
   blnCallHaplotypes = T, 
   blnAnalyze        = F,
   AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem',
