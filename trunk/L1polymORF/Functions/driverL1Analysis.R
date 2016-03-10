@@ -65,6 +65,7 @@ driverL1Analysis <- function(
   blnMap2L1         = F, 
   blnAddReadGroups  = F,
   blnCreateBamIndices = F,
+  blnFilterBam = F,
   blnCallHaplotypes = F, 
   blnAnalyze        = F,
   AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem -k17 -W40 -r10 -A2 -B5 -O2 -E1 -L0',
@@ -207,7 +208,7 @@ driverL1Analysis <- function(
   #                                                 #
   ###################################################
   
-  if(!is.null(L1HSBamFile)){
+  if(!is.null(L1HSBamFile) & blnFilterBam){
      
     # Loop over peaks that do not overlap with reference L1 and write out a
     # per peak a separate bam file of reads mapped to L1HS
