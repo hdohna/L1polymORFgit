@@ -145,7 +145,7 @@ L1SeqHot <- sapply(L1HotTable$Accession_no., function(AccNr){
 })
 closebank()
 
-# Match each L1HS to a locus 
+# Match each L1HS to a locus [TODO: Explore different match options]
 cat("Match hot L1 loci to L1s from repeatMasker\n")
 L1SeqHot <- toupper(L1SeqHot)
 GrepMatch <- sapply(L1HSSeq, function(x) {
