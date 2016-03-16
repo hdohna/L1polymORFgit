@@ -15,6 +15,10 @@ L1HotDupl <- L1Hot_raw[,blnDuplCols]
 colnames(L1HotDupl) <- CNames[!blnDuplCols]
 L1HotTable    <- rbind(L1Hot_raw[,!blnDuplCols],L1HotDupl)
 
+# Write table of hot L1 (obtained from Brouha et al.2003 PNAS)
+L1Hot_raw <- read.delim('D:/L1polymORF/Data/L1HotTable_raw.txt', sep = " ")
+
+
 # Download sequences 
 choosebank("genbank")
 

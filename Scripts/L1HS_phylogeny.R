@@ -30,8 +30,8 @@ library(seqinr)
 library(ape)
 
 # Files and folders
-AlignFileName <- "D:/L1polymORF/Data/L1Sequences_reptab_alignedMAFF"
-
+AlignFileName <- "D:/L1polymORF/Data/L1Sequences_reptab_alignedMAFFT"
+list.files('D:/L1polymORF/Data/')
 # Source all functions from Functions folder
 AllFunctions <- list.files(path = "D:/GeneralRFunctions/", 
                            pattern = ".[rR]", full.names = T)

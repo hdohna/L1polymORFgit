@@ -30,3 +30,7 @@ write.fasta(L1seqs[c(idxL1HS, idxMaxL1PA)],
 write.fasta(L1seqs[c(idxL1HS, idxHighL1PA)], 
             names(L1seqs)[c(idxL1HS, idxHighL1PA)],
             "D:/L1polymORF/Data/Homo_sapiens_L1HSL1PA_Multi.fa")
+
+write.fasta(L1seqs[c(idxL1HS, idxHighL1PA)], 
+            names(L1seqs)[c(idxL1HS, idxHighL1PA)],
+            "D:/L1polymORF/Data/Homo_sapiens_L1HSL1PA_Multi.fa")
