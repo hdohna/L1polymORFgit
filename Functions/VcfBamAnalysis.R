@@ -188,6 +188,7 @@ VCfBamAnalysis <- function(BamFolder,
   plot(WidthRef, L1Width, xlab = "Peak width [bp]", ylab = "L1 width [bp]")
   plot(WidthRef, MeanCovL1, xlab = "Peak width [bp]", ylab = "Mean L1 coverage")
   plot(MaxCovRef, L1Width, xlab = "Maximum peak coverage", ylab = "L1 width [bp]")
+  CreateDisplayPdf("D:/L1polymORF/Figures/L1PacBioNonRefCoverWidthVsMaxCover.pdf")
   plot(MaxCovRef, L1Width, xlab = "Maximum peak coverage", ylab = "L1 width [bp]", 
        xlim = c(0, 100))
   plot(MaxCovRef, L1Width, xlab = "Maximum peak coverage", ylab = "L1 width [bp]", 
@@ -195,10 +196,16 @@ VCfBamAnalysis <- function(BamFolder,
   plot(MaxCovRef, MeanCovL1, xlab = "Maximum peak coverage", ylab = "Mean L1 coverage", 
        xlim = c(0, 50))
 
-  plot(MaxCovRef, MeanCovL1NonZero, xlab = "Maximum peak coverage", ylab = "Mean L1 coverage", 
-       xlim = c(0, 50))
+  plot(MaxCovRef, MeanCovL1NonZero, xlab = "Maximum peak coverage", 
+       ylab = "Mean L1 coverage")
   plot(MaxCovRef, MeanCovL1Range, xlab = "Maximum peak coverage", ylab = "Mean L1 coverage", 
        xlim = c(0, 50))
+  hist(L1Width, xlab = "Width of L1 covered [bp]", main = "")
+#  CreateDisplayPdf("D:/L1polymORF/Figures/L1PacBioNonRefCoverWidth.pdf")
+  hist(MaxCovRef, xlab = "Maximum coverage in reference", main = "",
+       breaks = 0:400)
+  # CreateDisplayPdf("D:/L1polymORF/Figures/L1MaxCoverRef.pdf")
+  # sum(L1Width >= 6000)
   
   # pdf(file = CoverSummaryPlot)
   # plot(QuantileMat[2,], type = "n", ylim = c(0, max(QuantileMat)), 
