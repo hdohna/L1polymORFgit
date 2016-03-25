@@ -371,7 +371,7 @@ for (i in which(FlankTotal > 100 & is.na(InsertDF$InsertionStartRel)) ){
       InsertStart                   <- start(String) + 100 + start(Indel) - 1
       InsertDF$InsertionStartRel[i] <- 100 + start(Indel) - 1 
       InsertDF$InsertionStartAbs[i] <- start(String) + 200
-      InsertDF$NrNuc5p[i]           <- 100 - start(Indel)
+      InsertDF$NrNuc5p[i]           <- 100 - start(Indel)D:/L1polymORF/Data/
       InsertDF$NrNuc3p[i]           <- end(Indel) - 100
       
     }
@@ -382,7 +382,7 @@ sum(is.na(InsertDF$InsertionStartAbs))
 InsertDFBeck2010 <- InsertDF
 Beck2010TableWithL1InsertLoc <- cbind(Beck2010TableWithL1, InsertDF)
 write.csv(Beck2010TableWithL1InsertLoc, "D:/L1polymORF/Data/Beck2010_mergedTable_withL1InsertLoc.csv")
-Beck2010TableWithL1InsertLoc <- read.csv("D:/L1polymORF/Data/Beck2010_mergedTable_withL1InsertLoc.csv")
+Beck2010TableWithL1InsertLoc <- read.csv("Beck2010_mergedTable_withL1InsertLoc.csv")
 
 #################################################
 #                                               #
@@ -467,20 +467,37 @@ Beck2010TableWithL1InsertLoc$start_HG38 <-
   Beck2010TableWithL1InsertLoc$InsertionStartAbs
 Beck2010TableWithL1InsertLoc$end_HG38 <-
   Beck2010TableWithL1InsertLoc$start_HG38 + 1
-
+L1Brouha2003Table$strand
 # Replace start and end for non-reference insertion in Brouha2003 data
 blnBrouhaNonRef <- is.na(L1Brouha2003Merged$start_HG38)
 L1Brouha2003Merged$start_HG38[blnBrouhaNonRef] <- 
   InsertDFBrouha2003$InsertionStartAbs[blnBrouhaNonRef]
 
 # Rename column so that they are consistent between datasets
+colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Allele_frequency."] <- "Allele_frequency"
 colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Chr"] <- "Chromosome"
 colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Act_L1rp"] <- "Activity"
-colnames(Beck2010TableWithL1InsertLoc)
-colnames(L1Brouha2003Merged)
-intersect(colnames(Beck2010TableWithL1InsertLoc),
-          colnames(L1Brouha2003Merged))
-                  
+
+# Add additional columns
+Beck2010TableWithL1InsertLoc$Allele_frequency <- NA
+Beck2010TableWithL1InsertLoc$Chromosome <- paste("chr",
+    Beck2010TableWithL1InsertLoc$Chromosome, sep = "")
+Beck2010TableWithL1InsertLoc$Reference <- "Beck2010"
+
+# Create tables for merging and merge them
+CommonCols <- c("Accession", "Chromosome", "Activity", "Allele_frequency", 
+                "Reference", "Strand", "start_HG38", "end_HG38", "L1Seq",  
+                "L1SeqFlank5p", "L1SeqFlank3p", "L1SeqFlank5p2x",
+                "L1SeqFlank3p2x")
+BeckForMeging   <- Beck2010TableWithL1InsertLoc[, CommonCols]
+BrouhaForMeging <- L1Brouha2003Merged[, CommonCols] 
+
+# Merge both data sets
+L1Catalogue <- rbind(BrouhaForMeging, BeckForMeging)
+
+# Write cataloge
+write.csv(L1Catalogue, "D:/L1polymORF/Data/L1Catalogue.csv")
+
 #################################################
 #                                               #
 #         Find variable sites                   #
