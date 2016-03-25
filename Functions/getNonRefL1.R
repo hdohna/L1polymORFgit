@@ -8,11 +8,13 @@
 # Input:
 #
 #  Folders and file names:
-#     L1Consens: L1HS consensus sequence
-#     AccNrs:    vector with accession numbers to get sequences
-#     Seqs:      DNAStringSet of clone sequences (if it is null, sequences will be 
-#                obtained using AccNrs)
+#     L1Consens:     L1HS consensus sequence
+#     AccNrs:        vector with accession numbers to get sequences
+#     Seqs:          DNAStringSet of clone sequences (if it is null, sequences will be 
+#                    obtained using AccNrs)
 #     MinMatchWidth: integer giving the minimum width of a match to L1 sequence
+#     FlankSize:     integer giving the length of sequences flanking L1 insertions 
+#                    [bp] used to locate insertions
 
 
 # Output:
@@ -27,7 +29,7 @@
 ##############################################
 
 getNonRefL1 <- function(L1Consens,
-  AccNrs, Seqs = NULL, MinMatchWidth = 5500){
+  AccNrs, Seqs = NULL, MinMatchWidth = 5500, FlankSize = 100){
   
   # Get sequences from Genbank if no sequences are provided
   if (is.null(Seqs)){
@@ -59,10 +61,12 @@ getNonRefL1 <- function(L1Consens,
   
   # Initialize output objects
   OutDF <- data.frame(
-    L1Seq         = rep(NA, length(Seqs)),
-    L1SeqFlank5p  = rep(NA, length(Seqs)),
-    L1SeqFlank3p  = rep(NA, length(Seqs)),
-    Strand        = rep(NA, length(Seqs))
+    L1Seq          = rep(NA, length(Seqs)),
+    L1SeqFlank5p   = rep(NA, length(Seqs)),
+    L1SeqFlank3p   = rep(NA, length(Seqs)),
+    L1SeqFlank5p2x = rep(NA, length(Seqs)),
+    L1SeqFlank3p2x = rep(NA, length(Seqs)),
+    Strand         = rep(NA, length(Seqs))
   )
 
   
@@ -86,8 +90,13 @@ getNonRefL1 <- function(L1Consens,
       E <- end(lpA@subject@range)
       Seq5P <- SubjectSeq[[1]][max(1, (S - FlankSize)):(S - 1)] 
       Seq3P <- SubjectSeq[[1]][(E + 1):min(length(SubjectSeq[[1]]), (E + FlankSize))] 
+      Seq5P2x <- SubjectSeq[[1]][max(1, (S - 2*FlankSize)):max(1, S - FlankSize - 1)] 
+      Seq3P2x <- SubjectSeq[[1]][min(length(SubjectSeq[[1]]), E + 1 + FlankSize):
+                                        min(length(SubjectSeq[[1]]), (E + 2*FlankSize))] 
       OutDF$L1SeqFlank5p[i]  <- as.character(Seq5P)
       OutDF$L1SeqFlank3p[i]  <- as.character(Seq3P)
+      OutDF$L1SeqFlank5p2x[i]  <- as.character(Seq5P2x)
+      OutDF$L1SeqFlank3p2x[i]  <- as.character(Seq3P2x)
     } else {
       cat("L1 consensus could not be matched to clone", 
           AccNrs[i], "\n")
