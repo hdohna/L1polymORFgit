@@ -29,7 +29,7 @@ source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
 
 # Load packages
 library(BSgenome.Hsapiens.UCSC.hg38)
-library(seqinr)
+#library(seqinr)
 
 # Specify data path
 DataPath <- "/home/hzudohna/L1polymORF/Data/"
@@ -68,7 +68,7 @@ for (Chr in ChrsToBeSearched){
   cat("Writing chromosome", Chr, "\n")
   ChrSeq  <- BSgenome.Hsapiens.UCSC.hg38[[Chr]]
   ChrPath <- paste(DataPath, Chr, ".fas", sep = "")
-  write.fasta(s2c(as.character(ChrSeq)), names = Chr, file.out = ChrPath)
+#  write.fasta(s2c(as.character(ChrSeq)), names = Chr, file.out = ChrPath)
   ChrPathVect <- c(ChrPathVect, ChrPath)
 }
 names(ChrPathVect) <- ChrsToBeSearched
