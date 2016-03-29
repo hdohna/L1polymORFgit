@@ -14,7 +14,7 @@ driverL1Analysis(
   L1HSBamFile = NULL, 
   FastQFolder = "/share/diskarray2/L1HS/fastq_and_align/LHS0001combtrimRCNMP3NMP3Q20PE-33564531/", 
   L1HSConsensus = "/home/hzudohna/L1polymORF/Data/Homo_sapiens_L1_consensus.fa",
-  L1RefRanges    = '/home/hzudohna/L1polymORF/Data/L1RefRanges_hg19.Rdata',
+  L1RefRanges    = '/home/hzudohna/L1polymORF/Data/L1RefRanges_hg38.Rdata',
   OutputFolder = "/home/hzudohna/L1polymORF/Data/", 
   CoverSummaryPlot, 
   CoverComparePlot, 

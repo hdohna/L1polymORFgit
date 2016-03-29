@@ -28,12 +28,16 @@
 source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
 
 # Load packages
+library(Rsamtools)
+library(ShortRead)
+library(csaw)
+library(chipseq)
 library(BSgenome.Hsapiens.UCSC.hg38)
 #library(seqinr)
 
 # Specify data path
 DataPath <- "/home/hzudohna/L1polymORF/Data/"
-#DataPath <- "D:/L1polymORF/Data/"
+DataPath <- "D:/L1polymORF/Data/"
 
 # Specify commands
 IndexCommand <- '/home/txw/bwa/bwa-0.7.12/bwa index'
@@ -101,4 +105,43 @@ for (i in idxFlanksToBeSearched){
   CmdLine <- paste(CmdLine, OutFile, sep = " > ")
   system(CmdLine)
 }
+
+# Get paths to all sam files
+FilePaths <- list.files(DataPath, pattern = "L1Flank", full.names = T)
+SamFilePaths <- grep(".sam", FilePaths, value = T)
+SamFile <- SamFilePaths[1]
+for (SamFile in SamFilePaths){
+  AccNr <- strsplit(SamFile, "_")[[1]][2]
+  AccNr <- strsplit(AccNr, "\\.")[[1]][1]
+  idxRow <- which(L1Catalogue$Accession == AccNr)
+  Chrom <- L1Catalogue$Chromosome[idxRow]
+  GR <- GRanges(seqnames = Chrom, IRanges(start = 1, 
+           end = length(BSgenome.Hsapiens.UCSC.hg38[[Chrom]])))
+  BamFile <- gsub(".sam", ".bam", SamFile)
+  BamFilePrefix <- substr(BamFile, 1, nchar(BamFile) - 4)
+  asBam(SamFile, BamFilePrefix, overwrite = T)
+  sortBam(BamFile, BamFile)
+  indexBam(BamFile)
+  ReadRanges <- extractReads(BamFile, GR)
+  NewStart   <- min(end(ReadRanges))
+  NewEnd     <- max(start(ReadRanges))
+  length(ReadRanges)
+  if (length(ReadRanges) == 2 & ((NewEnd - NewStart) < 6100) &
+      is.na(L1Catalogue$end_HG38[idxRow])){
+    cat("Adding start and end for", AccNr, "\n")
+    L1Catalogue$start_HG38[idxRow] <- NewStart
+    L1Catalogue$end_HG38[idxRow] <- NewEnd
+  }
+}
+
+# Write updated catalogue out
+L1CatalogueOutPath <- paste(DataPath, "L1CatalogueUpdated.csv", sep = "")
+write.csv(L1Catalogue, L1CatalogueOutPath)
+
+L1Catalogue     <- read.csv(L1CatalogueOutPath, as.is = T)
+
+sum(is.na(L1Catalogue$L1Seq))
+sum(is.na(L1Catalogue$L1SeqFlank5p))
+sum(is.na(L1Catalogue$start_HG38))
+table(is.na(L1Catalogue$L1Seq), is.na(L1Catalogue$start_HG38), L1Catalogue$Reference)
 
