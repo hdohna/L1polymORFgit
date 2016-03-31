@@ -10,9 +10,9 @@ library(csaw)
 source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
 
 # Summarize results from capture data
-CaptureSummary <- BamAnalysis(BamFolder = "home/hzudohna/L1polymORF/Data/NA12878-L15P_NonRef", 
+CaptureSummary <- BamAnalysis(BamFolder = "/home/hzudohna/L1polymORF/Data/NA12878-L15P_NonRef", 
             BamSuffix = "withRG.bam",
-            L1Ranges = "home/hzudohna/L1polymORF/Data/NA12878-L15P_L1Ranges.RData",
+            L1Ranges = "/home/hzudohna/L1polymORF/Data/NA12878-L15P_L1Ranges.RData",
             L1Length = 6064,
             blnGetSplitReads = T,
             BamFileOriginal = '/home/hzudohna/NA12878-L15P_S1_L001_001.sorted.dedup.mapnonzero.bam')
