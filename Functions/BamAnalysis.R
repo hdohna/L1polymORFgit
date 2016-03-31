@@ -71,6 +71,7 @@ BamAnalysis <- function(BamFolder,
   BamFileNames <- BamFileNames[idxMatchBam]
 
   # Loop through file names and read in bam files of reads mapped to L1
+  cat("Loading reads\n")
   ScannedL1Ranges <- lapply(BamFileNames, function(x) scanBam(x))
   
   ######################################
@@ -86,6 +87,7 @@ BamAnalysis <- function(BamFolder,
   idxNonZero <- which(NrMapped2L1 > 0)
   
   # Create a coverage matrix that gives the coverage per base
+  cat("Calculating CoverMat\n")
   CoverMat <- matrix(0, nrow = length(BamFileNames), ncol = L1Length)
   rownames(CoverMat) <- BamFileNames
   R1 <- GRanges(seqnames = "L1HS_L1_Homo_sapiens", 
@@ -152,6 +154,7 @@ BamAnalysis <- function(BamFolder,
   }
   
   if (blnGetSplitReads){
+    cat("Determining split reads\n")
     # Loop through bamfiles and determine indices of reads that
     # were mapped to L1 and the reference genome
     SplitReadList <- lapply(BamFileNames, function(BamFile){
