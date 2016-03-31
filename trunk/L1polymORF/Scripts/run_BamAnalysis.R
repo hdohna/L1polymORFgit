@@ -6,7 +6,8 @@ library(ShortRead)
 library(csaw)
 
 # Source start script
-source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
+#source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
+source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
 
 # Summarize results from capture data
 CaptureSummary <- BamAnalysis(BamFolder = "home/hzudohna/L1polymORF/Data/NA12878-L15P_NonRef", 
