@@ -373,7 +373,7 @@ sum(is.na(InsertDF$InsertionStartAbs))
 InsertDFBeck2010 <- InsertDF
 Beck2010TableWithL1InsertLoc <- cbind(Beck2010TableWithL1, InsertDF)
 write.csv(Beck2010TableWithL1InsertLoc, "D:/L1polymORF/Data/Beck2010_mergedTable_withL1InsertLoc.csv")
-Beck2010TableWithL1InsertLoc <- read.csv("Beck2010_mergedTable_withL1InsertLoc.csv")
+Beck2010TableWithL1InsertLoc <- read.csv("D:/L1polymORF/Data/Beck2010_mergedTable_withL1InsertLoc.csv")
 
 #################################################
 #                                               #
@@ -472,6 +472,7 @@ colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Chr"] <- "Chromoso
 colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Act_L1rp"] <- "Activity"
 
 # Add additional columns
+L1Brouha2003Merged$Coriell_ID <- NA
 Beck2010TableWithL1InsertLoc$Allele_frequency <- NA
 Beck2010TableWithL1InsertLoc$Chromosome <- paste("chr",
     Beck2010TableWithL1InsertLoc$Chromosome, sep = "")
@@ -479,7 +480,7 @@ Beck2010TableWithL1InsertLoc$Reference <- "Beck2010"
 
 # Create tables for merging and merge them
 CommonCols <- c("Accession", "Chromosome", "Activity", "Allele_frequency", 
-                "Reference", "Strand", "start_HG38", "end_HG38", "L1Seq",  
+                "Reference", "Coriell_ID", "Strand", "start_HG38", "end_HG38", "L1Seq",  
                 "L1SeqFlank5p", "L1SeqFlank3p", "L1SeqFlank5p2x",
                 "L1SeqFlank3p2x")
 BeckForMeging   <- Beck2010TableWithL1InsertLoc[, CommonCols]
@@ -490,7 +491,10 @@ BrouhaForMeging <- L1Brouha2003Merged[, CommonCols]
 L1Catalogue <- rbind(BrouhaForMeging, BeckForMeging)
 
 # Write cataloge
-write.csv(L1Catalogue, "D:/L1polymORF/Data/L1Catalogue.csv")
+TStamp <- gsub(" ", "_", date())
+TStamp <- gsub(":", "-", TStamp)
+CataloguePath <- paste("D:/L1polymORF/Data/L1Catalogue_", TStamp, ".csv", sep = "")
+write.csv(L1Catalogue, CataloguePath)
 
 #################################################
 #                                               #
