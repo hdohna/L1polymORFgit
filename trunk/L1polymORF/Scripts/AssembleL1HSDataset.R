@@ -34,9 +34,14 @@ library(seqinr)
 # Length of sequences flanking L1 insertions [bp] used to locate insertions
 FlankSize <- 100
 
+# Length of an L1 insertion with flanking sequences
+LengthL1WithFlank <- 20000
+
 # Boolean indicators for whether to perform particular processes
-blnBuildBrouha2003 <- T
-blnBuildBeck2010   <- F
+blnBuildBrouha2003 <- F
+blnBuildBeck2010   <- T
+blnBuildSeleme2006 <- F
+blnMergeTables     <- T
 blnFindVarSites    <- F
 blnAlignsequences  <- F
 
@@ -96,6 +101,8 @@ RemoveRanges <- function(Ranges, LowerW = 0, UpperW = Inf){
 # Remove strange regions from GRanges_L1repMask_Hg38
 GRanges_L1repMask_Hg38 <- RemoveRanges(GRanges_L1repMask_Hg38, LowerW = 6000, 
                                        UpperW = 12000)
+GRanges_L1repMask_Hg38_Large <- GenomicRanges::resize(GRanges_L1repMask_Hg38, 
+                                       width = LengthL1WithFlank, fix = "center")
 
 # Get the 500 nuc upstream and downstream of the L1
 Flank5PSeq <- getSeq(BSgenome.Hsapiens.UCSC.hg38, 
@@ -121,7 +128,7 @@ L1HSSeq <- getSeq(BSgenome.Hsapiens.UCSC.hg38, GRanges_L1repMask_Hg38)
 if (blnBuildBrouha2003){
   
   # Read in table of hot L1 (obtained from Brouha et al.2003 PNAS)
-  cat("Read table with hot L1s \n")
+  cat("Read L1 table by Brouha et al 2003 \n")
   L1Brouha2003_raw <- read.delim('D:/L1polymORF/Data/L1HotTable_raw.txt', 
                                  sep = " ", as.is = T)
 
@@ -145,6 +152,7 @@ if (blnBuildBrouha2003){
   
   # Add more columns
   L1Brouha2003Table$L1Seq            <- NA
+  L1Brouha2003Table$L1SeqWithFlank   <- NA
   L1Brouha2003Table$L1SeqFlank5p     <- NA
   L1Brouha2003Table$L1SeqFlank3p     <- NA
   L1Brouha2003Table$L1SeqSourceType  <- "BAC"
@@ -152,31 +160,37 @@ if (blnBuildBrouha2003){
   L1Brouha2003Table$end_HG38         <- NA
   L1Brouha2003Table$Strand           <- NA
   L1Brouha2003Table$Reference        <- "Brouha2003"
+  L1Brouha2003Table$start_Clone      <- NA
+  L1Brouha2003Table$end_Clone        <- NA
   
   # Download sequences 
-  cat("Get sequences for hot L1 loci \n")
+  cat("Get sequences for L1 loci by Brouha et al 2003\n")
   load("D:/L1polymORF/Data/Brouha2003Sequences.RData")
 
-  # Match each L1HS to a locus 
-  cat("Match hot L1 loci to L1s from repeatMasker\n")
+  # Re-write sequences in upper case and turn it into DNAStringset
   L1SeqHot <- toupper(L1SeqHot)
+  L1SeqHotDNAStSet   <- DNAStringSet(L1SeqHot)
+  L1SeqHotDNAStSetRV <- reverseComplement(L1SeqHotDNAStSet)
   
   # Get strand and chromosome from repeatMasker table
   Strand_L1repMask_Hg38 <- as.vector(strand(GRanges_L1repMask_Hg38))
   chr_L1repMask_Hg38    <- as.vector(seqnames(GRanges_L1repMask_Hg38))
   
-  # Find sequences that are matched by flanks
-  L1SeqHotDNAStSet   <- DNAStringSet(L1SeqHot)
-  L1SeqHotDNAStSetRV <- reverseComplement(L1SeqHotDNAStSet)
-  
   # Loop through flanking sequences and find parts of the BAC clones that match
   # flanking sequences
+  i <- 1
   for (i in 1:length(Flank5PSeq)){
     print(i)
+    Seq   <- getSeq(BSgenome.Hsapiens.UCSC.hg38,
+                    GRanges_L1repMask_Hg38[i])
+    # SeqWithFlank   <- getSeq(BSgenome.Hsapiens.UCSC.hg38,
+    #                 GRanges_L1repMask_Hg38_Large[i])
     if (Strand_L1repMask_Hg38[i] == "-"){
       DNAStSet <- L1SeqHotDNAStSetRV
       LeftP    <- Flank3PSeq[[i]]
       RightP   <- Flank5PSeq[[i]]
+      Seq      <- reverseComplement(Seq)
+#      SeqWithFlank <- reverseComplement(SeqWithFlank)
     } else {
       DNAStSet <- L1SeqHotDNAStSet
       LeftP    <- Flank5PSeq[[i]]
@@ -196,15 +210,15 @@ if (blnBuildBrouha2003){
       if (sum(idxAbove6000) == 1){
         S <- start(mViews[idxAbove6000])
         E <- end(mViews[idxAbove6000])
-        Seq <- mViews[idxAbove6000]@subject[S:E] 
+#        Seq   <- mViews[idxAbove6000]@subject[S:E] 
         Seq5P <- mViews[idxAbove6000]@subject[(S - FlankSize):(S - 1)] 
         Seq3P <- mViews[idxAbove6000]@subject[(E + 1):(E + FlankSize)] 
         L1Brouha2003Table$L1SeqFlank5p[idxChr[idxMatch]]  <- as.character(Seq5P)
         L1Brouha2003Table$L1SeqFlank3p[idxChr[idxMatch]]  <- as.character(Seq3P)
-        L1Brouha2003Table$L1Seq[idxChr[idxMatch]] <- as.character(Seq)
-        L1Brouha2003Table$start_HG38[idxChr[idxMatch]] <- start(GRanges_L1repMask_Hg38)[i]
-        L1Brouha2003Table$end_HG38[idxChr[idxMatch]]   <- end(GRanges_L1repMask_Hg38)[i]
-        L1Brouha2003Table$Strand[idxChr[idxMatch]] <- Strand_L1repMask_Hg38[i]
+        L1Brouha2003Table$L1Seq[idxChr[idxMatch]]         <- as.character(Seq)
+        L1Brouha2003Table$start_HG38[idxChr[idxMatch]]    <- start(GRanges_L1repMask_Hg38)[i]
+        L1Brouha2003Table$end_HG38[idxChr[idxMatch]]      <- end(GRanges_L1repMask_Hg38)[i]
+        L1Brouha2003Table$Strand[idxChr[idxMatch]]        <- Strand_L1repMask_Hg38[i]
       } else {
         cat("More than one set of flanking sequences enclose a stretch above 6000\n")
       }
@@ -212,7 +226,7 @@ if (blnBuildBrouha2003){
     }
   }
   
-  # Break L1Brouha2003Table inot entries with and without L1 insertion on
+  # Break L1Brouha2003Table into entries with and without L1 insertion on
   # the reference genome
   L1Brouha2003Ref    <- L1Brouha2003Table[!is.na(L1Brouha2003Table$L1Seq),]
   L1Brouha2003NonRef <- L1Brouha2003Table[is.na(L1Brouha2003Table$L1Seq),]
@@ -226,14 +240,15 @@ if (blnBuildBrouha2003){
   # and get the sequences through pairwise alignment
   L1DFBrouha2003  <- getNonRefL1(L1Consens, AccNrs = AccNonRef, 
                                  Seqs = DNAStringSet(L1SeqNonRef),
-                               MinMatchWidth = 5500, FlankSize = FlankSize)
-  
-  # Replace each colum
+                               MinMatchWidth = 5500, FlankSize = FlankSize,
+                               Chromosomes = L1Brouha2003NonRef$Chr)
+
+  # Replace each colum with the newly created dataframe
   for (Col in colnames(L1DFBrouha2003)){
     L1Brouha2003NonRef[,Col] <- L1DFBrouha2003[,Col]
   }
   
-  # Merge both table
+  # Merge both tables
   L1Brouha2003Merged <- merge(L1Brouha2003Ref, L1Brouha2003NonRef, all = T)
   
   # Write out table with sequence data
@@ -251,9 +266,12 @@ if (blnBuildBrouha2003){
 #################################################
 
 if (blnBuildBeck2010) {
-  Beck2010Table <- read.csv("D:/L1polymORF/Data/Beck2010_mergedTable_withEmptySite.csv")
+  Beck2010Table <- read.csv("D:/L1polymORF/Data/Beck2010_mergedTable_withEmptySite.csv",
+                            as.is = T)
+  Beck2010Table$Chromosome <- paste("chr", Beck2010Table$Chromosome, sep = "")
   L1DFBeck2010  <- getNonRefL1(L1Consens, AccNrs = Beck2010Table$Accession, 
-                               MinMatchWidth = 5500, FlankSize = FlankSize)
+                               MinMatchWidth = 5500, FlankSize = FlankSize,
+                               Chromosomes = Beck2010Table$Chromosome)
   Beck2010TableWithL1 <- cbind(Beck2010Table, L1DFBeck2010)  
   write.csv(Beck2010TableWithL1, "D:/L1polymORF/Data/Beck2010_mergedTable_withL1.csv")
   
@@ -262,189 +280,76 @@ if (blnBuildBeck2010) {
                                   as.is = T)
 }
 
-# # Create a dataframe that keeps track of various measures that help locate L1 
-# # insertion on reference genome
-# InsertDF <- data.frame(FlankStart        = rep(NA, nrow(Beck2010TableWithL1)),
-#                        InsertionStartRel = rep(NA, nrow(Beck2010TableWithL1)),
-#                        InsertionStartAbs = rep(NA, nrow(Beck2010TableWithL1)),
-#                        NrNuc5p           = rep(NA, nrow(Beck2010TableWithL1)),
-#                        NrNuc3p           = rep(NA, nrow(Beck2010TableWithL1)))
-# 
-# InsertDF <- data.frame(FlankStart        = rep(NA, nrow(L1Brouha2003Merged)),
-#                        InsertionStartRel = rep(NA, nrow(L1Brouha2003Merged)),
-#                        InsertionStartAbs = rep(NA, nrow(L1Brouha2003Merged)),
-#                        NrNuc5p           = rep(NA, nrow(L1Brouha2003Merged)),
-#                        NrNuc3p           = rep(NA, nrow(L1Brouha2003Merged)))
-# 
-# # Get the total length of the flanking sequence
-# FlankTotal <- nchar(L1Brouha2003Merged$L1SeqFlank5p2x) + 
-#   nchar(L1Brouha2003Merged$L1SeqFlank3p2x)
-# 
-# # Loop through flanking sequences above minimal length, locate them on the 
-# # reference genome and get insert location descriptors
-# for (i in which(FlankTotal > 100 & is.na(L1Brouha2003Merged$start_HG38))){
-#   cat("Analyzing insertion", i, "of", nrow(L1Brouha2003Merged), "\n")
-#   if (L1Brouha2003Merged$Strand[i] == "+") {
-#     LPattern <- L1Brouha2003Merged$L1SeqFlank5p2x[i]
-#     RPattern <- L1Brouha2003Merged$L1SeqFlank3p2x[i]
-#     InsertionSite <- paste(L1Brouha2003Merged$L1SeqFlank5p[i],
-#                            L1Brouha2003Merged$L1SeqFlank3p[i], sep = "")
-#   } else {
-#     DNASt5P   <- DNAString(L1Brouha2003Merged$L1SeqFlank5p[i])
-#     DNASt3P   <- DNAString(L1Brouha2003Merged$L1SeqFlank3p[i])
-#     DNASt5P2x <- DNAString(L1Brouha2003Merged$L1SeqFlank5p2x[i])
-#     DNASt3P2x <- DNAString(L1Brouha2003Merged$L1SeqFlank3p2x[i])
-#     LPattern  <- reverseComplement(DNASt3P2x) 
-#     RPattern  <- reverseComplement(DNASt5P2x) 
-#     InsertionSite <- paste(reverseComplement(DNASt3P),
-#                            reverseComplement(DNASt5P), sep = "")
-#   }
-#   Chrom    <- paste(L1Brouha2003Merged$Chr[i])
-#   ChromSeq <- BSgenome.Hsapiens.UCSC.hg38[[Chrom]]
-#   String   <- matchLRPatterns(LPattern, RPattern, max.gaplength = 400, ChromSeq,
-#                               max.Lmismatch = 10, max.Rmismatch = 10,
-#                               with.Lindels = T, with.Rindels = T)
-#   InsertStart <- NA
-#   if (length(String) > 0){
-#     InsertDF$FlankStart[i]        <- start(String) 
-#     InsertDF$InsertionStartRel[i] <- 200 
-#     InsertDF$InsertionStartAbs[i] <- start(String) + 200
-#     InsertDF$NrNuc5p[i]           <- 0 
-#     InsertDF$NrNuc3p[i]           <- 0 
-#     pwA <- pairwiseAlignment(InsertionSite, String, type = "local")
-#     Indel <- subsetByOverlaps(unlist(pwA@subject@indel), IRanges(start = 100, 
-#                                                                  end = 100))
-#     if (length(Indel) > 0){
-#       InsertDF$InsertionStartRel[i] <- 100 + start(Indel) - 1 
-#       InsertDF$InsertionStartAbs[i] <- start(String) + 100 + start(Indel) - 1
-#       InsertDF$NrNuc5p[i]           <- 100 - start(Indel)
-#       InsertDF$NrNuc3p[i]           <- end(Indel) - 100
-#       
-#     }
-#   }
-# }
-# 
-# # Re-run previous analysis for all insertions that could not be matched to 
-# # reference but this time allowing for indels in flanking sequences
-# for (i in which(FlankTotal > 100 & is.na(InsertDF$InsertionStartRel)) ){
-#   cat("Analyzing insertion", i, "of", nrow(Beck2010TableWithL1), "\n")
-#   if (Beck2010TableWithL1$Strand[i] == "+") {
-#     LPattern <- Beck2010TableWithL1$L1SeqFlank5p2x[i]
-#     RPattern <- Beck2010TableWithL1$L1SeqFlank3p2x[i]
-#     InsertionSite <- paste(Beck2010TableWithL1$L1SeqFlank5p[i],
-#                            Beck2010TableWithL1$L1SeqFlank3p[i], sep = "")
-#   } else {
-#     DNASt5P   <- DNAString(Beck2010TableWithL1$L1SeqFlank5p[i])
-#     DNASt3P   <- DNAString(Beck2010TableWithL1$L1SeqFlank3p[i])
-#     DNASt5P2x <- DNAString(Beck2010TableWithL1$L1SeqFlank5p2x[i])
-#     DNASt3P2x <- DNAString(Beck2010TableWithL1$L1SeqFlank3p2x[i])
-#     LPattern  <- reverseComplement(DNASt3P2x) 
-#     RPattern  <- reverseComplement(DNASt5P2x) 
-#     InsertionSite <- paste(reverseComplement(DNASt3P),
-#                            reverseComplement(DNASt5P), sep = "")
-#   }
-#   Chrom    <- paste("chr", Beck2010TableWithL1$Chromosome[i], sep = "")
-#   ChromSeq <- BSgenome.Hsapiens.UCSC.hg38[[Chrom]]
-#   String   <- matchLRPatterns(LPattern, RPattern, max.gaplength = 300, ChromSeq,
-#                               max.Lmismatch = 5, max.Rmismatch = 5, 
-#                               with.Lindels = T, with.Rindels = T)
-#   InsertStart <- NA
-#   if (length(String) > 0){
-#     InsertDF$FlankStart[i]        <- start(String) 
-#     InsertDF$InsertionStartRel[i] <- 200 
-#     InsertDF$InsertionStartAbs[i] <- start(String) + 200
-#     InsertDF$NrNuc5p[i]           <- 0 
-#     InsertDF$NrNuc3p[i]           <- 0 
-#     pwA <- pairwiseAlignment(InsertionSite, String, type = "local")
-#     Indel <- subsetByOverlaps(unlist(pwA@subject@indel), IRanges(start = 100, 
-#                                                                  end = 100))
-#     if (length(Indel) > 0){
-#       InsertStart                   <- start(String) + 100 + start(Indel) - 1
-#       InsertDF$InsertionStartRel[i] <- 100 + start(Indel) - 1 
-#       InsertDF$InsertionStartAbs[i] <- start(String) + 200
-#       InsertDF$NrNuc5p[i]           <- 100 - start(Indel)
-#       InsertDF$NrNuc3p[i]           <- end(Indel) - 100
-#       
-#     }
-#   }
-# }
-
-sum(is.na(InsertDF$InsertionStartAbs))
-InsertDFBeck2010 <- InsertDF
-Beck2010TableWithL1InsertLoc <- cbind(Beck2010TableWithL1, InsertDF)
-write.csv(Beck2010TableWithL1InsertLoc, "D:/L1polymORF/Data/Beck2010_mergedTable_withL1InsertLoc.csv")
-Beck2010TableWithL1InsertLoc <- read.csv("D:/L1polymORF/Data/Beck2010_mergedTable_withL1InsertLoc.csv")
-
 #################################################
 #                                               #
 #   Assemble L1 table from Seleme et al. 2006   #
 #                                               #
 #################################################
 
-# Read in tables for individual loci
-Seleme2006L1A <- read.csv("D:/L1polymORF/Data/Seleme2006L1A.csv", as.is = T)
-Seleme2006L1B <- read.csv("D:/L1polymORF/Data/Seleme2006L1B.csv", as.is = T)
-Seleme2006L1C <- read.csv("D:/L1polymORF/Data/Seleme2006L1C.csv", as.is = T)
-
-# Get indices for each of the accession numbers
-idxA <- which(L1Brouha2003Merged$SeqSource == Seleme2006L1A$AccessionNr[1])
-idxB <- which(L1Brouha2003Merged$SeqSource == Seleme2006L1B$AccessionNr[1])
-idxC <- which(L1Brouha2003Merged$SeqSource == Seleme2006L1C$AccessionNr[1])
-
-# Create genomic ranges for hot L1
-GRanges_HotL1 <- GRanges(seqnames = L1Brouha2003Merged$Chr[1:3], 
-                         ranges = IRanges(start = L1Brouha2003Merged$start_HG38[1:3],
-                                          end = L1Brouha2003Merged$end_HG38[1:3]),
-                         strand = L1Brouha2003Merged$strand[1:3])
-Seqs_HotL1 <- getSeq(BSgenome.Hsapiens.UCSC.hg38, GRanges_HotL1)
-
-
-# Determine sequence match
-Table <- Seleme2006L1B
-idx    <- which(L1Brouha2003Merged$SeqSource == Table$AccessionNr[1])
-Seq    <- as.character(Seqs_HotL1[idx][[1]])
-
-ColNameX   <- substr(colnames(Table), 2, nchar(colnames(Table)))
-ColNameNum <- as.numeric(ColNameX)
-idxPolyPos <- which(!is.na(ColNameNum) & Table[1,] %in% c("A", "G", "C", "T"))
-PolyPos    <- ColNameNum[idxPolyPos]
-names(PolyPos) <- idxPolyPos
-Table[1,idxPolyPos]
-
-# Test that Sequence of Brouha and Seleme match
-OffSetVals <- -100:100
-PMatch <- sapply(OffSetVals, function(OffSet){
-  SeqMatch <- sapply(idxPolyPos, function(x) {
-    Table[1,x] == substr(Seq, PolyPos[as.character(x)] + OffSet, PolyPos[as.character(x)] + OffSet)
-  })
-  sum(SeqMatch) /length(SeqMatch)
+if (blnBuildSeleme2006) {
+  # Read in tables for individual loci
+  Seleme2006L1A <- read.csv("D:/L1polymORF/Data/Seleme2006L1A.csv", as.is = T)
+  Seleme2006L1B <- read.csv("D:/L1polymORF/Data/Seleme2006L1B.csv", as.is = T)
+  Seleme2006L1C <- read.csv("D:/L1polymORF/Data/Seleme2006L1C.csv", as.is = T)
   
-})
-plot(PMatch)
-Table[1,idxPolyPos]
-BestOff <- OffSetVals[which.max(PMatch)]  
-max(PMatch)
-x <- 5
-SMatch <- sapply(idxPolyPos, function(x) {
-  Table[1,x] == substr(Seq, PolyPos[as.character(x)] + BestOff, PolyPos[as.character(x)] + BestOff)
-})
-PolyPos[!SMatch]
-
-# Define function to exctract sequence from Seleme Table
-Seq   <- L1Brouha2003Merged$Seq[L1Brouha2003Merged$SeqSource == Acc]
-
-# Test that Sequence of Brouha and Seleme match
-PMatch <- sapply(OffSetVals, function(OffSet){
-  SeqMatch <- sapply(idxPolyPos, function(x) {
-    Table[1,x] == substr(Seq, PolyPos[as.character(x)] + OffSet, PolyPos[as.character(x)] + OffSet)
-  })
-  sum(SeqMatch) /length(SeqMatch)
+  # Get indices for each of the accession numbers
+  idxA <- which(L1Brouha2003Merged$SeqSource == Seleme2006L1A$AccessionNr[1])
+  idxB <- which(L1Brouha2003Merged$SeqSource == Seleme2006L1B$AccessionNr[1])
+  idxC <- which(L1Brouha2003Merged$SeqSource == Seleme2006L1C$AccessionNr[1])
   
-})
-max(PMatch)
-
-
-# Get the sequence from
+  # Create genomic ranges for hot L1
+  GRanges_HotL1 <- GRanges(seqnames = L1Brouha2003Merged$Chr[1:3], 
+                           ranges = IRanges(start = L1Brouha2003Merged$start_HG38[1:3],
+                                            end = L1Brouha2003Merged$end_HG38[1:3]),
+                           strand = L1Brouha2003Merged$strand[1:3])
+  Seqs_HotL1 <- getSeq(BSgenome.Hsapiens.UCSC.hg38, GRanges_HotL1)
+  
+  
+  # Determine sequence match
+  Table <- Seleme2006L1B
+  idx    <- which(L1Brouha2003Merged$SeqSource == Table$AccessionNr[1])
+  Seq    <- as.character(Seqs_HotL1[idx][[1]])
+  
+  ColNameX   <- substr(colnames(Table), 2, nchar(colnames(Table)))
+  ColNameNum <- as.numeric(ColNameX)
+  idxPolyPos <- which(!is.na(ColNameNum) & Table[1,] %in% c("A", "G", "C", "T"))
+  PolyPos    <- ColNameNum[idxPolyPos]
+  names(PolyPos) <- idxPolyPos
+  Table[1,idxPolyPos]
+  
+  # Test that Sequence of Brouha and Seleme match
+  OffSetVals <- -100:100
+  PMatch <- sapply(OffSetVals, function(OffSet){
+    SeqMatch <- sapply(idxPolyPos, function(x) {
+      Table[1,x] == substr(Seq, PolyPos[as.character(x)] + OffSet, PolyPos[as.character(x)] + OffSet)
+    })
+    sum(SeqMatch) /length(SeqMatch)
+    
+  })
+  plot(PMatch)
+  Table[1,idxPolyPos]
+  BestOff <- OffSetVals[which.max(PMatch)]  
+  max(PMatch)
+  x <- 5
+  SMatch <- sapply(idxPolyPos, function(x) {
+    Table[1,x] == substr(Seq, PolyPos[as.character(x)] + BestOff, PolyPos[as.character(x)] + BestOff)
+  })
+  PolyPos[!SMatch]
+  
+  # Define function to exctract sequence from Seleme Table
+  Seq   <- L1Brouha2003Merged$Seq[L1Brouha2003Merged$SeqSource == Acc]
+  
+  # Test that Sequence of Brouha and Seleme match
+  PMatch <- sapply(OffSetVals, function(OffSet){
+    SeqMatch <- sapply(idxPolyPos, function(x) {
+      Table[1,x] == substr(Seq, PolyPos[as.character(x)] + OffSet, PolyPos[as.character(x)] + OffSet)
+    })
+    sum(SeqMatch) /length(SeqMatch)
+    
+  })
+  max(PMatch)
+  
+}
 
 #################################################
 #                                               #
@@ -453,48 +358,41 @@ max(PMatch)
 #                                               #
 #################################################
 
-# Replace start and end for non-reference insertion in Beck2010 data
-Beck2010TableWithL1InsertLoc$start_HG38 <-
-  Beck2010TableWithL1InsertLoc$InsertionStartAbs
-Beck2010TableWithL1InsertLoc$end_HG38 <-
-  Beck2010TableWithL1InsertLoc$start_HG38 + 1
-
-# Replace start and end for non-reference insertion in Brouha2003 data
-blnBrouhaNonRef <- is.na(L1Brouha2003Merged$start_HG38)
-L1Brouha2003Merged$start_HG38[blnBrouhaNonRef] <- 
-  InsertDFBrouha2003$InsertionStartAbs[blnBrouhaNonRef]
-L1Brouha2003Merged$Strand[is.na(L1Brouha2003Merged$Strand)] <- 
-  L1Brouha2003Merged$strand[is.na(L1Brouha2003Merged$Strand)]
-
-# Rename column so that they are consistent between datasets
-colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Allele_frequency."] <- "Allele_frequency"
-colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Chr"] <- "Chromosome"
-colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Act_L1rp"] <- "Activity"
-
-# Add additional columns
-L1Brouha2003Merged$Coriell_ID <- NA
-Beck2010TableWithL1InsertLoc$Allele_frequency <- NA
-Beck2010TableWithL1InsertLoc$Chromosome <- paste("chr",
-    Beck2010TableWithL1InsertLoc$Chromosome, sep = "")
-Beck2010TableWithL1InsertLoc$Reference <- "Beck2010"
-
-# Create tables for merging and merge them
-CommonCols <- c("Accession", "Chromosome", "Activity", "Allele_frequency", 
-                "Reference", "Coriell_ID", "Strand", "start_HG38", "end_HG38", "L1Seq",  
-                "L1SeqFlank5p", "L1SeqFlank3p", "L1SeqFlank5p2x",
-                "L1SeqFlank3p2x")
-BeckForMeging   <- Beck2010TableWithL1InsertLoc[, CommonCols]
-#BeckForMeging$Chromosome <- substr(BeckForMeging$Chromosome, 4, nchar(BeckForMeging$Chromosome))
-BrouhaForMeging <- L1Brouha2003Merged[, CommonCols] 
-
-# Merge both data sets
-L1Catalogue <- rbind(BrouhaForMeging, BeckForMeging)
-
-# Write cataloge
-TStamp <- gsub(" ", "_", date())
-TStamp <- gsub(":", "-", TStamp)
-CataloguePath <- paste("D:/L1polymORF/Data/L1Catalogue_", TStamp, ".csv", sep = "")
-write.csv(L1Catalogue, CataloguePath)
+if(blnMergeTables){
+  # Replace start and end for non-reference insertion in Beck2010 data
+  Beck2010TableWithL1$start_HG38 <-
+    Beck2010TableWithL1$InsertionStartAbs
+  Beck2010TableWithL1$end_HG38 <-
+    Beck2010TableWithL1$start_HG38 + 1
+  
+  # Rename column so that they are consistent between datasets
+  colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Allele_frequency."] <- "Allele_frequency"
+  colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Chr"] <- "Chromosome"
+  colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Act_L1rp"] <- "Activity"
+  
+  # Add additional columns
+  L1Brouha2003Merged$Coriell_ID        <- NA
+  Beck2010TableWithL1$Allele_frequency <- NA
+  Beck2010TableWithL1$Reference        <- "Beck2010"
+  
+  # Create tables for merging and merge them
+  CommonCols <- c("Accession", "Chromosome", "Activity", "Allele_frequency", 
+                  "Reference", "Coriell_ID", "Strand", "start_HG38", "end_HG38", "L1Seq",  
+                  "L1SeqFlank5p", "L1SeqFlank3p", "L1SeqFlank5p2x",
+                  "L1SeqFlank3p2x", "start_Clone", "end_Clone")
+  BeckForMeging   <- Beck2010TableWithL1[, CommonCols]
+  BrouhaForMeging <- L1Brouha2003Merged[, CommonCols] 
+  
+  # Merge both data sets
+  L1Catalogue <- rbind(BrouhaForMeging, BeckForMeging)
+  
+  # Write cataloge
+  TStamp <- gsub(" ", "_", date())
+  TStamp <- gsub(":", "-", TStamp)
+  CataloguePath <- paste("D:/L1polymORF/Data/L1Catalogue_", TStamp, ".csv", sep = "")
+  write.csv(L1Catalogue, CataloguePath)
+  
+}
 
 #################################################
 #                                               #
