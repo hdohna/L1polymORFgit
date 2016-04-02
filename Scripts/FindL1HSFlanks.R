@@ -50,7 +50,7 @@ AlignCommand <- '/home/txw/bwa/bwa-0.7.12/bwa mem'
 #######################################
 
 # Read catalogue
-L1CataloguePath <- paste(DataPath, "L1Catalogue.csv", sep = "")
+L1CataloguePath <- paste(DataPath, "L1Catalogue_Fri_Apr_01_17-40-52_2016.csv", sep = "")
 L1Catalogue     <- read.csv(L1CataloguePath, as.is = T)
 
 #######################################
@@ -135,13 +135,7 @@ for (SamFile in SamFilePaths){
 }
 
 # Write updated catalogue out
-L1CatalogueOutPath <- paste(DataPath, "L1CatalogueUpdated.csv", sep = "")
-write.csv(L1Catalogue, L1CatalogueOutPath)
-
-L1Catalogue     <- read.csv(L1CatalogueOutPath, as.is = T)
-
-sum(is.na(L1Catalogue$L1Seq))
-sum(is.na(L1Catalogue$L1SeqFlank5p))
-sum(is.na(L1Catalogue$start_HG38))
-table(is.na(L1Catalogue$L1Seq), is.na(L1Catalogue$start_HG38), L1Catalogue$Reference)
-
+TStamp <- gsub(" ", "_", date())
+TStamp <- gsub(":", "-", TStamp)
+CataloguePath <- paste(DataPath, "L1CatalogUpdated_", TStamp, ".csv", sep = "")
+write.csv(L1Catalogue, CataloguePath)

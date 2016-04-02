@@ -163,8 +163,8 @@ VCfBamAnalysis <- function(BamFolder,
       PeakSummary$FirstPos[i] <- min(NonzeroCov)
       PeakSummary$LastPos[i]  <- max(NonzeroCov)
       PeakSummary$MeanCovL1NonZero[i] <- mean(Cov[NonzeroCov])
-      PeakSummary$MeanCovL1Range[i] <- mean(Cov[min(NonzeroCov):max(NonzeroCov)])
-      PeakSummary$L1Width[i]  <- max(NonzeroCov) - min(NonzeroCov)
+      PeakSummary$MeanCovL1Range[i]   <- mean(Cov[min(NonzeroCov):max(NonzeroCov)])
+      PeakSummary$L1Width[i]          <- max(NonzeroCov) - min(NonzeroCov)
     }
     if (nrow(VCF) > 0){
       PeakSummary$wMismatch[i] <- sum(Cov[VCF$POS]) / sum(Cov)
