@@ -43,6 +43,10 @@ DataPath <- "/home/hzudohna/L1polymORF/Data/"
 IndexCommand <- '/home/txw/bwa/bwa-0.7.12/bwa index'
 AlignCommand <- '/home/txw/bwa/bwa-0.7.12/bwa mem'
 
+# Indicators for different analysis steps
+blnWriteFasta <- F
+blnBuildIndex <- F
+
 #######################################
 #                                     #
 #     Read data                       #
@@ -72,15 +76,20 @@ for (Chr in ChrsToBeSearched){
   cat("Writing chromosome", Chr, "\n")
   ChrSeq  <- BSgenome.Hsapiens.UCSC.hg38[[Chr]]
   ChrPath <- paste(DataPath, Chr, ".fas", sep = "")
-#  write.fasta(s2c(as.character(ChrSeq)), names = Chr, file.out = ChrPath)
+  if (blnWriteFasta){
+    write.fasta(s2c(as.character(ChrSeq)), names = Chr, file.out = ChrPath)
+  }
   ChrPathVect <- c(ChrPathVect, ChrPath)
 }
 names(ChrPathVect) <- ChrsToBeSearched
 
 # Run command to create indices for each chromosome
-for (ChrPath in ChrPathVect){
-  CmdIndex <- paste(IndexCommand, ChrPath)
-  system(CmdIndex)
+if(blnBuildIndex){
+  for (ChrPath in ChrPathVect){
+    CmdIndex <- paste(IndexCommand, ChrPath)
+    system(CmdIndex)
+  }
+  
 }
 
 # Write each flanking sequence as fastq file and run an alignment command
