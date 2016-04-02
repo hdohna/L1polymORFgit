@@ -37,7 +37,7 @@ library(BSgenome.Hsapiens.UCSC.hg38)
 
 # Specify data path
 DataPath <- "/home/hzudohna/L1polymORF/Data/"
-DataPath <- "D:/L1polymORF/Data/"
+#DataPath <- "D:/L1polymORF/Data/"
 
 # Specify commands
 IndexCommand <- '/home/txw/bwa/bwa-0.7.12/bwa index'
