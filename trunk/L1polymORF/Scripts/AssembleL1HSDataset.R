@@ -38,8 +38,8 @@ FlankSize <- 100
 LengthL1WithFlank <- 20000
 
 # Boolean indicators for whether to perform particular processes
-blnBuildBrouha2003 <- F
-blnBuildBeck2010   <- T
+blnBuildBrouha2003 <- T
+blnBuildBeck2010   <- F
 blnBuildSeleme2006 <- F
 blnMergeTables     <- T
 blnFindVarSites    <- F
@@ -218,6 +218,8 @@ if (blnBuildBrouha2003){
         L1Brouha2003Table$L1Seq[idxChr[idxMatch]]         <- as.character(Seq)
         L1Brouha2003Table$start_HG38[idxChr[idxMatch]]    <- start(GRanges_L1repMask_Hg38)[i]
         L1Brouha2003Table$end_HG38[idxChr[idxMatch]]      <- end(GRanges_L1repMask_Hg38)[i]
+        L1Brouha2003Table$start_Clone[idxChr[idxMatch]]    <- S
+        L1Brouha2003Table$end_Clone[idxChr[idxMatch]]      <- E
         L1Brouha2003Table$Strand[idxChr[idxMatch]]        <- Strand_L1repMask_Hg38[i]
       } else {
         cat("More than one set of flanking sequences enclose a stretch above 6000\n")
@@ -252,7 +254,8 @@ if (blnBuildBrouha2003){
   L1Brouha2003Merged <- merge(L1Brouha2003Ref, L1Brouha2003NonRef, all = T)
   
   # Write out table with sequence data
-  write.csv(L1Brouha2003Merged, "D:/L1polymORF/Data/L1Brouha2003.csv")
+  write.csv(L1Brouha2003Merged, "D:/L1polymORF/Data/L1Brouha2003.csv",
+            row.names = F)
   
 } else {
     L1Brouha2003Merged <- read.csv("D:/L1polymORF/Data/L1Brouha2003.csv", 
@@ -273,8 +276,8 @@ if (blnBuildBeck2010) {
                                MinMatchWidth = 5500, FlankSize = FlankSize,
                                Chromosomes = Beck2010Table$Chromosome)
   Beck2010TableWithL1 <- cbind(Beck2010Table, L1DFBeck2010)  
-  write.csv(Beck2010TableWithL1, "D:/L1polymORF/Data/Beck2010_mergedTable_withL1.csv")
-  
+  write.csv(Beck2010TableWithL1, "D:/L1polymORF/Data/Beck2010_mergedTable_withL1.csv",
+            row.names = F)
 } else {
   Beck2010TableWithL1 <- read.csv("D:/L1polymORF/Data/Beck2010_mergedTable_withL1.csv",
                                   as.is = T)
@@ -390,7 +393,7 @@ if(blnMergeTables){
   TStamp <- gsub(" ", "_", date())
   TStamp <- gsub(":", "-", TStamp)
   CataloguePath <- paste("D:/L1polymORF/Data/L1Catalogue_", TStamp, ".csv", sep = "")
-  write.csv(L1Catalogue, CataloguePath)
+  write.csv(L1Catalogue, CataloguePath, row.names = F)
   
 }
 
