@@ -47,8 +47,8 @@ L1withFlank <- lapply(1:nrow(L1CatalogL1Mapped), function(i){
     AccNr     <- L1CatalogL1Mapped$Accession[i]
     x         <- query(listname = "L1", paste("AC=", AccNr, sep = ""))
     SourceSeq <- getSequence(x$req)[[1]]
-    SeqStart  <- max(1, L1CatalogL1Mapped$start_Clone - FlankLength)
-    SeqEnd    <- min(length(SourceSeq), L1CatalogL1Mapped$end_Clone + FlankLength)
+    SeqStart  <- max(1, L1CatalogL1Mapped$start_Clone[i] - FlankLength)
+    SeqEnd    <- min(length(SourceSeq), L1CatalogL1Mapped$end_Clone[i] + FlankLength)
     Seq       <- SourceSeq[SeqStart:SeqEnd] 
     Seq       <- toupper(Seq)
   } else {
@@ -66,23 +66,4 @@ closebank()
 write.fasta(L1withFlank, L1CatalogL1Mapped$Accession, 
             file.out = "D:/L1polymORF/Data/L1CatalogueWithFlank.fas")
 
-
-############################
-#                          #
-#    Align sequences       #
-#                          #
-############################
-
-if (blnCreateAlignment){
-  
-  # Write sequences as fasta file and align
-  L1Seqs <- lapply(L1CatalogL1Mapped$L1Seq, function(x){
-    s2c(x)
-  })
-  write.fasta(L1Seqs, L1Catalogue$Accession, 
-              file.out  = "D:/L1polymORF/Data/L1CatalogueSeqsUnaligned.fas")
-  run_MUSCLE(InputPath  = "D:/L1polymORF/Data/L1CatalogueSeqsUnaligned.fas", 
-             OutputPath = "D:/L1polymORF/Data/L1CatalogueSeqsAligned.fas")
-  
-}
 
