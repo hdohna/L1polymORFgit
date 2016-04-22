@@ -54,7 +54,7 @@ blnBuildIndex <- F
 #######################################
 
 # Read catalogue
-L1CataloguePath <- paste(DataPath, "L1Catalogue_Fri_Apr_01_17-40-52_2016.csv", sep = "")
+L1CataloguePath <- paste(DataPath, "L1Catalogue_Fri_Apr_22_12-19-25_2016.csv", sep = "")
 L1Catalogue     <- read.csv(L1CataloguePath, as.is = T)
 
 #######################################

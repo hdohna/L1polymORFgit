@@ -69,7 +69,7 @@ getNonRefL1 <- function(L1Consens,
   }
   
   # Match each L1HS to a locus 
-  cat("\n***** Searching for match of consensus L1  *****\n\n")
+  cat("\n***** Searching for match of consensus L1 in clone *****\n\n")
   SeqsRV <- reverseComplement(Seqs)
   
   # Initialize output objects
@@ -86,7 +86,6 @@ getNonRefL1 <- function(L1Consens,
     end_Ref           = rep(NA, length(Seqs)),
     FlankStart        = rep(NA, length(Seqs)),
     InsertionStartRel = rep(NA, length(Seqs)),
-    InsertionStartAbs = rep(NA, length(Seqs)),
     NrNuc5p           = rep(NA, length(Seqs)),
     NrNuc3p           = rep(NA, length(Seqs))
   )
@@ -160,9 +159,11 @@ getNonRefL1 <- function(L1Consens,
                                   max.Lmismatch = 5, max.Rmismatch = 5)
       InsertStart <- NA
       if (length(String) > 0){
+        c("Matched L1 flanks from clone to reference\n")
         OutDF$FlankStart[i]        <- start(String)
         OutDF$InsertionStartRel[i] <- 2 * FlankSize
-        OutDF$InsertionStartAbs[i] <- start(String) + 2 * FlankSize
+        OutDF$start_Ref[i] <- start(String) + 2 * FlankSize
+        OutDF$end_Ref[i]   <- start(String) + 2 * FlankSize + 1
         OutDF$NrNuc5p[i]           <- 0
         OutDF$NrNuc3p[i]           <- 0
         pwA <- pairwiseAlignment(InsertionSite, String, type = "local")
@@ -171,7 +172,8 @@ getNonRefL1 <- function(L1Consens,
                                           end = FlankSize))
         if (length(Indel) > 0){
           OutDF$InsertionStartRel[i] <- FlankSize + start(Indel) - 1
-          OutDF$InsertionStartAbs[i] <- start(String) + FlankSize + start(Indel) - 1
+          OutDF$start_Ref[i]         <- start(String) + FlankSize + start(Indel) - 1
+          OutDF$end_Ref[i]         <- start(String) + FlankSize + start(Indel)
           OutDF$NrNuc5p[i]           <- FlankSize - start(Indel)
           OutDF$NrNuc3p[i]           <- end(Indel) - FlankSize
           
