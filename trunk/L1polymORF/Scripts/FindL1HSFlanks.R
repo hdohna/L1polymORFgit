@@ -46,6 +46,7 @@ AlignCommand <- '/home/txw/bwa/bwa-0.7.12/bwa mem'
 # Indicators for different analysis steps
 blnWriteFasta <- F
 blnBuildIndex <- F
+blnConvertSam2Bam <- F
 
 #######################################
 #                                     #
@@ -118,19 +119,26 @@ for (i in idxFlanksToBeSearched){
 # Get paths to all sam files
 FilePaths <- list.files(DataPath, pattern = "L1Flank", full.names = T)
 SamFilePaths <- grep(".sam", FilePaths, value = T)
-SamFile <- SamFilePaths[1]
 for (SamFile in SamFilePaths){
-  AccNr <- strsplit(SamFile, "_")[[1]][2]
-  AccNr <- strsplit(AccNr, "\\.")[[1]][1]
+  
+  # Get accession number from file name
+  AccNr  <- strsplit(SamFile, "_")[[1]][2]
+  AccNr  <- strsplit(AccNr, "\\.")[[1]][1]
+  
+  # Determine matching row in catalogue, chromsome and create GRanges object
   idxRow <- which(L1Catalogue$Accession == AccNr)
-  Chrom <- L1Catalogue$Chromosome[idxRow]
-  GR <- GRanges(seqnames = Chrom, IRanges(start = 1, 
-           end = length(BSgenome.Hsapiens.UCSC.hg38[[Chrom]])))
+  Chrom  <- L1Catalogue$Chromosome[idxRow]
+  GR     <- GRanges(seqnames = Chrom, IRanges(start = 1, 
+               end = length(BSgenome.Hsapiens.UCSC.hg38[[Chrom]])))
   BamFile <- gsub(".sam", ".bam", SamFile)
-  BamFilePrefix <- substr(BamFile, 1, nchar(BamFile) - 4)
-  asBam(SamFile, BamFilePrefix, overwrite = T)
-  sortBam(BamFile, BamFile)
-  indexBam(BamFile)
+  if (blnConvertSam2Bam){
+    BamFilePrefix <- substr(BamFile, 1, nchar(BamFile) - 4)
+    asBam(SamFile, BamFilePrefix, overwrite = T)
+    sortBam(BamFile, BamFile)
+    indexBam(BamFile)
+    
+  }
+  cat("Extracting reads from", BamFile, "\n")
   ReadRanges <- extractReads(BamFile, GR)
   NewStart   <- min(end(ReadRanges))
   NewEnd     <- max(start(ReadRanges))
@@ -147,4 +155,5 @@ for (SamFile in SamFilePaths){
 TStamp <- gsub(" ", "_", date())
 TStamp <- gsub(":", "-", TStamp)
 CataloguePath <- paste(DataPath, "L1CatalogUpdated_", TStamp, ".csv", sep = "")
+cat("Saving new L1 catalogue file", CataloguePath, "\n")
 write.csv(L1Catalogue, CataloguePath)
