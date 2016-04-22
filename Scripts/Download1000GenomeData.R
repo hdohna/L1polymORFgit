@@ -7,3 +7,6 @@ library(RCurl)
 # URL of 1000 genome ftp site
 DownloadAllFiles(DataFTP = 'ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/',
                  FileDestination = '/share/diskarray3/hzudohna/1000Genomes')
+
+
+getURL('ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/')

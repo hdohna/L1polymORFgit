@@ -35,7 +35,7 @@ library(seqinr)
 RepeatFile          <- "D:/L1polymORF/Data/repeatsHg38"
 TabOutfileName_L1HS <- "D:/L1polymORF/Data/L1HS_repeat_table.csv"
 SeqOutfileName_L1HS <- "D:/L1polymORF/Data/L1Sequences_reptab.fas"
-SeqOutfileName_L1HS_length100 <- "D:/L1polymORF/Data/L1HSSequences_reptab_L100.fas"
+SeqOutfileName_L1HS_length100 <- "D:/L1polymORF/Data/L1HSSequences_L100_Catalogue.fas"
 TabOutfileName_L1   <- "D:/L1polymORF/Data/L1_repeat_table.csv"
 SeqOutfileName_L1   <- "D:/L1polymORF/Data/L1AllSequences_reptab.fas"
 
@@ -52,6 +52,9 @@ cat("Read and process repeatMasker table \n")
 RepeatTable <- read.delim("D:/L1polymORF/Data/repeatsHg38")
 RepeatTable <- RepeatTable[nchar(as.character(RepeatTable$genoName)) <= 5, ]
 
+# Read catalogue
+L1Catalogue <- read.csv('D:/L1polymORF/Data/L1Catalogue_Fri_Apr_15_09-43-03_2016.csv',
+                        as.is = T)
 ######
 # L1HS only
 ######
@@ -86,9 +89,22 @@ L1HSSeqNames_L100 <- paste(as.vector(seqnames(L1HSGRanges_L100)),
                            start(L1HSGRanges_L100), end(L1HSGRanges_L100),
                       strand(L1HSGRanges_L100), sep = "_")
 
+# Append non-reference L1 from the catalogue
+blnL1CatalogueSubset <- L1Catalogue$Allele == 1 & 
+  ((L1Catalogue$end_HG38 - L1Catalogue$start_HG38) < 6000 |
+     is.na(L1Catalogue$start_HG38))
+L1CatalogueSubset <- L1Catalogue[blnL1CatalogueSubset, ]
+SeqsToAppend  <- L1CatalogueSubset$L1Seq
+NamesToAppend <- paste(L1CatalogueSubset$Chromosome, 
+                       L1CatalogueSubset$start_HG38, L1CatalogueSubset$end_HG38,
+                       L1CatalogueSubset$Strand, L1CatalogueSubset$Accession,
+                       sep = "_")
+
+
 # Write L1 sequences as fasta file
-L1HSList_L100 <- lapply(L1HSSeq_L100, s2c)
-write.fasta(L1HSList_L100, L1HSSeqNames_L100, SeqOutfileName_L1HS_length100)
+L1HSList_L100 <- lapply(c(L1HSSeq_L100, SeqsToAppend), s2c)
+write.fasta(L1HSList_L100, c(L1HSSeqNames_L100, NamesToAppend),
+            SeqOutfileName_L1HS_length100)
 
 ######
 # All L1s

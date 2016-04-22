@@ -29,11 +29,11 @@ source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
 library(seqinr)
 library(ape)
 
-#######################################
-#                                     #
-#   Read tree and activity values     #
-#                                     #
-#######################################
+############################################
+#                                          #
+#   Read alignment and activity values     #
+#                                          #
+############################################
 
 # Read activity table
 ActTable <- read.table("D:/L1polymORF/Data/ActivityBT_L1Catalogue.txt",
@@ -42,6 +42,16 @@ ActTable <- read.table("D:/L1polymORF/Data/ActivityBT_L1Catalogue.txt",
 # Read in MrBayes consensus tree
 Alignment <- read.dna("D:/L1polymORF/Data/L1Catalogue_Aligned_withRoot.fas",
                       format = "fasta")
+
+# Read in table with known L1 
+L1Catalogue <- read.csv("D:/L1polymORF/Data/L1Catalogue_Fri_Apr_01_18-28-08_2016.csv", 
+                        as.is = T)
+
+############################################
+#                                          #
+#  Construct tree and plot activity values #
+#                                          #
+############################################
 
 # Root tree by L1PA sequence and remove it
 Tree <- bionj(dist.dna(Alignment))
@@ -65,3 +75,46 @@ Edgecolors[HighEdges]   <- "red"
 
 plot(Tree, cex = 0.05, edge.width = 0.1, edge.color = Edgecolors)
 CreateDisplayPdf("D:/L1polymORF/Figures/L1TreeAct_Catalogue.pdf")
+
+#################################################
+#                                               #
+#  Compare activity values to closest distance  #
+#                                               #
+#################################################
+
+# Create a matrix of pairwise proportion of nucleotide differences
+DNADist <- dist.dna(Alignment, as.matrix = T)
+diag(DNADist) <- NA
+
+# Get the allele of each matrix element
+DistAllele <- sapply(row.names(DNADist), function(x) strsplit(x, "_")[[1]][2])
+
+# Subset distance matrix to get only allele 1 per insertion and to remove outlier 
+DNADist <- DNADist[DistAllele == "1", DistAllele == "1"]
+DNADist <- DNADist[rownames(DNADist) != "AC117496_1", 
+                   rownames(DNADist) != "AC117496_1"]
+
+# Get accession numbers and match activities by accession numbers
+DistAcc  <- sapply(row.names(DNADist), function(x) strsplit(x, "_")[[1]][1])
+ActMatch <- match(DistAcc, L1Catalogue$Accession)
+Act      <- L1Catalogue$Activity[ActMatch]
+
+# Calculate for each L1 its distance to the closest other L1
+Mindist <- sapply(1:nrow(DNADist), function(x){
+  min(DNADist[x,], na.rm = T)
+})
+
+# Plot activity vs distance and test for correlations
+Act[Act == "<1"] <- "0.5"
+ActNum <- as.numeric(Act) 
+plot(ActNum, Mindist, xlab = "Activity", ylab = "Nuc diff. to closest L1")
+plot(ActNum, Mindist, xlab = "Activity", ylab = "Nuc diff. to closest L1",
+     ylim = c(0, 0.02))
+cor(ActNum, Mindist, use = "pairwise.complete.obs")
+cor.test(ActNum, Mindist, use = "pairwise.complete.obs")
+
+# Test for correlation when all zero activities are removed
+cor.test(ActNum[ActNum > 0], Mindist[ActNum > 0], 
+         use = "pairwise.complete.obs")
+
+

@@ -39,10 +39,10 @@ FlankSize <- 100
 LengthL1WithFlank <- 20000
 
 # Boolean indicators for whether to perform particular processes
-blnBuildBrouha2003 <- F
-blnBuildBeck2010   <- F
+blnBuildBrouha2003 <- T
+blnBuildBeck2010   <- T
 blnBuildSeleme2006 <- T
-blnMergeTables     <- F
+blnMergeTables     <- T
 blnFindVarSites    <- F
 blnAlignsequences  <- F
 
@@ -164,6 +164,8 @@ if (blnBuildBrouha2003){
   L1Brouha2003Table$Reference        <- "Brouha2003"
   L1Brouha2003Table$start_Clone      <- NA
   L1Brouha2003Table$end_Clone        <- NA
+  L1Brouha2003Table$L1SeqFlank5p2x   <- NA
+  L1Brouha2003Table$L1SeqFlank3p2x   <- NA
   
   # Download sequences 
   cat("Get sequences for L1 loci by Brouha et al 2003\n")
@@ -240,15 +242,23 @@ if (blnBuildBrouha2003){
   L1DFBrouha2003  <- getNonRefL1(L1Consens, AccNrs = AccNonRef, 
                                  Seqs = DNAStringSet(L1SeqNonRef),
                                MinMatchWidth = 5500, FlankSize = FlankSize,
-                               Chromosomes = L1Brouha2003NonRef$Chr)
+                               Chromosomes = L1Brouha2003NonRef$Chr,
+                               blnLocateL1inRef = T)
 
   # Replace each colum with the newly created dataframe
-  for (Col in colnames(L1DFBrouha2003)){
+  L1DFBrouha2003$start_HG38 <- L1DFBrouha2003$start_Ref
+  L1DFBrouha2003$end_HG38   <- L1DFBrouha2003$end_Ref
+  for (Col in intersect(colnames(L1DFBrouha2003), colnames(L1Brouha2003NonRef)) ){
     L1Brouha2003NonRef[,Col] <- L1DFBrouha2003[,Col]
   }
   
   # Merge both tables
   L1Brouha2003Merged <- merge(L1Brouha2003Ref, L1Brouha2003NonRef, all = T)
+  
+  # Rename column so that they are consistent between datasets
+  colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Allele_frequency."] <- "Allele_frequency"
+  colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Chr"] <- "Chromosome"
+  colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Act_L1rp"] <- "Activity"
   
   # Write out table with sequence data
   write.csv(L1Brouha2003Merged, "D:/L1polymORF/Data/L1Brouha2003.csv",
@@ -272,8 +282,11 @@ if (blnBuildBeck2010) {
   Beck2010Table$Allele     <- 1
   L1DFBeck2010  <- getNonRefL1(L1Consens, AccNrs = Beck2010Table$Accession, 
                                MinMatchWidth = 5500, FlankSize = FlankSize,
-                               Chromosomes = Beck2010Table$Chromosome)
+                               Chromosomes = Beck2010Table$Chromosome,
+                               blnLocateL1inRef = T)
   Beck2010TableWithL1 <- cbind(Beck2010Table, L1DFBeck2010)  
+  Beck2010TableWithL1$start_HG38 <- Beck2010TableWithL1$start_Ref
+  Beck2010TableWithL1$end_HG38   <- Beck2010TableWithL1$end_Ref
   write.csv(Beck2010TableWithL1, "D:/L1polymORF/Data/Beck2010_mergedTable_withL1.csv",
             row.names = F)
 } else {
@@ -342,9 +355,10 @@ if (blnBuildSeleme2006) {
   MatchListC <- MatchSeqs(Seleme2006L1C, OffSetVals = -100:100) 
   
   # Append column with L1 sequences and save resulting tables
-  ColsToAppend <- c("start_HG38", "end_HG38", "Chr", "Strand", 
+  ColsToAppend <- c("start_HG38", "end_HG38", "Chromosome", "Strand", 
                     "L1SeqFlank5p", "L1SeqFlank3p", "L1SeqFlank5p2x",
                     "L1SeqFlank3p2x", "start_Clone", "end_Clone")
+  setdiff(ColsToAppend, colnames(L1Brouha2003Merged))
   for (l in LETTERS[1:3]){
     SelTab <- eval(parse(text = paste("Seleme2006L1", l, sep = "")))
     MatchL <- eval(parse(text = paste("MatchList", l, sep = "")))
@@ -364,6 +378,11 @@ if (blnBuildSeleme2006) {
     Seleme2006L1extendedB[,-grep("X", colnames(Seleme2006L1extendedB))], 
     Seleme2006L1extendedC[,-grep("X", colnames(Seleme2006L1extendedC))]) 
   Seleme2006Combined$Reference <- "Seleme2006"
+  
+  # Rename column so that they are consistent between datasets
+  colnames(Seleme2006Combined)[colnames(Seleme2006Combined) == "AccessionNr"] <- "Accession"
+  colnames(Seleme2006Combined)[colnames(Seleme2006Combined) == "Chr"] <- "Chromosome"
+  colnames(Seleme2006Combined)[colnames(Seleme2006Combined) == "Freq"] <- "Allele_frequency"
   
   write.csv(Seleme2006Combined, "D:/L1polymORF/Data/Seleme2006Combined.csv",
             row.names = F)
@@ -386,20 +405,6 @@ if (blnBuildSeleme2006) {
 
 if(blnMergeTables){
   
-  # Replace start and end for non-reference insertion in Beck2010 data
-  Beck2010TableWithL1$start_HG38 <-
-    Beck2010TableWithL1$InsertionStartAbs
-  Beck2010TableWithL1$end_HG38 <-
-    Beck2010TableWithL1$start_HG38 + 1
-  
-  # Rename column so that they are consistent between datasets
-  colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Allele_frequency."] <- "Allele_frequency"
-  colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Chr"] <- "Chromosome"
-  colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Act_L1rp"] <- "Activity"
-  colnames(Seleme2006Combined)[colnames(Seleme2006Combined) == "AccessionNr"] <- "Accession"
-  colnames(Seleme2006Combined)[colnames(Seleme2006Combined) == "Chr"] <- "Chromosome"
-  colnames(Seleme2006Combined)[colnames(Seleme2006Combined) == "Freq"] <- "Allele_frequency"
-  
   # Add additional columns
   L1Brouha2003Merged$Coriell_ID        <- NA
   Seleme2006Combined$Coriell_ID        <- NA
@@ -412,6 +417,7 @@ if(blnMergeTables){
                   "end_HG38", "L1Seq",  
                   "L1SeqFlank5p", "L1SeqFlank3p", "L1SeqFlank5p2x",
                   "L1SeqFlank3p2x", "start_Clone", "end_Clone")
+  setdiff(CommonCols, colnames(Beck2010TableWithL1))
   BeckForMerging   <- Beck2010TableWithL1[, CommonCols]
   BrouhaForMerging <- L1Brouha2003Merged[, CommonCols] 
   SelemeForMerging <- Seleme2006Combined[, CommonCols] 
