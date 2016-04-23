@@ -46,7 +46,7 @@ AlignCommand <- '/home/txw/bwa/bwa-0.7.12/bwa mem'
 # Indicators for different analysis steps
 blnWriteFasta <- F
 blnBuildIndex <- F
-blnConvertSam2Bam <- F
+blnConvertSam2Bam <- T
 
 #######################################
 #                                     #
