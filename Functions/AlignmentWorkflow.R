@@ -83,8 +83,8 @@ AlignmentWorkflow <- function(FastqFile,
     BamFileDedup <- paste(FilePrefix, "dedup.bam", sep = "")
   }
   if (is.null(BamFileSorted2)) {
-    FilePrefix  <- strsplit(BamFileDedup, ".bam", sep = "")[[1]][1]
-    BamFileSorted2 <- paste(FilePrefix, "sorted.bam")
+    FilePrefix  <- strsplit(BamFileDedup, ".bam")[[1]][1]
+    BamFileSorted2 <- paste(FilePrefix, "sorted.bam", sep = "")
   }
   
   
