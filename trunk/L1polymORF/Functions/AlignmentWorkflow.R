@@ -68,22 +68,22 @@ AlignmentWorkflow <- function(FastqFile,
   # Create file names
   if (is.null(SamFile)) {
     FilePrefix <- strsplit(FastqFile, ".fastq")[[1]][1]
-    SamFile    <- paste(FilePrefix, ".sam")
+    SamFile    <- paste(FilePrefix, ".sam", sep = "")
   }
   if (is.null(BamFile)) {
     FilePrefix <- strsplit(SamFile, ".sam")[[1]][1]
-    BamFile    <- paste(FilePrefix, ".bam")
+    BamFile    <- paste(FilePrefix, ".bam", sep = "")
   }
   if (is.null(BamFileSorted)) {
     FilePrefix  <- strsplit(BamFile, ".bam")[[1]][1]
-    BamFileSorted <- paste(FilePrefix, "sorted.bam")
+    BamFileSorted <- paste(FilePrefix, "sorted.bam", sep = "")
   }
   if (is.null(BamFileDedup)) {
     FilePrefix   <- strsplit(BamFileSorted, "sorted.bam")[[1]][1]
-    BamFileDedup <- paste(FilePrefix, "dedup.bam")
+    BamFileDedup <- paste(FilePrefix, "dedup.bam", sep = "")
   }
   if (is.null(BamFileSorted2)) {
-    FilePrefix  <- strsplit(BamFileDedup, ".bam")[[1]][1]
+    FilePrefix  <- strsplit(BamFileDedup, ".bam", sep = "")[[1]][1]
     BamFileSorted2 <- paste(FilePrefix, "sorted.bam")
   }
   
@@ -123,16 +123,17 @@ AlignmentWorkflow <- function(FastqFile,
                      SamFile, "-b -h -o", BamFile)
     system(CmdLine)
     
+    # Command line file for indexing
+    CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools index", 
+                     BamFile)
+    system(CmdLine)
+    
     # Command line file for sorting
     CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools sort -o", 
                      BamFileSorted, "-T", paste(BamFile, ".tmp", sep = ""), 
                      BamFile)
     system(CmdLine)
     
-    # Command line file for indexing
-    CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools index", 
-                     BamFileSorted)
-    system(CmdLine)
   }
 
   # Run deduplication
