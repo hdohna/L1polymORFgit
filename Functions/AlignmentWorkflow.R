@@ -37,6 +37,7 @@
 AlignmentWorkflow <- function(FastqFile, 
                               ReferenceFile, 
                               SamFile = NULL,
+                              BamFile = NULL,
                               BamFileSorted = NULL,
                               BamFileDedup = NULL,
                               blnAlign = F,
