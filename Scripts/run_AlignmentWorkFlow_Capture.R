@@ -10,4 +10,5 @@ AlignmentWorkflow(FastqFile = "",
                   blnAlign = F,
                   blnSam2SortedBam = T,
                   blnDedup = T,
+                  blnRemMapQ0 = T,
                   blnSort = T)
