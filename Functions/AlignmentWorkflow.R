@@ -40,6 +40,7 @@ AlignmentWorkflow <- function(FastqFile,
                               BamFile = NULL,
                               BamFileSorted = NULL,
                               BamFileDedup = NULL,
+                              MetricsFileDedup = NULL,
                               BamFileSorted2 = NULL,
                               blnAlign = F,
                               blnSam2SortedBam = F,
@@ -77,6 +78,10 @@ AlignmentWorkflow <- function(FastqFile,
   if (is.null(BamFileSorted)) {
     FilePrefix  <- strsplit(BamFile, ".bam")[[1]][1]
     BamFileSorted <- paste(FilePrefix, "sorted.bam", sep = "")
+  }
+  if (is.null(MetricsFileDedup)) {
+    FilePrefix   <- strsplit(BamFileSorted, "sorted.bam")[[1]][1]
+    MetricsFileDedup <- paste(FilePrefix, "dedup.metrics", sep = "")
   }
   if (is.null(BamFileDedup)) {
     FilePrefix   <- strsplit(BamFileSorted, "sorted.bam")[[1]][1]
