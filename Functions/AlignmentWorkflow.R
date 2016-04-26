@@ -41,10 +41,12 @@ AlignmentWorkflow <- function(FastqFile,
                               BamFileSorted = NULL,
                               BamFileDedup = NULL,
                               MetricsFileDedup = NULL,
+                              BamFileUnique = NULL,
                               BamFileSorted2 = NULL,
                               blnAlign = F,
                               blnSam2SortedBam = F,
                               blnDedup = F,
+                              blnRemMapQ0 = F,
                               blnSort = F,
                               AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem',
                               DedupCommand ='java -jar /home/txw/picard/picard-tools-1.131/picard.jar MarkDuplicates',
@@ -86,6 +88,10 @@ AlignmentWorkflow <- function(FastqFile,
   if (is.null(BamFileDedup)) {
     FilePrefix   <- strsplit(BamFileSorted, "sorted.bam")[[1]][1]
     BamFileDedup <- paste(FilePrefix, "dedup.bam", sep = "")
+  }
+  if (is.null(BamFileUnique)) {
+    FilePrefix    <- strsplit(BamFileDedup, ".bam")[[1]][1]
+    BamFileUnique <- paste(FilePrefix, "unique.bam", sep = "")
   }
   if (is.null(BamFileSorted2)) {
     FilePrefix  <- strsplit(BamFileDedup, ".bam")[[1]][1]
@@ -155,6 +161,20 @@ AlignmentWorkflow <- function(FastqFile,
     system(CmdLine)
   }
   
+  # Run removal of zero mapping quality
+  if (blnRemMapQ0){
+    cat("\n\n*******************************************************\n")
+    cat("**                                                   **\n")
+    cat("**    Remove mapq 0 from", BamFileDedup," ...             **\n")
+    cat("**                                                   **\n")
+    cat("*******************************************************\n\n")
+    
+    # Create command lines
+    CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools view -h -q 1", 
+                     BamFileDedup, "-o", BamFileUnique)
+    system(CmdLine)
+  }
+  
   # Run sorting
   if (blnSort){
     cat("\n\n*******************************************************\n")
@@ -173,7 +193,7 @@ AlignmentWorkflow <- function(FastqFile,
                      BamFileSorted2, "-T", paste(BamFile, ".tmp", sep = ""), 
                      BamFileDedup)
     system(CmdLine)
-    
   }
+  
 }
 
