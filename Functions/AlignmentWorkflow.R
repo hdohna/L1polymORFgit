@@ -117,16 +117,12 @@ AlignmentWorkflow <- function(FastqFile,
     CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools view", 
                      SamFile, "-b -h -o", BamFile)
     system(CmdLine)
+    
     cat("\n\n*******************************************************\n")
     cat("**                                                   **\n")
     cat("**    Sorting", BamFile,"    **\n")
     cat("**                                                   **\n")
     cat("*******************************************************\n\n")
-    
-    # Command line file for conversion
-    CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools view", 
-                     SamFile, "-b -h -o", BamFile)
-    system(CmdLine)
     
     # Command line file for indexing
     CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools index", 
