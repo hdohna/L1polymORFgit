@@ -79,23 +79,23 @@ AlignmentWorkflow <- function(FastqFile,
   }
   if (is.null(BamFileSorted)) {
     FilePrefix  <- strsplit(BamFile, ".bam")[[1]][1]
-    BamFileSorted <- paste(FilePrefix, "sorted.bam", sep = "")
+    BamFileSorted <- paste(FilePrefix, ".sorted.bam", sep = "")
   }
   if (is.null(MetricsFileDedup)) {
-    FilePrefix   <- strsplit(BamFileSorted, "sorted.bam")[[1]][1]
-    MetricsFileDedup <- paste(FilePrefix, "dedup.metrics", sep = "")
+    FilePrefix   <- strsplit(BamFileSorted, ".sorted.bam")[[1]][1]
+    MetricsFileDedup <- paste(FilePrefix, ".dedup.metrics", sep = "")
   }
   if (is.null(BamFileDedup)) {
-    FilePrefix   <- strsplit(BamFileSorted, "sorted.bam")[[1]][1]
-    BamFileDedup <- paste(FilePrefix, "dedup.bam", sep = "")
+    FilePrefix   <- strsplit(BamFileSorted, ".sorted.bam")[[1]][1]
+    BamFileDedup <- paste(FilePrefix, ".dedup.bam", sep = "")
   }
   if (is.null(BamFileUnique)) {
     FilePrefix    <- strsplit(BamFileDedup, ".bam")[[1]][1]
-    BamFileUnique <- paste(FilePrefix, "unique.bam", sep = "")
+    BamFileUnique <- paste(FilePrefix, ".unique.bam", sep = "")
   }
   if (is.null(BamFileSorted2)) {
-    FilePrefix  <- strsplit(BamFileDedup, ".bam")[[1]][1]
-    BamFileSorted2 <- paste(FilePrefix, "sorted.bam", sep = "")
+    FilePrefix  <- strsplit(BamFileUnique, ".bam")[[1]][1]
+    BamFileSorted2 <- paste(FilePrefix, ".sorted.bam", sep = "")
   }
   
   
@@ -156,7 +156,7 @@ AlignmentWorkflow <- function(FastqFile,
     DedupOutputLine  <- paste('OUTPUT=', BamFileDedup, sep = "")
     DedupMetricsLine <- paste('METRICS_FILE=', MetricsFileDedup, sep = "")
 
-    CmdLine <- paste(DedupCommand, DedupInputLine, DedupInputLine, 
+    CmdLine <- paste(DedupCommand, DedupInputLine, DedupOutputLine, 
                      DedupMetricsLine, DedupOptions)
     system(CmdLine)
   }
