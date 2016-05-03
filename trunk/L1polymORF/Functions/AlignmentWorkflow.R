@@ -195,5 +195,17 @@ AlignmentWorkflow <- function(FastqFile,
     system(CmdLine)
   }
   
+  # Create index file for final file
+  cat("\n\n*******************************************************\n")
+  cat("**                                                   **\n")
+  cat("**    Creating index for", BamFileSorted2," ...  **\n")
+  cat("**                                                   **\n")
+  cat("*******************************************************\n\n")
+  
+  # Command line file for indexing
+  CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools index", 
+                   BamFileSorted2)
+  system(CmdLine)
+  
 }
 
