@@ -87,7 +87,7 @@ StructuredSamples <- sapply(1:1000, function(x){
   for(x in Ethnicities) {
     NrMale   <- sum(!GenoWithdata$isFemale & GenoWithdata$Ethnicity == x)
     NrFemale <- sum(GenoWithdata$isFemale  & GenoWithdata$Ethnicity == x)
-    SmallSamples_males <- CreateSamples(x, "male", NrMale * SampleSizeBase)
+    SmallSamples_males   <- CreateSamples(x, "male", NrMale * SampleSizeBase)
     SmallSamples_females <- CreateSamples(x, "female", NrFemale * SampleSizeBase)
     Samples <- c(Samples, SmallSamples_males, SmallSamples_females)
   }
