@@ -14,8 +14,8 @@ FwidthFilter <- 10000
 
 # Specify bam file path
 InBamfilePath <- "/share/diskarray3/hzudohna/10XData/NA12878_WGS_phased_possorted.bam"
-OutFilePrefix <- "/share/diskarray3/hzudohna/10XData/L1_"
-#OutFile <- "/share/diskarray3/hzudohna/10XData/test.bam"
+OutFileBam    <- "/share/diskarray3/hzudohna/10XData/L1AllFilteredByFlankBC_NA12878.bam"
+OutFileL1BC   <- "/share/diskarray3/hzudohna/10XData/L1FlankBarcodes_NA12878.RData"
 
 # Read in table with known L1 
 L1Catalogue <- read.csv("/home/hzudohna/L1polymORF/Data/L1CatalogUpdated_Fri_Apr_22_18-27-39_2016.csv", 
@@ -60,10 +60,17 @@ BarCodeList <- lapply(1:length(GRCatalogue_hg19), function(x){
   # Get unique barcodes that are not NA
   UniqueBarcodes <- unique(unlist(BarCodesPerRangeList))
   UniqueBarcodes <- UniqueBarcodes[!is.na(UniqueBarcodes)]
+  UniqueBarcodes
   
-  # Set parameters to filter bam file
-  paramFilter  <- ScanBamParam(tagFilter = list(BX = UniqueBarcodes))
-  OutFile <- paste(OutFilePrefix, AccNr, ".bam", sep = "")
-  filterBam(InBamfilePath, OutFile, param = paramFilter)
-
 })
+
+names(BarCodeList) <- L1CatalogueMapped$Accession[idxUniqueMapped]
+
+# Get all unique barcodes
+AllUniqueBarcodes <- unique(unlist(BarCodeList))
+
+# Set parameters to filter bam file
+paramFilter  <- ScanBamParam(tagFilter = list(BX = UniqueBarcodes))
+filterBam(InBamfilePath, OutFileBam, param = paramFilter)
+
+
