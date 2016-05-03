@@ -70,7 +70,7 @@ names(BarCodeList) <- L1CatalogueMapped$Accession[idxUniqueMapped]
 AllUniqueBarcodes <- unique(unlist(BarCodeList))
 
 # Set parameters to filter bam file
-paramFilter  <- ScanBamParam(tagFilter = list(BX = UniqueBarcodes))
+paramFilter  <- ScanBamParam(tagFilter = list(BX = AllUniqueBarcodes))
 filterBam(InBamfilePath, OutFileBam, param = paramFilter)
 
 
