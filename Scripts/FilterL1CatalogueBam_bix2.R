@@ -20,8 +20,8 @@ library(Rsamtools)
 blnCreateAlignList <- F
 
 # Specify file paths
-BamFile <- '/home/hzudohna/L1polymORF/Data/NA12878-L15P_S1_L001_001_Catalogue.dedup.unique.sorted.bam'
-FilteredBamFile <- '/home/hzudohna/L1polymORF/Data/NA12878-L15P_aln2Catalogue_filtered.bam'
+BamFile <- '/share/diskarry3/hzudohna/NA12878-L15P_S1_L001_001_Catalogue.dedup.unique.sorted.bam'
+FilteredBamFile <- '/share/diskarry3/hzudohna/NA12878-L15P_aln2Catalogue_filtered.bam'
 CatalogueFile <- "/home/hzudohna/L1polymORF/Data/L1CatalogUpdated_Fri_Apr_22_18-27-39_2016.csv"
 AlignListFile <- "/home/hzudohna/L1polymORF/Data/CatlogueAlignList.RData"
 
