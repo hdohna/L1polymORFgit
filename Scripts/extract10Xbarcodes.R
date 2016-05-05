@@ -15,17 +15,29 @@ FwidthFilter <- 10000
 # Specify bam file path
 InBamfilePath <- "/share/diskarray3/hzudohna/10XData/NA12878_WGS_phased_possorted.bam"
 OutFilePrefix <- "/share/diskarray3/hzudohna/10XData/L1_"
+BamFolder     <- "/share/diskarray3/hzudohna/10XData/"
+BamPrefix     <- "L1_"
 #OutFile <- "/share/diskarray3/hzudohna/10XData/test.bam"
 
 # Read in table with known L1 
 L1Catalogue <- read.csv("/home/hzudohna/L1polymORF/Data/L1CatalogUpdated_Fri_Apr_22_18-27-39_2016.csv", 
                         as.is = T)
 
+# Get bam files with specified prefix, loop over files and extract accession numbers
+BamFiles <- list.files(BamFolder, pattern = BamPrefix, full.names = T)
+BamFiles <- BamFiles[grep(".bam", BamFiles)]
+BamFiles <- BamFiles[-grep(".bam.", BamFiles)]
+AccProcessed <- sapply(BamFiles, function(x){
+  Split <- strsplit(x, split = "_")[[1]][2]
+  strsplit(Split, split = ".bam")[[1]][1]
+})
+
 # Create genomic ranges from catalogue
-blnNotReference   <- abs(L1Catalogue$end_HG38 - L1Catalogue$start_HG38) < 5000
+blnNotReference <- abs(L1Catalogue$end_HG38 - L1Catalogue$start_HG38) < 5000
+blnNotProcessed <- !L1Catalogue$Accession %in% AccProcessed
 L1CatalogueMapped <- L1Catalogue[!is.na(L1Catalogue$start_HG38) &
                                    L1Catalogue$Allele == 1 &
-                                   blnNotReference,]
+                                   blnNotReference & blnNotProcessed,]
 GRCatalogue_hg38  <- GRanges(seqnames = L1CatalogueMapped$Chromosome,
                        ranges = IRanges(start = pmin(L1CatalogueMapped$start_HG38,
                                                      L1CatalogueMapped$end_HG38),
