@@ -37,5 +37,6 @@ load(file = AlignListFile)
 
 cat("Filtering bam file ...\n")
 paramFilter  <- ScanBamParam(tagFilter = list(NM = 0:2),
+                             mapqFilter = 1,
                              scanBamFlag(isUnmappedQuery = F))
 filterBam(BamFile, FilteredBamFile, param = paramFilter)
