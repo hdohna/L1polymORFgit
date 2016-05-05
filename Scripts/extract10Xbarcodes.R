@@ -74,8 +74,9 @@ BarCodeList <- lapply(1:length(GRCatalogue_hg19), function(x){
   UniqueBarcodes <- UniqueBarcodes[!is.na(UniqueBarcodes)]
   
   # Set parameters to filter bam file
-  paramFilter  <- ScanBamParam(tagFilter = list(BX = UniqueBarcodes))
-  OutFile <- paste(OutFilePrefix, AccNr, ".bam", sep = "")
-  filterBam(InBamfilePath, OutFile, param = paramFilter)
-
+  if (length(UniqueBarcodes) > 0){
+    paramFilter  <- ScanBamParam(tagFilter = list(BX = UniqueBarcodes))
+    OutFile <- paste(OutFilePrefix, AccNr, ".bam", sep = "")
+    filterBam(InBamfilePath, OutFile, param = paramFilter)
+  }
 })
