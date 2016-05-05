@@ -8,7 +8,7 @@
 #############################################
 
 # Source start script
-source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.r')
+#source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.r')
 
 # Load packages
 library(BSgenome.Hsapiens.UCSC.hg38)
