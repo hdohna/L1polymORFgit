@@ -33,10 +33,10 @@ AlignListFile <- "/home/hzudohna/L1polymORF/Data/CatlogueAlignList.RData"
 
 # Load L1 catalogue and files that indicate where in the alignment the L1 
 # insertion is located
-load(file = AlignListFile)
+#load(file = AlignListFile)
 
 cat("Filtering bam file ...\n")
-paramFilter  <- ScanBamParam(tagFilter = list(NM = 0:2),
+paramFilter  <- ScanBamParam(tagFilter = list(NM = 0:5),
                              mapqFilter = 1,
                              scanBamFlag(isUnmappedQuery = F))
 filterBam(BamFile, FilteredBamFile, param = paramFilter)
