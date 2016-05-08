@@ -36,7 +36,7 @@ AlignListFile <- "/home/hzudohna/L1polymORF/Data/CatlogueAlignList.RData"
 #load(file = AlignListFile)
 
 cat("Filtering bam file ...\n")
-paramFilter  <- ScanBamParam(tagFilter = list(NM = 0:5),
+paramFilter  <- ScanBamParam(tagFilter = list(NM = 0:4),
                              mapqFilter = 1,
                              scanBamFlag(isUnmappedQuery = F))
 filterBam(BamFile, FilteredBamFile, param = paramFilter)

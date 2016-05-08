@@ -170,7 +170,7 @@ AlignmentWorkflow <- function(FastqFile,
     cat("*******************************************************\n\n")
     
     # Create command lines
-    CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools view -h -q 1", 
+    CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools view -h -q1", 
                      BamFileDedup, "-o", BamFileUnique)
     system(CmdLine)
   }

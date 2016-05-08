@@ -55,7 +55,7 @@ blnConvertSam2Bam <- T
 #######################################
 
 # Read catalogue
-L1CataloguePath <- paste(DataPath, "L1Catalogue_Fri_Apr_22_12-19-25_2016.csv", sep = "")
+L1CataloguePath <- paste(DataPath, "L1Catalogue_Sat_May_07_15-15-31_2016.csv", sep = "")
 L1Catalogue     <- read.csv(L1CataloguePath, as.is = T)
 
 #######################################
