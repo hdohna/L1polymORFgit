@@ -110,6 +110,8 @@ ActNum <- as.numeric(Act)
 plot(ActNum, Mindist, xlab = "Activity", ylab = "Nuc diff. to closest L1")
 plot(ActNum, Mindist, xlab = "Activity", ylab = "Nuc diff. to closest L1",
      ylim = c(0, 0.02))
+text(150, 0.015, "P < 0.0001")
+CreateDisplayPdf("D:/L1polymORF/Figures/L1ActivityVsMinDist.pdf")
 cor(ActNum, Mindist, use = "pairwise.complete.obs")
 cor.test(ActNum, Mindist, use = "pairwise.complete.obs")
 

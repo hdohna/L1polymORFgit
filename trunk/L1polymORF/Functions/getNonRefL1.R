@@ -70,7 +70,10 @@ getNonRefL1 <- function(L1Consens,
   
   # Match each L1HS to a locus 
   cat("\n***** Searching for match of consensus L1 in clone *****\n\n")
-  SeqsRV <- reverseComplement(Seqs)
+  
+  # Reverse consensus L1HS for negative strand match
+  L1Consens <- DNAString(L1Consens)
+  L1ConsensRV <- reverseComplement(L1Consens)
   
   # Initialize output objects
   OutDF <- data.frame(
@@ -99,9 +102,8 @@ getNonRefL1 <- function(L1Consens,
     if (width(lpA@subject) > MinMatchWidth){
       Strand <- "+"
     } else {
-      SubjectSeq <- SeqsRV[i]
-      lpA        <- pairwiseAlignment(L1Consens, SubjectSeq, type = "local")
-      Strand     <- "-"
+      lpA    <- pairwiseAlignment(L1ConsensRV, SubjectSeq, type = "local")
+      Strand <- "-"
     }
     if (width(lpA@subject) > MinMatchWidth){
       OutDF$L1Seq[i]    <- as.character(lpA@subject)
@@ -125,7 +127,7 @@ getNonRefL1 <- function(L1Consens,
     }
   }
   
-  # Looking for insertion site in reference
+  # Looking for insertion site in reference [NEEDS MORE WORK]
   if (blnLocateL1inRef){
     cat("\n***** Looking for insertion site in reference ... *****\n\n")
     

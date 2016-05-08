@@ -217,8 +217,8 @@ if (blnBuildBrouha2003){
         L1Brouha2003Table$L1Seq[idxChr[idxMatch]]         <- as.character(Seq)
         L1Brouha2003Table$start_HG38[idxChr[idxMatch]]    <- start(GRanges_L1repMask_Hg38)[i]
         L1Brouha2003Table$end_HG38[idxChr[idxMatch]]      <- end(GRanges_L1repMask_Hg38)[i]
-        L1Brouha2003Table$start_Clone[idxChr[idxMatch]]    <- S
-        L1Brouha2003Table$end_Clone[idxChr[idxMatch]]      <- E
+        L1Brouha2003Table$start_Clone[idxChr[idxMatch]]   <- S
+        L1Brouha2003Table$end_Clone[idxChr[idxMatch]]     <- E
         L1Brouha2003Table$Strand[idxChr[idxMatch]]        <- Strand_L1repMask_Hg38[i]
       } else {
         cat("More than one set of flanking sequences enclose a stretch above 6000\n")
@@ -283,7 +283,7 @@ if (blnBuildBeck2010) {
   L1DFBeck2010  <- getNonRefL1(L1Consens, AccNrs = Beck2010Table$Accession, 
                                MinMatchWidth = 5500, FlankSize = FlankSize,
                                Chromosomes = Beck2010Table$Chromosome,
-                               blnLocateL1inRef = T)
+                               blnLocateL1inRef = F)
   Beck2010TableWithL1 <- cbind(Beck2010Table, L1DFBeck2010)  
   Beck2010TableWithL1$start_HG38 <- Beck2010TableWithL1$start_Ref
   Beck2010TableWithL1$end_HG38   <- Beck2010TableWithL1$end_Ref
