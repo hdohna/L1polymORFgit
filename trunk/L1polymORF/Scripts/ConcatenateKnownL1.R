@@ -106,48 +106,52 @@ L1StartEnd <- sapply(1:length(L1withFlank), function(x){
 L1CatalogueNoL1 <- L1CatalogL1Mapped[L1StartEnd["Width", ] < 5500, ]
 if (any(L1StartEnd["Width", ] < 5500)) {
   stop("Some catalogue sequences do not contain L1!\n")
+} else {
+  cat("L1 could be mapped to all", length(L1withFlank), "catalogue sequences\n")
+  
 }
 
-# Align consensus to all L1 sequences
-AlignConsens2L1 <- lapply(1:nrow(L1CatalogL1Mapped), function(x){
-  cat("Aligning L1 consensus to seq", x, "of", nrow(L1CatalogL1Mapped), "\n")
-  pairwiseAlignment(L1HSConsensusDNASt, L1CatalogL1Mapped$L1Seq[x], 
-                    type = "global")
-})
+# # Align consensus to all L1 sequences
+# AlignConsens2L1 <- lapply(1:nrow(L1CatalogL1Mapped), function(x){
+#   cat("Aligning L1 consensus to seq", x, "of", nrow(L1CatalogL1Mapped), "\n")
+#   pairwiseAlignment(L1HSConsensusDNASt, L1CatalogL1Mapped$L1Seq[x], 
+#                     type = "global")
+# })
+# 
+# # Count indels and mismatches 
+# MismatchCount <- sapply(AlignConsens2L1, function(x){
+#   c(MisMatch     = length(x@pattern@mismatch[[1]]),
+#     IndelPattern = sum(width(x@pattern@indel)[[1]]),
+#     IndelSubject = sum(width(x@subject@indel)[[1]]))
+# })
+# hist(colSums(MismatchCount))
+# 
+# # Check whether 
+# blnL1present <- L1StartEnd["Width", ] > 5500
+# boxplot(colSums(MismatchCount) ~ blnL1present)
+# boxplot(MismatchCount["MisMatch",] ~ blnL1present)
+# boxplot(MismatchCount["IndelPattern",] ~ blnL1present)
+# boxplot(MismatchCount["IndelSubject",] ~ blnL1present)
+# 
+# # Create a list of local alignments of L1 sequence to catalogue
+# AlignListSelf <- lapply(1:length(L1withFlank), function(x){
+#   cat("Looking for L1 in seq", x, "of", length(L1withFlank), "\n")
+#   if (L1CatalogL1Mapped$Strand[x] == "+"){
+#     PatternSeq <- L1CatalogL1Mapped$L1Seq[x]
+#   } else {
+#     PatternSeq <- DNAString(L1CatalogL1Mapped$L1Seq[x])
+#     PatternSeq <- reverseComplement(PatternSeq)
+#   }
+#   SubjectSeq <- DNAString(paste(L1withFlank[[x]], collapse = ""))
+#   pairwiseAlignment(PatternSeq, SubjectSeq, type = "global")
+# })
+# 
+# sapply(1:length(L1withFlank), function(x){
+#   c(Start = start(AlignListSelf[[x]]@subject@range), 
+#     End = end(AlignListSelf[[x]]@subject@range),
+#     Width = width(AlignListSelf[[x]]@subject@range))
+# })
 
-# Count indels and mismatches 
-MismatchCount <- sapply(AlignConsens2L1, function(x){
-  c(MisMatch     = length(x@pattern@mismatch[[1]]),
-    IndelPattern = sum(width(x@pattern@indel)[[1]]),
-    IndelSubject = sum(width(x@subject@indel)[[1]]))
-})
-hist(colSums(MismatchCount))
-
-# Check whether 
-blnL1present <- L1StartEnd["Width", ] > 5500
-boxplot(colSums(MismatchCount) ~ blnL1present)
-boxplot(MismatchCount["MisMatch",] ~ blnL1present)
-boxplot(MismatchCount["IndelPattern",] ~ blnL1present)
-boxplot(MismatchCount["IndelSubject",] ~ blnL1present)
-
-# Create a list of local alignments of L1 sequence to catalogue
-AlignListSelf <- lapply(1:length(L1withFlank), function(x){
-  cat("Looking for L1 in seq", x, "of", length(L1withFlank), "\n")
-  if (L1CatalogL1Mapped$Strand[x] == "+"){
-    PatternSeq <- L1CatalogL1Mapped$L1Seq[x]
-  } else {
-    PatternSeq <- DNAString(L1CatalogL1Mapped$L1Seq[x])
-    PatternSeq <- reverseComplement(PatternSeq)
-  }
-  SubjectSeq <- DNAString(paste(L1withFlank[[x]], collapse = ""))
-  pairwiseAlignment(PatternSeq, SubjectSeq, type = "global")
-})
-
-sapply(1:length(L1withFlank), function(x){
-  c(Start = start(AlignListSelf[[x]]@subject@range), 
-    End = end(AlignListSelf[[x]]@subject@range),
-    Width = width(AlignListSelf[[x]]@subject@range))
-})
 #####################################
 #                                   #
 #    Write out L1 with flanks       #
