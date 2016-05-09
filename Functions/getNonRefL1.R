@@ -129,61 +129,63 @@ getNonRefL1 <- function(L1Consens,
   
   # Looking for insertion site in reference [NEEDS MORE WORK]
   if (blnLocateL1inRef){
-    cat("\n***** Looking for insertion site in reference ... *****\n\n")
-    
-    # Get the total length of the flanking sequence
-    FlankTotal <- nchar(OutDF$L1SeqFlank5p2x) +
-      nchar(OutDF$L1SeqFlank3p2x)
-    
-    # Loop through flanking sequences above minimal length, locate them on the
-    # reference genome and get insert location descriptors
-    for (i in which(FlankTotal > FlankSize)){
-      cat("Analyzing insertion", i, "of", nrow(OutDF), "\n")
-      if (OutDF$Strand[i] == "+") {
-        LPattern <- OutDF$L1SeqFlank5p2x[i]
-        RPattern <- OutDF$L1SeqFlank3p2x[i]
-        InsertionSite <- paste(OutDF$L1SeqFlank5p[i],
-                               OutDF$L1SeqFlank3p[i], sep = "")
-      } else {
-        DNASt5P   <- DNAString(OutDF$L1SeqFlank5p[i])
-        DNASt3P   <- DNAString(OutDF$L1SeqFlank3p[i])
-        DNASt5P2x <- DNAString(OutDF$L1SeqFlank5p2x[i])
-        DNASt3P2x <- DNAString(OutDF$L1SeqFlank3p2x[i])
-        LPattern  <- reverseComplement(DNASt3P2x)
-        RPattern  <- reverseComplement(DNASt5P2x)
-        InsertionSite <- paste(reverseComplement(DNASt3P),
-                               reverseComplement(DNASt5P), sep = "")
-      }
-      Chrom    <- Chromosomes[i]
-      ChromSeq <- RefGenome[[Chrom]]
-      String   <- matchLRPatterns(LPattern, RPattern, 
-                                  max.gaplength = 4 * FlankSize, ChromSeq,
-                                  max.Lmismatch = 5, max.Rmismatch = 5)
-      InsertStart <- NA
-      if (length(String) > 0){
-        c("Matched L1 flanks from clone to reference\n")
-        OutDF$FlankStart[i]        <- start(String)
-        OutDF$InsertionStartRel[i] <- 2 * FlankSize
-        OutDF$start_Ref[i] <- start(String) + 2 * FlankSize
-        OutDF$end_Ref[i]   <- start(String) + 2 * FlankSize + 1
-        OutDF$NrNuc5p[i]           <- 0
-        OutDF$NrNuc3p[i]           <- 0
-        pwA <- pairwiseAlignment(InsertionSite, String, type = "local")
-        Indel <- subsetByOverlaps(unlist(pwA@subject@indel), 
-                                  IRanges(start = FlankSize,
-                                          end = FlankSize))
-        if (length(Indel) > 0){
-          OutDF$InsertionStartRel[i] <- FlankSize + start(Indel) - 1
-          OutDF$start_Ref[i]         <- start(String) + FlankSize + start(Indel) - 1
-          OutDF$end_Ref[i]         <- start(String) + FlankSize + start(Indel)
-          OutDF$NrNuc5p[i]           <- FlankSize - start(Indel)
-          OutDF$NrNuc3p[i]           <- end(Indel) - FlankSize
-          
-        }
-      }
-      
-    } # End of for (i in which(FlankTotal > FlankSize))
-  } # End of if (blnLocateL1inRef)
+    cat("\n***** Looking for insertion site is currently not functional *****\n")
+    cat("\n***** Runs script FindL1HSFlanks.R!!                         *****\n")
+    #   cat("\n***** Looking for insertion site in reference ... *****\n\n")
+  #   
+  #   # Get the total length of the flanking sequence
+  #   FlankTotal <- nchar(OutDF$L1SeqFlank5p2x) +
+  #     nchar(OutDF$L1SeqFlank3p2x)
+  #   
+  #   # Loop through flanking sequences above minimal length, locate them on the
+  #   # reference genome and get insert location descriptors
+  #   for (i in which(FlankTotal > FlankSize)){
+  #     cat("Analyzing insertion", i, "of", nrow(OutDF), "\n")
+  #     if (OutDF$Strand[i] == "+") {
+  #       LPattern <- OutDF$L1SeqFlank5p2x[i]
+  #       RPattern <- OutDF$L1SeqFlank3p2x[i]
+  #       InsertionSite <- paste(OutDF$L1SeqFlank5p[i],
+  #                              OutDF$L1SeqFlank3p[i], sep = "")
+  #     } else {
+  #       DNASt5P   <- DNAString(OutDF$L1SeqFlank5p[i])
+  #       DNASt3P   <- DNAString(OutDF$L1SeqFlank3p[i])
+  #       DNASt5P2x <- DNAString(OutDF$L1SeqFlank5p2x[i])
+  #       DNASt3P2x <- DNAString(OutDF$L1SeqFlank3p2x[i])
+  #       LPattern  <- reverseComplement(DNASt3P2x)
+  #       RPattern  <- reverseComplement(DNASt5P2x)
+  #       InsertionSite <- paste(reverseComplement(DNASt3P),
+  #                              reverseComplement(DNASt5P), sep = "")
+  #     }
+  #     Chrom    <- Chromosomes[i]
+  #     ChromSeq <- RefGenome[[Chrom]]
+  #     String   <- matchLRPatterns(LPattern, RPattern, 
+  #                                 max.gaplength = 4 * FlankSize, ChromSeq,
+  #                                 max.Lmismatch = 5, max.Rmismatch = 5)
+  #     InsertStart <- NA
+  #     if (length(String) > 0){
+  #       c("Matched L1 flanks from clone to reference\n")
+  #       OutDF$FlankStart[i]        <- start(String)
+  #       OutDF$InsertionStartRel[i] <- 2 * FlankSize
+  #       OutDF$start_Ref[i] <- start(String) + 2 * FlankSize
+  #       OutDF$end_Ref[i]   <- start(String) + 2 * FlankSize + 1
+  #       OutDF$NrNuc5p[i]           <- 0
+  #       OutDF$NrNuc3p[i]           <- 0
+  #       pwA <- pairwiseAlignment(InsertionSite, String, type = "local")
+  #       Indel <- subsetByOverlaps(unlist(pwA@subject@indel), 
+  #                                 IRanges(start = FlankSize,
+  #                                         end = FlankSize))
+  #       if (length(Indel) > 0){
+  #         OutDF$InsertionStartRel[i] <- FlankSize + start(Indel) - 1
+  #         OutDF$start_Ref[i]         <- start(String) + FlankSize + start(Indel) - 1
+  #         OutDF$end_Ref[i]         <- start(String) + FlankSize + start(Indel)
+  #         OutDF$NrNuc5p[i]           <- FlankSize - start(Indel)
+  #         OutDF$NrNuc3p[i]           <- end(Indel) - FlankSize
+  #         
+  #       }
+  #     }
+  #     
+  #   } # End of for (i in which(FlankTotal > FlankSize))
+  # } # End of if (blnLocateL1inRef)
   
   # Return output data.frame
   return(OutDF)
