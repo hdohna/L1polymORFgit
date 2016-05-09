@@ -75,9 +75,9 @@ ChrPathVect <- c()
 cat("******  Writing out a reference sequence per chromosome  ***********\n")
 for (Chr in ChrsToBeSearched){
   cat("Writing chromosome", Chr, "\n")
-  ChrSeq  <- BSgenome.Hsapiens.UCSC.hg38[[Chr]]
   ChrPath <- paste(DataPath, Chr, ".fas", sep = "")
   if (blnWriteFasta){
+    ChrSeq  <- BSgenome.Hsapiens.UCSC.hg38[[Chr]]
     write.fasta(s2c(as.character(ChrSeq)), names = Chr, file.out = ChrPath)
   }
   ChrPathVect <- c(ChrPathVect, ChrPath)
@@ -96,7 +96,7 @@ if(blnBuildIndex){
 # Write each flanking sequence as fastq file and run an alignment command
 cat("******  Writing out fastq file per L1 and aligning them ***********\n")
 for (i in idxFlanksToBeSearched){
-  cat("Writing fastq file", i, "\n")
+  cat("\n\n Writing fastq file", i, "\n")
   Chr <- L1Catalogue$Chromosome[i]
   ReadList <- list(seq  = c(L1Catalogue$L1SeqFlank5p[i],
                             L1Catalogue$L1SeqFlank3p[i]),
@@ -131,29 +131,32 @@ for (SamFile in SamFilePaths){
   GR     <- GRanges(seqnames = Chrom, IRanges(start = 1, 
                end = length(BSgenome.Hsapiens.UCSC.hg38[[Chrom]])))
   BamFile <- gsub(".sam", ".bam", SamFile)
-  if (blnConvertSam2Bam){
+  if (blnConvertSam2Bam & file.exists(BamFile)){
     BamFilePrefix <- substr(BamFile, 1, nchar(BamFile) - 4)
     asBam(SamFile, BamFilePrefix, overwrite = T)
     sortBam(BamFile, BamFile)
     indexBam(BamFile)
     
   }
-  cat("Extracting reads from", BamFile, "\n")
-  ReadRanges <- extractReads(BamFile, GR)
-  NewStart   <- min(end(ReadRanges))
-  NewEnd     <- max(start(ReadRanges))
-  length(ReadRanges)
-  if (length(ReadRanges) == 2 & ((NewEnd - NewStart) < 6100) &
-      is.na(L1Catalogue$end_HG38[idxRow])){
-    cat("Adding start and end for", AccNr, "\n")
-    L1Catalogue$start_HG38[idxRow] <- NewStart
-    L1Catalogue$end_HG38[idxRow] <- NewEnd
+  if (file.exists(BamFile)){
+    cat("Extracting reads from", BamFile, "\n")
+    ReadRanges <- extractReads(BamFile, GR)
+    NewStart   <- min(end(ReadRanges))
+    NewEnd     <- max(start(ReadRanges))
+    length(ReadRanges)
+    if (length(ReadRanges) == 2 & ((NewEnd - NewStart) < 6100) &
+        is.na(L1Catalogue$end_HG38[idxRow])){
+      cat("Adding start and end for", AccNr, "\n")
+      L1Catalogue$start_HG38[idxRow] <- NewStart
+      L1Catalogue$end_HG38[idxRow] <- NewEnd
+    }
+  } else {
+    cat("Could not find bam file", BamFile, "\n")
   }
 }
 
 # Write updated catalogue out
-TStamp <- gsub(" ", "_", date())
-TStamp <- gsub(":", "-", TStamp)
-CataloguePath <- paste(DataPath, "L1CatalogUpdated_", TStamp, ".csv", sep = "")
+SplitPath <-  strsplit(L1CataloguePath, "_")[[1]]
+CataloguePath <- paste(c(SplitPath[1], "Updated", SplitPath[-1]), collapse = "_")
 cat("Saving new L1 catalogue file", CataloguePath, "\n")
 write.csv(L1Catalogue, CataloguePath)
