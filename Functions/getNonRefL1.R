@@ -185,7 +185,7 @@ getNonRefL1 <- function(L1Consens,
   #     }
   #     
   #   } # End of for (i in which(FlankTotal > FlankSize))
-  # } # End of if (blnLocateL1inRef)
+  } # End of if (blnLocateL1inRef)
   
   # Return output data.frame
   return(OutDF)
