@@ -81,7 +81,7 @@ for (BamFile in BamFiles){
   system(AlnCmd)
   
   # Turn sam files into bam files
-  asBam(SamFileL1Consens,   BamDestL1Consens)
+  asBam(SamFileL1Consens,   BamDestL1Consens, overwrite = T)
   asBam(SamFileL1Catalogue, BamDestL1Catalogue, overwrite = T)
   
   # Extract reads aligned to L1HS consensus 
