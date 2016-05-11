@@ -10,7 +10,6 @@ source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
 library(ShortRead)
 library(csaw)
 library(rtracklayer)
-library(seqinr)
 
 # Specify bam file path
 InBamfilePath <- "/share/diskarray3/hzudohna/10XData/NA12878_WGS_phased_possorted.bam"
