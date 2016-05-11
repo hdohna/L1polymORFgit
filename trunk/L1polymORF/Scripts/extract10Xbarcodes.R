@@ -1,4 +1,5 @@
 # The following script reads in reads from a 10X bam file and retains the barcodes
+#  corresponding to reads aligning to the flanks of L1
 
 # Source start script
 source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
@@ -9,7 +10,7 @@ library(csaw)
 library(rtracklayer)
 
 # Specify width of flanking regions to extract barcodes
-Fwidth <- 1000
+Fwidth       <- 1000
 FwidthFilter <- 10000
 
 # Specify bam file path
