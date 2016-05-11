@@ -48,25 +48,26 @@ getBarcodes <- function(L1rangeStart, L1rangeEnd){
 #                    #
 ######################
 
-# Define ranges to filter read IDs
-whichR <- GRanges(seqnames = "L1HS_L1_Homo_sapiens", 
-                    ranges = IRanges(start = 1, end = 6000))
-paramRead <- ScanBamParam(which = whichR, what = "qname")
-  
-# Obtain read IDs of reads that intersect with specified range
-ReadIDs   <- scanBam(file = L1BamPath, param = paramRead)[[1]][[1]]
-IDFilter  <- FilterRules(getIDs <- function(DF){DF$qname %in% ReadIDs})
-  
-# Get barcodes of reads alingning to L1
-cat("***  Filtering reads aligning to L1 ...")
-filterBam(RefBamPath, FilterBamPath, filter = IDFilter)
-cat(" Done!   ***\n\n")
-cat("***  Getting barcodes of reads aligning to L1...")
-paramReadFilter <- ScanBamParam(tag = "BX")# Need to specify ranges?
-BarcodeList     <- scanBam(FilterBamPath, param = paramReadFilter)
-cat("***  Saving barcodes of reads alingning to bot L1 ends  \n")
-cat("in file", BarCodeListFile, "   ***\n\n")
-save(list = "BarcodeList", file = BarCodeListFile)
+# # Define ranges to filter read IDs
+# whichR <- GRanges(seqnames = "L1HS_L1_Homo_sapiens", 
+#                     ranges = IRanges(start = 1, end = 6000))
+# paramRead <- ScanBamParam(which = whichR, what = "qname")
+#   
+# # Obtain read IDs of reads that intersect with specified range
+# ReadIDs   <- scanBam(file = L1BamPath, param = paramRead)[[1]][[1]]
+# IDFilter  <- FilterRules(getIDs <- function(DF){DF$qname %in% ReadIDs})
+#   
+# # Get barcodes of reads alingning to L1
+# cat("***  Filtering reads aligning to L1 ...")
+# filterBam(RefBamPath, FilterBamPath, filter = IDFilter)
+# cat(" Done!   ***\n\n")
+# cat("***  Getting barcodes of reads aligning to L1...")
+# paramReadFilter <- ScanBamParam(tag = "BX")# Need to specify ranges?
+# BarcodeList     <- scanBam(FilterBamPath, param = paramReadFilter)
+# cat("***  Saving barcodes of reads alingning to bot L1 ends  \n")
+# cat("in file", BarCodeListFile, "   ***\n\n")
+# save(list = "BarcodeList", file = BarCodeListFile)
+load(BarCodeListFile)
 
 # # Get unique barcodes of reads aligning to 5' and 3' ends
 # cat("***  Looking for barcodes of reads aligning to the L1 5' region ...")
@@ -91,7 +92,7 @@ BarCodeRangeList <- lapply(BarcodesFullLength, function(x){
   
   paramFilter  <- ScanBamParam(tagFilter = list(BX = x),
                                what = c("rname", "pos"))# Need to specify ranges?
-  ScannedReads <- scanBam(RefBamfilePath, FilterBamPath, paramFilter)
+  ScannedReads <- scanBam(RefBamPath, FilterBamPath, paramFilter)
   idxStart <- which.min(ScannedReads[[1]]$pos)
   idxEnd   <- which.max(ScannedReads[[1]]$pos)
   Start    <- ScannedReads[[1]]$pos[idxStart]
