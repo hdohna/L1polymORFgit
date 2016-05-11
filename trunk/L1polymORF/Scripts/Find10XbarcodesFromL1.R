@@ -54,7 +54,7 @@ whichR <- GRanges(seqnames = "L1HS_L1_Homo_sapiens",
 paramRead <- ScanBamParam(which = whichR, what = "qname")
   
 # Obtain read IDs of reads that intersect with specified range
-ReadIDs   <- scanBam(file = L1BamPath, param = paramRead)
+ReadIDs   <- scanBam(file = L1BamPath, param = paramRead)[[1]][[1]]
 IDFilter  <- FilterRules(getIDs <- function(DF){DF$qname %in% ReadIDs})
   
 # Get barcodes of reads alingning to L1
