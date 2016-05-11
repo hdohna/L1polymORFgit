@@ -179,19 +179,19 @@ AlignmentWorkflow <- function(FastqFile,
   if (blnSort){
     cat("\n\n*******************************************************\n")
     cat("**                                                   **\n")
-    cat("**    Sorting", BamFileDedup," ...             **\n")
+    cat("**    Sorting", BamFileUnique," ...             **\n")
     cat("**                                                   **\n")
     cat("*******************************************************\n\n")
     
     # Command line file for indexing
     CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools index", 
-                     BamFileDedup)
+                     BamFileUnique)
     system(CmdLine)
     
     # Command line file for sorting
     CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools sort -o", 
                      BamFileSorted2, "-T", paste(BamFile, ".tmp", sep = ""), 
-                     BamFileDedup)
+                     BamFileUnique)
     system(CmdLine)
   }
   
