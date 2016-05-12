@@ -35,10 +35,10 @@ AccProcessed <- sapply(BamFiles, function(x){
 
 # Create genomic ranges from catalogue
 blnNotReference <- abs(L1Catalogue$end_HG38 - L1Catalogue$start_HG38) < 5000
-blnNotProcessed <- !L1Catalogue$Accession %in% AccProcessed
+#blnNotProcessed <- !L1Catalogue$Accession %in% AccProcessed
 L1CatalogueMapped <- L1Catalogue[!is.na(L1Catalogue$start_HG38) &
                                    L1Catalogue$Allele == 1 &
-                                   blnNotReference & blnNotProcessed,]
+                                   blnNotReference,]
 GRCatalogue_hg38  <- GRanges(seqnames = L1CatalogueMapped$Chromosome,
                        ranges = IRanges(start = pmin(L1CatalogueMapped$start_HG38,
                                                      L1CatalogueMapped$end_HG38),
