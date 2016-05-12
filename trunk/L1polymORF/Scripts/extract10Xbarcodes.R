@@ -10,14 +10,14 @@ library(csaw)
 library(rtracklayer)
 
 # Specify width of flanking regions to extract barcodes
-Fwidth       <- 1000
+Fwidth       <- 5000
 FwidthFilter <- 10000
 
 # Specify bam file path
 InBamfilePath <- "/share/diskarray3/hzudohna/10XData/NA12878_WGS_phased_possorted.bam"
 OutFilePrefix <- "/share/diskarray3/hzudohna/10XData/L1_"
 BamFolder     <- "/share/diskarray3/hzudohna/10XData/"
-BamPrefix     <- "L1_"
+BamPrefix     <- "L1Flank5000_"
 #OutFile <- "/share/diskarray3/hzudohna/10XData/test.bam"
 
 # Read in table with known L1 

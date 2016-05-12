@@ -1,5 +1,5 @@
 # The following script reads a bam file of 10X reads aligned to L1, takes all
-# the read IDs from the beginning and end of L1, gets the associated barcodes,
+# the IDs of reads aligning to L1, gets the associated barcodes,
 # constructs genomic ranges for barcodes and estimates L1 insertion sites
 
 
@@ -17,6 +17,7 @@ RefBamPath <- "/share/diskarray3/hzudohna/10XData/NA12878_WGS_phased_possorted.b
 FilterBamPath <- "/share/diskarray3/hzudohna/10XData/NA12878_10X_filterTemp.bam"
 
 # Specify paths of reult files
+BarCodeListFile <- "D:/L1polymORF/Data/Na12878_BarCodeListFile.RData"
 BarCodeListFile <- "/share/diskarray3/hzudohna/10XData/Na12878_BarCodeListFile.RData"
 BarCodeIDFile <- "/share/diskarray3/hzudohna/10XData/Na12878_BarcodesFullLength.RData"
 BarCodeRangeFile <- "/share/diskarray3/hzudohna/10XData/Na12878_BarCodeRangeList.RData"
@@ -87,7 +88,21 @@ load(BarCodeListFile)
 cat("***  Determine genomic range per barcode   ***  \n")
 Barcodes <- unlist(BarcodeList)
 BarcodeTable <- table(Barcodes)
-BarcodesFullLength <- names(BarcodeTable)[BarcodeTable > 1]
+hist(BarcodeTable, breaks = 0:50)
+BarcodesFullLength <- names(BarcodeTable)[BarcodeTable > 5]
+x <- BarcodesFullLength[1]
+
+# *********** CONSTRUCTION SITE BEGINNING
+load("/home/hzudohna/L1polymORF/Data/ChromLengthsHg19.Rdata")
+GRread <- GRanges(seqnames = "chr1", ranges = IRanges(1, ChromLengthsHg19["chr1"]))
+paramRead  <- ScanBamParam(tagFilter = list(BX = BarcodesFullLength), tag = "BX",
+                           what = c("rname", "pos"), which = GRread)
+ScannedReads <- scanBam(RefBamPath, param = paramRead)
+MinMaxByBarcode <- aggregate(ScannedReads[[1]]$pos, by  = list(ScannedReads[[1]]$tag$BX),
+                          FUN = function(x) c(min(x), max(x)))
+MinByBarcode$x.2 - MinByBarcode$x.1
+# *********** CONSTRUCTION SITE end
+
 BarCodeRangeList <- lapply(BarcodesFullLength, function(x){
   
   paramFilter  <- ScanBamParam(tagFilter = list(BX = x),
