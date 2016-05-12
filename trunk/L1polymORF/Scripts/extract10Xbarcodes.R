@@ -15,13 +15,13 @@ FwidthFilter <- 10000
 
 # Specify bam file path
 InBamfilePath <- "/share/diskarray3/hzudohna/10XData/NA12878_WGS_phased_possorted.bam"
-OutFilePrefix <- "/share/diskarray3/hzudohna/10XData/L1_"
+OutFilePrefix <- "/share/diskarray3/hzudohna/10XData/L1Flank5000_"
 BamFolder     <- "/share/diskarray3/hzudohna/10XData/"
 BamPrefix     <- "L1Flank5000_"
 #OutFile <- "/share/diskarray3/hzudohna/10XData/test.bam"
 
 # Read in table with known L1 
-L1Catalogue <- read.csv("/home/hzudohna/L1polymORF/Data/L1CatalogUpdated_Fri_Apr_22_18-27-39_2016.csv", 
+L1Catalogue <- read.csv("/home/hzudohna/L1polymORF/Data/L1Catalogue_Updated_Sat_May_07_15-15-31_2016.csv", 
                         as.is = T)
 
 # Get bam files with specified prefix, loop over files and extract accession numbers
