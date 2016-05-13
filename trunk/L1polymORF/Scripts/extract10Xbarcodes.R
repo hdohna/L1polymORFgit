@@ -68,11 +68,16 @@ BarCodeList <- lapply(1:length(GRCatalogue_hg19), function(x){
   paramRead   <- ScanBamParam(which = FlankRanges, tag = "BX")
   
   # Scan barcodes from flanking regions
-  BarCodesPerRangeList <- scanBam(file = InBamfilePath, param = paramRead)
+  BarCodesPerRangeList <- lapply(FlankRanges, function(y){
+    paramRead   <- ScanBamParam(which = y, tag = "BX")
+    scanBam(file = InBamfilePath, param = paramRead)
+  })
   
   # Get unique barcodes that are not NA
-  UniqueBarcodes <- unique(unlist(BarCodesPerRangeList))
-  UniqueBarcodes <- UniqueBarcodes[!is.na(UniqueBarcodes)]
+  UniqueBarcodesLeft  <- unique(unlist(BarCodesPerRangeList[[1]]))
+  UniqueBarcodesRight <- unique(unlist(BarCodesPerRangeList[[2]]))
+  UniqueBarcodes      <- intersect(UniqueBarcodesLeft, UniqueBarcodesRight)
+  UniqueBarcodes      <- UniqueBarcodes[!is.na(UniqueBarcodes)]
   
   # Set parameters to filter bam file
   if (length(UniqueBarcodes) > 0){
