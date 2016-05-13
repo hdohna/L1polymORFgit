@@ -17,7 +17,7 @@ FwidthFilter <- 10000
 InBamfilePath <- "/share/diskarray3/hzudohna/10XData/NA12878_WGS_phased_possorted.bam"
 OutFilePrefix <- "/share/diskarray3/hzudohna/10XData/L1Flank5000_"
 BamFolder     <- "/share/diskarray3/hzudohna/10XData/"
-BamPrefix     <- "L1Flank5000_"
+BamPrefix     <- "L1Flank5000Interesect_"
 #OutFile <- "/share/diskarray3/hzudohna/10XData/test.bam"
 
 # Read in table with known L1 
