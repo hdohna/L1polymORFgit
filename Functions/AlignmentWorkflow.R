@@ -34,15 +34,15 @@
 
 ##############################################
 
-AlignmentWorkflow <- function(FastqFile, 
+AlignmentWorkflow <- function(InFile, 
                               ReferenceFile, 
-                              SamFile = NULL,
-                              BamFile = NULL,
-                              BamFileSorted = NULL,
-                              BamFileDedup = NULL,
-                              MetricsFileDedup = NULL,
-                              BamFileUnique = NULL,
-                              BamFileSorted2 = NULL,
+                              # SamFile = NULL,
+                              # BamFile = NULL,
+                              # BamFileSorted = NULL,
+                              # BamFileDedup = NULL,
+                              # MetricsFileDedup = NULL,
+                              # BamFileUnique = NULL,
+                              # BamFileSorted2 = NULL,
                               blnAlign = F,
                               blnSam2SortedBam = F,
                               blnDedup = F,
@@ -68,143 +68,181 @@ AlignmentWorkflow <- function(FastqFile,
                                'CREATE_MD5_FILE=false')
 ){
   
-  # Create file names
-  if (is.null(SamFile)) {
-    FilePrefix <- strsplit(FastqFile, ".fastq")[[1]][1]
-    SamFile    <- paste(FilePrefix, ".sam", sep = "")
+  # Function to get and replace file suffix
+  GetSuffix <- function(FileName){
+    NameSplit <- strsplit(FileName, "\\.")[[1]]
+    NameSplit[length(NameSplit)]
   }
-  if (is.null(BamFile)) {
-    FilePrefix <- strsplit(SamFile, ".sam")[[1]][1]
-    BamFile    <- paste(FilePrefix, ".bam", sep = "")
+  ReplaceSuffix <- function(FileName, Replacement){
+    NameSplit <- strsplit(FileName, "\\.")[[1]]
+    paste(c(NameSplit[-length(NameSplit)], Replacement), collapse = "")
   }
-  if (is.null(BamFileSorted)) {
-    FilePrefix  <- strsplit(BamFile, ".bam")[[1]][1]
-    BamFileSorted <- paste(FilePrefix, ".sorted.bam", sep = "")
-  }
-  if (is.null(MetricsFileDedup)) {
-    FilePrefix   <- strsplit(BamFileSorted, ".sorted.bam")[[1]][1]
-    MetricsFileDedup <- paste(FilePrefix, ".dedup.metrics", sep = "")
-  }
-  if (is.null(BamFileDedup)) {
-    FilePrefix   <- strsplit(BamFileSorted, ".sorted.bam")[[1]][1]
-    BamFileDedup <- paste(FilePrefix, ".dedup.bam", sep = "")
-  }
-  if (is.null(BamFileUnique)) {
-    FilePrefix    <- strsplit(BamFileDedup, ".bam")[[1]][1]
-    BamFileUnique <- paste(FilePrefix, ".unique.bam", sep = "")
-  }
-  if (is.null(BamFileSorted2)) {
-    FilePrefix  <- strsplit(BamFileUnique, ".bam")[[1]][1]
-    BamFileSorted2 <- paste(FilePrefix, ".sorted.bam", sep = "")
-  }
+
+  # if (is.null(FastqFile) & is.null(SamFile)){
+  #   stop("Either FastqFile or SamFile has to be specified!\n")
+  # }
+  # # Create file names
+  # if (is.null(SamFile)) {
+  #   FilePrefix <- strsplit(FastqFile, ".fastq")[[1]][1]
+  #   SamFile    <- paste(FilePrefix, ".sam", sep = "")
+  # }
+  # if (is.null(BamFile)) {
+  #   FilePrefix <- strsplit(SamFile, ".sam")[[1]][1]
+  #   BamFile    <- paste(FilePrefix, ".bam", sep = "")
+  # }
+  # if (is.null(BamFileSorted)) {
+  #   FilePrefix  <- strsplit(BamFile, ".bam")[[1]][1]
+  #   BamFileSorted <- paste(FilePrefix, ".sorted.bam", sep = "")
+  # }
+  # if (is.null(MetricsFileDedup)) {
+  #   FilePrefix   <- strsplit(BamFileSorted, ".sorted.bam")[[1]][1]
+  #   MetricsFileDedup <- paste(FilePrefix, ".dedup.metrics", sep = "")
+  # }
+  # if (is.null(BamFileDedup)) {
+  #   FilePrefix   <- strsplit(BamFileSorted, ".sorted.bam")[[1]][1]
+  #   BamFileDedup <- paste(FilePrefix, ".dedup.bam", sep = "")
+  # }
+  # if (is.null(BamFileUnique)) {
+  #   FilePrefix    <- strsplit(BamFileDedup, ".bam")[[1]][1]
+  #   BamFileUnique <- paste(FilePrefix, ".unique.bam", sep = "")
+  # }
+  # if (is.null(BamFileSorted2)) {
+  #   FilePrefix  <- strsplit(BamFileUnique, ".bam")[[1]][1]
+  #   BamFileSorted2 <- paste(FilePrefix, ".sorted.bam", sep = "")
+  # }
   
   
   # Run alignment
   if (blnAlign){
     cat("\n\n*******************************************************\n")
     cat("**                                                   **\n")
-    cat("**    Aligning", FastqFile," ...             **\n")
+    cat("**    Aligning", InFile," ...             **\n")
     cat("**                                                   **\n")
     cat("*******************************************************\n\n")
     
+    if(GetSuffix(InFile) != "fastq"){
+      stop("Infile has to be fastq file for alignment!\n")
+    }
+    OutFile <- ReplaceSuffix(InFile, ".sam")
     CmdLine <- paste(AlignCommand,  ReferenceFile, FastqFile, ">", SamFile)
     system(CmdLine)
+    InFile <- OutFile
   }
   
   # Turn sam file into sorted and indexed bam file
   if (blnSam2SortedBam){
     cat("\n\n*******************************************************\n")
     cat("**                                                   **\n")
-    cat("**    Converting", SamFile," to bam file   **\n")
+    cat("**    Converting", InFile," to bam file   **\n")
     cat("**                                                   **\n")
     cat("*******************************************************\n\n")
+    
+    if(GetSuffix(InFile) != "sam"){
+      stop("Infile has to be sam file for conversion to bam file!\n")
+    }
+    OutFile <- ReplaceSuffix(InFile, ".bam")
     
     # Command line file for conversion
     CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools view", 
-                     SamFile, "-b -h -o", BamFile)
+                     InFile, "-b -h -o", OutFile)
     system(CmdLine)
+    InFile <- OutFile
     
     cat("\n\n*******************************************************\n")
     cat("**                                                   **\n")
-    cat("**    Sorting", BamFile,"    **\n")
+    cat("**    Sorting", InFile,"    **\n")
     cat("**                                                   **\n")
     cat("*******************************************************\n\n")
     
+    # Command line file for sorting
+    OutFile <- ReplaceSuffix(InFile, ".sorted.bam")
+    CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools sort -o", 
+                     OutFile, "-T", paste(InFile, ".tmp", sep = ""), 
+                     InFile)
+    system(CmdLine)
+    InFile <- OutFile
+    
     # Command line file for indexing
     CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools index", 
-                     BamFile)
+                     InFile)
     system(CmdLine)
-    
-    # Command line file for sorting
-    CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools sort -o", 
-                     BamFileSorted, "-T", paste(BamFile, ".tmp", sep = ""), 
-                     BamFile)
-    system(CmdLine)
-    
   }
 
   # Run deduplication
   if (blnDedup){
     cat("\n\n*******************************************************\n")
     cat("**                                                   **\n")
-    cat("**    Deduplicating", BamFileSorted," ...             **\n")
+    cat("**    Deduplicating", InFile," ...             **\n")
     cat("**                                                   **\n")
     cat("*******************************************************\n\n")
     
+    if(GetSuffix(InFile) != "bam"){
+      stop("Infile has to be bam file for deduplication!\n")
+    }
+    
     # Create command lines
-    DedupInputLine   <- paste('INPUT=', BamFileSorted, sep = "")
-    DedupOutputLine  <- paste('OUTPUT=', BamFileDedup, sep = "")
-    DedupMetricsLine <- paste('METRICS_FILE=', MetricsFileDedup, sep = "")
+    OutFile          <- ReplaceSuffix(InFile, ".dedup.bam")
+    MetricsFile      <- ReplaceSuffix(InFile, ".dedup.metrics")
+    DedupInputLine   <- paste('INPUT=', InFile, sep = "")
+    DedupOutputLine  <- paste('OUTPUT=', OutFile, sep = "")
+    DedupMetricsLine <- paste('METRICS_FILE=', MetricsFile, sep = "")
 
     CmdLine <- paste(DedupCommand, DedupInputLine, DedupOutputLine, 
                      DedupMetricsLine, DedupOptions)
     system(CmdLine)
+    InFile <- OutFile
   }
   
   # Run removal of zero mapping quality
   if (blnRemMapQ0){
     cat("\n\n*******************************************************\n")
     cat("**                                                   **\n")
-    cat("**    Remove mapq 0 from", BamFileDedup," ...             **\n")
+    cat("**    Remove mapq 0 from", InFile," ...             **\n")
     cat("**                                                   **\n")
     cat("*******************************************************\n\n")
     
+    if(GetSuffix(InFile) != "bam"){
+      stop("Infile has to be bam file for filtering!\n")
+    }
+    
+    OutFile <- ReplaceSuffix(InFile, ".unique.bam")
+    
     # Create command lines
-    CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools view -h -q1", 
-                     BamFileDedup, "-o", BamFileUnique)
+    CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools view -h -q 1", 
+                     InFile, "-o", OutFile)
     system(CmdLine)
+    InFile <- OutFile
   }
   
   # Run sorting
   if (blnSort){
     cat("\n\n*******************************************************\n")
     cat("**                                                   **\n")
-    cat("**    Sorting", BamFileUnique," ...             **\n")
+    cat("**    Sorting", InFile," ...             **\n")
     cat("**                                                   **\n")
     cat("*******************************************************\n\n")
     
-    # Command line file for indexing
-    CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools index", 
-                     BamFileUnique)
-    system(CmdLine)
-    
+    OutFile <- ReplaceSuffix(InFile, ".sorted.bam")
+
     # Command line file for sorting
     CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools sort -o", 
-                     BamFileSorted2, "-T", paste(BamFile, ".tmp", sep = ""), 
-                     BamFileUnique)
+                     OutFile, "-T", paste(OutFile, ".tmp", sep = ""), 
+                     InFile)
     system(CmdLine)
+    InFile <- OutFile
+    
   }
   
-  # Create index file for final file
+  
   cat("\n\n*******************************************************\n")
   cat("**                                                   **\n")
-  cat("**    Creating index for", BamFileSorted2," ...  **\n")
+  cat("**    Indexing", InFile," ...             **\n")
   cat("**                                                   **\n")
   cat("*******************************************************\n\n")
-  
+
   # Command line file for indexing
   CmdLine <- paste("/home/txw/samtools/samtools-1.2/samtools index", 
-                   BamFileSorted2)
+                   InFile)
   system(CmdLine)
   
 }
