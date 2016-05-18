@@ -15,7 +15,7 @@ library(Rsamtools)
 
 # Specify file paths
 BamFile <- '/share/diskarray3/hzudohna/NA12878PacBio_aln2Catalogue2016-05-07sortedunique.sorted.bam'
-FilteredBamFile <- '/share/diskarray3/hzudohna/NA12878PacBio_aln2Catalogue2016-05-07filtered.bam'
+FilteredBamFile <- '/share/diskarray3/hzudohna/NA12878PacBio_aln2Catalogue2016-05-07filteredByLength.bam'
 
 ############################
 #                          #
@@ -24,7 +24,7 @@ FilteredBamFile <- '/share/diskarray3/hzudohna/NA12878PacBio_aln2Catalogue2016-0
 ############################
 
 cat("Filtering bam file ...\n")
-paramFilter  <- ScanBamParam(tagFilter = list(AS = 5000:1000),
+paramFilter  <- ScanBamParam(tagFilter = list(AS = 6000:16000),
                              mapqFilter = 1,
                              scanBamFlag(isUnmappedQuery = F))
 filterBam(BamFile, FilteredBamFile, param = paramFilter)
