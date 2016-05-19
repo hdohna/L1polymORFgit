@@ -32,8 +32,8 @@ for (i in 1:ncol(L1StartEnd)){
   
   FRange <- GRanges(seqnames = colnames(L1StartEnd)[i], 
                     IRanges(start = 1, end = 16000))
-  L1Border <- c((L1StartEnd[i,1] - 10):(L1StartEnd[i,1] + 10),
-                (L1StartEnd[i,2] - 10):(L1StartEnd[i,2] + 10))
+  L1Border <- c((L1StartEnd[1,i] - 10):(L1StartEnd[1,i] + 10),
+                (L1StartEnd[2,i] - 10):(L1StartEnd[2,i] + 10))
   PosFilter <- FilterRules(getIDs <- function(DF){!DF$pos %in% L1Border})
   paramFilter  <- ScanBamParam(which = FRange, what = scanBamWhat())
   OutFile <- paste(OutFilePrefix, colnames(L1StartEnd)[i], ".bam", sep = "")
