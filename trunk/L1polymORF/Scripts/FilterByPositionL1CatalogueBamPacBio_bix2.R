@@ -19,6 +19,9 @@ BamFile         <- '/share/diskarray3/hzudohna/NA12878PacBio_aln2Catalogue2016-0
 AlignListFile   <- "/home/hzudohna/L1polymORF/Data/L1CatalogueWithFlank_Sat_May_07_15-15-31_2016_L1Locations.RData"
 OutFilePrefix   <- "/share/diskarray3/hzudohna/PacBio/L1PacBioLengthPosFiltered_"
 
+# Specify parameter for border width in bp
+BorderWidth  <- 50
+
 ############################
 #                          #
 #        Read Data         #
@@ -33,8 +36,8 @@ for (i in 1:ncol(L1StartEnd)){
   
   FRange <- GRanges(seqnames = colnames(L1StartEnd)[i], 
                     IRanges(start = 1, end = 16000))
-  L1Border <- c((L1StartEnd[1,i] - 10):(L1StartEnd[1,i] + 10),
-                (L1StartEnd[2,i] - 10):(L1StartEnd[2,i] + 10))
+  L1Border <- c((L1StartEnd[1,i] - BorderWidth):(L1StartEnd[1,i] + BorderWidth),
+                (L1StartEnd[2,i] - BorderWidth):(L1StartEnd[2,i] + BorderWidth))
   PosFilter <- FilterRules(getIDs <- function(DF){!DF$pos %in% L1Border})
   paramFilter  <- ScanBamParam(which = FRange, what = scanBamWhat())
   OutFile <- paste(OutFilePrefix, colnames(L1StartEnd)[i], ".bam", sep = "")
