@@ -14,9 +14,10 @@ library(ShortRead)
 library(Rsamtools)
 
 # Specify file paths
-BamFile         <- '/share/diskarray3/hzudohna/NA12878PacBio_aln2Catalogue2016-05-07sortedunique.sorted.bam'
+#BamFile         <- '/share/diskarray3/hzudohna/NA12878PacBio_aln2Catalogue2016-05-07sortedunique.sorted.bam'
+BamFile         <- '/share/diskarray3/hzudohna/NA12878PacBio_aln2Catalogue2016-05-07filteredByLength.bam'
 AlignListFile   <- "/home/hzudohna/L1polymORF/Data/L1CatalogueWithFlank_Sat_May_07_15-15-31_2016_L1Locations.RData"
-OutFilePrefix   <- "/share/diskarray3/hzudohna/PacBio/L1PacBioFiltered_"
+OutFilePrefix   <- "/share/diskarray3/hzudohna/PacBio/L1PacBioLengthPosFiltered_"
 
 ############################
 #                          #
