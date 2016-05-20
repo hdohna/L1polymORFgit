@@ -45,3 +45,20 @@ for (i in 1:ncol(L1StartEnd)){
 }
 cat("...Done!")
 
+# Merge filtered files
+cat("Merging filtered bam files ...\n")
+
+# Get folder, file prefix and files to be merged
+OutFilePrefix_split   <- strsplit(OutFilePrefix, "/")[[1]]
+OutFolder <- paste(OutFilePrefix_split[-length(OutFilePrefix_split)], 
+                   collapse = "/")
+FilePrefix <- OutFilePrefix_split[length(OutFilePrefix_split)]
+FilesToMerge <- list.files(OutFolder, pattern = FilePrefix, full.names = T)
+
+# Merge files
+MergedFile <- paste(OutFilePrefix, "Merged.bam", sep = "")
+mergeBam(FilesToMerge, MergedFile, indexDestination = T)
+
+
+
+
