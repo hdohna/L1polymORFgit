@@ -7,9 +7,8 @@ args <- commandArgs(trailingOnly = TRUE)
 source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
 
 # Run function
-AlignmentWorkflow(FastqFile = "", 
+AlignmentWorkflow(InFile = args[1], 
                   ReferenceFile = "", 
-                  SamFile = args[1],
                   blnAlign = F,
                   blnSam2SortedBam = T,
                   blnDedup = F,
