@@ -54,6 +54,7 @@ OutFolder <- paste(OutFilePrefix_split[-length(OutFilePrefix_split)],
                    collapse = "/")
 FilePrefix <- OutFilePrefix_split[length(OutFilePrefix_split)]
 FilesToMerge <- list.files(OutFolder, pattern = FilePrefix, full.names = T)
+FilesToMerge <- FilesToMerge[-grep("bam.", FilesToMerge)]
 
 # Merge files
 MergedFile <- paste(OutFilePrefix, "Merged.bam", sep = "")
