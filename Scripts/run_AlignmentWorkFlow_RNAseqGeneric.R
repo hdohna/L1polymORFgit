@@ -7,6 +7,7 @@ args <- commandArgs(trailingOnly = TRUE)
 source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
 
 # Run function
+cat("Running alignment workflow for", args[1])
 AlignmentWorkflow(InFile = args[1], 
                   ReferenceFile = "", 
                   blnAlign = F,
