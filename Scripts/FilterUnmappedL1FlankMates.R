@@ -66,8 +66,7 @@ idxNonRef <- which((L1Catalog$end_HG38 - L1Catalog$start_HG38) < 5500)
 L1CatalogNonRef <- L1Catalog[idxNonRef,]
 
 # Lift coordinates to hg19
-ChrNames <- substr(L1CatalogNonRef$Chromosome, 4, nchar(L1CatalogNonRef$Chromosome))
-GRCatalogue_hg38  <- GRanges(seqnames = ChrNames,
+GRCatalogue_hg38  <- GRanges(seqnames = L1CatalogNonRef$Chromosome,
                              ranges = IRanges(start = pmin(L1CatalogNonRef$start_HG38,
                                                            L1CatalogNonRef$end_HG38),
                                               end = pmax(L1CatalogNonRef$start_HG38,
@@ -83,6 +82,12 @@ AccessionMapped  <- L1CatalogNonRef$Accession[idxUniqueMapped]
 
 # Create genomic ranges per non-reference L1 flank
 GRCatalogueFlank_hg19 <- flank(GRCatalogue_hg19, width = FlankWidth)
+SeqNVect <- as.vector(seqnames(GRCatalogueFlank_hg19))
+SeqNVect <- substr(SeqNVect, 4, nchar(SeqNVect))
+GRCatalogueFlank_hg19 <- GRanges(SeqNVect,
+                                 IRanges(start(GRCatalogue_hg19),
+                                                  end(GRCatalogue_hg19)), 
+                                 strand = strand(GRCatalogue_hg19))
 
 #############################################
 #                                           #
