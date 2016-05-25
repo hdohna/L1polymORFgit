@@ -28,6 +28,12 @@
 
 ##############################################
 
+cat("\n\n*********************************************************\n")
+cat("**                                                       **\n")
+cat("**    Running script FilterUnmappedL1FlankMates.R ...    **\n")
+cat("**                                                       **\n")
+cat("***********************************************************\n\n")
+
 
 #############################################
 #                                           #
@@ -44,10 +50,11 @@ library(Rsamtools)
 
 # Specify file paths
 BamFilePath        <- '/share/diskarray4/MEI/NA12878/mergeBAM/NA12878.sorted.dedup.bam'
+FilterBamFilePath  <- '/share/diskarray3/hzudohna/NA12878shortInsert/NA12878.sorted.dedup.unpaired.bam'
 L1CatalogPath      <- '/home/hzudohna/L1polymORF/Data/L1Catalogue_Updated_Sat_May_07_15-15-31_2016.csv'
 L1HSConsensusPath  <- "/home/hzudohna/L1polymORF/Data/Homo_sapiens_L1_consensus.fa"
 OutputFolder       <- '/share/diskarray3/hzudohna/NA12878shortInsert/'
-OutputFilePrefix   <- '/share/diskarray3/hzudohna/NA12878shortInsert/L1Flank_'
+OutputFilePrefix   <- '/share/diskarray3/hzudohna/NA12878shortInsert/L1FlankUnpaired_'
 
 # Set other parameters
 FlankWidth <- 500
@@ -111,7 +118,7 @@ for (i in 1:length(GRCatalogue_hg19)){
   OutFile <- paste(OutputFilePrefix, Acc, "_unmapped.bam", sep = "")
   cat("Filtering reads IDs to file", OutFile,  "\n")
   IDFilter <- FilterRules(getIDs <- function(DF){DF$qname %in% IDs})
-  filterBam(BamFilePath, OutFile, filter = IDFilter, overwrite = T)
+  filterBam(FilterBamFilePath, OutFile, filter = IDFilter, overwrite = T)
 }
 
 
