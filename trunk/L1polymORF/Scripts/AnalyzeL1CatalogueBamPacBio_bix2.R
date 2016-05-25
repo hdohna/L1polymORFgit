@@ -17,10 +17,10 @@ library(ShortRead)
 library(Rsamtools)
 
 # Specify parameters
-BorderWidth <- 100
+BorderWidth <- 200
 
 # Specify file paths
-BamFile <- '/share/diskarray3/hzudohna/NA12878PacBio_aln2Catalogue.dedup.unique.sorted.bam'
+BamFile <- '/share/diskarray3/hzudohna/NA12878PacBio_aln2Catalogue2016-05-07sortedunique.sorted.bam'
 #BamFile <- '/share/diskarray3/hzudohna/NA12878PacBio_aln2Catalogue2016-05-07filteredByLength.bam'
 CatalogueFile <- '/home/hzudohna/L1polymORF/Data/L1Catalogue_Updated_Sat_May_07_15-15-31_2016.csv'
 CatalogSeqFile <- "/home/hzudohna/L1polymORF/Data/L1CatalogueWithFlank_Sat_May_07_15-15-31_2016.fas"
