@@ -110,9 +110,8 @@ for (i in 1:length(GRCatalogue_hg19)){
   # Create an outfile name and filter unmapped reads 
   OutFile <- paste(OutputFilePrefix, Acc, "_unmapped.bam", sep = "")
   cat("Filtering reads IDs to file", OutFile,  "\n")
-  IDFilter <- FilterRules(getIDs <- function(DF){DF$qname %in% IDs & 
-      DF$mapq == 0})
-  filterBam(BamFilePath, OutFile, filter = IDFilter)
+  IDFilter <- FilterRules(getIDs <- function(DF){DF$qname %in% IDs})
+  filterBam(BamFilePath, OutFile, filter = IDFilter, overwrite = T)
 }
 
 
