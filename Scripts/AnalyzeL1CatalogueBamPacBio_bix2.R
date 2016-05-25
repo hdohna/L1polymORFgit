@@ -84,7 +84,7 @@ CoverMat<- t(sapply(ReadList, function(x){
 }))
 
 # Invert coverage row vectors for L1 on the negative strand
-idxNegStrand <- which(CatalogueStrand == "-")
+idxNegStrand <- which(L1CatalogMatched$Strand == "-")
 for (i in idxNegStrand){
   CoverMat[i, ] <- CoverMat[i, 16000:1]
 }
@@ -141,7 +141,7 @@ CoverMatFiltered<- t(sapply(ReadListFiltered, function(x){
 }))
 
 # Invert coverage row vectors for L1 on the negative strand
-idxNegStrand <- which(CatalogueStrand == "-")
+idxNegStrand <- which(L1CatalogMatched$Strand == "-")
 for (i in idxNegStrand){
   CoverMatFiltered[i, ] <- CoverMatFiltered[i, 16000:1]
 }
