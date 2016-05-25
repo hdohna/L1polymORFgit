@@ -26,6 +26,7 @@ CatalogueFile <- '/home/hzudohna/L1polymORF/Data/L1Catalogue_Updated_Sat_May_07_
 CatalogSeqFile <- "/home/hzudohna/L1polymORF/Data/L1CatalogueWithFlank_Sat_May_07_15-15-31_2016.fas"
 AlignListFile <- "/home/hzudohna/L1polymORF/Data/L1CatalogueWithFlank_Sat_May_07_15-15-31_2016_L1Locations.RData"
 OutFile      <- "/home/hzudohna/L1polymORF/Data/L1CatalogPacBioSummary.RData"
+
 ############################
 #                          #
 #        Read Data         #
@@ -158,7 +159,7 @@ segments(c(5000, 11000), c(0,0), c(5000, 11000), c(10^5, 10^5), col = "red",
          lty = 2)
 dev.off()
 pdf("/home/hzudohna/L1polymORF/Figures/Na12878Pacbio_CatalogueAverageCoverFiltered_lowRead.pdf")
-plot(colMeans(CoverMatFiltered[NrReadsFiltered < 10, ]), type = "l", 
+plot(colMeans(CoverMatFiltered[NrReadsFiltered < median(NrReadsFiltered), ]), type = "l", 
      xlab = "Genomic position", ylab = "Coverage")
 dev.off()
 
