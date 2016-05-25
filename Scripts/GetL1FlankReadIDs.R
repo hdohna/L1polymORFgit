@@ -104,7 +104,8 @@ L1FlankIDList <- lapply(1:length(GRCatalogue_hg19), function(i){
 names(L1FlankIDList) <- AccessionMapped
 
 # Save L1FlankIDList
+cat("\nSaving results to", OutputFilePath)
 save(list = c("L1FlankIDList", "GRCatalogueFlank_hg19"), file = OutputFilePath)
 
-
-
+scanBamFlag(isProperPair = T)
+bamFlagAsBitMatrix(scanBamFlag(isProperPair = T))
