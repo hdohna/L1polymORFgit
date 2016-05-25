@@ -17,7 +17,7 @@ library(ShortRead)
 library(Rsamtools)
 
 # Specify parameters
-BorderWidth <- 200
+BorderWidth <- 500
 
 # Specify file paths
 BamFile <- '/share/diskarray3/hzudohna/NA12878PacBio_aln2Catalogue2016-05-07sortedunique.sorted.bam'
