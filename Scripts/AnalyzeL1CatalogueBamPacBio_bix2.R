@@ -177,7 +177,7 @@ dev.off()
 cat("\n********   Saving results   ******************\n\n")
 save(list = c("ReadList", "NrReads", "CoverMat", "QuantileMat",
               "ReadListFiltered", "NrReadsFiltered", "CoverMatFiltered", 
-              "QuantileMatFiltered"), OutFile)
+              "QuantileMatFiltered"), file = OutFile)
 cat("Results saved to", OutFile)
 
 
