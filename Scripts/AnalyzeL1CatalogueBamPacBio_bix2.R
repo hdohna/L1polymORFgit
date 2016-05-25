@@ -44,7 +44,7 @@ all(blnSeqWithL1)
 
 # Read catalog table
 L1Catalog <- read.csv(CatalogueFile, as.is = T)
-AccMatch <- match(colnames(L1StartEnd), L1Catalog$Accession)
+AccMatch  <- match(colnames(L1StartEnd), L1Catalog$Accession)
 L1CatalogMatched <- L1Catalog[AccMatch, ] 
 
 # Get genomic ranges of catalogue
