@@ -118,6 +118,7 @@ ReadListFiltered <- lapply(1:length(ReadList), function(i){
   L1Borders <- GRanges(seqnames = colnames(L1StartEnd)[i], 
                        IRanges(start = L1StartEnd[1:2,i] - BorderWidth, 
                                end = L1StartEnd[1:2,i] + BorderWidth))
+  Reads <- ReadList[[i]]
   subsetByOverlaps(Reads, L1Borders, minoverlap = 2 * BorderWidth)
 })
 names(ReadList) <- names(L1withFlank)
