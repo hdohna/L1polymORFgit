@@ -94,6 +94,8 @@ QuantileMat <- apply(CoverMat, 2, FUN = function(x) quantile(x, c(0.05, 0.5, 0.9
 pdf("/home/hzudohna/L1polymORF/Figures/Na12878Pacbio_CatalogueAverageCover.pdf")
 plot(QuantileMat[2,], type = "n", ylim = c(0, 5000), 
      ylab = 'Coverage', xlab = "Genomic position")
+idxFw <- 1:ncol(CoverMat)
+idxRv <- ncol(CoverMat):1
 polygon(c(idxFw, idxRv), c(QuantileMat[1, idxFw], QuantileMat[3, idxRv]),
         col = "grey", border = NA)
 lines(QuantileMat[2,])
