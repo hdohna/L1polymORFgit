@@ -12,6 +12,6 @@ AlignmentWorkflow(InFile = args[1],
                   ReferenceFile = "", 
                   blnAlign = F,
                   blnSam2SortedBam = T,
-                  blnDedup = F,
+                  blnDedup = T,
                   blnRemMapQ0 = T,
                   blnSort = T)
