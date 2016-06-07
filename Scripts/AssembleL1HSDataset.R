@@ -138,7 +138,7 @@ if (blnBuildBrouha2003){
   ColNameSuffix <- substr(CNames, nchar(CNames) - 1, nchar(CNames))
   blnDuplCols   <- ColNameSuffix == ".1"
   
-  # Separate table according to duplicated column names and append duplucated part
+  # Separate table according to duplicated column names and append duplicated part
   L1Brouha2003Dupl <- L1Brouha2003_raw[,blnDuplCols]
   colnames(L1Brouha2003Dupl) <- CNames[!blnDuplCols]
   L1Brouha2003Table    <- rbind(L1Brouha2003_raw[,!blnDuplCols],L1Brouha2003Dupl)
