@@ -99,14 +99,20 @@ getNonRefL1 <- function(L1Consens,
     cat("Processing", names(Seqs)[i], "sequence", i, "out of", length(Seqs), "\n")
     SubjectSeq <- Seqs[i]
     lpA <- pairwiseAlignment(L1Consens, SubjectSeq, type = "local")
+    L1DNAst <- lpA@subject
     if (width(lpA@subject) > MinMatchWidth){
       Strand <- "+"
     } else {
       lpA    <- pairwiseAlignment(L1ConsensRV, SubjectSeq, type = "local")
       Strand <- "-"
+      L1ch    <- as.character(lpA@subject)
+      L1DNAst <- DNAString(L1ch)
+      L1DNAst <- reverseComplement(L1DNAst)
     }
     if (width(lpA@subject) > MinMatchWidth){
-      OutDF$L1Seq[i]    <- as.character(lpA@subject)
+      L1 <- as.character(L1DNAst)
+      L1 <- gsub("-", "", L1)
+      OutDF$L1Seq[i]    <- L1
       OutDF$Strand[i]   <- Strand
       S <- start(lpA@subject@range)
       E <- end(lpA@subject@range)
