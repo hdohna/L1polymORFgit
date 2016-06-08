@@ -37,7 +37,7 @@ library(ShortRead)
 # Set path to fastq file to be read in
 InFastQfilePath <- "/share/diskarray3/hzudohna/NA12878Pacbio.fastq"  
 OutFastQfilePath <- "/share/diskarray3/hzudohna/NA12878Pacbio_chopped.fastq"  
-LinesPerScan <- 100000
+LinesPerScan  <- 2*10^6
 NewReadLength <- 500
 
 # Open one connection per fastq file and intitialize counter variables
@@ -72,8 +72,9 @@ while (NrReadsRead > 0){
   StartVals <- seq(1, max(nchar(ScannedLines)), NewReadLength)
   ChoppedReads <- lapply(StartVals, function(x){
     Reads <- substr(ScannedLines[idxNames + 1], x, x + NewReadLength - 1)
-    ReadsWithNames <- rbind(ScannedLines[idxNames], Reads)
-    ReadsWithNames[,nchar(Reads) > 0]
+    NewNames <- paste(ScannedLines[idxNames], "_start", x, sep = "")
+    ReadsWithNames <- rbind(NewNames, Reads)
+    as.vector(ReadsWithNames[,nchar(Reads) > 0])
   })
   ChoppedReads <- unlist(ChoppedReads)
   writeLines(ChoppedReads, OF)
