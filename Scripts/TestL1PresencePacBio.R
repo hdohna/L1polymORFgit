@@ -80,6 +80,7 @@ if (blnFilterBam){
   blnHighOverlap <- PropOverlap > 0.5
   RangesToFilter <- c(LeftFlankRanges[blnInReference & blnHighOverlap],
                       RightFlankRanges[blnInReference & blnHighOverlap])
+  RangesToFilter <- RangesToFilter[!is.na(RangesToFilter)]
   paramFilter    <- ScanBamParam(which = RangesToFilter)
   filterBam(BamFilePath, FilteredBamFilePath, param = paramFilter)
 }
