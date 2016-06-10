@@ -78,9 +78,9 @@ if (blnFilterBam){
   blnInReference <- (L1CatalogMapped$end_HG38 - 
                        L1CatalogMapped$start_HG38) > 6000
   blnHighOverlap <- PropOverlap > 0.5
-  RangesToFilter <- c(LeftFlankRanges[blnInReference & blnHighOverlap],
-                      RightFlankRanges[blnInReference & blnHighOverlap])
-  RangesToFilter <- RangesToFilter[!is.na(RangesToFilter)]
+  idx2Filter     <- which(blnInReference & blnHighOverlap)
+  RangesToFilter <- c(LeftFlankRanges[idx2Filter], 
+                      RightFlankRanges[idx2Filter])
   paramFilter    <- ScanBamParam(which = RangesToFilter)
   filterBam(BamFilePath, FilteredBamFilePath, param = paramFilter)
 }
