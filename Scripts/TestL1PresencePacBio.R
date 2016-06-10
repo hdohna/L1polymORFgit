@@ -14,8 +14,13 @@ library(Rsamtools)
 # Specify flank width
 Fwidth <- 500
 
+# Boolean indicator whether reads from reference loci with high overlap should
+# be filtered to a separate file:
+blnFilterBam <- T
+
 # Specify path to PacBio bam file
 BamFilePath  <- "/share/diskarray3/hzudohna/sorted_final_merged.bam"
+FilteredBamFilePath  <- "/share/diskarray3/hzudohna/PacBio/NA12878_filtered.bam"
 
 # Read in table with known L1 
 L1Catalog <- read.csv("/home/hzudohna/L1polymORF/Data/L1Catalogue_Updated_Sat_May_07_15-15-31_2016.csv",
@@ -35,7 +40,7 @@ width(L1GRanges)
 
 
 # Define flank ranges for getting reads intersecting with 
-LeftFlankRanges <- flank(L1GRanges, width = Fwidth, start = TRUE)
+LeftFlankRanges  <- flank(L1GRanges, width = Fwidth, start = TRUE)
 RightFlankRanges <- flank(L1GRanges, width = Fwidth, start = FALSE)
 
 # Define parameters to scan barcodes from bam file
@@ -43,7 +48,8 @@ paramReadLeft  <- ScanBamParam(which = LeftFlankRanges, what = "qname")
 paramReadRight <- ScanBamParam(which = RightFlankRanges, what = "qname")
 
 # Scan reads from flanking regions
-ReadIDListLeft <- scanBam(BamFilePath, param = paramReadLeft)
+cat("Scan L1 flanking regions in", BamFilePath, "\n")
+ReadIDListLeft  <- scanBam(BamFilePath, param = paramReadLeft)
 ReadIDListRight <- scanBam(BamFilePath, param = paramReadRight)
 
 # Loop through flanks and get the ratio of intersction to union
@@ -65,6 +71,18 @@ dev.off()
 # Add an indicator for L1 insertion
 L1CatalogMapped$inNA12878 <- PropOverlap < 0.5
 L1CatalogMapped$PropOverlap <- PropOverlap
+
+# Filter out reads for igv inspection
+if (blnFilterBam){
+  cat("Filtering", BamFilePath, "\n")
+  blnInReference <- (L1CatalogMapped$end_HG38 - 
+                       L1CatalogMapped$start_HG38) > 6000
+  blnHighOverlap <- PropOverlap > 0.5
+  RangesToFilter <- c(LeftFlankRanges[blnInReference & blnHighOverlap],
+                      RightFlankRanges[blnInReference & blnHighOverlap])
+  paramFilter    <- ScanBamParam(which = RangesToFilter)
+  filterBam(BamFilePath, FilteredBamFilePath, param = paramFilter)
+}
 
 # Save results
 save.image(file = "/home/hzudohna/L1polymORF/Data/L1PresenceTestResults_PacBio.RData")
