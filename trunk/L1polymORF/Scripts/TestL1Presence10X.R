@@ -12,7 +12,7 @@ library(ShortRead)
 library(Rsamtools)
 
 # Specify flank width
-Fwidth <- 2000
+Fwidth <- 1000
 
 # Specify path to PacBio bam file
 BamFilePath  <- "/share/diskarray3/hzudohna/10XData/NA12878_WGS_phased_possorted.bam"
