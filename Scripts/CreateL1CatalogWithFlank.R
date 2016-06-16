@@ -20,6 +20,7 @@ L1CataloguePath <- "D:/L1polymORF/Data/L1Catalogue_Sat_May_07_15-15-31_2016.csv"
 
 # Length of Flanking sequence to be used for alignment
 FlankLength <- 5000
+FlankLengthShort <- 200
 
 ############################
 #                          #

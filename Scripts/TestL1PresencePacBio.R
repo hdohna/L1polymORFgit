@@ -20,6 +20,7 @@ blnFilterBam <- T
 
 # Specify path to PacBio bam file
 BamFilePath  <- "/share/diskarray3/hzudohna/sorted_final_merged.bam"
+BamFilePath  <- "/share/diskarray3/hzudohna/sorted_final_merged.bam"
 FilteredBamFilePath  <- "/share/diskarray3/hzudohna/PacBio/NA12878_filtered.bam"
 
 # Read in table with known L1 

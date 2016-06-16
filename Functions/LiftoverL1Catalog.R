@@ -42,6 +42,6 @@ LiftoverL1Catalog <- function(L1Catalog,
   idxUniqueMapped  <- which(NrMapped_hg19 == 1) 
   list(NrMapped_hg19 = NrMapped_hg19,
       idxUniqueMapped = idxUniqueMapped ,
-      GRCatalogue_hg19 = unlist(GRCatalogue_hg38[idxUniqueMapped]))
+      GRCatalogue_hg19 = unlist(GRCatalogue_hg19[idxUniqueMapped]))
 }
 
