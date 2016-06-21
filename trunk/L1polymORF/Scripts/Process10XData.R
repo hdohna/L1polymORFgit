@@ -34,7 +34,7 @@ Files <-   c("read-RA_si-TTTCATGA_lane-004-chunk-002.fastq",
 
 
 # Create paths to all fastq files
-FilePaths <- paste("/share/diskarray2/L1HS/10X_LINE1capture/H7VK5AFXX/outs/fastq_path/",
+FilePaths <- paste("/share/diskarray2/L1HS/10X_LINE1capture/H7VK5AFXX/BCL_PROCESSOR_CS/BCL_PROCESSOR/DEMULTIPLEX/fork0/files/demultiplexed_fastq_path/",
                    Files, sep = "")
 
 # Open one connection per fastq file and intitialize counter variables
