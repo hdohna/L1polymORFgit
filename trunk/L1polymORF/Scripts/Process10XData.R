@@ -32,7 +32,6 @@ Files <-   c("read-RA_si-TTTCATGA_lane-004-chunk-002.fastq",
              "read-RA_si-ACGTCCCT_lane-002-chunk-000.fastq",
              "read-RA_si-ACGTCCCT_lane-001-chunk-001.fastq")
 
-
 # Create paths to all fastq files
 FilePaths <- paste("/share/diskarray2/L1HS/10X_LINE1capture/H7VK5AFXX/BCL_PROCESSOR_CS/BCL_PROCESSOR/DEMULTIPLEX/fork0/files/demultiplexed_fastq_path/",
                    Files, sep = "")
@@ -60,36 +59,37 @@ for (InFastQfilePath in FilePaths){
      i <- i + 1
      idxRead1 <- grep("1:N:0:0", ScannedLines)
      idxRead2 <- grep("3:N:0:0", ScannedLines)
+     
+     # Check that read 1 and 2 have the same names
+     RN1 <- substr(ScannedLines[idxRead1], 33, 42)
+     RN2 <- substr(ScannedLines[idxRead2], 33, 42)
+     if (! all(RN1 == RN2)){
+       stop("Names for read 1 and 2 are not consistent!")
+     }
+     
+     # Update read counter
      NrReadsRead  <- length(ScannedLines) / 4
      ReadCounter  <- ReadCounter + NrReadsRead
      cat("Total of", ReadCounter, " reads read in \n")
-     idxNames     <- which(substr(ScannedLines, 1, 1) == "@")
-     idxSeqs      <- idxNames + 1
-     idxPlus      <- which(substr(ScannedLines, 1, 1) == "+")
-     if (any(idxPlus != (idxNames + 2))) {
-       stop("Lines not in proper order!")
-     }
-     if (any(idxNames %% 2 != 1)){
-       stop("Reads do not start with names!")
-     }
-  
+ 
      # Add barcodes to plus lines
-     NewPlus <- paste("+BX:", substr(ScannedLines[idxSeqs], 1, 16), sep = "")
+     idxPlus  <- which(substr(ScannedLines, 1, 1) == "+")
+     Barcodes <- paste("+BX:", substr(ScannedLines[idxRead1 + 1], 1, 16), sep = "")
+     NewPlus  <- rep(Barcodes, each = 2)
      ScannedLines[idxPlus] <- NewPlus
   
-     # Remove barcodes from sequences
-     ScannedLines[idxSeqs] <- substr(ScannedLines[idxSeqs], 17, 
-                                  nchar(ScannedLines[idxSeqs]))
+     # Remove barcodes from read 1 sequences
+     ScannedLines[idxRead1 + 1] <- substr(ScannedLines[idxRead1 + 1], 17, 
+                                  nchar(ScannedLines[idxRead1 + 1]))
   
      # Get indices for read 1 and read 2 and lines belonging to them
-     idx1 <- as.vector(rbind(idxRead1, idxRead1 + 1, idxRead1 + 2, idxRead1 + 3))
-     idx2 <- as.vector(rbind(idxRead2, idxRead2 + 1, idxRead2 + 2, idxRead2 + 3))
+     idx1 <- rep(idxRead1, each = 4) + rep(0:3, length(idxRead1))
+     idx2 <- rep(idxRead2, each = 4) + rep(0:3, length(idxRead2))
      writeLines(ScannedLines[idx1], OF1)
      writeLines(ScannedLines[idx2], OF2)
-     WriteCounter <- WriteCounter + length(idxRead1)  + length(idxRead1)
+     WriteCounter <- WriteCounter + length(idxRead1)  + length(idxRead2)
      cat("Total of", WriteCounter, " reads written out \n")
    }
-
 }
 
 # Close file connections
