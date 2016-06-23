@@ -42,7 +42,6 @@ OF2 <- file(OutFastQfilePath2, "w")
 NrReadsRead  <- 1
 ReadCounter  <- 0
 WriteCounter <- 0
-i <- 1
 
 # Loop through files and save reads to fasta files for read 1 and 2
 InFastQfilePath <- "/share/diskarray2/L1HS/10X_LINE1capture/H7VK5AFXX/outs/fastq_path/read-RA_si-TTTCATGA_lane-001-chunk-001.fastq"  
@@ -50,9 +49,11 @@ for (InFastQfilePath in FilePaths){
   
   # status message for current file
   cat("******    Processing file", InFastQfilePath, "*********\n")
+  i <- 1
+  ScannedLines <- rep(1, LinesPerScan)
   
   #  Loop through fastq file and append to little range-specific fastq files
-  while (NrReadsRead > 0){
+  while (length(ScannedLines)  == LinesPerScan){
      ScannedLines <- scan(InFastQfilePath, skip = (i - 1) * LinesPerScan , 
                        nlines = LinesPerScan, 
                        what = 'character', sep = '\n')

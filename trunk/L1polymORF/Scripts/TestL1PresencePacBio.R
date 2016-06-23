@@ -44,8 +44,8 @@ LeftFlankRanges  <- flank(L1GRanges, width = Fwidth, start = TRUE)
 RightFlankRanges <- flank(L1GRanges, width = Fwidth, start = FALSE)
 
 # Define parameters to scan barcodes from bam file
-paramReadLeft  <- ScanBamParam(which = LeftFlankRanges, what = "qname")
-paramReadRight <- ScanBamParam(which = RightFlankRanges, what = "qname")
+paramReadLeft  <- ScanBamParam(which = LeftFlankRanges, what = scanBamWhat())
+paramReadRight <- ScanBamParam(which = RightFlankRanges, what = scanBamWhat())
 
 # Scan reads from flanking regions
 cat("Scan L1 flanking regions in", BamFilePath, "\n")
