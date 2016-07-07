@@ -23,7 +23,8 @@
 
 CreateAndCallqsubScript <- function(file,
    qsubHeaderLines = c('#! /bin/sh', '#', '#$ -N TEST', '#', '#$ -cwd', 
-                       '#$ -l h_rt=300:00:00', '#', '#$ -j y', '#', 
+                       '#$ -l h_rt=6:00:00', '#', '#$ -j y', '#',
+                       '#$ -P large_mem', '#',
                        '#$ -S /bin/bash', '#', ''), 
    qsubCommandLines, scriptName = 'NoName'){
   
