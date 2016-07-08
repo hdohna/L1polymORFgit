@@ -2,8 +2,7 @@
 # in a genome using PacBio data
 
 # Source start script
-source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
-#source('D:/L1polymORF/Scripts/_Start_L1polymORF.R')
+source('/home/hzudohna/L1polymORFgit/Scripts/_Start_L1polymORF_scg4.R')
 
 # Load packages
 library(BSgenome.Hsapiens.UCSC.hg38)
@@ -12,28 +11,25 @@ library(ShortRead)
 library(Rsamtools)
 
 # Specify flank width
-Fwidth <- 100
+Fwidth <- 1000
 
 # Boolean indicator whether reads from reference loci with high overlap should
 # be filtered to a separate file:
 blnFilterBam <- T
 
 # Specify path to PacBio bam file
-BamFilePath  <- "/share/diskarray3/hzudohna/sorted_final_merged.bam"
-FilteredBamFilePath  <- "/share/diskarray3/hzudohna/PacBio/NA12878_filtered.bam"
+BamFilePath      <- "/srv/gsfs0/projects/levinson/hzudohna/PacBio/sorted_final_merged.bam"
+FilteredBamFilePath  <- "/srv/gsfs0/projects/levinson/hzudohna/PacBio/NA12878_filtered.bam"
 
 # Read in table with known L1 
-L1Catalog <- read.csv("/home/hzudohna/L1polymORF/Data/L1Catalogue_Updated_Sat_May_07_15-15-31_2016.csv",
+L1Catalog <- read.csv("/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/L1Catalogue_Updated_Sat_May_07_15-15-31_2016.csv",
                         as.is = T)
-# L1Catalog <- read.csv("D:/L1polymORF/Data/L1Catalogue_Updated_Sat_May_07_15-15-31_2016.csv", 
-#                       as.is = T)
 
 # Get genomic ranges of L1 on hg19
 blnMapped <- !is.na(L1Catalog$start_HG38) & L1Catalog$Allele == 1 
 L1CatalogMapped <- L1Catalog[blnMapped, ]
-# LiftOverList    <- LiftoverL1Catalog(L1CatalogMapped,
-#                                      ChainFilePath = "D:/L1polymORF/Data/hg38ToHg19.over.chain")
-LiftOverList    <- LiftoverL1Catalog(L1CatalogMapped)
+LiftOverList    <- LiftoverL1Catalog(L1CatalogMapped,
+   ChainFilePath = "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg38ToHg19.over.chain")
 L1CatalogMapped <- L1CatalogMapped[LiftOverList$idxUniqueMapped, ]
 L1GRanges       <- LiftOverList$GRCatalogue_hg19
 width(L1GRanges)
@@ -51,6 +47,20 @@ paramReadRight <- ScanBamParam(which = RightFlankRanges, what = scanBamWhat())
 cat("Scan L1 flanking regions in", BamFilePath, "\n")
 ReadIDListLeft  <- scanBam(BamFilePath, param = paramReadLeft)
 ReadIDListRight <- scanBam(BamFilePath, param = paramReadRight)
+
+# Get the number of nucleotides that are clipped on the 5' end
+NrClipped <- sapply(ReadIDListLeft[[1]]$cigar, function(x){
+  CigNr          <- as.numeric(strsplit(x, "[A-Z]")[[1]])
+  CigNr_5Prime   <- CigNr[1]
+  CigNr_3Prime   <- CigNr[length(CigNr)]
+  NrSplit        <- strsplit(x, "[1-9]")[[1]]
+  CigType        <- grep("[A-Z]", NrSplit, value = T)
+  CigType_5Prime <- CigType[1]
+  CigType_3Prime <- CigType[max(c(1, length(CigType)))]
+  c(CigNr_5Prime = CigNr_5Prime * (CigType_5Prime == "S"),
+    CigNr_3Prime = CigNr_3Prime * (CigType_3Prime == "S"))
+}, USE.NAMES = F)
+
 
 # Loop through flanks and get the ratio of intersction to union
 PropOverlap <- sapply(1:length(L1GRanges), function(i){
@@ -85,4 +95,4 @@ L1CatalogMapped$inNA12878 <- PropOverlap < 0.5
 L1CatalogMapped$PropOverlap <- PropOverlap
 
 # Save results
-save.image(file = "/home/hzudohna/L1polymORF/Data/L1PresenceTestResults_PacBio.RData")
+save.image(file = "/home/hzudohna/L1polymORFgit/Data/L1PresenceTestResults_PacBio.RData")
