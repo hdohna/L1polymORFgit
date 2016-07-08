@@ -7,8 +7,8 @@ library(ShortRead)
 library(Rsamtools)
 
 # Set parameters
-OutFastQfilePath1 <- "/share/diskarray3/hzudohna/10XData/NA1281878_capture10X_R1.fastq"  
-OutFastQfilePath2 <- "/share/diskarray3/hzudohna/10XData/NA1281878_capture10X_R2.fastq"  
+OutFastQfilePath1 <- "/srv/gsfs0/projects/levinson/hzudohna/10Xcapture/NA1281878_capture10X_R1.fastq"  
+OutFastQfilePath2 <- "/srv/gsfs0/projects/levinson/hzudohna/10Xcapture/NA1281878_capture10X_R2.fastq"  
 LinesPerScan  <- 10^6
 if(LinesPerScan %% 4 > 0){
   stop("Number of lines per scan has to be divisible by 4!")
@@ -33,7 +33,7 @@ Files <-   c("read-RA_si-TTTCATGA_lane-004-chunk-002.fastq",
              "read-RA_si-ACGTCCCT_lane-001-chunk-001.fastq")
 
 # Create paths to all fastq files
-FilePaths <- paste("/share/diskarray2/L1HS/10X_LINE1capture/H7VK5AFXX/BCL_PROCESSOR_CS/BCL_PROCESSOR/DEMULTIPLEX/fork0/files/demultiplexed_fastq_path/",
+FilePaths <- paste("/srv/gsfs0/projects/levinson/hzudohna/10Xcapture/RawData/",
                    Files, sep = "")
 
 # Open one connection per fastq file and intitialize counter variables
@@ -73,12 +73,11 @@ for (InFastQfilePath in FilePaths){
      ReadCounter  <- ReadCounter + NrReadsRead
      cat("Total of", ReadCounter, " reads read in \n")
  
-     # Add barcodes to plus lines
-     idxPlus  <- which(substr(ScannedLines, 1, 1) == "+")
-     Barcodes <- paste("+BX:", substr(ScannedLines[idxRead1 + 1], 1, 16), sep = "")
-     NewPlus  <- rep(Barcodes, each = 2)
-     ScannedLines[idxPlus] <- NewPlus
-  
+     # Add barcodes to name lines of read 1 and 2
+     Barcodes <- paste("BX:", substr(ScannedLines[idxRead1 + 1], 1, 16), sep = "")
+     ScannedLines[idxRead1] <- paste(ScannedLines[idxRead1], Barcodes)
+     ScannedLines[idxRead2] <- paste(ScannedLines[idxRead2], Barcodes)
+     
      # Remove barcodes from read 1 sequences
      ScannedLines[idxRead1 + 1] <- substr(ScannedLines[idxRead1 + 1], 17, 
                                   nchar(ScannedLines[idxRead1 + 1]))
