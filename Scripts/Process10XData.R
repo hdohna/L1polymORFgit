@@ -62,18 +62,18 @@ for (InFastQfilePath in FilePaths){
      idxRead2 <- grep("3:N:0:0", ScannedLines)
      
      # Check that read 1 and 2 have the same names
-     RN1 <- substr(ScannedLines[idxRead1], 33, 42)
-     RN2 <- substr(ScannedLines[idxRead2], 33, 42)
-     if (! all(RN1 == RN2)){
-       stop("Names for read 1 and 2 are not consistent!")
-     }
+     # RN1 <- substr(ScannedLines[idxRead1], 33, 42)
+     # RN2 <- substr(ScannedLines[idxRead2], 33, 42)
+     # if (! all(RN1 == RN2)){
+     #   stop("Names for read 1 and 2 are not consistent!")
+     # }
      
      # Update read counter
      NrReadsRead  <- length(ScannedLines) / 4
      ReadCounter  <- ReadCounter + NrReadsRead
      cat("Total of", ReadCounter, " reads read in \n")
  
-     # Add barcodes to name lines of read 1 and 2
+     # Add barcodes (first 16 bp of sequence) to name lines of read 1 and 2
      Barcodes <- paste("BX:", substr(ScannedLines[idxRead1 + 1], 1, 16), sep = "")
      ScannedLines[idxRead1] <- paste(ScannedLines[idxRead1], Barcodes)
      ScannedLines[idxRead2] <- paste(ScannedLines[idxRead2], Barcodes)
