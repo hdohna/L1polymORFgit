@@ -7,8 +7,8 @@ library(ShortRead)
 library(Rsamtools)
 
 # Set parameters
-OutFastQfilePath1 <- "/srv/gsfs0/projects/levinson/hzudohna/10Xcapture/NA1281878_capture10X_R1.fastq"  
-OutFastQfilePath2 <- "/srv/gsfs0/projects/levinson/hzudohna/10Xcapture/NA1281878_capture10X_R2.fastq"  
+OutFastQfilePath1 <- "/srv/gsfs0/projects/levinson/hzudohna/10Xcapture/NA12878_capture10X_R1.fastq"  
+OutFastQfilePath2 <- "/srv/gsfs0/projects/levinson/hzudohna/10Xcapture/NA12878_capture10X_R2.fastq"  
 LinesPerScan  <- 5*10^5
 if(LinesPerScan %% 4 > 0){
   stop("Number of lines per scan has to be divisible by 4!")
