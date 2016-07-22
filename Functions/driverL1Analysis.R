@@ -57,7 +57,8 @@ driverL1Analysis <- function(
   L1HSConsensus = "/home/hzudohna/L1polymORF/Data/Homo_sapiens_L1_consensus.fa",
   L1RefRanges    = '/home/hzudohna/L1polymORF/Data/L1RefRanges_hg19.Rdata',
   OutputFolder = "/home/hzudohna/L1polymORF/Data/", 
-  CoverSummaryPlot, CoverComparePlot, ResultFileName,
+  PlotFolder = "/home/hzudohna/L1polymORF/Figures/", 
+  ResultFileName,
   MinMaxCover, MinGap, 
   MinDist2L1, 
   blnComparePeaksWithRefL1 = F,
@@ -86,7 +87,7 @@ driverL1Analysis <- function(
   #          Create folders and file paths              #
   #                                                     #
   #######################################################
-
+  
   # Specify file paths 
   InFileSplit <- strsplit(PeakBam, "/")[[1]]
   InFileName  <- InFileSplit[length(InFileSplit)]
@@ -108,7 +109,13 @@ driverL1Analysis <- function(
   # Create path to result file
   OutResults_RangeComparison  <- paste(OutputFolder, FolderPrefix, 
                                        "_L1Ranges.RData", sep = "")
-  OutResults  <- paste(OutputFolder, ResultFileName)
+  OutResults  <- paste(OutputFolder, ResultFileName, sep = "")
+  
+  # Create paths for plots
+  CoverSummaryPlot <- paste(PlotFolder, FolderPrefix, 
+                            "_CoverSummary.pdf", sep = "")
+  CoverComparePlot <- paste(PlotFolder, FolderPrefix, 
+                            "_CoverCompare.pdf", sep = "")
   
   #######################################################
   #                                                     #
@@ -117,7 +124,7 @@ driverL1Analysis <- function(
   #######################################################
   
   if(blnComparePeaksWithRefL1){
-
+    
     # Create a name for bam file for reads that map to full-length L1 on the
     # reference genome
     L1RefBamFile <- paste(FolderPrefix, "_L1Ref.bam", sep = "")
@@ -146,7 +153,7 @@ driverL1Analysis <- function(
   # Create names for fastq and bam files that are saved per suspected 
   # non-reference L1
   FilePrefixes     <- paste(seqnames(SuspectL1Ranges), idxSuspectL1Ranges, 
-                        sep = "_")
+                            sep = "_")
   LittleFastqFiles <- paste(FilePrefixes, ".fastq", sep = "")
   LittleBamFiles   <- paste(FilePrefixes, ".bam", sep = "")
   LittleFastqPaths <- paste(OutFolderName_NonRef, LittleFastqFiles, sep = "/")
@@ -199,7 +206,7 @@ driverL1Analysis <- function(
       cat("Turning", fn, "into a bam file\n")
       asBam(fn, destination = substr(fn, 1, nchar(fn) - 4), overwrite = T)
     }
-
+    
   }
   
   ###################################################
@@ -209,7 +216,7 @@ driverL1Analysis <- function(
   ###################################################
   
   if(!is.null(L1HSBamFile) & blnFilterBam){
-     
+    
     # Loop over peaks that do not overlap with reference L1 and write out a
     # per peak a separate bam file of reads mapped to L1HS
     for (i in 1:length(SuspectL1Ranges)){
@@ -219,9 +226,9 @@ driverL1Analysis <- function(
       IDFilter <- FilterRules(getIDs <- function(DF){DF$qname %in% IDs})
       cat("Writing filtered L1Hs bam file", LittleBamPaths[i], "\n")
       filterBam(L1HSBamFile, LittleBamPaths[i], filter = IDFilter)
-     }
+    }
   }
-
+  
   #######################################
   #                                     #
   #     Add read groups                 #
@@ -246,10 +253,10 @@ driverL1Analysis <- function(
   
   if(blnCreateBamIndices){
     
-        CreateMultiBamIndex(BamFolder  = OutFolderName_NonRef,  
-                                                   BamSuffix = BamSuffix)
+    CreateMultiBamIndex(BamFolder  = OutFolderName_NonRef,  
+                        BamSuffix = BamSuffix)
   }
-
+  
   
   
   if(blnCallHaplotypes){
@@ -323,8 +330,7 @@ driverL1Analysis <- function(
   }
   
   # Save results
-  cat("*******  Saving results ...   *******\n")
-  save.image(file = OutResults)
+  cat("*******  Saving results to", OutResults  ,"*******\n")
+  save(list = ls(all.names = TRUE), file = OutResults)
   
 }
-
