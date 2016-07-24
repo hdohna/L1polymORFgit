@@ -70,6 +70,7 @@ driverL1Analysis <- function(
   blnCallHaplotypes = F, 
   blnAnalyze        = F,
   AlignCommand = c('module load bwa', 'bwa mem'),
+  IndexCommand = c('module load bwa', 'bwa index'),
   AddGroupCmd  = c('module load picard-tools/2.0.1', 
                    "java -jar picard.jar AddOrReplaceReadGroups"),
   AddGroupOptions = c("RGLB=lib1", "RGPL=illumina", "RGPU=unit1", "RGSM=20",
@@ -187,6 +188,7 @@ driverL1Analysis <- function(
     
     FilePaths <- MapMultiFastq(FastQFolder  = OutFolderName_NonRef,
                                AlignCommand = AlignCommand,
+                               IndexCommand = IndexCommand,
                                Reference = L1HSConsensus,
                                SamSuffix = SamSuffix)
   }
