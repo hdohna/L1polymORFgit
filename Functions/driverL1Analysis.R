@@ -57,7 +57,7 @@ driverL1Analysis <- function(
   L1HSConsensus = "/home/hzudohna/L1polymORF/Data/Homo_sapiens_L1_consensus.fa",
   L1RefRanges    = '/home/hzudohna/L1polymORF/Data/L1RefRanges_hg19.Rdata',
   OutputFolder = "/home/hzudohna/L1polymORF/Data/", 
-  PlotFolder = "/home/hzudohna/L1polymORF/Figures/", 
+  PlotFolder = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/Figures/", 
   ResultFileName,
   MinMaxCover, MinGap, 
   MinDist2L1, 
