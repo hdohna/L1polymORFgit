@@ -57,7 +57,9 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
 
   # Open one connection per fastq file and intitialize counter variables
   Stream1 <- FastqStreamer(InFastQfilePaths[1], NrReadsPerIter)
-  Stream2 <- FastqStreamer(InFastQfilePaths[2], NrReadsPerIter)
+  if (length(InFastQfilePaths) > 1){
+    Stream2 <- FastqStreamer(InFastQfilePaths[2], NrReadsPerIter)
+  }
   NrReadsRead  <- 1
   ReadCounter  <- 0
   WriteCounter <- 0
@@ -66,7 +68,9 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
   # Loop through fastq file and append to little range-specific fastq files
   while (NrReadsRead > 0){
     Reads1  <- yield(Stream1)
-    Reads2  <- yield(Stream2)
+    if (length(InFastQfilePaths) > 1){
+      Reads2  <- yield(Stream2)
+    }
     NrReadsRead  <- length(Reads1)
     ReadCounter  <- ReadCounter + NrReadsRead
     ReadIDChar   <- as.character(Reads1@id)
@@ -75,7 +79,9 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
     ReadSubset   <- ReadIDs %in% AllReadNames
     ReadIDs      <- ReadIDs[ReadSubset]
     Reads1       <- Reads1[ReadSubset]
-    Reads2       <- Reads2[ReadSubset]
+    if (length(InFastQfilePaths) > 1){
+      Reads2       <- Reads2[ReadSubset]
+    }
     cat("Total of", ReadCounter, "reads read \n")
     # Loop over ranges and create a fastq file per range
     cat("Looping over ranges and writing to fastq files per range\n")
@@ -88,12 +94,14 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
         ReadNames   <- ReadIDsPerRange[[i]]$qname
         ReadSubset  <- ReadIDs %in% ReadNames
         Reads1Local <- Reads1[ReadSubset]
-        Reads2Local <- Reads2[ReadSubset]
         writeFastq(Reads1Local, OutFilePaths[i], mode = wqModes[i], 
                    compress = F, full = T) 
         wqModes[i] <- "a"
-        writeFastq(Reads2Local, OutFilePaths[i], mode = wqModes[i], 
+        if (length(InFastQfilePaths) > 1){
+          Reads2Local <- Reads2[ReadSubset]
+          writeFastq(Reads2Local, OutFilePaths[i], mode = wqModes[i], 
                    compress = F, full = T) 
+        }
         WriteCounter <- WriteCounter + 2*sum(ReadSubset)
         
       }
@@ -101,7 +109,9 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
     cat("Total of", WriteCounter, "written out \n")
   }
   close(Stream1)
-  close(Stream2)
+  if (length(InFastQfilePaths) > 1){
+    close(Stream2)
+  }
   
 }
 
