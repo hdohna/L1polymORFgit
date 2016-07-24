@@ -23,7 +23,7 @@ driverL1Analysis(
   blnWriteFastq     = T,
   blnMap2L1         = T, 
   blnAddReadGroups  = T, 
-  blnCreateBamIndices = F,
+  blnCreateBamIndices = T,
   blnCallHaplotypes = F, 
   blnAnalyze        =   T,
   AlignCommand = c('module load bwa', 'bwa mem -k17 -W40 -r10 -A2 -B5 -O2 -E1 -L0'),
