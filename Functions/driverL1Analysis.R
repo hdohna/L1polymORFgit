@@ -69,7 +69,7 @@ driverL1Analysis <- function(
   blnFilterBam = F,
   blnCallHaplotypes = F, 
   blnAnalyze        = F,
-  AlignCommand = '/home/txw/bwa/bwa-0.7.12/bwa mem -k17 -W40 -r10 -A2 -B5 -O2 -E1 -L0',
+  AlignCommand = c('module load bwa', 'bwa mem'),
   AddGroupCmd  = "java -jar /home/txw/picard/picard-tools-1.131/picard.jar AddOrReplaceReadGroups",
   AddGroupOptions = c("RGLB=lib1", "RGPL=illumina", "RGPU=unit1", "RGSM=20",
                       "SORT_ORDER=null", "CREATE_INDEX=TRUE", "VALIDATION_STRINGENCY=LENIENT"),
