@@ -76,6 +76,7 @@ driverL1Analysis <- function(
                    "java -jar picard.jar AddOrReplaceReadGroups"),
   AddGroupOptions = c("RGLB=lib1", "RGPL=illumina", "RGPU=unit1", "RGSM=20",
                       "SORT_ORDER=null", "CREATE_INDEX=TRUE", "VALIDATION_STRINGENCY=LENIENT"),
+  CreateBamIndexCmd = c('module load samtools', 'samtools index'),
   HapTypeCallCmd = c("module load gatk/3.4.0", 
                      "java -jar GenomeAnalysisTK.jar -T HaplotypeCaller"),
   HapTypeCallOptions = "--emitRefConfidence GVCF",
@@ -259,7 +260,7 @@ driverL1Analysis <- function(
   
   if(blnCreateBamIndices){
     
-    CreateMultiBamIndex(BamFolder  = OutFolderName_NonRef,  
+    CreateMultiBamIndex(BamFolder  = OutFolderName_NonRef, CreateBamIndexCmd = CreateBamIndexCmd, 
                         BamSuffix = BamSuffix)
   }
   

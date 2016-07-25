@@ -24,8 +24,8 @@
 ##############################################
 
 CreateMultiBamIndex <- function(BamFolder,  
-   CreateBamIndexCmd   = "/home/txw/samtools/samtools-1.2/samtools index",
-   BamSuffix = ".bam"
+                                CreateBamIndexCmd   = "/home/txw/samtools/samtools-1.2/samtools index",
+                                BamSuffix = ".bam"
 ) {
   
   cat("*******************************************************\n")
@@ -42,7 +42,7 @@ CreateMultiBamIndex <- function(BamFolder,
   }
   
   # Create a command per file 
-  CmdLines <- paste(CreateBamIndexCmd,  FileNames)
+  CmdLines <- c(CreateBamIndexCmd[1], paste(CreateBamIndexCmd[2],  FileNames))
   
   # Loop over command line and run them 
   for (CmdL in CmdLines) {
@@ -51,5 +51,3 @@ CreateMultiBamIndex <- function(BamFolder,
   }
   
 }
-
-
