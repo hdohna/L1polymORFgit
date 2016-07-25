@@ -12,7 +12,7 @@ driverL1Analysis(
   PeakBam = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_readsofinsert_hg19.bam", 
   L1HSBamFile = NULL, 
   FastQFolder = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/FastqFiles/", 
-  L1HSConsensus = "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/Homo_sapiens_L1_consensus.fa",
+  L1HSConsensus = "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/Homo_sapiens_L1_consensus.fas",
   L1RefRanges    = '/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/L1RefRanges_hg19.Rdata',
   OutputFolder = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/", 
   ResultFileName = "BZ_NA12878L1capt5-9kb_Results.Rdata",
