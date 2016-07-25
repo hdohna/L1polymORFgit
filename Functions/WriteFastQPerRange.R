@@ -85,6 +85,7 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
     cat("Total of", ReadCounter, "reads read \n")
     # Loop over ranges and create a fastq file per range
     cat("Looping over ranges and writing to fastq files per range\n")
+    browser()
     if (sum(ReadSubset) > 0) {
       Indices <- unique(AllReadIndices[AllReadNames %in% ReadIDs])
       for (i in Indices){
@@ -94,8 +95,7 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
         ReadNames   <- ReadIDsPerRange[[i]]$qname
         ReadSubset  <- ReadIDs %in% ReadNames
         Reads1Local <- Reads1[ReadSubset]
-        browser()
-        writeFastq(Reads1Local, OutFilePaths[i], mode = wqModes[i], 
+         writeFastq(Reads1Local, OutFilePaths[i], mode = wqModes[i], 
                    compress = F, full = T) 
         wqModes[i] <- "a"
         if (length(InFastQfilePaths) > 1){
