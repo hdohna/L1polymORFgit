@@ -21,7 +21,7 @@ driverL1Analysis(
   MinGap = 6000, 
   MinDist2L1 = 20000, 
   blnComparePeaksWithRefL1 = F,
-  blnWriteFastq     = T,
+  blnWriteFastq     = F,
   blnMap2L1         = T, 
   blnAddReadGroups  = T, 
   blnCreateBamIndices = T,

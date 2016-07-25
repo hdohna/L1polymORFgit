@@ -40,14 +40,14 @@ MapMultiFastq <- function(FastQFolder, Reference,
   FastQPaths <- list.files(FastQFolder, pattern = ".fastq", full.names = T)
   
   # Create index file
-  CmdIndex <- paste(IndexCommand, Reference)
-  browser()
+  CmdIndex <- c(IndexCommand[1], paste(IndexCommand[2], Reference))
+#  browser()
   system(CmdIndex)
   
   # Run BWA for each little fastq file  
   OutFiles <- paste(substr(FastQPaths, 1, nchar(FastQPaths) - 6), SamSuffix, sep = "")
-  CmdLines <- paste(AlignCommand,  Reference, FastQPaths)
-  CmdLines <- paste(CmdLines, OutFiles, sep = " > ")
+  CmdLines <- paste(AlignCommand[2],  Reference, FastQPaths)
+  CmdLines <- c(AlignCommand[1], paste(CmdLines, OutFiles, sep = " > "))
   for (CmdL in CmdLines) system(CmdL)
   
   # Return paths to fastq files and sam files
