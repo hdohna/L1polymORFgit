@@ -20,6 +20,8 @@
 #          file should be read in per iteration
 #     DefaultWriteMode: single character equal to either 'w' or 'a' to write
 #          to a new file or append to an existing file, respectively.
+#     IdChar2Remove: number of characters to remove from fastq file read IDs
+#          so that they mtch the bam file read IDs
 
 
 # Output:
@@ -33,7 +35,8 @@
 
 
 WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
-  OutFilePaths, NrReadsPerIter = 10^6, DefaultWriteMode = 'w') {
+  OutFilePaths, NrReadsPerIter = 10^6, DefaultWriteMode = 'w',
+  IdChar2Remove) {
   
   cat("****************************************************\n")
   cat("**                                                **\n")
@@ -75,8 +78,11 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
     ReadCounter  <- ReadCounter + NrReadsRead
     ReadIDChar   <- as.character(Reads1@id)
     ReadIDsuffix <- substr(ReadIDChar, nchar(ReadIDChar) - 7, nchar(ReadIDChar))
-    ReadIDs      <- substr(ReadIDChar, 1, nchar(ReadIDChar) - 8)
+    ReadIDs      <- substr(ReadIDChar, 1, nchar(ReadIDChar) - IdChar2Remove)
     ReadSubset   <- ReadIDs %in% AllReadNames
+    if (sum(ReadSubset) == 0){
+      stop("Read names from bam and fastq files do not match !\n")
+    }
     ReadIDs      <- ReadIDs[ReadSubset]
     Reads1       <- Reads1[ReadSubset]
     if (length(InFastQfilePaths) > 1){
@@ -85,7 +91,6 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
     cat("Total of", ReadCounter, "reads read \n")
     # Loop over ranges and create a fastq file per range
     cat("Looping over ranges and writing to fastq files per range\n")
-    browser()
     if (sum(ReadSubset) > 0) {
       Indices <- unique(AllReadIndices[AllReadNames %in% ReadIDs])
       for (i in Indices){

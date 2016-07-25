@@ -69,6 +69,7 @@ driverL1Analysis <- function(
   blnFilterBam = F,
   blnCallHaplotypes = F, 
   blnAnalyze        = F,
+  IdChar2Remove = 4,
   AlignCommand = c('module load bwa', 'bwa mem'),
   IndexCommand = c('module load bwa', 'bwa index'),
   AddGroupCmd  = c('module load picard-tools/2.0.1', 
@@ -174,7 +175,8 @@ driverL1Analysis <- function(
     WriteFastQPerRange(Ranges = SuspectL1Ranges, 
                        InBamfilePath  = PeakBam,
                        InFastQfilePaths = list.files(FastQFolder, full.names = T),
-                       OutFilePaths = LittleFastqPaths) 
+                       OutFilePaths = LittleFastqPaths,
+                       IdChar2Remove = IdChar2Remove) 
   }
   
   #######################################
