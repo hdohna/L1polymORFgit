@@ -80,9 +80,9 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
     ReadIDsuffix <- substr(ReadIDChar, nchar(ReadIDChar) - 7, nchar(ReadIDChar))
     ReadIDs      <- substr(ReadIDChar, 1, nchar(ReadIDChar) - IdChar2Remove)
     ReadSubset   <- ReadIDs %in% AllReadNames
-    if (sum(ReadSubset) < NrReadsRead){
-      stop("Read names from bam and fastq files do not match !\n")
-    }
+    # if (sum(ReadSubset) < NrReadsRead){
+    #   stop("Read names from bam and fastq files do not match !\n")
+    # }
     ReadIDs      <- ReadIDs[ReadSubset]
     Reads1       <- Reads1[ReadSubset]
     if (length(InFastQfilePaths) > 1){
