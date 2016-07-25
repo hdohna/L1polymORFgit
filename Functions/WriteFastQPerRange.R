@@ -94,6 +94,7 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
         ReadNames   <- ReadIDsPerRange[[i]]$qname
         ReadSubset  <- ReadIDs %in% ReadNames
         Reads1Local <- Reads1[ReadSubset]
+        browser()
         writeFastq(Reads1Local, OutFilePaths[i], mode = wqModes[i], 
                    compress = F, full = T) 
         wqModes[i] <- "a"
