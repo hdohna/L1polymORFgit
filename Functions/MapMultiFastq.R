@@ -41,7 +41,7 @@ MapMultiFastq <- function(FastQFolder, Reference,
   
   # Create index file
   CmdIndex <- c(IndexCommand[1], paste(IndexCommand[2], Reference))
-#  browser()
+  browser()
   system(CmdIndex)
   
   # Run BWA for each little fastq file  
