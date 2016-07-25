@@ -28,6 +28,12 @@ MapMultiFastq <- function(FastQFolder, Reference,
                           AlignCommand,
                           SamSuffix = "_aln.sam") {
   
+  cat("****************************************************\n")
+  cat("**                                                **\n")
+  cat("**    Running function MapMultiFastq ...          **\n")
+  cat("**                                                **\n")
+  cat("****************************************************\n\n")
+  
   cat("*******   Mapping little fastq files in", FastQFolder, "...   *******\n")
   
   # Get all paths to fastq files in the folder
@@ -35,6 +41,7 @@ MapMultiFastq <- function(FastQFolder, Reference,
   
   # Create index file
   CmdIndex <- paste(IndexCommand, Reference)
+  browser()
   system(CmdIndex)
   
   # Run BWA for each little fastq file  
