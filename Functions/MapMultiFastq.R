@@ -49,7 +49,7 @@ MapMultiFastq <- function(FastQFolder, Reference,
   CmdLines <- c(AlignCommand[1], paste(CmdLines, OutFiles, sep = " > "))
   for (CmdL in CmdLines) {
     cat("Running command", CmdL, "\n")
-    system(CmdL)
+    system(c(AlignCommand[1], CmdL))
   }
   
   # Return paths to fastq files and sam files
