@@ -19,7 +19,7 @@ source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
 L1CataloguePath <- "D:/L1polymORF/Data/L1Catalogue_Sat_May_07_15-15-31_2016.csv"
 
 # Length of Flanking sequence to be used for alignment
-FlankLength <- 5000
+FlankLength <- 10000
 FlankLengthShort <- 200
 
 ############################
@@ -162,7 +162,8 @@ if (any(L1StartEnd["Width", ] < 5500)) {
 # Write out L1 sequences with flank
 PathSplit1 <- strsplit(L1CataloguePath, "L1Catalogue")[[1]]
 PathSplit2 <- strsplit(PathSplit1[2], ".csv")[[1]][1]
-OutputPath <- paste(PathSplit1[1], "L1CatalogueWithFlank", PathSplit2, 
+OutputPath <- paste(PathSplit1[1], "L1CatalogueWithFlank", FlankLength,
+                    PathSplit2, 
                     ".fas", sep = "")
 write.fasta(L1withFlank, L1CatalogL1Mapped$Accession, 
             file.out = OutputPath)
