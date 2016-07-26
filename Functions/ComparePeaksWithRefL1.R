@@ -65,7 +65,7 @@ ComparePeaksWithRefL1 <- function(
    #######                                     
 
    cat("*** Turning reads in", BamFile,"into GRanges ***\n")
-
+browser()
    # Get reads per chromosome
    CoverList <- lapply(1:length(ChromLengths), function(i){
       Chrom       <- names(ChromLengths)[i]
