@@ -84,13 +84,16 @@ ComparePeaksWithRefL1 <- function(
                                                          end = Ends[j + 1]))
         Reads <- extractReads(bam.file = BamFile, region = R1)
         ReadCov <- coverage(Reads)
-        if (length(ReadCov[[Chrom]]$values))
-        Islands <- slice(ReadCov, lower = 1)
-        GRanges(seqnames = Chrom, 
-                ranges = Islands@listData[[1]]@ranges,
-                coverTotal = viewSums(Islands)[[1]],
-                coverMax   = viewMaxs(Islands)[[1]],
-                coverMaxPos   = viewWhichMaxs(Islands)[[1]])
+        if (length(ReadCov[[Chrom]]@values) > 1){
+          Islands <- slice(ReadCov, lower = 1)
+          GRanges(seqnames = Chrom, 
+                  ranges = Islands@listData[[1]]@ranges,
+                  coverTotal = viewSums(Islands)[[1]],
+                  coverMax   = viewMaxs(Islands)[[1]],
+                  coverMaxPos   = viewWhichMaxs(Islands)[[1]])
+        } else {
+          GRanges()
+        }
       })
       GRList <- GRangesList(GRList)
       GRList <- unlist(GRList)
