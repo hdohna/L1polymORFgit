@@ -33,6 +33,7 @@ ComparePeaksWithRefL1 <- function(
    L1Ranges = "/home/hzudohna/L1polymORF/Data/L1RefRanges_hg19.Rdata",
    MinMaxCover = 5,    # minimum maximum coverage to be called a peak 
    MinGap      = 10,
+   NrChromPieces = 20,
    MinDist2L1  = 3*10^4, # minimum distance to L1 to be called a peak 
    OutFile = "/home/hzudohna/L1polymORF/Data/AnalyzedPacBioL1Ranges.RData"
    ){
@@ -67,15 +68,35 @@ ComparePeaksWithRefL1 <- function(
    cat("*** Turning reads in", BamFile,"into GRanges ***\n")
 browser()
    # Get reads per chromosome
-   CoverList <- lapply(1:length(ChromLengths), function(i){
+   NrChromPieces <- 20
+   i <- 1
+   j <- 1
+   IslandGRanges <- lapply(1:length(ChromLengths), function(i){
       Chrom       <- names(ChromLengths)[i]
       ChromLength <- ChromLengths[i]
-      R1 <- GRanges(seqnames = Chrom, ranges = IRanges(start = 1, end = ChromLength))
+      Ends <- seq(1, ChromLength, floor(ChromLength/ NrChromPieces))
+      if (Ends[length(Ends)] < ChromLength) Ends <- c(Ends, ChromLength)
       cat("Extracting reads of chromosome", Chrom, "\n")
-      Reads <- extractReads(bam.file = BamFile, region = R1)
-      ReadCov <- coverage(Reads)
-   })
-
+      GRList <- lapply (1:(length(Ends) - 1), function (j) {
+        cat("Pocessing chromosome piece", j, "of", NrChromPieces, "\n")
+        R1 <- GRanges(seqnames = Chrom, ranges = IRanges(start = Ends[j], 
+                                                         end = Ends[j + 1]))
+        Reads <- extractReads(bam.file = BamFile, region = R1)
+        ReadCov <- coverage(Reads)
+        Islands <- slice(ReadCov, lower = 1)
+        GRanges(seqnames = Chrom, 
+                ranges = Islands@listData[[1]]@ranges,
+                coverTotal = viewSums(Islands)[[1]],
+                coverMax   = viewMaxs(Islands)[[1]],
+                coverMaxPos   = viewWhichMaxs(Islands)[[1]])
+      })
+      GRList <- GRangesList(GRList)
+      GRList <- unlist(GRList)
+    })
+   IslandGRanges <- GRangesList(IslandGRanges)
+   IslandGRanges <- unlist(IslandGRanges)
+   cat(length(IslandGRanges), "distinct peaks\n\n")
+   
    #######################################
    #                                     #
    #    Determine 'islands' with         #
@@ -86,7 +107,6 @@ browser()
    # Determine separate islands with continuous read coverage and turn islands 
    # into genomic ranges
    IslandList <- lapply(CoverList, function(x){
-     Islands <- slice(x, lower = 1)
    })
    Chroms <- names(ChromLengths)
    IslandGRanges <- lapply(1:length(IslandList), function(i){
@@ -96,9 +116,6 @@ browser()
           coverMax   = viewMaxs(IslandList[[i]])[[1]],
           coverMaxPos   = viewWhichMaxs(IslandList[[i]])[[1]])
    })
-   IslandGRanges <- GRangesList(IslandGRanges)
-   IslandGRanges <- unlist(IslandGRanges)
-   cat(length(IslandGRanges), "distinct peaks\n\n")
 
    # Merge ranges that are less than MinGap bp apart
    IslGRanges_reduced <- reduce(IslandGRanges, min.gapwidth = MinGap,
