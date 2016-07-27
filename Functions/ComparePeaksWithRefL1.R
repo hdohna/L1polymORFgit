@@ -61,16 +61,16 @@ ComparePeaksWithRefL1 <- function(
                                 " missing!")
    }
 
-   #######                       
-   # Get L1 ranges                    
-   #######                                     
-
+   #######################################
+   #                                     #
+   #    Determine 'islands' with         #
+   #        nonzero coverage             #
+   #                                     #
+   #######################################
+   
    cat("*** Turning reads in", BamFile,"into GRanges ***\n")
-browser()
-   # Get reads per chromosome
-   NrChromPieces <- 20
-   i <- 1
-   j <- 1
+   # Determine separate islands with continuous read coverage and turn islands 
+   # into genomic ranges
    IslandGRanges <- lapply(1:length(ChromLengths), function(i){
       Chrom       <- names(ChromLengths)[i]
       ChromLength <- ChromLengths[i]
@@ -99,23 +99,10 @@ browser()
    
    #######################################
    #                                     #
-   #    Determine 'islands' with         #
+   #    Reduce 'islands' with         #
    #        nonzero coverage             #
    #                                     #
    #######################################
-
-   # Determine separate islands with continuous read coverage and turn islands 
-   # into genomic ranges
-   IslandList <- lapply(CoverList, function(x){
-   })
-   Chroms <- names(ChromLengths)
-   IslandGRanges <- lapply(1:length(IslandList), function(i){
-   GRanges(seqnames = Chroms[i], 
-          ranges = IslandList[[i]]@listData[[1]]@ranges,
-          coverTotal = viewSums(IslandList[[i]])[[1]],
-          coverMax   = viewMaxs(IslandList[[i]])[[1]],
-          coverMaxPos   = viewWhichMaxs(IslandList[[i]])[[1]])
-   })
 
    # Merge ranges that are less than MinGap bp apart
    IslGRanges_reduced <- reduce(IslandGRanges, min.gapwidth = MinGap,
