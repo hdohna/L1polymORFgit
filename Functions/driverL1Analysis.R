@@ -142,6 +142,7 @@ driverL1Analysis <- function(
       MinMaxCover = MinMaxCover,    # minimum maximum coverage to be called a peak 
       MinGap      = MinGap,
       MinDist2L1  = MinDist2L1, # minimum distance to L1 to be called a peak 
+      NrChromPieces = NrChromPieces,
       OutFile = OutResults_RangeComparison)
   }
   
