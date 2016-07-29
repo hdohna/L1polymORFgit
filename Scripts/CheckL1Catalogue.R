@@ -16,11 +16,12 @@ library(seqinr)
 source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
 
 # Path to L1 catalogue table and sequence 
-L1CatalogTablePath <- "D:/L1polymORF/Data/L1Catalogue_Sat_May_07_15-15-31_2016.csv"
-L1CatalogSeqPath   <- "D:/L1polymORF/Data/L1CatalogueWithFlank_Sat_May_07_15-15-31_2016.fas"
+L1CatalogTablePath <- "D:/L1polymORF/Data/L1Catalogue_Updated_Sat_May_07_15-15-31_2016.csv"
+L1CatalogSeqPath   <- "D:/L1polymORF/Data/L1CatalogueWithFlank10000_Sat_May_07_15-15-31_2016.fas"
 
 # Create an output path
 OutputPath <- gsub(".fas", "_L1Locations.RData", L1CatalogSeqPath)
+OutputPathStartEnd <- gsub(".fas", "_StartEnd.bed", L1CatalogSeqPath)
 
 # Minimum fragment size
 MinFragSize <- 20
@@ -171,3 +172,9 @@ L1FragmentRanges <- unlist(L1FragmentRanges)
 cat("Saving results in", OutputPath, "\n")
 save(list = c("AlignList", "L1StartEnd", "L1FragmentRanges", "L1withFlank"), 
      file = OutputPath)
+
+# Create a data frame of L1 start and end to be exported as bed file
+StartEndGR <- GRanges(seqnames = colnames(L1StartEnd), 
+                      ranges = IRanges(start = L1StartEnd["Start", ],
+                                       end = L1StartEnd["End", ]))
+export.bed(StartEndGR, OutputPathStartEnd)
