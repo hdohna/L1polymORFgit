@@ -72,34 +72,50 @@ ComparePeaksWithRefL1 <- function(
    # Determine separate islands with continuous read coverage and turn islands 
    # into genomic ranges
    browser()
-   IslandGRanges <- lapply(1:length(ChromLengths), function(i){
+   GRangesNonRef <- lapply(c(1:length(ChromLengths)), function(i){
       Chrom       <- names(ChromLengths)[i]
       ChromLength <- ChromLengths[i]
       Ends <- seq(1, ChromLength, floor(ChromLength/ NrChromPieces))
       if (Ends[length(Ends)] < ChromLength) Ends <- c(Ends, ChromLength)
-      cat("Extracting reads of chromosome", Chrom, "\n")
+      cat("****   Extracting reads of chromosome", Chrom, "*****\n")
       GRList <- lapply (1:(length(Ends) - 1), function (j) {
-        cat("Pocessing chromosome piece", j, "of", NrChromPieces, "\n")
+        cat("Pocessing from", Chrom, "piece", j, "of", NrChromPieces, "\n")
         R1 <- GRanges(seqnames = Chrom, ranges = IRanges(start = Ends[j], 
                                                          end = Ends[j + 1]))
         Reads <- extractReads(bam.file = BamFile, region = R1)
         ReadCov <- coverage(Reads)
         if (length(ReadCov[[Chrom]]@values) > 1){
           Islands <- slice(ReadCov, lower = 1)
-          GRanges(seqnames = Chrom, 
+          GRs <- GRanges(seqnames = Chrom, 
                   ranges = Islands@listData[[1]]@ranges,
                   coverTotal = viewSums(Islands)[[1]],
                   coverMax   = viewMaxs(Islands)[[1]],
                   coverMaxPos   = viewWhichMaxs(Islands)[[1]])
+          blnOverlapIslands_All <- overlapsAny(GRs, L1GRanges)
+          GRs <- GRs[!blnOverlapIslands_All]
+          
         } else {
           GRanges()
         }
       })
       GRList <- GRangesList(GRList)
       GRList <- unlist(GRList)
+      IslGRanges_reduced <- reduce(GRList, min.gapwidth = MinGap,
+                                   with.revmap = T)
+      # Get maximum cover and position of maximum cover in reduced ranges
+      maxCoverOriginal    <- GRList@elementMetadata@listData$coverMax
+      maxCoverPosOriginal <- GRList@elementMetadata@listData$coverMaxPos
+      IslGRanges_reduced@elementMetadata@listData$coverMax <- sapply(IslGRanges_reduced@elementMetadata@listData$revmap, 
+                         function(x) max(maxCoverOriginal[x]))
+      IslGRanges_reduced@elementMetadata@listData$coverMaxPos <- sapply(IslGRanges_reduced@elementMetadata@listData$revmap, 
+                            function(x) maxCoverPosOriginal[x[which.max(maxCoverOriginal[x])]])
+      IslGRanges_reduced
+      # blnOverlapIslands_All <- overlapsAny(IslGRanges_reduced, L1GRanges)
+      # idxSuspectL1Ranges <- which(IslGRanges_reduced@elementMetadata@listData$coverMax > MinMaxCover & (!blnOverlapIslands_All))
+      # IslGRanges_reduced[idxSuspectL1Ranges]
     })
-   IslandGRanges <- GRangesList(IslandGRanges)
-   IslandGRanges <- unlist(IslandGRanges)
+   IslGRanges_reduced <- GRangesList(IslandGRanges)
+   IslGRanges_reduced <- unlist(IslGRanges_reduced)
    cat(length(IslandGRanges), "distinct peaks\n\n")
    
    #######################################
