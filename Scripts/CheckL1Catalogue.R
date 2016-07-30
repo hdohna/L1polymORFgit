@@ -168,13 +168,15 @@ NullElements <- sapply(L1FragmentRanges, is.null)
 L1FragmentRanges <- GRangesList(L1FragmentRanges[!NullElements])
 L1FragmentRanges <- unlist(L1FragmentRanges)
 
-# Save AlignList and L1StartEnd
-cat("Saving results in", OutputPath, "\n")
-save(list = c("AlignList", "L1StartEnd", "L1FragmentRanges", "L1withFlank"), 
-     file = OutputPath)
-
 # Create a data frame of L1 start and end to be exported as bed file
 StartEndGR <- GRanges(seqnames = colnames(L1StartEnd), 
                       ranges = IRanges(start = L1StartEnd["Start", ],
                                        end = L1StartEnd["End", ]))
 export.bed(StartEndGR, OutputPathStartEnd)
+
+# Save objects to an RData file
+cat("Saving results in", OutputPath, "\n")
+save(list = c("AlignList", "L1StartEnd", "L1FragmentRanges", "L1withFlank",
+              "StartEndGR"), 
+     file = OutputPath)
+
