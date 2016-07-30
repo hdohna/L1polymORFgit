@@ -113,8 +113,7 @@ GRgenes <- genes(TxDb.Hsapiens.UCSC.hg38.knownGene)
 # Count overlaps with exons and promoters
 L1OverlapExon <- countOverlaps(L1CatalogGR, 
                                exons(TxDb.Hsapiens.UCSC.hg38.knownGene)) 
-L1OverlapGene <- countOverlaps(L1CatalogGR, 
-                               genes(TxDb.Hsapiens.UCSC.hg38.knownGene)) 
+L1OverlapGene <- countOverlaps(L1CatalogGR, GRgenes)
 L1OverlapPromoter <- countOverlaps(L1CatalogGR, 
    promoters(TxDb.Hsapiens.UCSC.hg38.knownGene, upstream = 5000)) 
 sum(L1OverlapExon)
@@ -125,12 +124,43 @@ sum(L1OverlapPromoter)
 #  Calculate distances to genes
 ##########
 
-# Count overlaps with exons and promoters
-L1DistGeneObj <- distanceToNearest(L1CatalogGR, 
-                                genes(TxDb.Hsapiens.UCSC.hg38.knownGene)) 
+# Calculate distances from full-length L1 to nearest gene
+L1DistGeneObj <- distanceToNearest(L1CatalogGR, GRgenes) 
 L1DistGene <- L1DistGeneObj@elementMetadata@listData$distance
 sum(L1DistGene == 0)
 hist(L1DistGene, xlab = "Distance to closest gene")
+hist(L1DistGene, xlab = "Distance to closest gene", breaks = seq(0, 3*10^6, 1000))
+L1DistGeneDens <- density(L1DistGene, from = 0)
+
+# Calculate distances from fragment L1 to nearest gene
+L1DistGeneObj_Fragm <- distanceToNearest(L1FragmGR, GRgenes) 
+L1DistGene_Fragm <- L1DistGeneObj_Fragm@elementMetadata@listData$distance
+hist(L1DistGene_Fragm, xlab = "Distance to closest gene")
+hist(L1DistGene_Fragm, xlab = "Distance to closest gene", breaks = seq(0, 5*10^6, 1000))
+L1DistGeneDens_Fragm <- density(L1DistGene_Fragm, from = 0)
+
+# Plot smoothed densities for catalog and fragment distance distribution
+par(mfrow = c(1, 1))
+plot(L1DistGeneDens$x,L1DistGeneDens$y, type = "l", ylab = "Density", 
+     xlab = "Distance to closest gene", col = "blue")
+lines(L1DistGeneDens_Fragm$x, L1DistGeneDens_Fragm$y, col = "red")
+legend("topright", legend = c("catalog", "fragment"), col = c("blue", "red"),
+       lty = c(1,1))
+CreateDisplayPdf('D:/L1polymORF/Figures/L1geneDistDensities.pdf')
+
+# Plot histograms for catalog and fragment distance distribution
+Hist_Fragm <- hist(L1DistGene_Fragm, breaks = seq(0, 5*10^6, 5*10^4),
+                   plot = F)
+Hist_Catalog <- hist(L1DistGene, breaks = seq(0, 5*10^6, 5*10^4),
+                   plot = F)
+
+par(mfrow = c(1, 1))
+plot(Hist_Catalog$mids, log(Hist_Catalog$density), ylab = "Density", 
+     xlab = "Distance to closest gene", col = "blue", ylim = c(-20, -10))
+points(Hist_Fragm$mids, log(Hist_Fragm$density), col = "red")
+legend("topright", legend = c("catalog", "fragment"), col = c("blue", "red"),
+       lty = c(1,1))
+CreateDisplayPdf('D:/L1polymORF/Figures/L1geneDistLogHisto.pdf')
 
 ##########
 #  Compare distances to genes with other properties
@@ -214,7 +244,8 @@ for (j in 1:NrSamples) {
 }
 
 # Plot histogram with sampled number of L1s intersecting with genes
-hist(SampledGeneIntersectCount, xlab = "Number of sampled L1 in genes")
+hist(SampledGeneIntersectCount, xlab = "Number of sampled L1 in genes",
+     breaks = seq(5, 45, 2))
 segments(sum(L1OverlapGene), 0, sum(L1OverlapGene), 500, col = "red")
 sum(SampledGeneIntersectCount <= sum(L1OverlapGene)) / NrSamples
 
@@ -223,6 +254,32 @@ SampledMeanDist <- colMeans(SampledGeneDist)
 hist(SampledMeanDist, xlab = "Mean distance of sampled L1 to genes")
 segments(mean(L1DistGene), 0, mean(L1DistGene), 500, col = "red")
 sum(SampledMeanDist <= mean(L1DistGene)) / NrSamples
+hist(apply(SampledGeneDist, 2, FUN = function(x) sum(x == 0)))
+
+# Plot histogram with sampled maximum distance to gene
+par(mfrow = c(1,1))
+SampledMaxDist <- apply(SampledGeneDist, 2, max)
+hist(SampledMaxDist, xlab = "Max distance of sampled L1 to genes")
+segments(max(L1DistGene), 0, max(L1DistGene), 500, col = "red")
+sum(SampledMaxDist <= max(L1DistGene)) / NrSamples
+
+
+# Create Quantile distributions
+QVect <- c(0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95)
+QuantileMat_Sampled <- apply(SampledGeneDist, 2, 
+                             FUN = function(x) quantile(x, QVect))
+dim(QuantileMat_Sampled)
+L1DistGeneQuantiles <- quantile(L1DistGene, QVect)
+par(mfrow = c(3,2), oma = c(3,3,0,0))
+for (i in 2:length(QVect)){
+  hist(QuantileMat_Sampled[i, ], xlab = "", ylab = "", 
+       main = paste("Quantile =", QVect[i]))
+  segments(L1DistGeneQuantiles[i], 0, L1DistGeneQuantiles[i], 
+           500, col = "red")
+}
+mtext("Distance to closest gene", side = 1, outer = T)
+mtext("Frequency", side = 2, outer = T)
+CreateDisplayPdf('D:/L1polymORF/Figures/L1geneDistQuantiles.pdf')
 
 # Plot histogram with sampled median distance to gene
 SampledMedDist <- apply(SampledGeneDist, 2, median)
