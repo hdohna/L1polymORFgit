@@ -16,7 +16,8 @@ Fwidth <- 500
 # Specify path to PacBio bam file
 BamFilePath      <- "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_sub_reads_aln2Cat10000.sorted.bam"
 BamFilePath      <- "D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_sub_reads_aln2Cat10000.sorted.bam"
-
+BamFilePath      <- "D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_ROI_catl110kb/BZ_NA12878L1capt5-9kb_ROI_catl110kb.bam"
+list.files("D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_ROI_catl110kb/")
 # Read in table with known L1 
 # L1Catalog <- read.csv("/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/L1Catalogue_Updated_Sat_May_07_15-15-31_2016.csv",
 #                         as.is = T)
@@ -32,19 +33,22 @@ RefSeqLengths <- sapply(L1withFlank, length)
 names(L1withFlank)
 
 # Loop through catalog elements and extract ranges
+cat("Extracting reads from bam file ... \n")
 ReadRanges <- lapply(1:length(RefSeqLengths), function(i){
+  cat("Extracting reads for L1",names(L1withFlank)[i],"\n")
   GR <- GRanges(seqnames = names(L1withFlank)[i], 
                 ranges = IRanges(start = 1, end = RefSeqLengths[i]))
-  extractReads(BamFilePath, GR)
+  try(extractReads(BamFilePath, GR))
 })
-ReadRanges <- GRangesList(ReadRanges)
+blnGRanges <- sapply(ReadRanges, function(x)is(x)[1] == "GRanges")
+ReadRanges <- GRangesList(ReadRanges[blnGRanges])
 ReadRanges <- unlist(ReadRanges)
 
 # Get flanks and count overlaps with flanks 
 # Define flank ranges for getting reads intersecting with 
-LeftFlankRanges  <- resize(StartEndGR, width = 1, fix = "start")
-LeftFlankRanges  <- resize(LeftFlankRanges, width = Fwidth, fix = "center")
-RightFlankRanges <- resize(StartEndGR, width = 1, fix = "end")
+LeftFlankRanges   <- resize(StartEndGR, width = 1, fix = "start")
+LeftFlankRanges   <- resize(LeftFlankRanges, width = Fwidth, fix = "center")
+RightFlankRanges  <- resize(StartEndGR, width = 1, fix = "end")
 RightFlankRanges  <- resize(RightFlankRanges, width = Fwidth, fix = "center")
 
 
