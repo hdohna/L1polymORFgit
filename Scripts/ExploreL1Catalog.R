@@ -7,6 +7,8 @@
 #############################################
 
 # Load packages
+library(ape)
+library(seqinr)
 library(BSgenome.Hsapiens.UCSC.hg38)
 library(TxDb.Hsapiens.UCSC.hg38.knownGene)
 # library(ShortRead)
@@ -17,6 +19,9 @@ source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
 
 # Path to L1 catalogue file 
 L1CataloguePath <- "D:/L1polymORF/Data/L1Catalogue_Updated_Sat_May_07_15-15-31_2016.csv"
+
+# Path to L1 alignment file 
+AlignFileName <- 'D:/L1polymORF/Data/L1HSSequences_L100_withConsens_aligned.fas'
 
 # Length of Flanking sequence to be used for alignment
 FlankLength <- 200
@@ -31,6 +36,13 @@ MaxFragLength <- 3000
 #                                    #
 ######################################
 
+# Read in alignment
+L1HSAlign    <- read.dna(AlignFileName, format = "fasta")
+Dist2Consens  <- dist.dna(L1HSAlign, as.matrix = T, pairwise.deletion = T)
+Dist2Consens  <- Dist2Consens[1,]
+# L1HSAlign    <- read.fasta(AlignFileName)
+# FragmLength <- sapply(L1HSAlign, function(x) sum(x != "-"))
+
 # Read repeat table and subset to get only L1HS rows with fragment size below 
 # MaxFragLength
 RepeatTable <- read.delim("D:/L1polymORF/Data/repeatsHg38")
@@ -39,11 +51,24 @@ RepeatTable <- RepeatTable[RepeatTable$repName == "L1HS",]
 RepeatTable <- RepeatTable[abs(RepeatTable$genoEnd - RepeatTable$genoStart) <=
                              MaxFragLength,]
 
-# Create genomic ranges for L1 fragments
+# Create genomic ranges for L1 fragments, match them to distances to get distance
+# to consensus per fragment
 L1FragmGR <- GRanges(seqnames = RepeatTable$genoName,
                      ranges = IRanges(start = RepeatTable$genoStart,
                                       end = RepeatTable$genoEnd),
                      strand = RepeatTable$strand)
+L1FragmNames <- paste(seqnames(L1FragmGR), start(L1FragmGR), end(L1FragmGR),
+                      strand(L1FragmGR), sep = "_")
+NameMatch <- match(L1FragmNames, names(Dist2Consens))
+Dist2Consens <- Dist2Consens[NameMatch]
+hist(Dist2Consens, breaks = seq(0, 2, 0.05))
+plot(width(L1FragmGR), Dist2Consens)
+sum(Dist2Consens < 0.4, na.rm = T)
+
+# Get 2 sets of fragments: close to the L1HS consensus and divergent
+L1FragmGR_close   <- L1FragmGR[which(Dist2Consens < 0.5)]
+L1FragmGR_diverge <- L1FragmGR[which(Dist2Consens >= 0.5)]
+
 # Read in table with known L1 
 L1Catalogue <- read.csv(L1CataloguePath, as.is = T)
 
@@ -59,6 +84,7 @@ L1CatalogGR <- GRanges(seqnames = L1CatalogL1Mapped$Chromosome,
                     end = pmax(L1CatalogL1Mapped$start_HG38,
                                L1CatalogL1Mapped$end_HG38)),
                       strand = L1CatalogL1Mapped$Strand)
+
 
 ############################
 #                          #
@@ -124,20 +150,30 @@ sum(L1OverlapPromoter)
 #  Calculate distances to genes
 ##########
 
+# Auxiliary function to get distances to closest gene
+Dist2ClosestGene <- function(GR){
+  DistGeneObj <- distanceToNearest(GR, GRgenes) 
+  DistGeneObj@elementMetadata@listData$distance
+}
+
 # Calculate distances from full-length L1 to nearest gene
-L1DistGeneObj <- distanceToNearest(L1CatalogGR, GRgenes) 
-L1DistGene <- L1DistGeneObj@elementMetadata@listData$distance
+L1DistGene <- Dist2ClosestGene(L1CatalogGR)
 sum(L1DistGene == 0)
 hist(L1DistGene, xlab = "Distance to closest gene")
 hist(L1DistGene, xlab = "Distance to closest gene", breaks = seq(0, 3*10^6, 1000))
 L1DistGeneDens <- density(L1DistGene, from = 0)
 
 # Calculate distances from fragment L1 to nearest gene
-L1DistGeneObj_Fragm <- distanceToNearest(L1FragmGR, GRgenes) 
-L1DistGene_Fragm <- L1DistGeneObj_Fragm@elementMetadata@listData$distance
+L1DistGene_Fragm <- Dist2ClosestGene(L1FragmGR)
 hist(L1DistGene_Fragm, xlab = "Distance to closest gene")
 hist(L1DistGene_Fragm, xlab = "Distance to closest gene", breaks = seq(0, 5*10^6, 1000))
 L1DistGeneDens_Fragm <- density(L1DistGene_Fragm, from = 0)
+
+# Calculate distances from close fragment L1 to nearest gene
+L1DistGene_Fragm_close   <- Dist2ClosestGene(L1FragmGR_close)
+L1DistGene_Fragm_diverge <- Dist2ClosestGene(L1FragmGR_diverge)
+mean(L1DistGene_Fragm_close)
+mean(L1DistGene_Fragm_diverge)
 
 # Plot smoothed densities for catalog and fragment distance distribution
 par(mfrow = c(1, 1))
@@ -286,4 +322,55 @@ SampledMedDist <- apply(SampledGeneDist, 2, median)
 hist(SampledMedDist, xlab = "Median distance of sampled L1 to genes")
 segments(median(L1DistGene), 0, median(L1DistGene), 500, col = "red")
 sum(SampledMedDist <= median(L1DistGene)) / NrSamples
+
+###########################################
+#                                         #
+#     Sample random L1 from divergent fragments     #
+#                                         #
+###########################################
+
+# Determine sample size
+NrSamples <- 1000
+#L1DistGene_Fragm_close   <- Dist2ClosestGene(L1FragmGR_close)
+#L1DistGene_Fragm_diverge <- Dist2ClosestGene(L1FragmGR_diverge)
+
+# Initialize vectors and matrices for sampled quantities
+SampledGeneIntersectCount <- rep(NA, NrSamples)
+SampledGeneDist           <- matrix(nrow = length(L1FragmGR_close), 
+                                    ncol = NrSamples)
+L1ToSampleFrom <- L1FragmGR_diverge
+
+# Create sampled ranges
+cat("Sampling L1 ranges from fragments\n")
+for (j in 1:NrSamples) {
+  SampledIndices <- sample(length(L1ToSampleFrom), length(L1FragmGR_close))
+  SampledRanges  <- L1ToSampleFrom[SampledIndices]
+  SampledOverlapGene <- countOverlaps(SampledRanges, GRgenes) 
+  SampledGeneIntersectCount[j] <- sum(SampledOverlapGene)
+  SampledGeneDist[,j] <- Dist2ClosestGene(SampledRanges)
+}
+
+# Create Quantile distributions
+QVect <- c(0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95)
+QuantileMat_Sampled <- apply(SampledGeneDist, 2, 
+                             FUN = function(x) quantile(x, QVect))
+L1DistGeneQuantiles <- quantile(L1DistGene_Fragm_close, QVect)
+par(mfrow = c(3,2), oma = c(3,3,0,0))
+for (i in 2:length(QVect)){
+  hist(QuantileMat_Sampled[i, ], xlab = "", ylab = "", 
+       main = paste("Quantile =", QVect[i]))
+  segments(L1DistGeneQuantiles[i], 0, L1DistGeneQuantiles[i], 
+           500, col = "red")
+}
+mtext("Distance to closest gene", side = 1, outer = T)
+mtext("Frequency", side = 2, outer = T)
+CreateDisplayPdf('D:/L1polymORF/Figures/L1geneDistQuantilesCloseFragm.pdf')
+
+# Plot histogram with sampled median distance to gene
+SampledMedDist <- apply(SampledGeneDist, 2, median)
+hist(SampledMedDist, xlab = "Median distance of sampled L1 to genes")
+segments(median(L1DistGene), 0, median(L1DistGene), 500, col = "red")
+sum(SampledMedDist <= median(L1DistGene)) / NrSamples
+
+
 
