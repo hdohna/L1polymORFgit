@@ -11,8 +11,8 @@ library(ape)
 library(seqinr)
 library(BSgenome.Hsapiens.UCSC.hg38)
 library(TxDb.Hsapiens.UCSC.hg38.knownGene)
-# library(ShortRead)
-# library(csaw)
+library(ShortRead)
+library(csaw)
 
 # Source start script
 source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
@@ -27,7 +27,7 @@ AlignFileName <- 'D:/L1polymORF/Data/L1HSSequences_L100_withConsens_aligned.fas'
 FlankLength <- 200
 
 # Maximum fragment length
-MaxFragLength <- 3000
+MaxFragLength <- 5000
 
 
 ######################################
@@ -37,6 +37,23 @@ MaxFragLength <- 3000
 ######################################
 
 # Read in alignment
+L1HSAlign    <- read.fasta(AlignFileName)
+
+# Specify motif ttagtgggtg (nucleotide sequence after ACA) and find ACA 
+# locus in sequences
+MotifAfterACA <- c("t", "t", "a", "g", "t", "g", "g", "g", "t", "g")
+MotifL <- length(MotifAfterACA)
+L1ACALocus   <- sapply(L1HSAlign, function(x) {
+  SeqCollapsed <- x[x != "-"]
+  idxACA <- which(sapply(1:length(SeqCollapsed), function(i){
+    all(SeqCollapsed[i:(i + MotifL - 1)] == MotifAfterACA)
+  })) - 3
+  if (length(idxACA) == 1){
+    paste(SeqCollapsed[idxACA:(idxACA + 2)], collapse = "")
+  } else {
+    NA
+  }
+})
 L1HSAlign    <- read.dna(AlignFileName, format = "fasta")
 Dist2Consens  <- dist.dna(L1HSAlign, as.matrix = T, pairwise.deletion = T)
 Dist2Consens  <- Dist2Consens[1,]
@@ -145,6 +162,30 @@ L1OverlapPromoter <- countOverlaps(L1CatalogGR,
 sum(L1OverlapExon)
 sum(L1OverlapGene)
 sum(L1OverlapPromoter)
+mean(L1OverlapGene)
+
+# Perform logistic regression to determine whether fragment length predicts
+# probability of gene overlap
+L1OverlapGene_Fragm <- countOverlaps(L1FragmGR, GRgenes)
+L1OverlapGene_Fragm <- L1OverlapGene_Fragm > 0
+LogRegFit <- glm(L1OverlapGene_Fragm ~ width(L1FragmGR),
+                 family = binomial)
+summary(LogRegFit)
+WidthOrder <- order(width(L1FragmGR), decreasing = T)
+plot(width(L1FragmGR)[WidthOrder], L1OverlapGene_Fragm[WidthOrder])
+lines(width(L1FragmGR)[WidthOrder], 
+     fitted.values(LogRegFit)[WidthOrder], type = "l")
+
+# Get proportion overlap 
+WidthCut <- cut(width(L1FragmGR), breaks = seq(0, 5000, 500))
+PropInGene <- aggregate(L1OverlapGene_Fragm ~ WidthCut, FUN = mean)
+AvWidth    <- aggregate(width(L1FragmGR) ~ WidthCut, FUN = mean)
+plot(AvWidth$`width(L1FragmGR)`, PropInGene$L1OverlapGene_Fragm,
+     xlab = "Fragment size [bp]", ylab = "Proportion in exons")
+lines(width(L1FragmGR)[WidthOrder], fitted.values(LogRegFit)[WidthOrder])
+segments(0, mean(L1OverlapGene), 10^6, mean(L1OverlapGene), col = "red",
+         lty = 2)
+sum(width(L1FragmGR) > 3000)
 
 ##########
 #  Calculate distances to genes
