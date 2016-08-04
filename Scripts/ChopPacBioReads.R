@@ -35,10 +35,10 @@ library(ShortRead)
   cat("****************************************************\n\n")
 
 # Set path to fastq file to be read in
-InFastQfilePath <- "/share/diskarray3/hzudohna/NA12878Pacbio.fastq"  
-OutFastQfilePath <- "/share/diskarray3/hzudohna/NA12878Pacbio_chopped.fastq"  
+InFastQfilePath  <- "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_sub_reads.fastq"  
+OutFastQfilePath <- "/share/diskarray3/hzudohna/BZ_NA12878L1capt5-9kb_sub_reads_chopped.fastq"  
 LinesPerScan  <- 2*10^6
-NewReadLength <- 500
+NewReadLength <- 150
 
 # Open one connection per fastq file and intitialize counter variables
 OF <- file(OutFastQfilePath, "w")
