@@ -37,7 +37,7 @@ library(ShortRead)
 # Set path to fastq file to be read in
 InFastQfilePath  <- "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_sub_reads.fastq"  
 OutFastQfilePath <- "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_sub_reads_chopped.fastq"  
-LinesPerScan  <- 2*10^6
+LinesPerScan  <- 2*10^5
 NewReadLength <- 150
 
 # Open one connection per fastq file and intitialize counter variables
