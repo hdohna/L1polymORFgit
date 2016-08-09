@@ -13,12 +13,17 @@ library(BSgenome.Hsapiens.UCSC.hg38)
 library(TxDb.Hsapiens.UCSC.hg38.knownGene)
 library(ShortRead)
 library(csaw)
+library(GO.db)
+library(org.Hs.eg.db)
 
 # Source start script
 source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
 
 # Path to L1 catalogue file 
 L1CataloguePath <- "D:/L1polymORF/Data/L1Catalogue_Updated_Sat_May_07_15-15-31_2016.csv"
+
+# Path to bam file of mapped L1 fragments
+BamFilePath <- 'D:/L1polymORF/Data/L1fragments_aln2consens.sorted.bam'
 
 # Path to L1 alignment file 
 AlignFileName <- 'D:/L1polymORF/Data/L1HSSequences_L100_withConsens_aligned.fas'
@@ -36,29 +41,34 @@ MaxFragLength <- 5000
 #                                    #
 ######################################
 
-# Read in alignment
-L1HSAlign    <- read.fasta(AlignFileName)
+# Get reads from bam file aligned to L1HS concensus
+L1ConsensGR <- GRanges(seqnames = 'L1HS_L1_Homo_sapiens',
+                       IRanges(start = 1, end = 6064))
+readParams  <- ScanBamParam(which = L1ConsensGR,
+                            what = c('qname', "pos","cigar", "qwidth", "seq"), tag = "NM")
+Reads       <- scanBam(BamFilePath, param = readParams)
+all(Reads[[1]]$qwidth == nchar(Reads[[1]]$seq))
+hist(Reads[[1]]$qwidth)
+Dist2Consens <- Reads[[1]]$tag$NM / Reads[[1]]$qwidth
+names(Dist2Consens) <- Reads[[1]]$qname
+hist(Dist2Consens)
+Reads[[1]]$seq[1:10]
+Reads[[1]]$qname[1:10]
 
-# Specify motif ttagtgggtg (nucleotide sequence after ACA) and find ACA 
-# locus in sequences
-MotifAfterACA <- c("t", "t", "a", "g", "t", "g", "g", "g", "t", "g")
-MotifL <- length(MotifAfterACA)
-L1ACALocus   <- sapply(L1HSAlign, function(x) {
-  SeqCollapsed <- x[x != "-"]
-  idxACA <- which(sapply(1:length(SeqCollapsed), function(i){
-    all(SeqCollapsed[i:(i + MotifL - 1)] == MotifAfterACA)
-  })) - 3
-  if (length(idxACA) == 1){
-    paste(SeqCollapsed[idxACA:(idxACA + 2)], collapse = "")
+# Match pattern following ACA motif at 3' end of L1
+MatchList <- vmatchPattern('TTAGTGGGTG', Reads[[1]]$seq)
+NrMatches <- sapply(MatchList, length)
+table(NrMatches)
+ACAmotif <- sapply(1:length(MatchList), function(i){
+  if (length(MatchList[[i]]) > 0){
+    End <- max(1, start(MatchList[[i]])[1] - 1)
+    as.character(subseq(Reads[[1]]$seq[i], max(1, End - 2), End))
   } else {
     NA
   }
 })
-L1HSAlign    <- read.dna(AlignFileName, format = "fasta")
-Dist2Consens  <- dist.dna(L1HSAlign, as.matrix = T, pairwise.deletion = T)
-Dist2Consens  <- Dist2Consens[1,]
-# L1HSAlign    <- read.fasta(AlignFileName)
-# FragmLength <- sapply(L1HSAlign, function(x) sum(x != "-"))
+table(ACAmotif)
+names(ACAmotif) <- Reads[[1]]$qname
 
 # Read repeat table and subset to get only L1HS rows with fragment size below 
 # MaxFragLength
@@ -78,13 +88,13 @@ L1FragmNames <- paste(seqnames(L1FragmGR), start(L1FragmGR), end(L1FragmGR),
                       strand(L1FragmGR), sep = "_")
 NameMatch <- match(L1FragmNames, names(Dist2Consens))
 Dist2Consens <- Dist2Consens[NameMatch]
-hist(Dist2Consens, breaks = seq(0, 2, 0.05))
-plot(width(L1FragmGR), Dist2Consens)
+hist(Dist2Consens)
+cor(width(L1FragmGR), Dist2Consens)
 sum(Dist2Consens < 0.4, na.rm = T)
 
 # Get 2 sets of fragments: close to the L1HS consensus and divergent
-L1FragmGR_close   <- L1FragmGR[which(Dist2Consens < 0.5)]
-L1FragmGR_diverge <- L1FragmGR[which(Dist2Consens >= 0.5)]
+L1FragmGR_close   <- L1FragmGR[which(Dist2Consens < 0.02)]
+L1FragmGR_diverge <- L1FragmGR[which(Dist2Consens >= 0.02)]
 
 # Read in table with known L1 
 L1Catalogue <- read.csv(L1CataloguePath, as.is = T)
@@ -139,8 +149,12 @@ summary(PoissonFit)
 coefficients(PoissonFit)
 
 # Plot chromosome length vs. L1 count
-plot(ChromLengths, L1CountMatched, xlab = "Chromosome length", ylab = "L1 count")
-abline(coefficients(PoissonFit))
+Cols <- rainbow(2)
+plot(ChromLengths, L1CountMatched / max(L1CountMatched), 
+     xlab = "Chromosome length", ylab = "L1 count", col = Cols[1], pch = 16)
+points(ChromLengths, L1CountMatched_Fragm / max(L1CountMatched_Fragm), col = Cols[2], pch = 16)
+legend("bottomright", col = Cols, legend = c("Full-length", "Fragments"), pch = c(16,16))
+CreateDisplayPdf('D:/L1polymORF/Figures/L1NrInsertsVsChromLength.pdf')
 
 # Plot chromosome length vs. L1 fragment count
 plot(ChromLengths, L1CountMatched_Fragm, xlab = "Chromosome length", 
@@ -154,38 +168,65 @@ plot(ChromLengths, L1CountMatched_Fragm, xlab = "Chromosome length",
 GRgenes <- genes(TxDb.Hsapiens.UCSC.hg38.knownGene)
 
 # Count overlaps with exons and promoters
-L1OverlapExon <- countOverlaps(L1CatalogGR, 
+blnL1OverlapExon     <- overlapsAny(L1CatalogGR, 
                                exons(TxDb.Hsapiens.UCSC.hg38.knownGene)) 
-L1OverlapGene <- countOverlaps(L1CatalogGR, GRgenes)
-L1OverlapPromoter <- countOverlaps(L1CatalogGR, 
+blnExonOverlapL1     <- overlapsAny(exons(TxDb.Hsapiens.UCSC.hg38.knownGene), L1CatalogGR) 
+L1CatalogGR[blnL1OverlapExon]
+blnL1OverlapGene     <- overlapsAny(L1CatalogGR, GRgenes)
+blnGeneOverlapCat    <- overlapsAny(GRgenes, L1CatalogGR)
+blnGeneOverlapFragm  <- overlapsAny(GRgenes, L1FragmGR)
+blnL1OverlapPromoter <- overlapsAny(L1CatalogGR, 
    promoters(TxDb.Hsapiens.UCSC.hg38.knownGene, upstream = 5000)) 
-sum(L1OverlapExon)
-sum(L1OverlapGene)
-sum(L1OverlapPromoter)
-mean(L1OverlapGene)
+sum(blnL1OverlapExon)
+sum(blnL1OverlapGene)
+sum(blnL1OverlapPromoter)
+mean(blnL1OverlapGene)
 
 # Perform logistic regression to determine whether fragment length predicts
 # probability of gene overlap
-L1OverlapGene_Fragm <- countOverlaps(L1FragmGR, GRgenes)
-L1OverlapGene_Fragm <- L1OverlapGene_Fragm > 0
-LogRegFit <- glm(L1OverlapGene_Fragm ~ width(L1FragmGR),
+blnL1OverlapGene_Fragm <- overlapsAny(L1FragmGR, GRgenes)
+LogRegFit <- glm(blnL1OverlapGene_Fragm ~ width(L1FragmGR),
                  family = binomial)
 summary(LogRegFit)
-WidthOrder <- order(width(L1FragmGR), decreasing = T)
-plot(width(L1FragmGR)[WidthOrder], L1OverlapGene_Fragm[WidthOrder])
-lines(width(L1FragmGR)[WidthOrder], 
-     fitted.values(LogRegFit)[WidthOrder], type = "l")
+par(mfrow = c(1, 1))
+plot(c(0, 3), c(0, 0.2), type = "n", xlab = "L1 type", ylab = "Proportion in gene",
+     xaxt = "n")
+axis(1, at = 1:2, labels = c("Fragment", "Full-length"))
+MeanProps <- c(mean(blnL1OverlapGene_Fragm), mean(blnL1OverlapGene))
+StErr <- sqrt(c(var(blnL1OverlapGene_Fragm), var(blnL1OverlapGene))/
+                    c(length(L1FragmGR), length(L1CatalogGR)))
+rect(c(0.7, 1.7), c(0, 0), c(1.3, 2.3), MeanProps, col = "grey")
+AddErrorBars(MidX = c(1, 2), MidY = MeanProps, ErrorRange = StErr,
+             TipWidth = 0.1)
+CreateDisplayPdf('D:/L1polymORF/Figures/L1propIntron.pdf')
+
 
 # Get proportion overlap 
 WidthCut <- cut(width(L1FragmGR), breaks = seq(0, 5000, 500))
-PropInGene <- aggregate(L1OverlapGene_Fragm ~ WidthCut, FUN = mean)
+PropInGene <- aggregate(blnL1OverlapGene_Fragm ~ WidthCut, FUN = mean)
+VarInGene <- aggregate(blnL1OverlapGene_Fragm ~ WidthCut, FUN = var)
+NInGene <- aggregate(blnL1OverlapGene_Fragm ~ WidthCut, FUN = length)
+StErrInGene <- sqrt(VarInGene$blnL1OverlapGene_Fragm / 
+                      NInGene$blnL1OverlapGene_Fragm)
 AvWidth    <- aggregate(width(L1FragmGR) ~ WidthCut, FUN = mean)
-plot(AvWidth$`width(L1FragmGR)`, PropInGene$L1OverlapGene_Fragm,
-     xlab = "Fragment size [bp]", ylab = "Proportion in exons")
+plot(AvWidth$`width(L1FragmGR)`, PropInGene$blnL1OverlapGene_Fragm,
+     xlab = "Fragment size [bp]", ylab = "Proportion in introns",
+     pch = 16, type = "n", ylim = c(0.05, 0.25))
+AddBars(Ys = PropInGene$blnL1OverlapGene_Fragm, MidX = AvWidth$`width(L1FragmGR)`)
+  
+AddErrorBars(MidX = AvWidth$`width(L1FragmGR)`, MidY = PropInGene$blnL1OverlapGene_Fragm, 
+             ErrorRange = StErrInGene,TipWidth = 100)
+WidthOrder <- order(width(L1FragmGR))
 lines(width(L1FragmGR)[WidthOrder], fitted.values(LogRegFit)[WidthOrder])
-segments(0, mean(L1OverlapGene), 10^6, mean(L1OverlapGene), col = "red",
+segments(0, mean(blnL1OverlapGene), 10^6, mean(blnL1OverlapGene), col = "red",
          lty = 2)
-sum(width(L1FragmGR) > 3000)
+CreateDisplayPdf('D:/L1polymORF/Figures/L1propIntronVsSize.pdf')
+
+# Test whether the observed proportion of catalog L1 overlapping with genes is
+# statistically significant from the proportion expected at size 5000
+idxMax <- which.max(width(L1FragmGR))
+PredictProp <- fitted.values(LogRegFit)[idxMax]
+1 - pbinom(sum(blnL1OverlapGene), length(L1CatalogGR), PredictProp)
 
 ##########
 #  Calculate distances to genes
@@ -246,6 +287,29 @@ CreateDisplayPdf('D:/L1polymORF/Figures/L1geneDistLogHisto.pdf')
 plot(L1DistGene, L1CatalogL1Mapped$Activity)
 plot(L1DistGene, L1CatalogL1Mapped$Allele_frequency)
 
+##########
+#  Explore gene ontologies
+##########
+
+SubsetGO <- function(GOs, Evidence, Ontology) {
+  IDs <- sapply(GOs, function(x) x$GOID)
+  Evs <- sapply(GOs, function(x) x$Evidence)
+  Os <- sapply(GOs, function(x) x$Ontology)
+  return(IDs[Evs %in% Evidence & Os %in% Ontology])
+}
+
+# Get IDs of genes overlapping with catalog L1
+GeneIDs_Cat <- GRgenes@elementMetadata@listData$gene_id[blnGeneOverlapCat]
+writeLines(GeneIDs_Cat, "D:/L1polymORF/Data/GenesWithL1Insertions")
+GeneIDs_Cat_GOs <- select(org.Hs.eg.db, GeneIDs_Cat, "GO" )
+blnSubset <- GeneIDs_Cat_GOs$ONTOLOGY == "BP" & 
+  GeneIDs_Cat_GOs$EVIDENCE %in% c("IDA", "TAS")
+GeneIDs_Cat_GOs <- GeneIDs_Cat_GOs[blnSubset,]
+GOTermsBimap <-GOTERM[GeneIDs_Cat_GOs$GO]
+GoTermTable <- toTable(GOTermsBimap)
+
+unique(GoTermTable$Term)
+
 ############################
 #                          #
 #     Sample random L1     #
@@ -277,22 +341,26 @@ for (j in 1:NrSamples) {
 }
 
 # Plot histogram with sampled number of L1s intersecting with genes
-hist(SampledGeneIntersectCount, xlab = "Number of sampled L1 in genes")
-segments(sum(L1OverlapGene), 0, sum(L1OverlapGene), 500, col = "red")
-sum(SampledGeneIntersectCount <= sum(L1OverlapGene)) / NrSamples
+hist(SampledGeneIntersectCount, xlab = "Number of random insertions in genes",
+     main = "")
+segments(sum(blnL1OverlapGene), 0, sum(blnL1OverlapGene), 500, col = "red")
+sum(SampledGeneIntersectCount <= sum(blnL1OverlapGene)) / NrSamples
+CreateDisplayPdf('D:/L1polymORF/Figures/L1propIntronRandom.pdf')
 
 # Plot histogram with sampled mean distance to gene
 SampledMeanDist <- colMeans(SampledGeneDist)
-hist(SampledMeanDist, xlab = "Mean distance of sampled L1 to genes")
+hist(SampledMeanDist, xlab = "Mean distance of random insertions to closest gene",
+     main = "")
 segments(mean(L1DistGene), 0, mean(L1DistGene), 500, col = "red")
 sum(SampledMeanDist <= mean(L1DistGene)) / NrSamples
+CreateDisplayPdf('D:/L1polymORF/Figures/L1MeanGeneDistRandom.pdf')
 
 # Plot histogram with sampled median distance to gene
 SampledMedDist <- apply(SampledGeneDist, 2, median)
-hist(SampledMedDist, xlab = "Median distance of sampled L1 to genes")
+hist(SampledMedDist, xlab = "Median distance of random insertions to closest gene",
+     main = "")
 segments(median(L1DistGene), 0, median(L1DistGene), 500, col = "red")
 sum(SampledMedDist <= median(L1DistGene)) / NrSamples
-
 
 ###########################################
 #                                         #
@@ -323,13 +391,16 @@ for (j in 1:NrSamples) {
 # Plot histogram with sampled number of L1s intersecting with genes
 hist(SampledGeneIntersectCount, xlab = "Number of sampled L1 in genes",
      breaks = seq(5, 45, 2))
-segments(sum(L1OverlapGene), 0, sum(L1OverlapGene), 500, col = "red")
-sum(SampledGeneIntersectCount <= sum(L1OverlapGene)) / NrSamples
+segments(sum(blnL1OverlapGene), 0, sum(blnL1OverlapGene), 500, col = "red")
+sum(SampledGeneIntersectCount <= sum(blnL1OverlapGene)) / NrSamples
 
 # Plot histogram with sampled mean distance to gene
 SampledMeanDist <- colMeans(SampledGeneDist)
-hist(SampledMeanDist, xlab = "Mean distance of sampled L1 to genes")
+hist(SampledMeanDist, xlab = "Mean distance of sampled L1 fragments to closest gene",
+     main = "")
 segments(mean(L1DistGene), 0, mean(L1DistGene), 500, col = "red")
+CreateDisplayPdf('D:/L1polymORF/Figures/L1propIntronRandom.pdf')
+
 sum(SampledMeanDist <= mean(L1DistGene)) / NrSamples
 hist(apply(SampledGeneDist, 2, FUN = function(x) sum(x == 0)))
 
