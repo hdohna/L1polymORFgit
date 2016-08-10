@@ -69,7 +69,7 @@ load('/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/ChromLengthsHg38.Rdata')
 ChromLengths <- ChromLengthsHg38
 
 # Read catalogue
-L1CataloguePath <- paste(DataPath, "L1Catalogue_Mon_Jun_06_22-48-46_2016.csv", sep = "")
+L1CataloguePath <- paste(DataPath, "L1Catalog_Wed_Aug_10_10-53-46_2016.csv", sep = "")
 L1Catalogue     <- read.csv(L1CataloguePath, as.is = T)
 
 # Add column for corrected strand
@@ -148,35 +148,44 @@ for (i in idxFlanksToBeSearched){
 FilePaths <- list.files(DataPath, pattern = "L1Flank", full.names = T)
 SamFilePaths <- grep(".sam", FilePaths, value = T)
 for (SamFile in SamFilePaths){
-  
-  # # Get accession number from file name
-  # AccNr  <- strsplit(SamFile, "_")[[1]][2]
-  # AccNr  <- strsplit(AccNr, "\\.")[[1]][1]
-  # 
-  # # Determine matching row in catalogue, chromsome and create GRanges object
-  # idxRow <- which(L1Catalogue$Accession == AccNr)
-  # Chrom  <- L1Catalogue$Chromosome[idxRow]
-  # GR     <- GRanges(seqnames = Chrom, IRanges(start = 1, 
-  #              end = length(BSgenome.Hsapiens.UCSC.hg38[[Chrom]])))
-  if (blnConvertSam2Bam & file.exists(SamFile)){
+    if (blnConvertSam2Bam & file.exists(SamFile)){
     cat("Conerting sam file", SamFile, "\n")
-    CmdLine <- paste("qsub /home/hzudohna/pbs_SamBamSort", SamFile)
+    CmdLine <- paste("qsub /home/hzudohna/pbs_SamBam", SamFile)
     system(CmdLine)
-    # BamFilePrefix <- substr(BamFile, 1, nchar(BamFile) - 4)
-    # asBam(SamFile, BamFilePrefix, overwrite = T)
-    # sortBam(BamFile, BamFile)
-    # indexBam(BamFile)
-    
   }
 }
 
 # Create vector of bam files
 BamFilePaths <- gsub(".sam", ".sorted.bam", SamFilePaths)
+# for (WrongPattern in c(".sorted.bam", "bam.")){
+#   BamFilePaths <- setdiff(BamFilePaths, grep(WrongPattern, BamFilePaths, value = T))
+# }
+
+# Index each bam file
+for (BamFile in BamFilePaths){
+  if (file.exists(BamFile)){
+    cat("Indexing bam file", BamFile, "\n")
+    CmdLine <- paste("qsub /home/hzudohna/pbs_SamIndex", BamFile)
+    system(CmdLine)
+  }
+}
+
+# Waiting loop for indexing to be done
+QStat <- system("qstat", intern = T)
+jobCount <- length(grep("SamIndex", QStat))
+while (jobCount > 0){
+  cat("Waiting for index jobs to finish ...\n")
+  QStat <- system("qstat", intern = T)
+  jobCount <- length(grep("SamIndex", QStat))
+  Sys.sleep(30)
+}
+
+
 for (BamFile in BamFilePaths){
   if (file.exists(BamFile)){
     cat("Extracting reads from", BamFile, "\n")
     # Get accession number from file name
-    AccNr  <- strsplit(SamFile, "_")[[1]][2]
+    AccNr  <- strsplit(BamFile, "_")[[1]][2]
     AccNr  <- strsplit(AccNr, "\\.")[[1]][1]
 
     # Determine matching row in catalogue, chromsome and create GRanges object
