@@ -21,7 +21,7 @@
 ######
 
 # Source start script
-source('/home/hzudohna/L1polymORFgit/Scripts/_Start_L1polymORF_scg4.R')
+source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load packages
 library(ShortRead)
@@ -29,11 +29,15 @@ library(rtracklayer)
 library(Rsamtools)
 library(csaw)
 library(GenomicRanges)
+library(BSgenome.Hsapiens.UCSC.hg19)
 
 # Files and folders
 L1CataloguePath <- "D:/L1polymORF/Data/L1Catalogue_Updated_Sat_May_07_15-15-31_2016.csv"
 ChainFile       <- 'D:/L1polymORF/Data/hg38ToHg19.over.chain'
 BamFilePath     <- 'D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_subreads_hg19.bam'
+
+# Specify the minimum read depth to create alignment
+MinReadDepth <- 5
 
 #######                       
 # Get L1 ranges                    
@@ -74,7 +78,7 @@ EndAll   <- min(Reads[[1]]$pos + width(Reads[[1]]$seq))
 RelStart <- StartAll - Reads[[1]]$pos + 1
 RelEnd   <- RelStart + EndAll - StartAll - 1
 
-# Get sequences 
+# Get sequences in common range 
 Seqs <- Reads[[1]]$seq
 for (i in 1:length(Seqs)){
   if (Reads[[1]]$strand[i] == "-"){
@@ -82,3 +86,10 @@ for (i in 1:length(Seqs)){
   }
   Seqs[i] <- as(Seqs[i][[1]][RelStart[i]:RelEnd[i]], "DNAStringSet")
 }
+
+# Get the reference sequence in common range
+RefSeq <- getSeq(BSgenome.Hsapiens.UCSC.hg19, names = Reads[[1]]$rname[1], 
+                 start = StartAll, end = EndAll)
+SeqsWithRef <- as(RefSeq, "DNAStringSet")
+writeFastac(writeFasta, )
+
