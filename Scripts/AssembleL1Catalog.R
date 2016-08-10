@@ -36,9 +36,10 @@ FlankSize <- 100
 # Length of an L1 insertion with flanking sequences
 LengthL1WithFlank <- 20000
 
-# Set of columns in L1 catalog
+# Set of columns in L1 catalog (column names are used throughout code so any 
+# changes in column names have to be replaced throughout the code)
 CommonCols <- c(
-  "Accession",         # Accession number of clone sequence
+  "Accession",         # Accession number of clone sequence *
   "Allele",            # Allele ID (> 1 for multiple alleles of same insertion)
   "Chromosome",        # Chromosome of L1 insertion
   "Activity",          # Measured insertion activity (%)
@@ -67,6 +68,24 @@ blnBuildSeleme2006 <- T
 blnMergeTables     <- T
 blnFindVarSites    <- F
 blnAlignsequences  <- F
+
+#######################################
+#                                     #
+#   Define auxilliary functions       #
+#                                     #
+#######################################
+
+# Function to create empty columns to append to an existing data table
+CreateEmptyCols <- function(DataTable){
+  ColsToAppend <- setdiff(CommonCols, colnames(DataTable))
+  AppendData   <- matrix(nrow = nrow(DataTable), ncol = length(ColsToAppend))
+  AppendData   <- as.data.frame(AppendData)
+  colnames(AppendData) <- ColsToAppend
+  AppendData
+}
+
+# Define function to switch strand
+StrandSwitch <- function(Strand) switch(Strand, '+' = "-", '-' = "+")
 
 #######################################
 #                                     #
@@ -173,23 +192,14 @@ if (blnBuildBrouha2003){
   # Rename columns
   colnames(L1Brouha2003Table)[colnames(L1Brouha2003Table) == "Accession_no."] <- "Accession"
   
-  # Add more columns
-  L1Brouha2003Table$Allele           <- 1
-  L1Brouha2003Table$L1Seq            <- NA
-  L1Brouha2003Table$L1SeqWithFlank   <- NA
-  L1Brouha2003Table$L1SeqFlank5p     <- NA
-  L1Brouha2003Table$L1SeqFlank3p     <- NA
+  # Add missing empty columns
+  ColsToAdd <- CreateEmptyCols(L1Brouha2003Table)
+  L1Brouha2003Table <- cbind(L1Brouha2003Table, ColsToAdd)
+
+  # Fill in data
   L1Brouha2003Table$L1SeqSourceType  <- "BAC"
-  L1Brouha2003Table$start_HG38       <- NA
-  L1Brouha2003Table$end_HG38         <- NA
-  L1Brouha2003Table$Strand           <- NA
   L1Brouha2003Table$Reference        <- "Brouha2003"
-  L1Brouha2003Table$start_Clone      <- NA
-  L1Brouha2003Table$end_Clone        <- NA
-  L1Brouha2003Table$strandClonetoRef <- NA 
-  L1Brouha2003Table$strandL1toRef    <- NA
-  L1Brouha2003Table$L1SeqFlank5p2x   <- NA
-  L1Brouha2003Table$L1SeqFlank3p2x   <- NA
+  
   
   # Download sequences 
   cat("Get sequences for L1 loci by Brouha et al 2003\n")
@@ -251,7 +261,7 @@ if (blnBuildBrouha2003){
         L1Brouha2003Table$end_HG38[idxChr[idxMatch]]      <- end(GRanges_L1repMask_Hg38)[i]
         L1Brouha2003Table$start_Clone[idxChr[idxMatch]]   <- S
         L1Brouha2003Table$end_Clone[idxChr[idxMatch]]     <- E
-        L1Brouha2003Table$strand_Clone                    <- CloneStrand
+        L1Brouha2003Table$strand_ClonetoRef[idxChr[idxMatch]] <- CloneStrand
         L1Brouha2003Table$Strand[idxChr[idxMatch]]        <- Strand_L1repMask_Hg38[i]
       } else {
         cat("More than one set of flanking sequences enclose a stretch above 6000\n")
@@ -298,6 +308,7 @@ if (blnBuildBrouha2003){
   colnames(L1Brouha2003Merged)[colnames(L1Brouha2003Merged) == "Act_L1rp"] <- "Activity"
   
   # Write out table with sequence data
+  cat("Saving table D:/L1polymORF/Data/L1Brouha2003.csv \n")
   write.csv(L1Brouha2003Merged, "D:/L1polymORF/Data/L1Brouha2003.csv",
             row.names = F)
   
@@ -392,20 +403,21 @@ if (blnBuildSeleme2006) {
   MatchListC <- MatchSeqs(Seleme2006L1C, OffSetVals = -100:100) 
   
   # Append column with L1 sequences and save resulting tables
-  ColsToAppend <- c("start_HG38", "end_HG38", "Chromosome", "Strand", 
-                    "L1SeqFlank5p", "L1SeqFlank3p", "L1SeqFlank5p2x",
-                    "L1SeqFlank3p2x", "start_Clone", "end_Clone")
-  setdiff(ColsToAppend, colnames(L1Brouha2003Merged))
+  # ColsToAppend <- c("start_HG38", "end_HG38", "Chromosome", "Strand", 
+  #                   "L1SeqFlank5p", "L1SeqFlank3p", "L1SeqFlank5p2x",
+  #                   "L1SeqFlank3p2x", "start_Clone", "end_Clone")
+  # setdiff(ColsToAppend, colnames(L1Brouha2003Merged))
   for (l in LETTERS[1:3]){
     SelTab <- eval(parse(text = paste("Seleme2006L1", l, sep = "")))
     MatchL <- eval(parse(text = paste("MatchList", l, sep = "")))
     SelTab$L1Seq <- MatchL$Seqs
-    AppendData <- matrix(nrow = nrow(SelTab), ncol = length(ColsToAppend))
-    AppendData <- as.data.frame(AppendData)
+    AppendData   <- CreateEmptyCols(SelTab)
+    # AppendData <- matrix(nrow = nrow(SelTab), ncol = length(ColsToAppend))
+    # AppendData <- as.data.frame(AppendData)
     for (i in 1:nrow(SelTab)){
       AppendData[i,] <- L1Brouha2003Merged[MatchL$rowBrouha, ColsToAppend]
     }
-    colnames(AppendData) <- ColsToAppend
+    # colnames(AppendData) <- ColsToAppend
     SelTab <- cbind(SelTab, AppendData)
     assign(paste("Seleme2006L1extended", l, sep = ""), SelTab)
   }
@@ -442,19 +454,28 @@ if (blnBuildSeleme2006) {
 
 if(blnMergeTables){
   
-  # Add additional columns
-  L1Brouha2003Merged$Coriell_ID        <- NA
-  Seleme2006Combined$Coriell_ID        <- NA
-  Beck2010TableWithL1$Allele_frequency <- NA
+  # Add missing empty columns to Beck2010TableWithL1
+  ColsToAdd <- CreateEmptyCols(Beck2010TableWithL1)
+  Beck2010TableWithL1 <- cbind(Beck2010TableWithL1, ColsToAdd)
+  
+  # Fill in data
+  Beck2010TableWithL1$L1SeqSourceType  <- "Fosmid"
   Beck2010TableWithL1$Reference        <- "Beck2010"
   
+  # Add additional columns
+  # L1Brouha2003Merged$Coriell_ID        <- NA
+  # Seleme2006Combined$Coriell_ID        <- NA
+  # Beck2010TableWithL1$Allele_frequency <- NA
+  # 
+  # Beck2010TableWithL1$Reference        <- "Beck2010"
+  
   # Create tables for merging and merge them
-  CommonCols <- c("Accession", "Allele", "Chromosome", "Activity", "Allele_frequency", 
-                  "Reference", "Coriell_ID", "Strand", "start_HG38", 
-                  "end_HG38", "L1Seq",  
-                  "L1SeqFlank5p", "L1SeqFlank3p", "L1SeqFlank5p2x",
-                  "L1SeqFlank3p2x", "start_Clone", "end_Clone")
-  setdiff(CommonCols, colnames(Beck2010TableWithL1))
+  # CommonCols <- c("Accession", "Allele", "Chromosome", "Activity", "Allele_frequency", 
+  #                 "Reference", "Coriell_ID", "Strand", "start_HG38", 
+  #                 "end_HG38", "L1Seq",  
+  #                 "L1SeqFlank5p", "L1SeqFlank3p", "L1SeqFlank5p2x",
+  #                 "L1SeqFlank3p2x", "start_Clone", "end_Clone")
+  # setdiff(CommonCols, colnames(Beck2010TableWithL1))
   BeckForMerging   <- Beck2010TableWithL1[, CommonCols]
   BrouhaForMerging <- L1Brouha2003Merged[, CommonCols] 
   SelemeForMerging <- Seleme2006Combined[, CommonCols] 
@@ -520,15 +541,6 @@ if (blnFindVarSites){
   lines(MMsm$x, 100* MMsm$y, col = "red")
   
 }
-
-#################################################
-#                                               #
-#         Find insertion sites                  #
-#         of non-reference L1                   #
-#                                               #
-#################################################
-
-
 
 ###############################################
 #                                             #
