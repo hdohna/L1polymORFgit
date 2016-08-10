@@ -2,10 +2,8 @@
 #
 # General description:
 #
-#   The following script reads in various data sources ona repeat table 
-#   downloaded from the genome
-#   browser repeatMasker track (http://genome.ucsc.edu/cgi-bin/hgTables)
-#   and subsets to get all L1HS ranges
+#   The following script reads in data sources on full-length L1 insertions and
+#   locates the insertions in the reference genome
 
 # Input:
 #
@@ -37,6 +35,30 @@ FlankSize <- 100
 
 # Length of an L1 insertion with flanking sequences
 LengthL1WithFlank <- 20000
+
+# Set of columns in L1 catalog
+CommonCols <- c(
+  "Accession",         # Accession number of clone sequence
+  "Allele",            # Allele ID (> 1 for multiple alleles of same insertion)
+  "Chromosome",        # Chromosome of L1 insertion
+  "Activity",          # Measured insertion activity (%)
+  "Allele_frequency",  # Allele frequency of insertion
+  "Reference",         # Paper publishing insertion
+  "Coriell_ID", 
+  "Strand",            # Standedness of L1 relative to clone sequence
+  "start_HG38",        # start of L1 within hg38
+  "end_HG38",          # end of L1 within hg38
+  "L1SeqSourceType",   # Type of source for L1 sequence (BAC vs Fosmid)
+  "L1Seq",             # L1 sequence
+  "L1SeqFlank5p", 
+  "L1SeqFlank3p", 
+  "L1SeqFlank5p2x",
+  "L1SeqFlank3p2x", 
+  "start_Clone",       # start of L1 within clone sequence
+  "end_Clone",         # end of L1 within clone sequence
+  "strand_ClonetoRef", # Standedness of clone relative to reference sequence
+  "strand_L1toRef"     # Standedness of L1 relative to reference sequence
+)
 
 # Boolean indicators for whether to perform particular processes
 blnBuildBrouha2003 <- T
@@ -106,16 +128,16 @@ GRanges_L1repMask_Hg38_Large <- GenomicRanges::resize(GRanges_L1repMask_Hg38,
                                        width = LengthL1WithFlank, fix = "center")
 
 # Get the 500 nuc upstream and downstream of the L1
-Flank5PSeq <- getSeq(BSgenome.Hsapiens.UCSC.hg38, 
+FlankLeft <- getSeq(BSgenome.Hsapiens.UCSC.hg38, 
                      names  = seqnames(GRanges_L1repMask_Hg38), 
                      start  = start(GRanges_L1repMask_Hg38)  - FlankSize, 
-                     end    = start(GRanges_L1repMask_Hg38), 
-                     strand = strand(GRanges_L1repMask_Hg38)) 
-Flank3PSeq <- getSeq(BSgenome.Hsapiens.UCSC.hg38, 
+                     end    = start(GRanges_L1repMask_Hg38)) 
+FlankRight <- getSeq(BSgenome.Hsapiens.UCSC.hg38, 
                      names  = seqnames(GRanges_L1repMask_Hg38), 
                      start  = end(GRanges_L1repMask_Hg38), 
-                     end    = end(GRanges_L1repMask_Hg38) + FlankSize, 
-                     strand = strand(GRanges_L1repMask_Hg38)) 
+                     end    = end(GRanges_L1repMask_Hg38) + FlankSize) 
+FlankLeft_RC  <- reverseComplement(FlankLeft)
+FlankRight_RC <- reverseComplement(FlankRight)
 
 
 L1HSSeq <- getSeq(BSgenome.Hsapiens.UCSC.hg38, GRanges_L1repMask_Hg38)
@@ -164,6 +186,8 @@ if (blnBuildBrouha2003){
   L1Brouha2003Table$Reference        <- "Brouha2003"
   L1Brouha2003Table$start_Clone      <- NA
   L1Brouha2003Table$end_Clone        <- NA
+  L1Brouha2003Table$strandClonetoRef <- NA 
+  L1Brouha2003Table$strandL1toRef    <- NA
   L1Brouha2003Table$L1SeqFlank5p2x   <- NA
   L1Brouha2003Table$L1SeqFlank3p2x   <- NA
   
@@ -182,27 +206,35 @@ if (blnBuildBrouha2003){
   
   # Loop through flanking sequences and find parts of the BAC clones that match
   # flanking sequences
-  i <- 1
-  for (i in 1:length(Flank5PSeq)){
-    print(i)
+  for (i in 1:length(FlankLeft)){
+    cat("Processing L1", i, "of", length(FlankLeft), "\n")
     Seq   <- L1HSSeq[i]
-    if (Strand_L1repMask_Hg38[i] == "-"){
-      DNAStSet <- L1SeqHotDNAStSetRV
-      LeftP    <- Flank3PSeq[[i]]
-      RightP   <- Flank5PSeq[[i]]
-    } else {
-      DNAStSet <- L1SeqHotDNAStSet
-      LeftP    <- Flank5PSeq[[i]]
-      RightP   <- Flank3PSeq[[i]]
-    }
+
+    # Get rows in Brouha table that match the current chromosome and subset the 
+    # clone sequences
     idxChr   <- which(L1Brouha2003Table$Chr == chr_L1repMask_Hg38[i])
-    DNAStSet <- DNAStSet[idxChr]
+    DNAStSet <- L1SeqHotDNAStSet[idxChr]
+    
+    # Loop through all the clone sequences with matching chromosome and 
+    # determine whether flanks of L1 in reference genome match clone sequence
     FlankMatches <- lapply(DNAStSet, function(x){
-      matchLRPatterns(LeftP, RightP, max.gaplength = 6500, 
+      matchLRPatterns(FlankLeft[[i]], FlankRight[[i]], max.gaplength = 6500, 
                       subject = x, max.Lmismatch = 5, max.Rmismatch = 5,
                       with.Lindels = T, with.Rindels = T)
     })
     idxMatch <- which(sapply(FlankMatches, length) > 0)
+    CloneStrand <- "+"
+
+    # Look for match of reverse complement if the original did not match
+    if (length(idxMatch) == 0) {
+      FlankMatches <- lapply(DNAStSet, function(x){
+        matchLRPatterns(FlankRight_RC[[i]], FlankLeft_RC[[i]], max.gaplength = 6500,
+                        subject = x, max.Lmismatch = 5, max.Rmismatch = 5,
+                        with.Lindels = T, with.Rindels = T)
+      })
+      idxMatch <- which(sapply(FlankMatches, length) > 0)
+      CloneStrand <- "-"
+    }
     if (length(idxMatch) > 0) {
       mViews   <- FlankMatches[idxMatch][[1]]
       idxAbove6000 <- width(mViews) > 6000 & width(mViews) < 7000
@@ -219,6 +251,7 @@ if (blnBuildBrouha2003){
         L1Brouha2003Table$end_HG38[idxChr[idxMatch]]      <- end(GRanges_L1repMask_Hg38)[i]
         L1Brouha2003Table$start_Clone[idxChr[idxMatch]]   <- S
         L1Brouha2003Table$end_Clone[idxChr[idxMatch]]     <- E
+        L1Brouha2003Table$strand_Clone                    <- CloneStrand
         L1Brouha2003Table$Strand[idxChr[idxMatch]]        <- Strand_L1repMask_Hg38[i]
       } else {
         cat("More than one set of flanking sequences enclose a stretch above 6000\n")
@@ -385,7 +418,7 @@ if (blnBuildSeleme2006) {
   
   # Rename column so that they are consistent between datasets
   colnames(Seleme2006Combined)[colnames(Seleme2006Combined) == "AccessionNr"] <- "Accession"
-  colnames(Seleme2006Combined)[colnames(Seleme2006Combined) == "Chr"] <- "Chromosome"
+  colnames(Seleme2006Combined)[colnames(Seleme2006Combined) == "Chr"]  <- "Chromosome"
   colnames(Seleme2006Combined)[colnames(Seleme2006Combined) == "Freq"] <- "Allele_frequency"
   
   write.csv(Seleme2006Combined, "D:/L1polymORF/Data/Seleme2006Combined.csv",
@@ -434,6 +467,7 @@ if(blnMergeTables){
   TStamp <- gsub(" ", "_", date())
   TStamp <- gsub(":", "-", TStamp)
   CataloguePath <- paste("D:/L1polymORF/Data/L1Catalog_", TStamp, ".csv", sep = "")
+  cat("Saving new catalog file", CataloguePath, "\n")
   write.csv(L1Catalogue, CataloguePath, row.names = F)
   
 }
