@@ -35,18 +35,26 @@ library(chipseq)
 library(BSgenome.Hsapiens.UCSC.hg38)
 library(seqinr)
 
-# Specify data path
+# Specify data path and file name for L1 catalog
 DataPath <- "/home/hzudohna/L1polymORFgit/Data/"
-#DataPath <- "D:/L1polymORF/Data/"
+L1CatalogFile <- "L1Catalog_Wed_Aug_10_17-32-20_2016.csv"
 
 # Specify commands
 IndexCommand <- c('module load bwa', 'bwa index')
 AlignCommand <- c('module load bwa', 'bwa mem')
+SamSortCommand <- c('module load samtools', 
+   'InFile=$1', 
+   'TmpFile=${InFile%.sam}.tmp', 
+   'SortedBamFile=${InFile%.sam}.sorted.bam', 
+   'samtools view $InFile -b -h | samtools sort -o $SortedBamFile -T $TmpFile -'
+)
 
 # Indicators for different analysis steps
 blnWriteFasta <- F
 blnBuildIndex <- F
-blnConvertSam2Bam <- T
+blnAlnFlanks  <- F
+blnConvertSam2Bam <- F
+blnIndexBam <- F
 
 # Define function to switch strand
 StrandSwitch <- function(Strand) switch(Strand, '+' = "-", '-' = "+")
@@ -69,11 +77,8 @@ load('/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/ChromLengthsHg38.Rdata')
 ChromLengths <- ChromLengthsHg38
 
 # Read catalogue
-L1CataloguePath <- paste(DataPath, "L1Catalog_Wed_Aug_10_10-53-46_2016.csv", sep = "")
+L1CataloguePath <- paste(DataPath, L1CatalogFile, sep = "")
 L1Catalogue     <- read.csv(L1CataloguePath, as.is = T)
-
-# Add column for corrected strand
-L1Catalogue$Strand_corrected <- L1Catalogue$Strand
 
 #######################################
 #                                     #
@@ -108,7 +113,7 @@ if(blnBuildIndex){
     Chr <- strsplit(ChrPath, "/")[[1]]
     Chr <- Chr[length(Chr)]
     ScriptFile <- paste('/home/hzudohna/qsub_index', Chr, sep = "_")
-    scriptName <- paste('index', Chr, sep = "_")
+    scriptName <- paste('indextmp', Chr, sep = "_")
     CreateAndCallqsubScript(file = ScriptFile, 
        qsubHeaderLines = qsubHeaderLines, qsubCommandLines = CmdIndex,
        scriptName = scriptName)
@@ -116,69 +121,78 @@ if(blnBuildIndex){
 }
 
 # Write each flanking sequence as fastq file and run an alignment command
-cat("******  Writing out fastq file per L1 and aligning them ***********\n")
-for (i in idxFlanksToBeSearched){
-  cat("\n\n Writing fastq file", i, "\n")
-  Chr <- L1Catalogue$Chromosome[i]
-  ReadList <- list(seq  = c(L1Catalogue$L1SeqFlank5p[i],
-                            L1Catalogue$L1SeqFlank3p[i]),
-                   qual = c(paste(rep("~", nchar(L1Catalogue$L1SeqFlank5p[i])),
-                                  collapse = ""),
-                            paste(rep("~", nchar(L1Catalogue$L1SeqFlank5p[i])),
-                                           collapse = "")),
-                   rname = c(Chr, Chr),
-                   qname = c(Chr, Chr),
-                   pos = c("",""))
-  FilePrefix <- paste("L1Flank", L1Catalogue$Accession[i], sep = "_")
-  WriteFastqAndSample(ReadList, DataPath, FilePrefix = FilePrefix)
-  FastqPath <- paste(DataPath, FilePrefix, ".fastq", sep = "")
-  OutFile <- paste(DataPath, FilePrefix, ".sam", sep = "")
-  CmdLine <- paste(AlignCommand[2],  ChrPathVect[Chr], FastqPath)
-  CmdLine <- paste(CmdLine, OutFile, sep = " > ")
-  CmdLine <- c(AlignCommand[1], CmdLine)
-  ScriptFile <- paste('/home/hzudohna/qsub_align', L1Catalogue$Accession[i], sep = "_")
-  scriptName <- paste('bwa', L1Catalogue$Accession[i], sep = "_")
-  CreateAndCallqsubScript(file = ScriptFile, 
-                          qsubHeaderLines = qsubHeaderLines,
-                          qsubCommandLines = CmdLine,
-                          scriptName = scriptName)
+if (blnAlnFlanks){
+  cat("******  Writing out fastq file per L1 and aligning them ***********\n")
+  for (i in idxFlanksToBeSearched){
+    cat("\n\n Writing fastq file", i, "\n")
+    Chr <- L1Catalogue$Chromosome[i]
+    ReadList <- list(seq  = c(L1Catalogue$L1SeqFlank5p[i],
+                              L1Catalogue$L1SeqFlank3p[i]),
+                     qual = c(paste(rep("~", nchar(L1Catalogue$L1SeqFlank5p[i])),
+                                    collapse = ""),
+                              paste(rep("~", nchar(L1Catalogue$L1SeqFlank5p[i])),
+                                    collapse = "")),
+                     rname = c(Chr, Chr),
+                     qname = c(Chr, Chr),
+                     pos = c("",""))
+    FilePrefix <- paste("L1Flank", L1Catalogue$Accession[i], sep = "_")
+    WriteFastqAndSample(ReadList, DataPath, FilePrefix = FilePrefix)
+    FastqPath <- paste(DataPath, FilePrefix, ".fastq", sep = "")
+    OutFile <- paste(DataPath, FilePrefix, ".sam", sep = "")
+    CmdLine <- paste(AlignCommand[2],  ChrPathVect[Chr], FastqPath)
+    CmdLine <- paste(CmdLine, OutFile, sep = " > ")
+    CmdLine <- c(AlignCommand[1], CmdLine)
+    ScriptFile <- paste('/home/hzudohna/qsub_align', L1Catalogue$Accession[i], sep = "_")
+    scriptName <- paste('bwa', L1Catalogue$Accession[i], sep = "_")
+    CreateAndCallqsubScript(file = ScriptFile, 
+                            qsubHeaderLines = qsubHeaderLines,
+                            qsubCommandLines = CmdLine,
+                            scriptName = scriptName)
+  }
 }
 
 # Get paths to all sam files
 FilePaths <- list.files(DataPath, pattern = "L1Flank", full.names = T)
 SamFilePaths <- grep(".sam", FilePaths, value = T)
 for (SamFile in SamFilePaths){
-    if (blnConvertSam2Bam & file.exists(SamFile)){
+  if (blnConvertSam2Bam & file.exists(SamFile)){
     cat("Conerting sam file", SamFile, "\n")
-    CmdLine <- paste("qsub /home/hzudohna/pbs_SamBam", SamFile)
-    system(CmdLine)
+    # Get accession number from file name
+    AccNr  <- strsplit(SamFile, "_")[[1]][2]
+    AccNr  <- strsplit(AccNr, "\\.")[[1]][1]
+    
+    ScriptFile <- paste('/home/hzudohna/qsub_SamSort', AccNr, sep = "_")
+    scriptName <- paste('SamSorttmp', AccNr, sep = "_")
+    CreateAndCallqsubScript(file = ScriptFile, 
+       qsubHeaderLines = qsubHeaderLines, 
+       qsubCommandLines = SamSortCommand,
+       scriptName = scriptName, Args = SamFile)
   }
 }
 
 # Create vector of bam files
 BamFilePaths <- gsub(".sam", ".sorted.bam", SamFilePaths)
-# for (WrongPattern in c(".sorted.bam", "bam.")){
-#   BamFilePaths <- setdiff(BamFilePaths, grep(WrongPattern, BamFilePaths, value = T))
-# }
 
 # Index each bam file
-for (BamFile in BamFilePaths){
-  if (file.exists(BamFile)){
-    cat("Indexing bam file", BamFile, "\n")
-    CmdLine <- paste("qsub /home/hzudohna/pbs_SamIndex", BamFile)
-    system(CmdLine)
+if (blnIndexBam){
+  for (BamFile in BamFilePaths){
+    if (file.exists(BamFile)){
+      cat("Indexing bam file", BamFile, "\n")
+      CmdLine <- paste("qsub /home/hzudohna/pbs_SamIndex", BamFile)
+      system(CmdLine)
+    }
   }
 }
 
 # Waiting loop for indexing to be done
-QStat <- system("qstat", intern = T)
-jobCount <- length(grep("SamIndex", QStat))
-while (jobCount > 0){
-  cat("Waiting for index jobs to finish ...\n")
-  QStat <- system("qstat", intern = T)
-  jobCount <- length(grep("SamIndex", QStat))
-  Sys.sleep(30)
-}
+# QStat <- system("qstat", intern = T)
+# jobCount <- length(grep("SamIndex", QStat))
+# while (jobCount > 0){
+#   cat("Waiting for index jobs to finish ...\n")
+#   QStat <- system("qstat", intern = T)
+#   jobCount <- length(grep("SamIndex", QStat))
+#   Sys.sleep(30)
+# }
 
 
 for (BamFile in BamFilePaths){
@@ -193,12 +207,16 @@ for (BamFile in BamFilePaths){
     Chrom  <- L1Catalogue$Chromosome[idxRow]
     GR     <- GRanges(seqnames = Chrom, IRanges(start = 1,
                  end = ChromLengths[Chrom]))
-    ReadRanges <- extractReads(BamFile, GR, param=readParam(forward = T))
+    ReadRanges <- extractReads(BamFile, GR, param = readParam(forward = T))
     if (length(ReadRanges) == 0){
       ReadRanges <- extractReads(BamFile, GR)
       cat("Correcting strand for", AccNr, "\n")
-      L1Catalogue$Strand_corrected[idxRow] <- StrandSwitch(L1Catalogue$Strand[idxRow])
-    }    
+      if (length(ReadRanges) > 0){
+         L1Catalogue$strand_ClonetoRef[idxRow] <- '-'
+      }
+    } else {
+      L1Catalogue$strand_ClonetoRef[idxRow] <- '+'
+    }   
     NewStart   <- min(end(ReadRanges))
     NewEnd     <- max(start(ReadRanges))
     length(ReadRanges)
@@ -212,6 +230,15 @@ for (BamFile in BamFilePaths){
     cat("Could not find bam file", BamFile, "\n")
   }
 }
+
+# Update strandedness with respect to reference
+L1Catalogue$strand_L1toRef <- L1Catalogue$Strand
+blnStrandDiff <- L1Catalogue$strand_ClonetoRef == '-'
+SwitchedStrands <- sapply(L1Catalogue$Strand[blnStrandDiff], 
+                          function(x) StrandSwitch(x))
+L1Catalogue$strand_L1toRef[blnStrandDiff] <- 
+  SwitchedStrands
+L1Catalogue$strand_L1toRef[is.na(L1Catalogue$start_HG38)] <- NA
 
 # Write updated catalogue out
 SplitPath <-  strsplit(L1CataloguePath, "_")[[1]]
