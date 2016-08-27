@@ -24,6 +24,7 @@
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load packages
+library(ape)
 library(ShortRead)
 library(rtracklayer)
 library(Rsamtools)
@@ -41,6 +42,9 @@ BamFilePath     <- 'D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_subreads_hg19.bam'
 
 # Specify the minimum read depth to create alignment
 MinReadDepth <- 5
+
+# Specify the offset from the insertion junction
+JunctionOffset <- 10
 
 #######                       
 # Get L1 ranges                    
@@ -74,14 +78,18 @@ width(L1CatalogGR)
 # Initialize a result table
 ResultTable <- L1CatalogL1Mapped[,c("Accession", "Chromosome", 
         "strand_L1toRef", "start_HG38", "end_HG38")]
+ResultTable$start_HG19  <- start(L1CatalogGR)
+ResultTable$end_HG19    <- end(L1CatalogGR)
 ResultTable$Coverage5P  <- NA
 ResultTable$Coverage3P  <- NA
 ResultTable$ReadWidth5P <- NA
 ResultTable$ReadWidth3P <- NA
+ResultTable$RelJunctPos5P <- NA
+ResultTable$RelJunctPos3P <- NA
 
 # Create a vector for start and end of a range
 StartEnd <- c("start", "end")
-Rshift    <- c(-10, 10)
+Rshift    <- c(-JunctionOffset, JunctionOffset)
 
 # Loop through L1s and create local alignments
 FastaFileNames <- c()
@@ -126,9 +134,19 @@ for (i in 1:nrow(ResultTable)){
       RelStart <- StartAll - Reads[[1]]$pos + 1
       RelEnd   <- RelStart + EndAll - StartAll - 1
       
+      # Fill in entry for position of junction within alignment
+      RelJunctPosCol <- paste("RelJunctPos", L1Side, sep = "")
+      ResultTable[i, RelJunctPosCol] <- start(R) - StartAll - Rshift[j]
+      
       # Get sequences in common range 
       Seqs <- Reads[[1]]$seq
       cat("Getting sequences\n")
+      
+      # Get the reference sequence in common range
+      RefSeq <- getSeq(BSgenome.Hsapiens.UCSC.hg19, 
+                            names = Reads[[1]]$rname[1], 
+                            start = StartAll, end = EndAll)
+      RefSeq <- as(RefSeq, "DNAStringSet")
       for (k in 1:length(Seqs)){
         cat("Sequence", k, "with strand", Reads[[1]]$strand[k], "\n")
         #if (i == 20 & k == 7 & L1Side == '5P') browser()
@@ -137,22 +155,22 @@ for (i in 1:nrow(ResultTable)){
           Seqs[k] <- reverseComplement(Seqs[k])
         }
         Seqs[k] <- as(Seqs[k][[1]][RelStart[k]:RelEnd[k]], "DNAStringSet")
+        
+        # Append reference sequence to current sequence
+        SeqsWithRef <- c(RefSeq, Seqs[k])
+        
+        # Create a file name for fasta file
+        FastaFileName <- paste(FastaFolder, "FlankSeqs_", Acc, "_", L1Side, 
+                               "_", k, ".fas", sep = "")
+        cat("Writing sequences to", FastaFileName, "\n")
+        writeFasta(SeqsWithRef, FastaFileName)
+        FastaFileNames <- c(FastaFileNames, FastaFileName)
       }
       
-      # Get the reference sequence in common range
-      RefSeq      <- getSeq(BSgenome.Hsapiens.UCSC.hg19, 
-                            names = Reads[[1]]$rname[1], 
-                       start = StartAll, end = EndAll)
-      SeqsWithRef  <- c(as(RefSeq, "DNAStringSet"), Seqs)
+      # Fill in entry for alignment width
       ReadWidthCol <- paste("ReadWidth", L1Side, sep = "")
       ResultTable[i, ReadWidthCol] <- width(SeqsWithRef)[1]
       
-      # Create a file name for fasta file
-      FastaFileName <- paste(FastaFolder, "FlankSeqs_", Acc, "_", L1Side, ".fas",
-                             sep = "")
-      cat("Writing sequences to", FastaFileName, "\n")
-      writeFasta(SeqsWithRef, FastaFileName)
-      FastaFileNames <- c(FastaFileNames, FastaFileName)
     }
   }
 }
@@ -163,3 +181,43 @@ for (FastaFile in FastaFileNames){
   cat("Aligning", FastaFile, "\n")
   run_MUSCLE(InputPath = FastaFile, OutputPath = AlignedFile) 
 }
+
+# Create vector of all alignment file names 
+AlignmentFiles <- gsub(".fas", "_aligned.fas", FastaFileNames)
+
+# Create character string to identify flanks
+FlankIDs <- sapply(AlignmentFiles, function(x) {
+  paste(strsplit(x, "_")[[1]][2:3], collapse = "_")
+})
+FlankIDs <- unique(FlankIDs)
+
+# Loop through flank IDs, collect all alignments per ID and append them to one
+# alingment
+NewAlignmentFiles <- c()
+for (FlankID in FlankIDs){
+  IDParts   <- strsplit(FlankID, "_")[[1]]
+  ResultRow <- which(ResultTable$Accession == IDParts[1])
+  RelJunctPosCol <- paste("RelJunctPos", IDParts[2], sep = "")
+  JunctPos <- ResultTable[ResultRow, RelJunctPosCol]
+  CurrentAlignments <- grep(FlankID, AlignmentFiles, value = T)
+  LocalAlignment <- read.dna(CurrentAlignments[1], as.matrix = T, 
+                             format = "fasta", as.character = T)
+  RefSeq <- LocalAlignment[1, LocalAlignment[1, ] != "-", drop = F]
+  NewAlignment <- t(sapply(CurrentAlignments, function(x){
+    LocalAlignment <- read.dna(x, as.matrix = T, format = "fasta", as.character = T)
+    LocalAlignment[2, LocalAlignment[1, ] != "-"]
+  }))
+  NewAlignment <- rbind(RefSeq, NewAlignment)
+  OutputName  <- paste(FastaFolder, "FlankCombinedAln_", FlankID, ".fas", sep = "")
+  write.dna(NewAlignment, OutputName, format = "fasta")
+  NewAlignmentFiles <- c(NewAlignmentFiles, OutputName)
+  
+  NewAlignmentTrunc <- NewAlignment[,(JunctPos - 25):(JunctPos + 25)]
+  OutputNameTrunc  <- paste(FastaFolder, "FlankCombAlnTrunc_", FlankID, ".fas", sep = "")
+  write.dna(NewAlignmentTrunc, OutputNameTrunc, format = "fasta")
+  
+}
+
+boxplot(ResultTable$Coverage5P, ResultTable$Coverage3P)
+mean(ResultTable$Coverage5P)
+mean(ResultTable$Coverage3P)

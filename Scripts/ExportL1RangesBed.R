@@ -1,4 +1,4 @@
-# The following script exports L1 ranges as bed file
+# The following script exports L1 ranges from the catalog as bed file
 
 # Load packages
 library(ShortRead)
@@ -11,7 +11,8 @@ library(GenomicRanges)
 source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
 
 # Read in table with known L1 
-L1Catalogue <- read.csv('D:/L1polymORF/Data/L1Catalogue_Updated_Sat_May_07_15-15-31_2016.csv', as.is = T)
+L1Catalogue <- read.csv("D:/L1polymORF/Data/L1Catalog_Updated_Wed_Aug_10_17-32-20_2016.csv",
+                        as.is = T)
 
 # Retain only entries with mapped L1 insertions and allele 1
 blnL1Mapped       <- !is.na(L1Catalogue$start_HG38) 

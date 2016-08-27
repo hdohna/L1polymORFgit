@@ -170,6 +170,7 @@ GRgenes <- genes(TxDb.Hsapiens.UCSC.hg38.knownGene)
 # Count overlaps with exons and promoters
 blnL1OverlapExon     <- overlapsAny(L1CatalogGR, 
                                exons(TxDb.Hsapiens.UCSC.hg38.knownGene)) 
+L1CatalogGR[blnL1OverlapExon]
 blnExonOverlapL1     <- overlapsAny(exons(TxDb.Hsapiens.UCSC.hg38.knownGene), L1CatalogGR) 
 L1CatalogGR[blnL1OverlapExon]
 blnL1OverlapGene     <- overlapsAny(L1CatalogGR, GRgenes)

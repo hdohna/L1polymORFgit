@@ -15,6 +15,9 @@ source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
 library(BSgenome.Hsapiens.UCSC.hg38)
 names(BSgenome.Hsapiens.UCSC.hg38)
 
+# Specify file paths
+GROutputPath <- 'D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData'
+
 ############################
 #                          #
 #        Read Data         #
@@ -89,7 +92,8 @@ L1Ins1000G$InsLength > 6000
 GenoWithData <- !is.na(GenoDF)
 
 # Explore genotype data
-hist(rowSums(GenoDF[L1Ins1000G$InsLength > 6000, ], na.rm = T)/ 2/rowSums(GenoWithData[L1Ins1000G$InsLength > 6000, ]))
+hist(rowSums(GenoDF[L1Ins1000G$InsLength > 6000, ], na.rm = T)/ 2 /
+       rowSums(GenoWithData[L1Ins1000G$InsLength > 6000, ]))
 hist(colSums(GenoDF, na.rm = T))
 hist(colSums(GenoDF > 0, na.rm = T) / colSums(GenoWithData),
      xlab = "Proportion of L1 insertions present")
@@ -154,6 +158,15 @@ Dists <- GRDist@elementMetadata@listData$distance
 min(Dists)
 Dists[order(Dists)[1:10]]
 hist(Dists, breaks = seq(0, 1.5*10^8, 10^5))
+
+
+##############################################
+#                                            #
+#   Save genomic coordinates                 #
+#                                            #
+##############################################
+
+save(list = c("GRL1Ins1000G_hg38Mapped", "GRL1Ins1000G"), file = GROutputPath)
 
 
 ##############################################

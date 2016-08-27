@@ -210,9 +210,9 @@ for (BamFile in BamFilePaths){
     ReadRanges <- extractReads(BamFile, GR, param = readParam(forward = T))
     if (length(ReadRanges) == 0){
       ReadRanges <- extractReads(BamFile, GR)
-      cat("Correcting strand for", AccNr, "\n")
       if (length(ReadRanges) > 0){
-         L1Catalogue$strand_ClonetoRef[idxRow] <- '-'
+        cat("Correcting strand for", AccNr, "\n")
+        L1Catalogue$strand_ClonetoRef[idxRow] <- '-'
       }
     } else {
       L1Catalogue$strand_ClonetoRef[idxRow] <- '+'
@@ -234,9 +234,9 @@ for (BamFile in BamFilePaths){
 # Update strandedness with respect to reference
 L1Catalogue$strand_L1toRef <- L1Catalogue$Strand
 blnStrandDiff <- L1Catalogue$strand_ClonetoRef == '-'
-SwitchedStrands <- sapply(L1Catalogue$Strand[blnStrandDiff], 
+SwitchedStrands <- sapply(L1Catalogue$Strand[which(blnStrandDiff)], 
                           function(x) StrandSwitch(x))
-L1Catalogue$strand_L1toRef[blnStrandDiff] <- 
+L1Catalogue$strand_L1toRef[which(blnStrandDiff)] <- 
   SwitchedStrands
 L1Catalogue$strand_L1toRef[is.na(L1Catalogue$start_HG38)] <- NA
 

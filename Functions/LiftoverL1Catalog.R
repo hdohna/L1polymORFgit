@@ -32,7 +32,7 @@ LiftoverL1Catalog <- function(L1Catalog,
                                                              L1Catalog$end_HG38),
                                                 end = pmax(L1Catalog$start_HG38,
                                                            L1Catalog$end_HG38)),
-                               strand = L1Catalog$Strand)
+                               strand = L1Catalog$strand_L1toRef)
 
   # Lift over genomic ranges to hg19
   GRCatalogue_hg19 <- liftOver(GRCatalogue_hg38, 
