@@ -90,14 +90,19 @@ colnames(GenoDF) <- paste("Geno", SampleColumns, sep = "_")
 L1Ins1000Ggeno <- cbind(L1Ins1000G, GenoDF)
 L1Ins1000G$InsLength > 6000
 GenoWithData <- !is.na(GenoDF)
+sum(L1Ins1000G$InsLength > 6000, na.rm = T)
 
 # Explore genotype data
+L1Ins1000G$Freq <- rowSums(GenoDF, na.rm = T)
 hist(rowSums(GenoDF[L1Ins1000G$InsLength > 6000, ], na.rm = T)/ 2 /
        rowSums(GenoWithData[L1Ins1000G$InsLength > 6000, ]))
 hist(colSums(GenoDF, na.rm = T))
 hist(colSums(GenoDF > 0, na.rm = T) / colSums(GenoWithData),
      xlab = "Proportion of L1 insertions present")
 hist(rowSums(GenoDF, na.rm = T) / rowSums(GenoWithData)) 
+
+# Create info dataset without the genotype columns
+L1Ins1000G_Info <- L1Ins1000G[,!colnames(L1Ins1000G) %in% SampleColumns]
 
 ##############################################
 #                                            #
@@ -111,9 +116,12 @@ GRL1Ins1000G <- GRanges(seqnames = paste("chr", L1Ins1000Ggeno$X.CHROM, sep = ""
                                          end = L1Ins1000Ggeno$POS))
 GRL1Ins1000G_hg38    <- liftOver(GRL1Ins1000G, 
                            chain = import.chain("D:/L1polymORF/Data/hg18ToHg38.over.chain"))
+length(GRL1Ins1000G_hg38)
 NrMapped_hg38        <- sapply(GRL1Ins1000G_hg38, length)
+length(NrMapped_hg38)
 idxUniqueMapped_hg38 <- which(NrMapped_hg38 == 1) 
 GRL1Ins1000G_hg38Mapped <- unlist(GRL1Ins1000G_hg38[idxUniqueMapped_hg38])
+length(idxUniqueMapped_hg38)
 
 # Lift Kuhn coordinates over to Hg38 
 Kuhn2014PrimersNotNA <- Kuhn2014Primers[!is.na(Kuhn2014Primers$left.coordinate),]
@@ -166,7 +174,9 @@ hist(Dists, breaks = seq(0, 1.5*10^8, 10^5))
 #                                            #
 ##############################################
 
-save(list = c("GRL1Ins1000G_hg38Mapped", "GRL1Ins1000G"), file = GROutputPath)
+save(list = c("GRL1Ins1000G_hg38Mapped", "idxUniqueMapped_hg38", "GRL1Ins1000G", 
+              "L1Ins1000G_Info"), 
+     file = GROutputPath)
 
 
 ##############################################
