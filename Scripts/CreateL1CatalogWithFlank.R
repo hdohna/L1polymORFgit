@@ -16,7 +16,8 @@ library(csaw)
 source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
 
 # Path to L1 catalogue file 
-L1CataloguePath <- "D:/L1polymORF/Data/L1Catalogue_Sat_May_07_15-15-31_2016.csv"
+#L1CataloguePath <- "D:/L1polymORF/Data/L1Catalogue_Updated_Sat_May_07_15-15-31_2016.csv"
+L1CataloguePath <- "D:/L1polymORF/Data/L1Catalog_Updated_Wed_Aug_10_17-32-20_2016.csv"
 
 # Length of Flanking sequence to be used for alignment
 FlankLength <- 10000
@@ -35,6 +36,10 @@ L1Catalogue <- read.csv(L1CataloguePath, as.is = T)
 blnL1Mapped       <- !is.na(L1Catalogue$L1Seq) 
 blnAllele1        <- L1Catalogue$Allele == 1 
 L1CatalogL1Mapped <- L1Catalogue[blnL1Mapped & blnAllele1,]
+
+# Get index of all non-reference L1
+blnNonRef <- (L1CatalogL1Mapped$end_HG38 - L1CatalogL1Mapped$start_HG38) < 5000
+idxNonRef <- which(blnNonRef)
 
 ############################
 #                          #
@@ -168,4 +173,12 @@ OutputPath <- paste(PathSplit1[1], "L1CatalogueWithFlank", FlankLength,
 write.fasta(L1withFlank, L1CatalogL1Mapped$Accession, 
             file.out = OutputPath)
 
+# Write out L1 sequences with flank for all L1s that are not in the reference
+PathSplit1 <- strsplit(L1CataloguePath, "L1Catalogue")[[1]]
+PathSplit2 <- strsplit(PathSplit1[2], ".csv")[[1]][1]
+OutputPath <- paste(PathSplit1[1], "L1Catalog_NonRefWithFlank", FlankLength,
+                    PathSplit2, 
+                    ".fas", sep = "")
+write.fasta(L1withFlank[idxNonRef], L1CatalogL1Mapped$Accession[idxNonRef], 
+            file.out = OutputPath)
 
