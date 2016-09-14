@@ -137,9 +137,9 @@ max(width(GRL1Kuhn2014))
 overlapsAny(GRL1Kuhn2014, GRKuhn2014Primers)
 GRL1Kuhn2014_hg38    <- liftOver(GRL1Kuhn2014, 
                                  chain = import.chain("D:/L1polymORF/Data/hg19ToHg38.over.chain"))
-NrMapped_hg38        <- sapply(GRL1Kuhn2014_hg38, length)
-idxUniqueMapped_hg38 <- which(NrMapped_hg38 == 1) 
-GRL1Kuhn2014_hg38Mapped <- unlist(GRL1Kuhn2014_hg38[idxUniqueMapped_hg38])
+NrMappedKuhn_hg38        <- sapply(GRL1Kuhn2014_hg38, length)
+idxUniqueMappedKuhn_hg38 <- which(NrMappedKuhn_hg38 == 1) 
+GRL1Kuhn2014_hg38Mapped <- unlist(GRL1Kuhn2014_hg38[idxUniqueMappedKuhn_hg38])
 
 
 # Create genomic ranges from catalogue
