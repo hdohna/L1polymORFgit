@@ -13,7 +13,8 @@ library(Rsamtools)
 # Specify flank width
 Fwidth <- 50
 
-# Specify path to PacBio bam file
+# Specify path to PacBio bam file (reads alinged to 
+# L1CatalogueWithFlank_Sat_May_07_15-15-31_2016.fa)
 BamFilePath      <- "D:/L1polymORF/Data/NA12878_L1cataloguePCR.sorted.bam"
 list.files("D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_ROI_catl110kb/")
 
@@ -23,6 +24,10 @@ L1Catalog <- read.csv("D:/L1polymORF/Data/L1Catalogue_Updated_Sat_May_07_15-15-3
 
 # Load data with L1 location information within the catalog
 load('D:/L1polymORF/Data//L1CatalogueWithFlank_Sat_May_07_15-15-31_2016_L1Locations.RData')
+L1Ranges   <- GRanges(seqnames = colnames(L1StartEnd),
+                             ranges = IRanges(start = L1StartEnd["Start", ], 
+                                              end = L1StartEnd["End", ]))
+export.bed(L1Ranges,'D:/L1polymORF/Data/L1RangesCatWithFlank_Sat_May_07_15-15-31_2016.bed')
 
 # Determine sequence length and get all read ranges
 RefSeqLengths <- sapply(L1withFlank, length)
@@ -40,7 +45,6 @@ blnGRanges <- sapply(ReadRanges, function(x)is(x)[1] == "GRanges")
 ReadRanges <- GRangesList(ReadRanges[blnGRanges])
 ReadRanges <- unlist(ReadRanges)
 
-# Get flanks and count overlaps with flanks 
 # Define flank ranges for getting reads intersecting with
 LeftFlankRanges   <- GRanges(seqnames = colnames(L1StartEnd),
                              ranges = IRanges(start = L1StartEnd["Start", ] - 300, 
@@ -52,6 +56,7 @@ RightFlankRanges  <- GRanges(seqnames = colnames(L1StartEnd),
 # Count overlaps for left and right 
 NrOverlap_Left  <- countOverlaps(LeftFlankRanges, ReadRanges, minoverlap = 1)
 NrOverlap_Right <- countOverlaps(RightFlankRanges, ReadRanges, minoverlap = 1)
+ReadRanges[NrOverlap_Left]
 
 # Match L1 catalog to ranges
 AccMatch <- match(as.vector(seqnames(LeftFlankRanges)), L1Catalog$Accession)
@@ -76,11 +81,30 @@ L1_PCR_results$AccNr <- sapply(L1_PCR_results$Name, function(x) strsplit(x, "_")
 AccMatch <- match(L1_PCR_results$AccNr, colnames(L1StartEnd))
 NrOverlap_5P_matched <- NrOverlap_5P[AccMatch]
 NrOverlap_3P_matched <- NrOverlap_3P[AccMatch]
+NrOverlap_Left_matched  <- NrOverlap_Left[AccMatch]
+NrOverlap_Right_matched <- NrOverlap_Right[AccMatch]
+
+# Get for each L1_PCR_results the number of matching reads
+NcharAcc <- nchar(L1_PCR_results$AccNr)
+L1_PCR_results$Side <- substr(L1_PCR_results$Name, NcharAcc + 3, NcharAcc + 3)
+NrOverlap_matched <- sapply(1:nrow(L1_PCR_results), function(x){
+  if (L1_PCR_results$Side[x] == "1"){
+    NrOverlap_Left_matched[x]
+  } else {
+    NrOverlap_Right_matched[x]
+  }
+})
+L1_PCR_results$NrOverlap <- NrOverlap_matched
 
 # Analyze relationship between number of overlapping reads and PCR product
 NrOverlap_5P_matched
 table(L1_PCR_results$Product, NrOverlap_5P_matched > 0)
 table(L1_PCR_results$Product, NrOverlap_3P_matched > 0)
 table(L1_PCR_results$Product, NrOverlap_5P_matched > 0 | NrOverlap_3P_matched > 0)
+table(L1_PCR_results$Product, NrOverlap_matched > 0)
+table(L1_PCR_results$Product, NrOverlap_matched > 1000)
 boxplot(NrOverlap_5P_matched ~ L1_PCR_results$Product)
 boxplot(NrOverlap_3P_matched ~ L1_PCR_results$Product)
+boxplot(NrOverlap_matched ~ L1_PCR_results$Product)
+
+# Get all 
