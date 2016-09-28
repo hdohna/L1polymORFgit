@@ -116,7 +116,7 @@ if (any(L1StartEnd["Width", ] < 5500)) {
   cat("L1 could be mapped to all", length(L1withFlank), "catalogue sequences\n")
   
 }
-
+which(L1StartEnd["Width", ] < 5500)
 # # Align consensus to all L1 sequences
 # AlignConsens2L1 <- lapply(1:nrow(L1CatalogL1Mapped), function(x){
 #   cat("Aligning L1 consensus to seq", x, "of", nrow(L1CatalogL1Mapped), "\n")
@@ -174,7 +174,7 @@ write.fasta(L1withFlank, L1CatalogL1Mapped$Accession,
             file.out = OutputPath)
 
 # Write out L1 sequences with flank for all L1s that are not in the reference
-PathSplit1 <- strsplit(L1CataloguePath, "L1Catalogue")[[1]]
+PathSplit1 <- strsplit(L1CataloguePath, "L1Catalog_Updated")[[1]]
 PathSplit2 <- strsplit(PathSplit1[2], ".csv")[[1]][1]
 OutputPath <- paste(PathSplit1[1], "L1Catalog_NonRefWithFlank", FlankLength,
                     PathSplit2, 
