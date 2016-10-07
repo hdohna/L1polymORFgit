@@ -71,7 +71,7 @@ ComparePeaksWithRefL1 <- function(
    cat("*** Turning reads in", BamFile,"into GRanges ***\n")
    # Determine separate islands with continuous read coverage and turn islands 
    # into genomic ranges
-   browser()
+   #browser()
    GRangesNonRef <- lapply(c(1:length(ChromLengths)), function(i){
       Chrom       <- names(ChromLengths)[i]
       ChromLength <- ChromLengths[i]
