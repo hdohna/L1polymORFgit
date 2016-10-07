@@ -40,8 +40,21 @@ LiftoverL1Catalog <- function(L1Catalog,
   # Return output as list
   NrMapped_hg19    <- sapply(GRCatalogue_hg19, length)
   idxUniqueMapped  <- which(NrMapped_hg19 == 1) 
+  
+  # Get genomic ranges for hg19
+  GRCatalogue_hg19 <- unlist(GRCatalogue_hg19[idxUniqueMapped])
+  
+  # Append new columns for hg19 coordinates to L1Catalog
+  L1CatalogWithHG19 <- L1Catalog
+  L1CatalogWithHG19$start_HG19 <- NA
+  L1CatalogWithHG19$end_HG19   <- NA
+  L1CatalogWithHG19$start_HG19[idxUniqueMapped] <- start(GRCatalogue_hg19)
+  L1CatalogWithHG19$end_HG19[idxUniqueMapped]   <- end(GRCatalogue_hg19)
+  
+  # Create list to return
   list(NrMapped_hg19 = NrMapped_hg19,
-      idxUniqueMapped = idxUniqueMapped ,
-      GRCatalogue_hg19 = unlist(GRCatalogue_hg19[idxUniqueMapped]))
+      idxUniqueMapped = idxUniqueMapped,
+      GRCatalogue_hg19 = GRCatalogue_hg19,
+      L1CatalogWithHG19 = L1CatalogWithHG19)
 }
 
