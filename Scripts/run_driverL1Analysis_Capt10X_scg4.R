@@ -20,7 +20,7 @@ driverL1Analysis(
   MinMaxCover = 1, 
   MinGap = 1000, 
   MinDist2L1 = 20000, 
-  NrChromPieces = 100,
+  NrChromPieces = 1000,
   blnComparePeaksWithRefL1 = T,
   blnWriteFastq     = T,
   blnMap2L1         = T, 

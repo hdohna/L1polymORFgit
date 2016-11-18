@@ -35,7 +35,8 @@ ComparePeaksWithRefL1 <- function(
    MinGap      = 10,
    NrChromPieces = 20,
    MinDist2L1  = 3*10^4, # minimum distance to L1 to be called a peak 
-   OutFile = "/home/hzudohna/L1polymORF/Data/AnalyzedPacBioL1Ranges.RData"
+   OutFile = "/home/hzudohna/L1polymORF/Data/AnalyzedPacBioL1Ranges.RData",
+   EndList = NULL
    ){
   
   cat("*******************************************************\n")
@@ -72,16 +73,25 @@ ComparePeaksWithRefL1 <- function(
    # Determine separate islands with continuous read coverage and turn islands 
    # into genomic ranges
    #browser()
+   if (is.null(EndList)){
+     EndList <- lapply(c(1:length(ChromLengths)), function(i){
+       Chrom       <- names(ChromLengths)[i]
+       ChromLength <- ChromLengths[i]
+       Ends <- seq(1, ChromLength, floor(ChromLength/ NrChromPieces))
+       if (Ends[length(Ends)] < ChromLength) Ends <- c(Ends, ChromLength)
+       Ends
+     }) 
+   }
    GRangesNonRef <- lapply(c(1:length(ChromLengths)), function(i){
       Chrom       <- names(ChromLengths)[i]
       ChromLength <- ChromLengths[i]
-      Ends <- seq(1, ChromLength, floor(ChromLength/ NrChromPieces))
-      if (Ends[length(Ends)] < ChromLength) Ends <- c(Ends, ChromLength)
+      Ends <- EndList[[i]]
+      StepW <- median(Ends[-1] - Ends[-length(Ends)])
       cat("****   Extracting reads of chromosome", Chrom, "*****\n")
       GRList <- lapply (1:(length(Ends) - 1), function (j) {
         cat("Pocessing from", Chrom, "piece", j, "of", NrChromPieces, "\n")
         R1 <- GRanges(seqnames = Chrom, ranges = IRanges(start = Ends[j], 
-                                                         end = Ends[j + 1]))
+                                                         end = Ends[j] + StepW))
         Reads <- extractReads(bam.file = BamFile, region = R1)
         ReadCov <- coverage(Reads)
         if (length(ReadCov[[Chrom]]@values) > 1){
