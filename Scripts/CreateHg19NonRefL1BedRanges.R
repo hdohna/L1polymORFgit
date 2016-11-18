@@ -69,7 +69,7 @@ L1Combined <- data.frame(chrom = c(as.character(RepeatTable$genoName), names(L1w
                          start = c(RepeatTable$genoStart, StartsNonRef),
                          end   = c(RepeatTable$genoEnd, EndsNonRef),
                          name  = c(RepeatTable$Accession, names(L1withFlank)))
-write.table(L1Combined, "D:/L1polymORF/Data/L1Ranges_hg19_withNonRefL1",
+write.table(L1Combined, "D:/L1polymORF/Data/L1Ranges_hg19_withNonRefL1.txt",
             quote = F, col.names = T, row.names = F)
 
 
@@ -85,4 +85,5 @@ write.table(L1Combined, "D:/L1polymORF/Data/L1Ranges_hg19_withNonRefL1",
 #   ranges = IRanges(start = c(RepeatTable$genoStart, StartsNonRef),
 #                     end = c(RepeatTable$genoEnd, EndsNonRef)),
 #   strand = c(as.character(RepeatTable$strand), L1CatalogL1Matched$strand_L1toRef))
-# export.bed(L1GR, "D:/L1polymORF/Data/L1Ranges_hg19_withNonRefL1")
+L1GR <- makeGRangesFromDataFrame(L1Combined)
+export.bed(L1GR, "D:/L1polymORF/Data/L1Ranges_hg19_withNonRefL1")
