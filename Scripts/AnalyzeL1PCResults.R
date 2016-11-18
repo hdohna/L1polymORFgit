@@ -15,7 +15,7 @@ Fwidth <- 50
 
 # Specify path to PacBio bam file (reads alinged to 
 # L1CatalogueWithFlank_Sat_May_07_15-15-31_2016.fa)
-BamFilePath      <- "D:/L1polymORF/Data/NA12878_L1PCR_hg19withL1.sorted.bam"
+BamFilePath      <- "D:/L1polymORF/Data/NA12878_L1PCR_hg19withL1.sorted.filtered.bam"
 list.files("D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_ROI_catl110kb/")
 
 # Read file with PCR results
@@ -31,7 +31,7 @@ blnL1Allele1 <- L1Catalog$Allele == 1
 L1CatalogMapped <- L1Catalog[blnL1Mapped & blnL1Allele1,]
 
 # Read in ranges 
-L1RangesDF   <- read.table("D:/L1polymORF/Data/L1Ranges_hg19_withNonRefL1", as.is = T,
+L1RangesDF   <- read.table("D:/L1polymORF/Data/L1Ranges_hg19_withNonRefL1.txt", as.is = T,
                            header = T)
 
 # Turn L1 ranges into a GRanges object
@@ -129,7 +129,7 @@ ProbReal[NrOverlap_matched[idxNotNA] > max(NrOverlap_NoPCR)] <- 1
 # Add posterior probability and save PCR result file
 L1_PCR_results$ProbPresent <- NA
 L1_PCR_results$ProbPresent[idxNotNA] <- ProbReal
-write.csv(L1_PCR_results, "D:/L1polymORF/Data/NA12878_L1PCR_results.csv")
+write.csv(L1_PCR_results, "D:/L1polymORF/Data/NA12878_L1PCR_results_filtered.csv")
 plot(L1_PCR_results$NrReadsInFlank, L1_PCR_results$ProbPresent)
 
 
