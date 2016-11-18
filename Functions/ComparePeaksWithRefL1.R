@@ -204,7 +204,8 @@ ComparePeaksWithRefL1 <- function(
    #######################################################
 
    # Save results
-   cat("*******  Saving results for ComparePeaksWithRefL1...   *******\n")
+   cat("*******  Saving results for ComparePeaksWithRefL1 to   *******\n")
+   cat("*******", OutFile,  "*******\n")
    save(list = c("IslGRanges_reduced", "maxCover", "maxCoverPos", 
               "idxSuspectL1Ranges", "SuspectL1Ranges", 
               "FullRefL1Ranges", "idxFullRefL1Ranges"), 
