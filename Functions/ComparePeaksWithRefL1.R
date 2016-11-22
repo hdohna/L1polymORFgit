@@ -89,12 +89,17 @@ ComparePeaksWithRefL1 <- function(
       StepW <- median(Ends[-1] - Ends[-length(Ends)])
       cat("****   Extracting reads of chromosome", Chrom, "*****\n")
       GRList <- lapply (1:(length(Ends) - 1), function (j) {
-        cat("Pocessing from", Chrom, "piece", j, "of", NrChromPieces, "\n")
+        cat("Pocessing from", Chrom, "piece", j, "of", length(Ends), "\n")
+        
+        # Create a genomic reange
         R1 <- GRanges(seqnames = Chrom, ranges = IRanges(start = Ends[j], 
                                                          end = Ends[j] + StepW))
+        # Extract reads overlapping with range and determine coverage
         Reads <- extractReads(bam.file = BamFile, region = R1)
         ReadCov <- coverage(Reads)
         if (length(ReadCov[[Chrom]]@values) > 1){
+          
+          # Create genomic ranges for separate islands
           Islands <- slice(ReadCov, lower = 1)
           GRs <- GRanges(seqnames = Chrom, 
                   ranges = Islands@listData[[1]]@ranges,
@@ -110,25 +115,25 @@ ComparePeaksWithRefL1 <- function(
       })
       GRList <- GRangesList(GRList)
       GRList <- unlist(GRList)
-      IslGRanges_reduced <- reduce(GRList, min.gapwidth = MinGap,
-                                   with.revmap = T)
-      # Get maximum cover and position of maximum cover in reduced ranges
-      maxCoverOriginal    <- GRList@elementMetadata@listData$coverMax
-      maxCoverPosOriginal <- GRList@elementMetadata@listData$coverMaxPos
-      IslGRanges_reduced@elementMetadata@listData$coverMax <- sapply(IslGRanges_reduced@elementMetadata@listData$revmap, 
-                         function(x) max(maxCoverOriginal[x]))
-      IslGRanges_reduced@elementMetadata@listData$coverMaxPos <- sapply(IslGRanges_reduced@elementMetadata@listData$revmap, 
-                            function(x) maxCoverPosOriginal[x[which.max(maxCoverOriginal[x])]])
-      IslGRanges_reduced
+      # IslGRanges_reduced <- reduce(GRList, min.gapwidth = MinGap,
+      #                              with.revmap = T)
+      # # Get maximum cover and position of maximum cover in reduced ranges
+      # maxCoverOriginal    <- GRList@elementMetadata@listData$coverMax
+      # maxCoverPosOriginal <- GRList@elementMetadata@listData$coverMaxPos
+      # IslGRanges_reduced@elementMetadata@listData$coverMax <- sapply(IslGRanges_reduced@elementMetadata@listData$revmap, 
+      #                    function(x) max(maxCoverOriginal[x]))
+      # IslGRanges_reduced@elementMetadata@listData$coverMaxPos <- sapply(IslGRanges_reduced@elementMetadata@listData$revmap, 
+      #                       function(x) maxCoverPosOriginal[x[which.max(maxCoverOriginal[x])]])
+      # IslGRanges_reduced
       # blnOverlapIslands_All <- overlapsAny(IslGRanges_reduced, L1GRanges)
       # idxSuspectL1Ranges <- which(IslGRanges_reduced@elementMetadata@listData$coverMax > MinMaxCover & (!blnOverlapIslands_All))
       # IslGRanges_reduced[idxSuspectL1Ranges]
     })
    browser()
-   IslGRanges_reduced <- GRangesList(GRangesNonRef)
-   IslGRanges_reduced <- unlist(IslGRanges_reduced)
-   cat(length(IslandGRanges), "distinct peaks\n\n")
-   
+   IslGRanges <- GRangesList(GRangesNonRef)
+   IslGRanges <- unlist(IslGRanges)
+   cat(length(IslGRanges), "distinct peaks before merging peaks\n\n")
+
    #######################################
    #                                     #
    #    Reduce 'islands' with         #
