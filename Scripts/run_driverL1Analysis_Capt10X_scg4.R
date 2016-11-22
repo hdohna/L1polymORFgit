@@ -9,7 +9,7 @@ library(csaw)
 
 # Load ranges on the reference genome
 load("/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/L1RefRanges_hg19.Rdata")
-NrChromPieces <- 1000
+NrChromPieces <- 100
 EndList <- lapply(c(1:length(ChromLengths)), function(i){
   Chrom       <- names(ChromLengths)[i]
   ChromLength <- ChromLengths[i]
@@ -17,7 +17,7 @@ EndList <- lapply(c(1:length(ChromLengths)), function(i){
   if (Ends[length(Ends)] < ChromLength) Ends <- c(Ends, ChromLength)
   Ends
 }) 
-EndList[[2]] <- EndList[[2]][-137]
+EndList[[2]] <- EndList[[2]][-14]
 
 # Run function
 driverL1Analysis(
