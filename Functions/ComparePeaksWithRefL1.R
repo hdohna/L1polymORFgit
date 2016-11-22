@@ -124,7 +124,8 @@ ComparePeaksWithRefL1 <- function(
       # idxSuspectL1Ranges <- which(IslGRanges_reduced@elementMetadata@listData$coverMax > MinMaxCover & (!blnOverlapIslands_All))
       # IslGRanges_reduced[idxSuspectL1Ranges]
     })
-   IslGRanges_reduced <- GRangesList(IslandGRanges)
+   browser()
+   IslGRanges_reduced <- GRangesList(GRangesNonRef)
    IslGRanges_reduced <- unlist(IslGRanges_reduced)
    cat(length(IslandGRanges), "distinct peaks\n\n")
    
