@@ -82,7 +82,7 @@ ComparePeaksWithRefL1 <- function(
        Ends
      }) 
    }
-   GRangesNonRef <- lapply(c(1:length(ChromLengths)), function(i){
+   IslandGRanges <- lapply(c(1:length(ChromLengths)), function(i){
       Chrom       <- names(ChromLengths)[i]
       ChromLength <- ChromLengths[i]
       Ends <- EndList[[i]]
@@ -129,9 +129,9 @@ ComparePeaksWithRefL1 <- function(
       # idxSuspectL1Ranges <- which(IslGRanges_reduced@elementMetadata@listData$coverMax > MinMaxCover & (!blnOverlapIslands_All))
       # IslGRanges_reduced[idxSuspectL1Ranges]
     })
-   IslGRanges <- GRangesList(GRangesNonRef)
-   IslGRanges <- unlist(IslGRanges)
-   cat(length(IslGRanges), "distinct peaks before merging peaks\n\n")
+   IslandGRanges <- GRangesList(IslandGRanges)
+   IslandGRanges <- unlist(IslandGRanges)
+   cat(length(IslandGRanges), "distinct peaks before merging peaks\n\n")
 
    #######################################
    #                                     #
