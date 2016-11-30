@@ -72,6 +72,7 @@ driverL1Analysis <- function(
   blnAnalyze        = F,
   IdChar2Remove = 4,
   EndList = NULL,
+  blnFilterOverlap = F,
   AlignCommand = c('module load bwa', 'bwa mem'),
   IndexCommand = c('module load bwa', 'bwa index'),
   AddGroupCmd  = c('module load picard-tools/2.0.1', 
@@ -145,7 +146,8 @@ driverL1Analysis <- function(
       MinDist2L1  = MinDist2L1, # minimum distance to L1 to be called a peak 
       NrChromPieces = NrChromPieces,
       OutFile = OutResults_RangeComparison,
-      EndList = EndList)
+      EndList = EndList,
+      blnFilterOverlap = blnFilterOverlap)
   }
   
   # Load the results produced by the function ComparePeaksWithRefL1. The main
