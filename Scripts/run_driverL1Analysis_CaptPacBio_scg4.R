@@ -9,7 +9,7 @@ library(csaw)
 
 # Run function
 driverL1Analysis(
-  PeakBam = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_readsofinsert_hg19.bam", 
+  PeakBam = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19withL1.sorted.bam", 
   L1HSBamFile = NULL, 
   FastQFolder = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/FastqFiles/", 
   L1HSConsensus = "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/Homo_sapiens_L1_consensus.fas",
@@ -18,11 +18,12 @@ driverL1Analysis(
   ResultFileName = "BZ_NA12878L1capt5-9kb_Results.Rdata",
   PlotFolder = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/Figures/", 
   MinMaxCover = 1, 
-  MinGap = 6000, 
+  MinGap = 100, 
   MinDist2L1 = 20000, 
-  blnComparePeaksWithRefL1 = F,
+  NrChromPieces = 1,
+  blnComparePeaksWithRefL1 = T,
   blnWriteFastq     = T,
-  blnMap2L1         = T, 
+  blnMap2L1         = F, 
   blnAddReadGroups  = F, 
   blnCreateBamIndices = T,
   blnCallHaplotypes = F, 
