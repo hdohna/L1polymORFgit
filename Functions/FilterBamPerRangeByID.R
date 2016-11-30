@@ -14,8 +14,8 @@
 #     InBamfilePath: character string indicating path to bam file 
 #     InFastQfilePaths: character vector of length 2 indicating paths to the 
 #          two fastq files containing the paired reads
-#     OutFilePaths: vector of character strings indicating paths to all the
-#          fastq files that are written out. Should be same length as Ranges
+#     OutBamFilePaths: vector of character strings indicating paths to all the
+#          bam files that are written out. Should be same length as Ranges
 #     NrReadsPerIter: integer value indicating how many reads from the fastq
 #          file should be read in per iteration
 #     DefaultWriteMode: single character equal to either 'w' or 'a' to write
@@ -43,9 +43,9 @@ FilterBamPerRangeByID <- function(Ranges, InBamfilePath,
   cat("**                                                **\n")
   cat("****************************************************\n\n")
 
-  # Check that Ranges and OutFilePaths have the same length
-  if (length(Ranges) !=  length(OutFilePaths)) {
-    stop("Ranges and OutFilePaths have to have the same length! \n")
+  # Check that Ranges and OutBamFilePaths have the same length
+  if (length(Ranges) !=  length(OutBamFilePaths)) {
+    stop("Ranges and OutBamFilePaths have to have the same length! \n")
   }
   
   # Get read IDs per range
