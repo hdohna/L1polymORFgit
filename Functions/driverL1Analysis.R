@@ -73,6 +73,7 @@ driverL1Analysis <- function(
   IdChar2Remove = 4,
   EndList = NULL,
   blnFilterOverlap = F,
+  NrReadsPerIter = 10^6,
   AlignCommand = c('module load bwa', 'bwa mem'),
   IndexCommand = c('module load bwa', 'bwa index'),
   AddGroupCmd  = c('module load picard-tools/2.0.1', 
@@ -183,6 +184,7 @@ driverL1Analysis <- function(
                        InBamfilePath  = PeakBam,
                        InFastQfilePaths = list.files(FastQFolder, full.names = T),
                        OutFilePaths = LittleFastqPaths,
+                       NrReadsPerIter = NrReadsPerIter,
                        IdChar2Remove = IdChar2Remove) 
   }
   

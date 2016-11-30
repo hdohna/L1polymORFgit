@@ -30,6 +30,7 @@ driverL1Analysis(
   blnAnalyze        =   F,
   blnComparePeaksWithRefL1 = F,
   IdChar2Remove = 4,
+  NrReadsPerIter = 10^5,
   AlignCommand = c('module load bwa', 'bwa mem -k17 -W40 -r10 -A2 -B5 -O2 -E1 -L0'),
   IndexCommand = c('module load bwa', 'bwa index'),
   ReadGroupSuffix = "withRG.bam",
