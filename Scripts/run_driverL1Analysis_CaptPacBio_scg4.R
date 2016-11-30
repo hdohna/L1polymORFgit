@@ -11,7 +11,7 @@ library(csaw)
 driverL1Analysis(
   PeakBam = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19withL1.sorted.bam", 
   L1HSBamFile = NULL, 
-  FastQFolder = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/FastqFiles/", 
+  FastQFolder = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/FastqSubreads/", 
   L1HSConsensus = "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/Homo_sapiens_L1_consensus.fas",
   L1RefRanges    = '/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/L1RefRanges_hg19.Rdata',
   OutputFolder = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/", 
