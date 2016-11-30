@@ -44,7 +44,9 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
   cat("**                                                **\n")
   cat("****************************************************\n\n")
 
-    # Check that Ranges and OutFilePaths have the same length
+  cat("Number of reads to read per iteration is", NrReadsPerIter, "\n")
+  
+  # Check that Ranges and OutFilePaths have the same length
   if (length(Ranges) !=  length(OutFilePaths)) {
     stop("Ranges and OutFilePaths have to have the same length! \n")
   }
