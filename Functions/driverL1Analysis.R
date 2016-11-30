@@ -61,7 +61,7 @@ driverL1Analysis <- function(
   ResultFileName,
   MinMaxCover, MinGap, 
   MinDist2L1, 
-  NrChromPieces = 20,
+  NrChromPieces = 1,
   blnComparePeaksWithRefL1 = F,
   blnWriteFastq     = F,
   blnMap2L1         = F, 
