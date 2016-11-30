@@ -34,7 +34,7 @@
 ##############################################
 
 
-FilterBamPerRangeByID <- function(Ranges, InBamfilePath, InFastQfilePaths,
+FilterBamPerRangeByID <- function(Ranges, InBamfilePath,
   OutBamFilePaths) {
   
   cat("****************************************************\n")

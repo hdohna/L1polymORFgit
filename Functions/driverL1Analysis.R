@@ -64,6 +64,7 @@ driverL1Analysis <- function(
   NrChromPieces = 1,
   blnComparePeaksWithRefL1 = F,
   blnWriteFastq     = F,
+  blnFilterFastq = F,
   blnMap2L1         = F, 
   blnAddReadGroups  = F,
   blnCreateBamIndices = F,
@@ -188,6 +189,13 @@ driverL1Analysis <- function(
                        IdChar2Remove = IdChar2Remove) 
   }
   
+  if(blnFilterFastq & is.null(L1HSBamFile)){
+    OutBamFilePaths <- gsub(".fastq", ".bam", LittleFastqPaths)
+    FilterBamPerRangeByID(Ranges = SuspectL1Ranges, 
+                          InBamfilePath = PeakBam, 
+                                    OutBamFilePaths) 
+  }
+    
   #######################################
   #                                     #
   #     Map fastq file per range        #
