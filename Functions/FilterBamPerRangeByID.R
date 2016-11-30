@@ -34,7 +34,7 @@
 ##############################################
 
 
-FilterBamPerRangeByID <- function(Ranges, InBamfilePath,
+FilterBamPerRange <- function(Ranges, InBamfilePath,
   OutBamFilePaths) {
   
   cat("****************************************************\n")
@@ -49,17 +49,19 @@ FilterBamPerRangeByID <- function(Ranges, InBamfilePath,
   }
   
   # Get read IDs per range
-  param <- ScanBamParam(which = Ranges, what = "qname")
-  ReadIDsPerRange <- scanBam(file = InBamfilePath, param = param)
+  # param <- ScanBamParam(which = Ranges, what = "qname")
+  # ReadIDsPerRange <- scanBam(file = InBamfilePath, param = param)
   
-  for (i in 1:length(ReadIDsPerRange)){
-    cat("Filtering reads of range", i, "of", length(ReadIDsPerRange), "\n")
-    browser()
-    IDs <- ReadIDsPerRange[[i]]$qname
-    cat("Defining filter\n")
-    IDFilter <- FilterRules(getIDs <- function(DF){DF$qname %in% IDs})
-    cat("Filtering file\n")
-    filterBam(InBamfilePath, OutBamFilePaths[i], filter = IDFilter)
+  for (i in 1:length(Ranges)){
+    cat("Filtering reads of range", i, "of", length(Ranges), "\n")
+    # browser()
+    # IDs <- ReadIDsPerRange[[i]]$qname
+    # cat("Defining filter\n")
+    # IDFilter <- FilterRules(getIDs <- function(DF){DF$qname %in% IDs})
+    # cat("Filtering file\n")
+    # filterBam(InBamfilePath, OutBamFilePaths[i], filter = IDFilter)
+    filterBam(InBamfilePath, OutBamFilePaths[i], 
+              param=ScanBamParam(what=scanBamWhat(), which = Ranges[i]))
   }
   OutFastqFilePaths <- gsub(".bam", ".fastq", OutBamFilePaths)
   cat("Converting bam to fastq files \n")

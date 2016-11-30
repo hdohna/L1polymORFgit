@@ -191,9 +191,9 @@ driverL1Analysis <- function(
   
   if(blnFilterFastq & is.null(L1HSBamFile)){
     OutBamFilePaths <- gsub(".fastq", ".bam", LittleFastqPaths)
-    FilterBamPerRangeByID(Ranges = SuspectL1Ranges, 
+    FilterBamPerRange(Ranges = SuspectL1Ranges, 
                           InBamfilePath = PeakBam, 
-                                    OutBamFilePaths) 
+                          OutBamFilePaths = OutBamFilePaths) 
   }
     
   #######################################
