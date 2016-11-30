@@ -20,7 +20,7 @@ driverL1Analysis(
   MinMaxCover = 1, 
   MinGap = 6000, 
   MinDist2L1 = 20000, 
-  blnComparePeaksWithRefL1 = T,
+  blnComparePeaksWithRefL1 = F,
   blnWriteFastq     = T,
   blnMap2L1         = T, 
   blnAddReadGroups  = F, 
