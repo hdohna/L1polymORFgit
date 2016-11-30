@@ -54,6 +54,7 @@ FilterBamPerRangeByID <- function(Ranges, InBamfilePath,
   
   for (i in 1:length(ReadIDsPerRange)){
     cat("Filtering reads of range", i, "of", length(ReadIDsPerRange), "\n")
+    browser()
     IDs <- ReadIDsPerRange[[i]]$qname
     cat("Defining filter\n")
     IDFilter <- FilterRules(getIDs <- function(DF){DF$qname %in% IDs})
