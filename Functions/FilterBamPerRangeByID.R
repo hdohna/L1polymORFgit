@@ -56,7 +56,7 @@ FilterBamPerRangeByID <- function(Ranges, InBamfilePath,
     cat("Filtering reads of range", i, "of", length(ReadIDsPerRange), "\n")
     IDs <- ReadIDsPerRange[[i]]$qname
     IDFilter <- FilterRules(getIDs <- function(DF){DF$qname %in% IDs})
-    filterBam(BamFileToBeFiltered, OutBamFilePaths[i], filter = IDFilter)
+    filterBam(InBamfilePath, OutBamFilePaths[i], filter = IDFilter)
   }
   OutFastqFilePaths <- gsub(".bam", ".fastq", OutBamFilePaths)
   cat("Converting bam to fastq files \n")
