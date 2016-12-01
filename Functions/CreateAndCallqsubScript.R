@@ -37,7 +37,6 @@ CreateAndCallqsubScript <- function(file,
   
   # Run script
   RunCmd <- paste("qsub", file, Args)
-  browser()
   system(RunCmd, wait = F)
   
 }
