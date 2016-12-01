@@ -46,17 +46,17 @@ MapMultiFastq <- function(FastQFolder, Reference,
   OutFiles <- paste(substr(FastQPaths, 1, nchar(FastQPaths) - 6), SamSuffix, sep = "")
   CmdLines <- paste(AlignCommand[2],  Reference, FastQPaths)
   CmdLines <- paste(CmdLines, OutFiles, sep = " > ")
-  HeaderLines = c('#! /bin/sh','#$ -N TEST', '#$ -cwd', '#$ -l h_vmem=1G',
+  HeaderLines = c('#! /bin/sh','#$ -N TEST', '#$ -cwd', '#$ -l h_vmem=2G',
                   '#$ -j y', '#$ -S /bin/bash', '#', '')
   for (i in 1:length(CmdLines)) {
     CmdLocal <- c(AlignCommand[1], CmdLines[i])
     FileName <- paste("/home/hzudohna/tmpBWA",i, sep = "_")
     ScriptName <- paste("bwa", i, sep = "_")
     cat("Running commands\n", paste(CmdLocal, "\n"), "\n")
-    system(CmdLocal)
-    # CreateAndCallqsubScript(file = FileName, qsubHeaderLines = HeaderLines, 
-    #                         qsubCommandLines = CmdLocal, 
-    #                         scriptName = ScriptName)
+    # system(CmdLocal)
+    CreateAndCallqsubScript(file = FileName, qsubHeaderLines = HeaderLines,
+                            qsubCommandLines = CmdLocal,
+                            scriptName = ScriptName)
     
   }
   
