@@ -53,9 +53,10 @@ MapMultiFastq <- function(FastQFolder, Reference,
     FileName <- paste("/home/hzudohna/tmpBWA",i, sep = "_")
     ScriptName <- paste("bwa", i, sep = "_")
     cat("Running commands\n", paste(CmdLocal, "\n"), "\n")
-    CreateAndCallqsubScript(file = FileName, qsubHeaderLines = HeaderLines, 
-                            qsubCommandLines = CmdLocal, 
-                            scriptName = ScriptName)
+    system(CmdLocal)
+    # CreateAndCallqsubScript(file = FileName, qsubHeaderLines = HeaderLines, 
+    #                         qsubCommandLines = CmdLocal, 
+    #                         scriptName = ScriptName)
     
   }
   
