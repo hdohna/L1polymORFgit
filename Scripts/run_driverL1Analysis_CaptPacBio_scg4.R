@@ -26,7 +26,7 @@ driverL1Analysis(
   blnFilterFastq = T,
   blnMap2L1         = T, 
   blnAddReadGroups  = F, 
-  blnCreateBamIndices = F,
+  blnCreateBamIndices = T,
   blnCallHaplotypes = F, 
   blnAnalyze        =   F,
   IdChar2Remove = 4,
