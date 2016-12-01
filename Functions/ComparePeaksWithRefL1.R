@@ -36,7 +36,8 @@ ComparePeaksWithRefL1 <- function(
    NrChromPieces = 20,
    MinDist2L1  = 3*10^4, # minimum distance to L1 to be called a peak 
    OutFile = "/home/hzudohna/L1polymORF/Data/AnalyzedPacBioL1Ranges.RData",
-   EndList = NULL
+   EndList = NULL,
+   blnFilterOverlap = T
    ){
   
   cat("*******************************************************\n")
@@ -199,8 +200,10 @@ ComparePeaksWithRefL1 <- function(
    FullRefL1Ranges    <- IslGRanges_reduced[blnOverlapIslands_L1HS]
    
    # Filter bam file to get reads in islands overlapping with full-length L1
-   param <- ScanBamParam(which = FullRefL1Ranges, what = scanBamWhat())
-   filterBam(file = BamFile, destination = OutBamFileFullLengthL1, param = param)
+   if (blnFilterOverlap){
+     param <- ScanBamParam(which = FullRefL1Ranges, what = scanBamWhat())
+     filterBam(file = BamFile, destination = OutBamFileFullLengthL1, param = param)
+   }
    
    #######################################################
    #                                                     #

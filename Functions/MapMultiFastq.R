@@ -40,16 +40,24 @@ MapMultiFastq <- function(FastQFolder, Reference,
   # Create index file
   cat("*******   Creating index for", Reference, "...   *******\n")
   CmdIndex <- c(IndexCommand[1], paste(IndexCommand[2], Reference))
-#  browser()
   system(CmdIndex)
   
   # Run BWA for each little fastq file  
   OutFiles <- paste(substr(FastQPaths, 1, nchar(FastQPaths) - 6), SamSuffix, sep = "")
   CmdLines <- paste(AlignCommand[2],  Reference, FastQPaths)
   CmdLines <- c(AlignCommand[1], paste(CmdLines, OutFiles, sep = " > "))
-  for (CmdL in CmdLines) {
-    cat("Running command", CmdL, "\n")
-    system(c(AlignCommand[1], CmdL))
+  HeaderLines = c('#! /bin/sh','#$ -N TEST', '#$ -cwd',
+                  '#$ -j y', '#$ -S /bin/bash', '#', '')
+  for (i in 1:length(CmdLines)) {
+    cat("Running command", CmdLines[i], "\n")
+    CmdLocal <- c(AlignCommand[1], CmdLines[i])
+    FileName <- paste("/home/hzudohna/tmpBWA",i, sep = "_")
+    ScriptName <- paste("bwa", i, sep = "_")
+    cat("Running commands", paste(CmdLocal, "\n"), "\n")
+    CreateAndCallqsubScript(file = FileName, qsubHeaderLines = HeaderLines, 
+                            qsubCommandLines = CmdLocal, 
+                            scriptName = ScriptName)
+    
   }
   
   # Return paths to fastq files and sam files
