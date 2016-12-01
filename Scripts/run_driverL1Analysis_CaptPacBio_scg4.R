@@ -23,7 +23,7 @@ driverL1Analysis(
   NrChromPieces = 1,
   blnComparePeaksWithRefL1 = F,
   blnWriteFastq     = F,
-  blnFilterFastq = F,
+  blnFilterFastq = T,
   blnMap2L1         = T, 
   blnAddReadGroups  = F, 
   blnCreateBamIndices = F,
