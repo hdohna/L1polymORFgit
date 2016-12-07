@@ -17,6 +17,8 @@ IslGRanges_reduced_PacBio
 
 OverlapRanges <- subsetByOverlaps(IslGRanges_reduced_PacBio[idxSuspectL1Ranges_PacBio], 
                  IslGRanges_reduced_10X[idxSuspectL1Ranges_10X])
- 
-export.bed(OverlapRanges, "D:/L1polymORF/Data/OverlapPacBio10X_hg19")
+length(idxSuspectL1Ranges_PacBio)
+length(idxSuspectL1Ranges_10X)
+
+# export.bed(OverlapRanges, "D:/L1polymORF/Data/OverlapPacBio10X_hg19")
 
