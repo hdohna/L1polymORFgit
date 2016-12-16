@@ -64,7 +64,8 @@ driverL1Analysis <- function(
   NrChromPieces = 1,
   blnComparePeaksWithRefL1 = F,
   blnWriteFastq     = F,
-  blnFilterFastq = F,
+  blnFilterBamPerL1 = F,
+  blnBam2Fastq = F,
   blnMap2L1         = F, 
   blnAddReadGroups  = F,
   blnCreateBamIndices = F,
@@ -74,6 +75,8 @@ driverL1Analysis <- function(
   IdChar2Remove = 4,
   EndList = NULL,
   blnFilterOverlap = F,
+  NrJobsPerBatch = 100, 
+  WaitBetwJobs = 1000,
   NrReadsPerIter = 10^6,
   AlignCommand = c('module load bwa', 'bwa mem'),
   IndexCommand = c('module load bwa', 'bwa index'),
@@ -189,13 +192,18 @@ driverL1Analysis <- function(
                        IdChar2Remove = IdChar2Remove) 
   }
   
-  if(blnFilterFastq & is.null(L1HSBamFile)){
-    OutBamFilePaths <- gsub(".fastq", ".bam", LittleFastqPaths)
-    FilterBamPerRange(Ranges = SuspectL1Ranges, 
+  OutBamFilePaths <- gsub(".fastq", ".bam", LittleFastqPaths)
+  if(blnFilterBamPerL1 & is.null(L1HSBamFile)){
+    InBamFilePaths <- FilterBamPerRange(Ranges = SuspectL1Ranges, 
                           InBamfilePath = PeakBam, 
                           OutBamFilePaths = OutBamFilePaths) 
+  } 
+  if(blnBam2Fastq & is.null(L1HSBamFile)){
+    ConvertMultiBam2Fastq(OutBamFilePaths, 
+                          NrJobsPerBatch = NrJobsPerBatch, 
+                          WaitBetwJobs = WaitBetwJobs) 
   }
-    
+  
   #######################################
   #                                     #
   #     Map fastq file per range        #
@@ -209,7 +217,9 @@ driverL1Analysis <- function(
                                AlignCommand = AlignCommand,
                                IndexCommand = IndexCommand,
                                Reference = L1HSConsensus,
-                               SamSuffix = SamSuffix)
+                               SamSuffix = SamSuffix,
+                               NrJobsPerBatch = NrJobsPerBatch, 
+                               WaitBetwJobs = WaitBetwJobs)
   }
   
   #######################################
@@ -245,7 +255,7 @@ driverL1Analysis <- function(
     for (i in 1:length(SuspectL1Ranges)){
       param <- ScanBamParam(which = SuspectL1Ranges[i], what = "qname")
       IDs   <- scanBam(PeakBam, param = param)
-      IDs <- unlist(IDs)
+      IDs   <- unlist(IDs)
       IDFilter <- FilterRules(getIDs <- function(DF){DF$qname %in% IDs})
       cat("Writing filtered L1Hs bam file", LittleBamPaths[i], "\n")
       filterBam(L1HSBamFile, LittleBamPaths[i], filter = IDFilter)
