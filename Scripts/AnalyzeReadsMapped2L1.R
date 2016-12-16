@@ -39,23 +39,18 @@ NrMapped2L1 <- sapply(ScannedL1Ranges, function(x){
 })
 FilesWithReads <- FileNames[NrMapped2L1 > 0]
 
-# Get aligned reads per peak
-# R1 <- GRanges(seqnames = "L1HS_L1_Homo_sapiens", 
-#               ranges = IRanges(start = 1, end = 6000))
-# ReadsPerL1 <- lapply(FilesWithReads, function(x) {
-#   Reads <- extractReads(x, R1)
-# })
-# 
-# # Calculate a coverage matrix
-# CoverMat <- t(sapply(ReadsPerL1, function(x){
-#   Cov <- coverage(x)
-#   as.vector(Cov[[1]])
-# }))
-CoverMat <- t(sapply(FilesWithReads, function(x) {
-  RList <- scanBam(x)[[1]]
-  CoverageFromReadList(RList, End = 6064)
+# Get read list per peak
+ReadListPerPeak <- lapply(FilesWithReads, function(x) {
+  scanBam(x)[[1]]
+})
+x <- ReadListPerPeak[[57]]
+CoverMat <- t(sapply(ReadListPerPeak, function(x) {
+  primMap <- x$flag <= 2047
+  RL <- lapply(x, function(y) y[primMap])
+  CoverageFromReadList(RL, End = 6064)
 }))
 dim(CoverMat)
+x$flag
 
 # Plot mean coverage
 plot(colMeans(CoverMat), ylab = "Mean coverage", xlab = "Position on L1", type = "s")
@@ -80,8 +75,8 @@ for (i in 1:nrow(CoverMat)){
   
 }
 
-# Full-length insertions
-idx5P   <- which(CoverMat[,10] > 0)
+# Collect information on insertion that fullfill a certain minimum criterion
+idx5P   <- which(CoverMat[,100] > 0)
 Max3P   <- sapply(idx5P, function(x) max(which(CoverMat[x,] > 0)))
 idxFull <- idx5P[Max3P >= 500]
 x <- FilesWithReads[1]
@@ -94,8 +89,20 @@ FullL1Info <- t(sapply(FilesWithReads[idxFull], function(x){
 }))
 FullL1Info <- base::as.data.frame(FullL1Info, stringsAsFactors = F)
 colnames(FullL1Info) <- c("chromosome", "idx")
-FullL1Info$idx <- as.numeric(FullL1Info$idx)
-IslGRanges_reduced[FullL1Info$idx]
-overlapsAny(IslGRanges_reduced[FullL1Info$idx], L1CatalogGR)
+FullL1Info$Max3P <- Max3P[Max3P >= 500]
+FullL1Info$idx   <- as.numeric(FullL1Info$idx)
+FullL1Info$start <- start(IslGRanges_reduced[FullL1Info$idx])
+FullL1Info$end   <- end(IslGRanges_reduced[FullL1Info$idx])
+FullL1Info$cover   <- CoverMat[idxFull, 100]
 
+ReadListPerPeak[idxFull]
+FullL1Info <- t(sapply(ReadListPerPeak[idxFull], function(x){
+  primMap <- x$flag <= 2047
+  Cigars  <- x$cigar[primMap]
+  sapply(Cigars, function(y)NrClippedFromCigar(y))
+    NrClippedFromCigar
+}))
+
+NrClippedFromCigar
+colnames(FullL1Info)
 
