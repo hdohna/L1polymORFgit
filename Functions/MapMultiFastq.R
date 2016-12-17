@@ -26,7 +26,7 @@
 MapMultiFastq <- function(FastQFolder, Reference, 
                           IndexCommand,
                           AlignCommand,
-                          SamSuffix = "_aln.sam") {
+                          SamSuffix = "_aln.sam", NrJobsPerBatch = 100, WaitBetwJobs = 100) {
   
   cat("****************************************************\n")
   cat("**                                                **\n")
@@ -48,8 +48,14 @@ MapMultiFastq <- function(FastQFolder, Reference,
   CmdLines <- paste(CmdLines, OutFiles, sep = " > ")
   HeaderLines = c('#! /bin/sh','#$ -N TEST', '#$ -cwd', '#$ -l h_vmem=3G',
                   '#$ -j y', '#$ -S /bin/bash', '#', '')
-  for (i in 1:length(CmdLines)) {
-    CmdLocal <- c(AlignCommand[1], CmdLines[i])
+
+  if (length(CmdLines) > NrJobsPerBatch){
+    Starts <- seq(1, length(CmdLines), NrJobsPerBatch)
+    Ends   <- c(Starts[-1] - 1, length(CmdLines))
+  }
+  for (j in 1:length(Starts)){
+    for (i in Starts[j]:Ends[j]){
+      CmdLocal <- c(AlignCommand[1], CmdLines[i])
     FileName <- paste("/home/hzudohna/tmpBWA",i, sep = "_")
     ScriptName <- paste("bwa", i, sep = "_")
     cat("Running commands\n", paste(CmdLocal, "\n"), "\n")
@@ -58,8 +64,10 @@ MapMultiFastq <- function(FastQFolder, Reference,
                             qsubCommandLines = CmdLocal,
                             scriptName = ScriptName)
     
+    }
+
+    Sys.sleep(WaitBetwJobs)
   }
-  
   # Return paths to fastq files and sam files
   cbind.data.frame(FastQPath = FastQPaths, SamPath = OutFiles)
 }
