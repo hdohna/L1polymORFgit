@@ -7,7 +7,7 @@ PCRResults    <- read.csv("D:/L1polymORF/Data/NA12878_L1PCR_results_filtered.csv
 colnames(PCRResults)[colnames(PCRResults) == "AccNr"] <- "Accession"
 
 # Merge results
-MergedResults <- merge(PacBioResults, PCRResults, by = "Accession")
+MergedResults   <- merge(PacBioResults, PCRResults, by = "Accession")
 L1PresentPacBio <- MergedResults$MaxCover > 0
 L1PresentPCR    <- MergedResults$ProbPresent > 0.95
 
