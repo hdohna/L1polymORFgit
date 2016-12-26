@@ -18,8 +18,22 @@ ComparePeaksWithRefL1(
   MinGap      = 1000,
   NrChromPieces = 1,
   MinDist2L1  = 3*10^4, # minimum distance to L1 to be called a peak 
-  OutFile = "D:/L1polymORF/Data/AnalyzedPacBioL1Ranges_MinGap1000.RData",
+  OutFile = "D:/L1polymORF/Data/AnalyzedPacBioL1Ranges_hg19.RData",
   EndList = NULL,
   blnFilterOverlap = F
 )
+
+ComparePeaksWithRefL1(
+  BamFile = 'D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_subreads_hg19.bam',
+  OutBamFileFullLengthL1 = NULL,
+  L1Ranges = "D:/L1polymORF/Data/L1RefRanges_hg19.Rdata",
+  MinMaxCover = 2,    # minimum maximum coverage to be called a peak 
+  MinGap      = 1000,
+  NrChromPieces = 1,
+  MinDist2L1  = 3*10^4, # minimum distance to L1 to be called a peak 
+  OutFile = "D:/L1polymORF/Data/AnalyzedPacBioL1Ranges_hg19L1.RData",
+  EndList = NULL,
+  blnFilterOverlap = F
+)
+
   
