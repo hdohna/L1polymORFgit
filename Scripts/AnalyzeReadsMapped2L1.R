@@ -31,31 +31,42 @@ FileNames <- list.files(OutFolderName_NonRef, pattern = ".bam",
 FileNames <- FileNames[-grep(".bam.", FileNames)]
 
 # Loop through file names and read in bam files of reads mapped to L1
-ScannedL1Ranges <- lapply(FileNames, function(x) scanBam(x))
+cat("*******  Scanning bam files per L1   *************\n")
+ScannedL1Ranges <- lapply(1:length(FileNames), function(i) {
+  cat("Scanning bam file", i, "of", length(FileNames), "\n")
+  scanBam(FileNames[i])
+})
 
 # Count the number of reads mapped
 NrMapped2L1 <- sapply(ScannedL1Ranges, function(x){
   sum(!is.na(x[[1]]$pos))
 })
-FilesWithReads <- FileNames[NrMapped2L1 > 0]
+idxFilesWithReads <- which(NrMapped2L1 > 0)
+FilesWithReads <- FileNames[idxFilesWithReads]
 
 # Get read list per peak
-ReadListPerPeak <- lapply(FilesWithReads, function(x) {
-  scanBam(x)[[1]]
+ReadListPerPeak <- lapply(idxFilesWithReads, function(x) {
+  ScannedL1Ranges[[x]][[1]]
 })
-x <- ReadListPerPeak[[57]]
-CoverMat <- t(sapply(ReadListPerPeak, function(x) {
+cat("*******  Calculating coverage matrix   *************\n")
+CoverMat <- t(sapply(1:length(ReadListPerPeak), function(i) {
+  cat("Analyzing row", i, "of", length(ReadListPerPeak), "\n")
+  x <- ReadListPerPeak[[i]]
   primMap <- x$flag <= 2047
   RL <- lapply(x, function(y) y[primMap])
   CoverageFromReadList(RL, End = 6064)
 }))
 dim(CoverMat)
-x$flag
+rownames(CoverMat) <- FilesWithReads
+
 
 # Plot mean coverage
 plot(colMeans(CoverMat), ylab = "Mean coverage", xlab = "Position on L1", type = "s")
+CreateDisplayPdf('D:/L1polymORF/Figures/L1InsertionCoverage_NA12878_PacBio.pdf',
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
 
 # Get means and 95% quantiles 
+cat("*******  Calculating quantile matrix   *************\n")
 QuantileMat <- apply(CoverMat, 2, FUN = function(x) quantile(x, c(0.05, 0.5, 0.95)))
 idxFw <- 1:ncol(CoverMat)
 idxRv <- ncol(CoverMat):1
@@ -72,16 +83,12 @@ plot(CoverMat[1,], type = "s", xlab = "Position on L1",
 Cols <- rainbow(nrow(CoverMat))
 for (i in 1:nrow(CoverMat)){
   lines(CoverMat[i,], type = "s", col = Cols[i])
-  
 }
 
 # Collect information on insertion that fullfill a certain minimum criterion
-idx5P   <- which(CoverMat[,100] > 0)
-Max3P   <- sapply(idx5P, function(x) max(which(CoverMat[x,] > 0)))
-idxFull <- idx5P[Max3P >= 500]
-x <- FilesWithReads[1]
-plot(CoverMat[idxFull[1],])
-FullL1Info <- t(sapply(FilesWithReads[idxFull], function(x){
+idx5P <- which(sapply(1:nrow(CoverMat), function(x) all(CoverMat[x, 50:2000] > 0)))
+idxFull <- which(sapply(1:nrow(CoverMat), function(x) all(CoverMat[x, 50:6040] > 0)))
+FullL1Info <- t(sapply(FilesWithReads[idx5P], function(x){
   FPathSplit <- strsplit(x, "/")[[1]]
   FName      <- FPathSplit[length(FPathSplit)]
   FName      <- substr(FName, 1, nchar(FName) - 4)
@@ -89,20 +96,21 @@ FullL1Info <- t(sapply(FilesWithReads[idxFull], function(x){
 }))
 FullL1Info <- base::as.data.frame(FullL1Info, stringsAsFactors = F)
 colnames(FullL1Info) <- c("chromosome", "idx")
-FullL1Info$Max3P <- Max3P[Max3P >= 500]
+FullL1Info$Max3P <- sapply(idx5P, function(x) max(which(CoverMat[x, ] > 0)))
 FullL1Info$idx   <- as.numeric(FullL1Info$idx)
 FullL1Info$start <- start(IslGRanges_reduced[FullL1Info$idx])
 FullL1Info$end   <- end(IslGRanges_reduced[FullL1Info$idx])
-FullL1Info$cover   <- CoverMat[idxFull, 100]
+FullL1Info$cover   <- CoverMat[idx5P, 100]
+FilesWithReads[idxFull]
 
-ReadListPerPeak[idxFull]
-FullL1Info <- t(sapply(ReadListPerPeak[idxFull], function(x){
-  primMap <- x$flag <= 2047
-  Cigars  <- x$cigar[primMap]
-  sapply(Cigars, function(y)NrClippedFromCigar(y))
-    NrClippedFromCigar
-}))
+# Create genomic ranges for L1 insertions
+GRL1Capture <- makeGRangesFromDataFrame(FullL1Info)
 
-NrClippedFromCigar
-colnames(FullL1Info)
+load("D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData")
+
+sum(overlapsAny(GRL1Capture, L1CatalogGR))
+sum(overlapsAny(GRL1Capture, GRL1Ins1000G))
+sum(overlapsAny(IslGRanges_reduced, L1CatalogGR))
+sum(overlapsAny(IslGRanges_reduced, GRL1Ins1000G))
+
 
