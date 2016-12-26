@@ -53,27 +53,8 @@ FilterBamPerRange <- function(Ranges, InBamfilePath,
     cat("Filtering reads of range", i, "of", length(Ranges), "\n")
     filterBam(InBamfilePath, OutBamFilePaths[i], 
               param=ScanBamParam(what=scanBamWhat(), which = Ranges[i]))
-  }
-  
-  # Convert into fastq
-  OutFastqFilePaths <- gsub(".bam", ".fastq", OutBamFilePaths)
-  cat("Converting bam to fastq files \n")
-  HeaderLines = c('#! /bin/sh','#$ -N TEST', '#$ -cwd',
-                '#$ -j y', '#$ -S /bin/bash', '#', '')
-    
-  for (i in 1:length(OutBamFilePaths)){
-    cat("Converting bam file of range", i, "of", length(Ranges), "\n")
-    Bam2FastqCmd <- paste("samtools fastq", OutBamFilePaths[i], ">", 
-                          OutFastqFilePaths[i]) 
-    Commands <- c("module load samtools", Bam2FastqCmd)
-    FileName <- paste("/home/hzudohna/tmpBam2Fastq",i, sep = "_")
-    ScriptName <- paste("bam2Fastq", i, sep = "_")
-    cat("Running commands", paste(Commands, "\n"), "\n")
-    CreateAndCallqsubScript(file = FileName, qsubHeaderLines = HeaderLines, 
-                            qsubCommandLines = Commands, 
-                            scriptName = ScriptName)
-  }
-  
+    }
+  OutBamFilePaths
 }
 
 
