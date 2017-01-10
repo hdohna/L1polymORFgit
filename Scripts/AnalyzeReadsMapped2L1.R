@@ -1,3 +1,11 @@
+# The script below reads a list of reads aligned to L1, a coverage and quantile 
+# matrix (created in script 'CalcCoverMatReadList.R') and creates new L1 
+# reference with known and new L1 stumps
+
+##############
+# Source prerequisites
+##############
+
 # Source start script
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
@@ -7,9 +15,32 @@ library(Rsamtools)
 library(rtracklayer)
 library(csaw)
 library(GenomicRanges)
+library(BSgenome.Hsapiens.UCSC.hg19)
+
+##############
+# Set parameters
+##############
+
+# Set parameters for range to determine start and end of 5' region of L1 stumps
+FivePStart <- 50
+FivePEnd   <- 2000
+
+# Set file paths
+CoveragePlotPath      <- 'D:/L1polymORF/Figures/L1InsertionCoverage_NA12878_PacBio.pdf'
+CoverDataPath         <- 'D:/L1polymORF/Data/L1_NA12878_PacBio_Coverage.RData'
+L1_1000GenomeDataPath <- "D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData"
+OutFolderName_NonRef  <- "D:/L1polymORF/Data/BZ_NonRef"
+NewL1RefOutPath       <- "D:/L1polymORF/Data/L1RefPacBioNA12878.fa"
+
+##############
+# Load data
+##############
 
 # Load ranges
+load("D:/L1polymORF/Data/L1RefRanges_hg19.RData")
 load("D:/L1polymORF/Data/BZ_L1Ranges.RData")
+load(L1_1000GenomeDataPath)
+load(CoverDataPath)
 
 # Read in table with known L1 
 L1Catalogue <- read.csv("D:/L1polymORF/Data/L1Catalog_Updated_Wed_Aug_10_17-32-20_2016.csv", as.is = T)
@@ -23,71 +54,48 @@ L1CatalogL1Mapped <- L1Catalogue[which(blnL1Mapped & blnAllele1),]
 LiftOverList <- LiftoverL1Catalog(L1CatalogL1Mapped,
                                   ChainFilePath = "D:/L1polymORF/Data/hg38ToHg19.over.chain")
 L1CatalogGR <- LiftOverList$GRCatalogue_hg19# Specify folder 
-OutFolderName_NonRef <- "D:/L1polymORF/Data/BZ_NonRef"
+
+# Read in L1 consensus sequence
+L1ConsSeq <- read.fasta("D:/L1polymORF/Data/Homo_sapiens_L1_consensus.fas")
+L1ConsSeq <- toupper(L1ConsSeq[[1]])
+
+# Read repeat table and subset to get only L1HS rows with fragment size below 
+# MaxFragLength
+RepeatTable <- read.csv("D:/L1polymORF/Data/repeatsHg38_L1HS.csv")
+RepeatTable <- read.delim("D:/L1polymORF/Data/repeatL1hg19")
+RepeatTable <- RepeatTable[RepeatTable$repName == "L1HS", ]
+
+# Create genomic ranges for L1 fragments, match them to distances to get distance
+# to consensus per fragment
+L1RefGR <- GRanges(seqnames = RepeatTable$genoName,
+                   ranges = IRanges(start = RepeatTable$genoStart,
+                                    end = RepeatTable$genoEnd),
+                   strand = RepeatTable$strand)
+L1RefGRFull <- L1RefGR[width(L1RefGR) > 6000]
+
+L1RefSeq <- getSeq(BSgenome.Hsapiens.UCSC.hg19, L1RefGRFull)
+L1RefSeq <- as.character(L1RefSeq)
+StrandV  <- as.vector(strand(L1RefGRFull))
+L1RefSeqMat <- sapply(1:length(L1RefSeq), function(i) {
+  L1V <- strsplit(L1RefSeq[i], "")[[1]]
+  if (StrandV[i] == "+"){
+    L1V[1:FivePEnd]
+  } else {
+    L1V[(length(L1V) - FivePEnd + 1):length(L1V)]
+  }
+})
+dim(L1RefSeqMat)
+colnames(L1RefSeqMat) <- paste(as.vector(seqnames(L1RefGRFull)), start(L1RefGRFull),
+                               end(L1RefGRFull), "Ref", sep = "_")
 
 # get names of newly created bam files
 FileNames <- list.files(OutFolderName_NonRef, pattern = ".bam",
                         full.names = T)
 FileNames <- FileNames[-grep(".bam.", FileNames)]
 
-# Loop through file names and read in bam files of reads mapped to L1
-cat("*******  Scanning bam files per L1   *************\n")
-ScannedL1Ranges <- lapply(1:length(FileNames), function(i) {
-  cat("Scanning bam file", i, "of", length(FileNames), "\n")
-  scanBam(FileNames[i])
-})
-
-# Count the number of reads mapped
-NrMapped2L1 <- sapply(ScannedL1Ranges, function(x){
-  sum(!is.na(x[[1]]$pos))
-})
-idxFilesWithReads <- which(NrMapped2L1 > 0)
-FilesWithReads <- FileNames[idxFilesWithReads]
-
-# Get read list per peak
-ReadListPerPeak <- lapply(idxFilesWithReads, function(x) {
-  ScannedL1Ranges[[x]][[1]]
-})
-cat("*******  Calculating coverage matrix   *************\n")
-CoverMat <- t(sapply(1:length(ReadListPerPeak), function(i) {
-  cat("Analyzing row", i, "of", length(ReadListPerPeak), "\n")
-  x <- ReadListPerPeak[[i]]
-  primMap <- x$flag <= 2047
-  RL <- lapply(x, function(y) y[primMap])
-  CoverageFromReadList(RL, End = 6064)
-}))
-dim(CoverMat)
-rownames(CoverMat) <- FilesWithReads
-
-
-# Plot mean coverage
-plot(colMeans(CoverMat), ylab = "Mean coverage", xlab = "Position on L1", type = "s")
-CreateDisplayPdf('D:/L1polymORF/Figures/L1InsertionCoverage_NA12878_PacBio.pdf',
-                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
-
-# Get means and 95% quantiles 
-cat("*******  Calculating quantile matrix   *************\n")
-QuantileMat <- apply(CoverMat, 2, FUN = function(x) quantile(x, c(0.05, 0.5, 0.95)))
-idxFw <- 1:ncol(CoverMat)
-idxRv <- ncol(CoverMat):1
-plot(QuantileMat[2,], type = "n", ylim = c(0, max(QuantileMat)), 
-     ylab = 'Coverage', xlab = "Genomic position")
-polygon(c(idxFw, idxRv), c(QuantileMat[1, idxFw], QuantileMat[3, idxRv]),
-        col = "grey", border = NA)
-lines(QuantileMat[2,], lwd = 1.2)
-
-
-# # Determine range index from file name 
-plot(CoverMat[1,], type = "s", xlab = "Position on L1",
-     ylab = "Coverage", ylim = c(0, 100))
-Cols <- rainbow(nrow(CoverMat))
-for (i in 1:nrow(CoverMat)){
-  lines(CoverMat[i,], type = "s", col = Cols[i])
-}
-
 # Collect information on insertion that fullfill a certain minimum criterion
-idx5P <- which(sapply(1:nrow(CoverMat), function(x) all(CoverMat[x, 50:2000] > 0)))
-idxFull <- which(sapply(1:nrow(CoverMat), function(x) all(CoverMat[x, 50:6040] > 0)))
+idx5P <- which(sapply(1:nrow(CoverMat), function(x) all(CoverMat[x, FivePStart:FivePEnd] > 0)))
+idxFull <- which(sapply(1:nrow(CoverMat), function(x) all(CoverMat[x, FivePStart:6040] > 0)))
 FullL1Info <- t(sapply(FilesWithReads[idx5P], function(x){
   FPathSplit <- strsplit(x, "/")[[1]]
   FName      <- FPathSplit[length(FPathSplit)]
@@ -103,14 +111,96 @@ FullL1Info$end   <- end(IslGRanges_reduced[FullL1Info$idx])
 FullL1Info$cover   <- CoverMat[idx5P, 100]
 FilesWithReads[idxFull]
 
-# Create genomic ranges for L1 insertions
+# Create genomic ranges for L1 insertions and compare with known L1 ranges
 GRL1Capture <- makeGRangesFromDataFrame(FullL1Info)
+GRL1Capture100 <- resize(GRL1Capture, 100, fix = "center")
+L1CatalogGR100 <- resize(L1CatalogGR, 100, fix = "center")
+GRL1Ins1000G100 <- resize(GRL1Ins1000G, 100, fix = "center")
+if (any(c(sum(overlapsAny(GRL1Capture100, L1CatalogGR100)),
+          sum(overlapsAny(GRL1Capture100, GRL1Ins1000G100)),
+          sum(overlapsAny(IslGRanges_reduced, L1CatalogGR100)),
+          sum(overlapsAny(IslGRanges_reduced, GRL1Ins1000G100))) > 0)){
+  cat("Some newly found L1 insertion overlap with catalog or 1000 Genome elements!\n")
+}
 
-load("D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData")
+# Get sequences of a particular insertion
+NewL1Seq <- sapply(1:length(idx5P), function(i){
+  x <- idx5P[i]
+  cat("Processing insertion", i, "of", length(idx5P), "\n")
+  RL <- ReadListPerPeak[[x]]
+  idxReads <- which(RL$pos < FivePEnd)
+  
+  # Loop through reads and create a matrix of aligned reads
+  ReadMat  <- sapply(idxReads, function(i) {
+    SeqV   <- SeqFromCigar(RL$cigar[i], RL$seq[i])
+    SeqEnd  <- min(FivePEnd - RL$pos[i] + 1, length(SeqV))
+    Prepend <- rep("-", RL$pos[i] - 1)
+    NrAppend <- FivePEnd - RL$pos[i] + 1 - SeqEnd
+    Append  <- rep("-", NrAppend)
+    SV <- c(Prepend, SeqV[1:SeqEnd], Append)
+  })
+  
+  # Create a consensus sequence
+  ConsensSeq  <- c()
+  ConsensProp <- c()
+  for(x in 1:nrow(ReadMat)){
+    NucCount    <- table(ReadMat[x,])
+    ConsensSeq  <- c(ConsensSeq,names(NucCount)[which.max(NucCount)])
+    ConsensProp <- c(ConsensProp,max(NucCount)/sum(NucCount))
+  }
+  
+  # Replace nucleotides that are variable 
+  blnReplace <- (ConsensSeq == "-") | ConsensProp < 0.6
+  ConsensSeq[blnReplace] <- L1ConsSeq[blnReplace]
+  ConsensSeq
+})
+colnames(NewL1Seq) <- paste(FullL1Info$chromosome, FullL1Info$start,
+                            FullL1Info$end, "New", sep = "_")
 
-sum(overlapsAny(GRL1Capture, L1CatalogGR))
-sum(overlapsAny(GRL1Capture, GRL1Ins1000G))
-sum(overlapsAny(IslGRanges_reduced, L1CatalogGR))
-sum(overlapsAny(IslGRanges_reduced, GRL1Ins1000G))
+# Calculate the number of nucleaotide diefferences between different L1 stumps
+DiffMat <- sapply(1:ncol(NewL1Seq), function(x) {
+  sapply(1:ncol(NewL1Seq), function(y){
+     sum(NewL1Seq[ , x] != NewL1Seq[ , y])
+  })
+})
 
+# Count differences to consensus sequence
+Diff2L1Consens <- sapply(1:ncol(NewL1Seq), function(x) {
+    sum(NewL1Seq[ , x] != L1ConsSeq[1:FivePEnd])
+})
+hist(Diff2L1Consens, breaks = seq(-5, 105, 5))
+sum(Diff2L1Consens == 0)
+
+# Determine indices of sequences that are identical with another
+diag(DiffMat) <- NA
+max(DiffMat, na.rm = T)
+min(DiffMat, na.rm = T)
+sum(DiffMat == 0, na.rm = T)
+idxIdentical <- which(DiffMat == 0, arr.ind = T)
+idxIdentical <- unique(as.vector(idxIdentical))
+
+# Get L1 5' sequences that are non-reference
+L1Catalogue <- LiftOverList$L1CatalogWithHG19
+blnNonRef   <- (L1Catalogue$end_HG19 - L1Catalogue$start_HG19) <= 5000
+idxNonRef   <- which(blnNonRef)
+L1SeqNonRef <- L1Catalogue$L1Seq[idxNonRef]
+
+# Turn all L1 seq 
+# Pattern <- paste(L1ConsSeq[100:200], collapse = "")
+# pMatch <- vmatchPattern(Pattern, L1SeqNonRef, max.mismatch = 5)
+# sapply(pMatch, length)
+L1NonRef <- sapply(L1SeqNonRef, function(x) strsplit(x, "")[[1]][1:FivePEnd])
+colnames(L1NonRef) <- paste(L1Catalogue$Chromosome[idxNonRef], 
+                            L1Catalogue$start_HG19[idxNonRef],
+                            L1Catalogue$end_HG19[idxNonRef], 
+                            L1Catalogue$Accession[idxNonRef], sep = "_")
+
+
+# Put all the different L1 sequences together
+L1StumpRef <- cbind(NewL1Seq[,-idxIdentical[-1]], L1NonRef, L1RefSeqMat)
+L1StumpRef <- t(L1StumpRef)
+dim(L1StumpRef)
+#write.dna(L1StumpRef, NewL1RefOutPath, format = "fasta")
+L1StumpList <- lapply(1:nrow(L1StumpRef), function(x) L1StumpRef[x,])
+write.fasta(L1StumpList, rownames(L1StumpRef), NewL1RefOutPath)
 
