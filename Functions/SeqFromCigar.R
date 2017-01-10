@@ -24,7 +24,7 @@ SeqFromCigar <- function(CigarString, Seq){
   StartS <- if(Ltrs[1] == "S") Nrs[1] + 1 else 1
   SeqVector <- NULL
   for (i in StartV:EndV){
-    Seq2Append <- switch(Ltrs[i], M = SeqV[StartS:(StartS + Nrs[i])],
+    Seq2Append <- switch(Ltrs[i], M = SeqV[StartS:(StartS + Nrs[i] - 1)],
                          D = rep("-", Nrs[i]),
                          I = NULL)
     SeqVector <- c(SeqVector, Seq2Append)
@@ -32,5 +32,3 @@ SeqFromCigar <- function(CigarString, Seq){
   }
   SeqVector
 }
-
-
