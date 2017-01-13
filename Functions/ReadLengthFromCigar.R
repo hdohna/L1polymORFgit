@@ -19,6 +19,3 @@ ReadLengthFromCigar <- function(CigarString){
   blnPlus  <- Ltrs %in% c("M", "D")
   sum(Nrs[blnPlus])
 }
-
-
-
