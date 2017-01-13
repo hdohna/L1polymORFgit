@@ -22,15 +22,28 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 ##############
 
 # Set parameters for range to determine start and end of 5' region of L1 stumps
+# and the minimum coverage in that region
 FivePStart <- 50
 FivePEnd   <- 2000
+MinCover   <- 2
+
+# Set parameter to determine whether a L1 insertion is potentially full-length
+# (it is not fill-length if it has reads that are clipped by MinClip or more,
+# at position MaxL1Pos or less)
+MinClip  <- 500
+MaxL1Pos <- 5500
+
+# Set parameter for minimum proportion of a polymorphism among reads to be called
+MinPolyProp <- 0.6
 
 # Set file paths
 CoveragePlotPath      <- 'D:/L1polymORF/Figures/L1InsertionCoverage_NA12878_PacBio.pdf'
 CoverDataPath         <- 'D:/L1polymORF/Data/L1_NA12878_PacBio_Coverage.RData'
 L1_1000GenomeDataPath <- "D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData"
 OutFolderName_NonRef  <- "D:/L1polymORF/Data/BZ_NonRef"
-NewL1RefOutPath       <- "D:/L1polymORF/Data/L1RefPacBioNA12878.fa"
+NewL1RefOutPath       <- "D:/L1polymORF/Data/L1RefPacBioNA12878_DelRemoved.fa"
+GenomeBamPath         <- "D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_subreads_hg19masked.sorted.bam"
+ResultPath            <- "D:/L1polymORF/Data/ReadsMapped2L1Info.RData"
 
 ##############
 # Load data
@@ -94,7 +107,11 @@ FileNames <- list.files(OutFolderName_NonRef, pattern = ".bam",
 FileNames <- FileNames[-grep(".bam.", FileNames)]
 
 # Collect information on insertion that fullfill a certain minimum criterion
-idx5P <- which(sapply(1:nrow(CoverMat), function(x) all(CoverMat[x, FivePStart:FivePEnd] > 0)))
+idx5P <- which(sapply(1:nrow(CoverMat), function(x) {
+  all(CoverMat[x, FivePStart:FivePEnd] >= MinCover)
+}))
+cat("******  ", length(idx5P), "insertions have a minimum coverage of", 
+MinCover, "in 5' region from", FivePStart, "to", FivePEnd, "   *********\n")
 idxFull <- which(sapply(1:nrow(CoverMat), function(x) all(CoverMat[x, FivePStart:6040] > 0)))
 FullL1Info <- t(sapply(FilesWithReads[idx5P], function(x){
   FPathSplit <- strsplit(x, "/")[[1]]
@@ -111,15 +128,93 @@ FullL1Info$end   <- end(IslGRanges_reduced[FullL1Info$idx])
 FullL1Info$cover   <- CoverMat[idx5P, 100]
 FilesWithReads[idxFull]
 
+# Get indices of insertions that are not full-length
+FullL1Info$PotentialFullLength <- sapply(1:length(idx5P), function(i){
+  x <- idx5P[i]
+  RL <- ReadListPerPeak[[x]]
+  primMap <- RL$flag <= 2047
+  RL <- lapply(RL, function(y) y[primMap])
+  ReadLenghsL1 <- sapply(RL$cigar, ReadLengthFromCigar)
+  LRClipped <- sapply(RL$cigar, NrClippedFromCigar)
+  !any((ReadLenghsL1 <= MaxL1Pos) & (LRClipped[2,] > MinClip))
+})
+cat("******  ", sum(FullL1Info$PotentialFullLength, na.rm = T), 
+    "insertions are potentially full length *********\n")
+
+
+# Set up insertion descriptors
+FullL1GR <- makeGRangesFromDataFrame(FullL1Info)
+FullL1Info$L1InsertionPosition.median <- NA
+FullL1Info$L1InsertionPosition.min    <- NA
+FullL1Info$L1InsertionPosition.max    <- NA
+FullL1Info$L1Strand <- NA
+FullL1Info$L15PTransdSeq.median <- NA
+FullL1Info$L15PTransdSeq.min    <- NA
+FullL1Info$L15PTransdSeq.max    <- NA
+FullL1Info$NrSupportReads    <- NA
+
+# Loop through potential full-length
+for (i in which(FullL1Info$PotentialFullLength)){
+  x <- idx5P[i]
+  
+  # Get reads mapped to L1, retain only primary reads and get the number of bp
+  # clipped on the left
+  RL <- ReadListPerPeak[[x]]
+  primMap     <- RL$flag <= 2047
+  RL          <- lapply(RL, function(y) y[primMap])
+  LRClippedL1 <- sapply(RL$cigar, NrClippedFromCigar)
+  L1Length    <- width(RL$seq) - LRClippedL1[1,]
+  
+  # Get reads mapped to the genome 
+  ScanParam <- ScanBamParam(what = scanBamWhat(), which = FullL1GR[i])
+  GenomeRL  <- scanBam(GenomeBamPath,  param = ScanParam)
+  LRClippedG <- sapply(RL$cigar, NrClippedFromCigar)
+  ReadMatch <- match(RL$qname, GenomeRL[[1]]$qname)
+  
+  # Loop through reads an collect information on number of bps clipped on
+  # reads mapped to genome, the insertion location and the insertion strand
+  L1Info <- sapply(1:length(ReadMatch), function(y) {
+    idxGR <- ReadMatch[y]
+    LRClipped <- NrClippedFromCigar(GenomeRL[[1]]$cigar[idxGR])
+    if (LRClipped[1] > LRClipped[2]) {
+      bpClipped <- LRClipped[1]
+      L1Strand  <- 0 # 0 corresponds to negative strand
+      InsPos <- GenomeRL[[1]]$pos[idxGR]
+    } else {
+      bpClipped <- LRClipped[2]
+      L1Strand  <- 1 # 1 corresponds to positive strand
+      InsPos <- GenomeRL[[1]]$pos[idxGR] + 
+        ReadLengthFromCigar(GenomeRL[[1]]$cigar[idxGR])
+    }
+    c(bpClipped = bpClipped, L1Strand = L1Strand, InsPos = InsPos)
+  })
+  
+  # Fill in info about L1 insertion in FullL1Info
+  if (mean(L1Info["L1Strand",]) > 0.5) {
+    FullL1Info$L1Strand[i] <- "+"
+  } else {
+    FullL1Info$L1Strand[i] <- "-"
+  }
+  FullL1Info$L1InsertionPosition.median[i] <- median(L1Info["InsPos",])
+  FullL1Info$L1InsertionPosition.min[i]    <- min(L1Info["InsPos",])
+  FullL1Info$L1InsertionPosition.max[i]    <- max(L1Info["InsPos",])
+  
+  # Get length of transduced sequence and number of supporting reads
+  LengthTransduced <- -(L1Length - L1Info["bpClipped",])
+  FullL1Info$L15PTransdSeq.median[i] <- median(LengthTransduced)
+  FullL1Info$L15PTransdSeq.min[i]    <- min(LengthTransduced)
+  FullL1Info$L15PTransdSeq.max[i]    <- max(LengthTransduced)
+  FullL1Info$NrSupportReads[i]       <- length(ReadMatch)
+}
+
+
 # Create genomic ranges for L1 insertions and compare with known L1 ranges
 GRL1Capture <- makeGRangesFromDataFrame(FullL1Info)
 GRL1Capture100 <- resize(GRL1Capture, 100, fix = "center")
 L1CatalogGR100 <- resize(L1CatalogGR, 100, fix = "center")
 GRL1Ins1000G100 <- resize(GRL1Ins1000G, 100, fix = "center")
 if (any(c(sum(overlapsAny(GRL1Capture100, L1CatalogGR100)),
-          sum(overlapsAny(GRL1Capture100, GRL1Ins1000G100)),
-          sum(overlapsAny(IslGRanges_reduced, L1CatalogGR100)),
-          sum(overlapsAny(IslGRanges_reduced, GRL1Ins1000G100))) > 0)){
+          sum(overlapsAny(GRL1Capture100, GRL1Ins1000G100))) > 0)){
   cat("Some newly found L1 insertion overlap with catalog or 1000 Genome elements!\n")
 }
 
@@ -141,17 +236,20 @@ NewL1Seq <- sapply(1:length(idx5P), function(i){
   })
   
   # Create a consensus sequence
-  ConsensSeq  <- c()
-  ConsensProp <- c()
-  for(x in 1:nrow(ReadMat)){
+  ConsensSeq  <- L1ConsSeq[1:FivePEnd]
+  ConsensProp <- rep(1, FivePEnd)
+  AllDel <- sapply(1:nrow(ReadMat), function(x) all(ReadMat[x,] == "-"))
+  ConsensSeq[AllDel] <- "-"
+  for(x in which(!AllDel)){
     NucCount    <- table(ReadMat[x,])
-    ConsensSeq  <- c(ConsensSeq,names(NucCount)[which.max(NucCount)])
-    ConsensProp <- c(ConsensProp,max(NucCount)/sum(NucCount))
+    NucCount    <- NucCount[names(NucCount) != "-"]
+    ConsensSeq[x]  <- names(NucCount)[which.max(NucCount)]
+    ConsensProp[x] <- max(NucCount)/sum(NucCount)
   }
   
   # Replace nucleotides that are variable 
-  blnReplace <- (ConsensSeq == "-") | ConsensProp < 0.6
-  ConsensSeq[blnReplace] <- L1ConsSeq[blnReplace]
+  idxReplace <- which(ConsensProp < MinPolyProp)
+  ConsensSeq[idxReplace] <- L1ConsSeq[idxReplace]
   ConsensSeq
 })
 colnames(NewL1Seq) <- paste(FullL1Info$chromosome, FullL1Info$start,
@@ -159,25 +257,32 @@ colnames(NewL1Seq) <- paste(FullL1Info$chromosome, FullL1Info$start,
 
 # Calculate the number of nucleaotide diefferences between different L1 stumps
 DiffMat <- sapply(1:ncol(NewL1Seq), function(x) {
+  cat("Calculating differences for sequence", x, "of", ncol(NewL1Seq), "\n")
   sapply(1:ncol(NewL1Seq), function(y){
      sum(NewL1Seq[ , x] != NewL1Seq[ , y])
   })
 })
 
-# Count differences to consensus sequence
-Diff2L1Consens <- sapply(1:ncol(NewL1Seq), function(x) {
-    sum(NewL1Seq[ , x] != L1ConsSeq[1:FivePEnd])
-})
-hist(Diff2L1Consens, breaks = seq(-5, 105, 5))
-sum(Diff2L1Consens == 0)
-
 # Determine indices of sequences that are identical with another
 diag(DiffMat) <- NA
 max(DiffMat, na.rm = T)
 min(DiffMat, na.rm = T)
+mean(DiffMat, na.rm = T)
 sum(DiffMat == 0, na.rm = T)
 idxIdentical <- which(DiffMat == 0, arr.ind = T)
 idxIdentical <- unique(as.vector(idxIdentical))
+
+# Count differences to consensus sequence
+Diff2L1Consens <- sapply(1:ncol(NewL1Seq), function(x) {
+    sum(NewL1Seq[ , x] != L1ConsSeq[1:FivePEnd])
+})
+hist(Diff2L1Consens, breaks = seq(-5, 1005, 5))
+sum(Diff2L1Consens == 0)
+mean(Diff2L1Consens)
+NrDel <- sapply(1:ncol(NewL1Seq), function(x) {
+  sum(NewL1Seq[ , x] == "-")
+})
+rownames(FullL1Info)[which.max(NrDel)]
 
 # Get L1 5' sequences that are non-reference
 L1Catalogue <- LiftOverList$L1CatalogWithHG19
@@ -196,11 +301,16 @@ colnames(L1NonRef) <- paste(L1Catalogue$Chromosome[idxNonRef],
                             L1Catalogue$Accession[idxNonRef], sep = "_")
 
 
-# Put all the different L1 sequences together
+# Put all the different L1 sequences together, remove consistent deletions and
+# save as fasta file
 L1StumpRef <- cbind(NewL1Seq[,-idxIdentical[-1]], L1NonRef, L1RefSeqMat)
-L1StumpRef <- t(L1StumpRef)
-dim(L1StumpRef)
-#write.dna(L1StumpRef, NewL1RefOutPath, format = "fasta")
-L1StumpList <- lapply(1:nrow(L1StumpRef), function(x) L1StumpRef[x,])
-write.fasta(L1StumpList, rownames(L1StumpRef), NewL1RefOutPath)
+L1StumpList <- lapply(1:ncol(L1StumpRef), function(x) {
+  c(L1StumpRef[L1StumpRef[,x] != "-",x], L1ConsSeq[(FivePEnd + 1):length(L1ConsSeq)])
+})
+cat("*****   Saving new L1 references as file", NewL1RefOutPath, "  *****\n")
+write.fasta(L1StumpList, colnames(L1StumpRef), NewL1RefOutPath)
+
+# Save info about insertions
+cat("*****   Saving image to", ResultPath, "  *****\n")
+save.image(ResultPath)
 
