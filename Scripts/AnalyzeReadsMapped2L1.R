@@ -25,7 +25,7 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 # and the minimum coverage in that region
 FivePStart <- 50
 FivePEnd   <- 2000
-MinCover   <- 2
+MinCover   <- 1
 
 # Set parameter to determine whether a L1 insertion is potentially full-length
 # (it is not fill-length if it has reads that are clipped by MinClip or more,
@@ -303,7 +303,7 @@ colnames(L1NonRef) <- paste(L1Catalogue$Chromosome[idxNonRef],
 
 # Put all the different L1 sequences together, remove consistent deletions and
 # save as fasta file
-L1StumpRef <- cbind(NewL1Seq[,-idxIdentical[-1]], L1NonRef, L1RefSeqMat)
+L1StumpRef <- cbind(NewL1Seq, L1NonRef, L1RefSeqMat)
 L1StumpList <- lapply(1:ncol(L1StumpRef), function(x) {
   c(L1StumpRef[L1StumpRef[,x] != "-",x], L1ConsSeq[(FivePEnd + 1):length(L1ConsSeq)])
 })
