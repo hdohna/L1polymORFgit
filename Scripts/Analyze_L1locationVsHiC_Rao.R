@@ -3,6 +3,7 @@
 library(GenomicRanges)
 library(rtracklayer)
 library(Matrix)
+library(irlba)
 
 ############
 #  Process L1 data
@@ -56,11 +57,6 @@ L1CatGR_hg19 <- liftOver(L1CatalogGR,
 NrRanges <- sapply(L1CatGR_hg19, length)
 idxUniqueMapped <- NrRanges == 1
 L1CatGR_hg19 <- unlist(L1CatGR_hg19[idxUniqueMapped])
-L1CatGR_hg18 <- liftOver(L1CatGR_hg19, 
-                         chain = import.chain(ChainFile19To18))
-NrRanges <- sapply(L1CatGR_hg18, length)
-idxUniqueMapped <- NrRanges == 1
-L1CatGR_hg18 <- unlist(L1CatGR_hg18[idxUniqueMapped])
 
 
 ############
@@ -68,25 +64,41 @@ L1CatGR_hg18 <- unlist(L1CatGR_hg18[idxUniqueMapped])
 ############
 
 # Set window length and folderpath
+Chrom <- "chr1"
 WindowL       <- 50000
 HiCFolderPath <- "D:/L1polymORF/Data/HiCData"
 
 # Get lists of files 
 RawMatFile <- list.files(HiCFolderPath, full.names = T, 
                          pattern = "RAWobserved")
-StVFile   <- list.files(HiCFolderPath, full.names = T, pattern = "SQRTVCnorm")
+StVFile   <- list.files(HiCFolderPath, full.names = T, pattern = "kb.VCnorm")
+ExpFile   <- list.files(HiCFolderPath, full.names = T, pattern = ".VCexpected")
 
-# Specify the number of neighbors to consider
-HiCMat <- read.table(RawMatFile)
-StVect <- read.table(StVFile)
-idx1   <- HiCMat[,1] / WindowL + 1
-idx2   <- HiCMat[,2] / WindowL + 1
-HiCMat <- cbind(HiCMat, HiCMat[,3]/ StVect[idx1,] / StVect[idx2,])
-colnames(HiCMat) <- c("i", "j", "RawReads", "NormReads")
+# Read in Hi-C data and standardization vectors
+HiCMat           <- read.table(RawMatFile)
+colnames(HiCMat) <- c("Left1", "Left2", "RawReads")
+StVect           <- read.table(StVFile)
+ExpVect          <- read.table(ExpFile)
+
+# Standardize Hi-C data and standardization vectors
+idx1             <- HiCMat[,1] / WindowL + 1
+idx2             <- HiCMat[,2] / WindowL + 1
+idx3             <- (HiCMat[,2] - HiCMat[,1]) / WindowL + 1
+HiCMat$NormReads <- HiCMat[,3] / StVect[idx1,] / StVect[idx2,]
+HiCMat$NormEO    <- HiCMat$NormReads / ExpVect[idx3,]
+
+# Create a sparse matrix of contact
+M <- sparseMatrix(i = idx1, j = idx2, x = HiCMat$NormEO, symmetric = T)
+SVDM <- irlba(M, nv = 1, nu = 0, center = colMeans(M), fastpath=FALSE)
+PC1 <- M %*% SVDM$v
+length(PC1)
+plot(PC1, ylim = c(-0.1, 3))
+plot(PC1[1:200], ylim = c(-0.1, 3), type = "l")
 
 # Turn Hi-C data into a GRanges object
-HiCGR <- makeGRangesFromDataFrame(HiCData)
-
+idxV  <- 0:nrow(StVect)* WindowL
+HiCGR <- GRanges(seqnames = Chrom, IRanges(start = idxV[-length(idxV)],
+                                           end = idxV[-1]))
 # Find overlap with fragments and catalog elements
 L1RefGR_hg18_fragm <- L1RefGR_hg18[width(L1RefGR_hg18) < 5000]
 idxOverlap_fragm   <- findOverlaps(HiCGR, L1RefGR_hg18_fragm)
