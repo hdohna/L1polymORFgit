@@ -84,20 +84,6 @@ L1GRZero <- c(L1RefGRFullnotCat, L1CatalogGR[blnZero])
 # Load data
 load(L1GRanges1000GenomesPath)
 
-# Subset L1Ins1000G_Info so that it only contains the infor for L1 mapped to hg38
-L1Ins1000G_Info_mapped <- L1Ins1000G_Info[idxUniqueMapped_hg38,]
-
-# Subset genomic ranges to get full-length and fragments in three different 
-# frequency classes
-blnFull    <- L1Ins1000G_Info_mapped$InsLength >= 6000
-blnMedFreq <- L1Ins1000G_Info_mapped$Freq >= 10
-blnHiFreq  <- L1Ins1000G_Info_mapped$Freq >= 20
-GRL1Ins1000G_Full       <- GRL1Ins1000G_hg38Mapped[which(blnFull)]
-GRL1Ins1000G_Full_MedF  <- GRL1Ins1000G_hg38Mapped[which(blnFull & blnMedFreq)]
-GRL1Ins1000G_Full_HiF   <- GRL1Ins1000G_hg38Mapped[which(blnFull & blnHiFreq)]
-GRL1Ins1000G_Fragm      <- GRL1Ins1000G_hg38Mapped[which(!blnFull)]
-GRL1Ins1000G_Fragm_MedF <- GRL1Ins1000G_hg38Mapped[which(!blnFull & blnMedFreq)]
-GRL1Ins1000G_Fragm_HiF  <- GRL1Ins1000G_hg38Mapped[which(!blnFull & blnHiFreq)]
 
 ############################
 #                          #
@@ -160,15 +146,14 @@ blnL1OverlapExon     <- overlapsAny(L1CatalogGR,
 blnExonOverlapL1     <- overlapsAny(exons(TxDb.Hsapiens.UCSC.hg38.knownGene), L1CatalogGR) 
 
 # Count overlaps between L1 and exons 
-blnL1OverlapGene     <- overlapsAny(L1CatalogGR, GRgenes)
+blnL1OverlapGene_Cat   <- overlapsAny(L1CatalogGR, GRgenes)
+blnL1OverlapGene_Fragm <- overlapsAny(L1FragmGR, GRgenes)
 blnGeneOverlapCat    <- overlapsAny(GRgenes, L1CatalogGR)
 blnGeneOverlapFragm  <- overlapsAny(GRgenes, L1FragmGR)
-blnL1OverlapPromoter <- overlapsAny(L1CatalogGR, 
+blnL1OverlapPromoter_Cat <- overlapsAny(L1CatalogGR, 
    promoters(TxDb.Hsapiens.UCSC.hg38.knownGene, upstream = 5000)) 
-mean(blnGeneOverlapCat)
-mean(blnGeneOverlapCat)
-sum(blnL1OverlapExon)
-sum(blnL1OverlapGene)
+mean(blnL1OverlapGene_Cat)
+mean(blnL1OverlapGene_Fragm)
 sum(blnL1OverlapPromoter)
 mean(blnL1OverlapGene)
 
@@ -224,15 +209,13 @@ CreateDisplayPdf('D:/L1polymORF/Figures/L1propIntronVsSize.pdf')
 idxMax <- which.max(width(L1FragmGR))
 PredictProp <- fitted.values(LogRegFit)[idxMax]
 
-# Calculate standard error for prediction
-NewData <- data.frame(FragmWidth = 6000)
-
+# Get predicted standard error for prediction
+NewData  <- data.frame(FragmWidth = 6000)
 PredictP <- predict(LogRegFit, se.fit = T, newdata = NewData)
-PredictP$se.fit[idxMax]
 
 # Sample proportion and number of intersecting L1
 SampleSize  <- 10000
-SampleFit <- rnorm(SampleSize, PredictP$fit, PredictP$se.fit)
+SampleFit   <- rnorm(SampleSize, PredictP$fit, PredictP$se.fit)
 SampleProps <- exp(SampleFit) / (1 + exp(SampleFit))
 hist(SampleProps)
 SampledVals <- sapply(SampleProps, function(x) {
@@ -247,7 +230,7 @@ CreateDisplayPdf('D:/L1polymORF/Figures/L1propInL1.pdf')
 #1 - pbinom(sum(blnL1OverlapGene), length(L1CatalogGR), PredictProp)
 
 ##########
-#  Calculate distances to genes
+#  Calculate distances to genes, catalog L1
 ##########
 
 # Auxiliary function to get distances to closest gene
@@ -255,9 +238,13 @@ Dist2ClosestGene <- function(GR){
   DistGeneObj <- distanceToNearest(GR, GRgenes, ignore.strand = T) 
   DistGeneObj@elementMetadata@listData$distance
 }
+Dist2Closest <- function(GR1, GR2){
+  DistObj <- distanceToNearest(GR1, GR2, ignore.strand = T) 
+  DistObj@elementMetadata@listData$distance
+}
 
 # Calculate distances from full-length L1 to nearest gene
-L1DistGene <- Dist2ClosestGene(L1CatalogGR)
+L1DistGene        <- Dist2ClosestGene(L1CatalogGR)
 L1NonZeroDistGene <- Dist2ClosestGene(L1CatalogGR_nonZero)
 L1ZeroDistGene    <- Dist2ClosestGene(L1GRZero)
 
@@ -274,9 +261,9 @@ chisq.test(NearestStrand, as.vector(strand(L1CatalogGR)))
 # nearest gene
 UpStream   <- start(GRgenes)[idxNearest] < start(L1CatalogGR) 
 table(UpStream, as.vector(strand(L1CatalogGR)))
-chisq.test(NearestStrand, as.vector(strand(L1CatalogGR)))
+chisq.test(UpStream, as.vector(strand(L1CatalogGR)))
 
-
+# Exploring distances to genes
 sum(L1DistGene == 0)
 hist(L1DistGene, xlab = "Distance to closest gene")
 hist(L1DistGene, xlab = "Distance to closest gene", breaks = seq(0, 3*10^6, 1000))
@@ -300,14 +287,6 @@ L1DistGene_FullnotCat <- Dist2ClosestGene(L1RefGRFullnotCat)
 # fragment length
 FitDistVsLength <- glm(L1DistGene_Fragm ~ width(L1FragmGR))
 summary(FitDistVsLength)
-QRFitDistVsLength <- rq(L1DistGene_Fragm ~ width(L1FragmGR), tau = 0.75)
-summary(QRFitDistVsLength)
-
-# Calculate distances from close fragment L1 to nearest gene
-L1DistGene_Fragm_close   <- Dist2ClosestGene(L1FragmGR_close)
-L1DistGene_Fragm_diverge <- Dist2ClosestGene(L1FragmGR_diverge)
-mean(L1DistGene_Fragm_close)
-mean(L1DistGene_Fragm_diverge)
 
 # Plot smoothed densities for catalog and fragment distance distribution
 par(mfrow = c(1, 1))
@@ -342,6 +321,25 @@ lines(c(0, 10^7), c(0, 10^7))
 CreateDisplayPdf('D:/L1polymORF/Figures/L1geneDistQQ_CatalogVsNonCatalog.pdf')
 
 
+##########
+#  Calculate distances to genes, 1000 genomes
+##########
+
+# Subset L1Ins1000G_Info so that it only contains the infor for L1 mapped to hg38
+L1Ins1000G_Info_mapped <- L1Ins1000G_Info[idxUniqueMapped_hg38,]
+
+# Subset genomic ranges to get full-length and fragments in three different 
+# frequency classes
+blnFull    <- L1Ins1000G_Info_mapped$InsLength >= 6000
+blnMedFreq <- L1Ins1000G_Info_mapped$Freq >= 10
+blnHiFreq  <- L1Ins1000G_Info_mapped$Freq >= 20
+GRL1Ins1000G_Full       <- GRL1Ins1000G_hg38Mapped[which(blnFull)]
+GRL1Ins1000G_Full_MedF  <- GRL1Ins1000G_hg38Mapped[which(blnFull & blnMedFreq)]
+GRL1Ins1000G_Full_HiF   <- GRL1Ins1000G_hg38Mapped[which(blnFull & blnHiFreq)]
+GRL1Ins1000G_Fragm      <- GRL1Ins1000G_hg38Mapped[which(!blnFull)]
+GRL1Ins1000G_Fragm_MedF <- GRL1Ins1000G_hg38Mapped[which(!blnFull & blnMedFreq)]
+GRL1Ins1000G_Fragm_HiF  <- GRL1Ins1000G_hg38Mapped[which(!blnFull & blnHiFreq)]
+
 # Calculate distances from full-length and fragment L1 from 1000 genome data to
 # closest gene
 L1Full1000G_DistGene    <- Dist2ClosestGene(GRL1Ins1000G_Full)
@@ -361,8 +359,6 @@ QQHi <- qqplot(L1FragmHi1000G_DistGene, L1FullHi1000G_DistGene, plot.it = F)
 points(QQHi$x, QQHi$y, pch = 2)
 CreateDisplayPdf('D:/L1polymORF/Figures/L1geneDistQQ_1000G.pdf')
 
-
-
 # Plot histograms for catalog and fragment distance distribution
 Hist_Fragm <- hist(L1DistGene_Fragm, breaks = seq(0, 5*10^6, 5*10^4),
                    plot = F)
@@ -376,6 +372,27 @@ points(Hist_Fragm$mids, log(Hist_Fragm$density), col = "red")
 legend("topright", legend = c("catalog", "fragment"), col = c("blue", "red"),
        lty = c(1,1))
 CreateDisplayPdf('D:/L1polymORF/Figures/L1geneDistLogHisto.pdf')
+
+##########
+#  Calculate distances to domain boundaries, catalog L1
+##########
+
+# Read in domain data
+Domains <- read.delim("D:/L1polymORF/Data/HiCData/GSE63525_GM12878_primary+replicate_Arrowhead_domainlist.txt")
+Domains$chr1 <- paste("chr", Domains$chr1, sep = "")
+DomainsGR <- makeGRangesFromDataFrame(Domains, seqnames.field = "chr1", 
+   start.field="x1", end.field = "x2")
+DomainBoundaryGR1 <- makeGRangesFromDataFrame(Domains, seqnames.field = "chr1", 
+                                      start.field="x1", end.field = "x1")
+DomainBoundaryGR2 <- makeGRangesFromDataFrame(Domains, seqnames.field = "chr1", 
+                                              start.field="x2", end.field = "x2")
+DomainBoundariesGR <- c(DomainBoundaryGR1, DomainBoundaryGR2)
+
+DistDomFragm <- Dist2Closest(L1FragmGR, DomainBoundariesGR)
+DistDomRef <- Dist2Closest(L1CatalogGR_Ref, DomainBoundariesGR)
+qqplot(DistDomFragm, DistDomRef, ylab = "Distance full-length L1 to domain",
+       xlab = "Distance fragment L1 to domain")
+lines(c(0, 10^10), c(0, 10^10))
 
 ##########
 #  Compare distances to genes with other properties
