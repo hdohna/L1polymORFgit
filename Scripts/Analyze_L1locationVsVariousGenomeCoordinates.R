@@ -57,6 +57,11 @@ blnAllele1        <- L1Catalogue$Allele == 1
 blnInRef1         <- (L1Catalogue$end_HG38 - L1Catalogue$start_HG38) > 6000 
 L1CatalogL1Mapped <- L1Catalogue[blnL1Mapped & blnAllele1,]
 
+# Lift catalog ranges to hg19
+L1LiftoverList <- LiftoverL1Catalog(L1CatalogL1Mapped,  
+                     ChainFilePath = "D:/L1polymORF/Data/hg38ToHg19.over.chain")
+L1CatalogGR_hg19 <- L1LiftoverList$GRCatalogue_hg19
+
 # Create genomic ranges for catalog L1
 L1CatalogGR <- GRanges(seqnames = L1CatalogL1Mapped$Chromosome,
    ranges = IRanges(start = pmin(L1CatalogL1Mapped$start_HG38,
@@ -144,6 +149,7 @@ GRgenes <- genes(TxDb.Hsapiens.UCSC.hg38.knownGene)
 blnL1OverlapExon     <- overlapsAny(L1CatalogGR, 
                                exons(TxDb.Hsapiens.UCSC.hg38.knownGene)) 
 blnExonOverlapL1     <- overlapsAny(exons(TxDb.Hsapiens.UCSC.hg38.knownGene), L1CatalogGR) 
+sum(blnL1OverlapExon)
 
 # Count overlaps between L1 and exons 
 blnL1OverlapGene_Cat   <- overlapsAny(L1CatalogGR, GRgenes)
@@ -154,8 +160,8 @@ blnL1OverlapPromoter_Cat <- overlapsAny(L1CatalogGR,
    promoters(TxDb.Hsapiens.UCSC.hg38.knownGene, upstream = 5000)) 
 mean(blnL1OverlapGene_Cat)
 mean(blnL1OverlapGene_Fragm)
-sum(blnL1OverlapPromoter)
-mean(blnL1OverlapGene)
+sum(blnL1OverlapPromoter_Cat)
+mean(blnL1OverlapGene_Cat)
 
 # Perform logistic regression to determine whether fragment length predicts
 # probability of gene overlap
@@ -169,8 +175,8 @@ par(mfrow = c(1, 1))
 plot(c(0, 3), c(0, 0.2), type = "n", xlab = "L1 type", ylab = "Proportion in gene",
      xaxt = "n")
 axis(1, at = 1:2, labels = c("Fragment", "Full-length"))
-MeanProps <- c(mean(blnL1OverlapGene_Fragm), mean(blnL1OverlapGene))
-StErr <- sqrt(c(var(blnL1OverlapGene_Fragm), var(blnL1OverlapGene))/
+MeanProps <- c(mean(blnL1OverlapGene_Fragm), mean(blnL1OverlapGene_Cat))
+StErr <- sqrt(c(var(blnL1OverlapGene_Fragm), var(blnL1OverlapGene_Cat))/
                     c(length(L1FragmGR), length(L1CatalogGR)))
 rect(c(0.7, 1.7), c(0, 0), c(1.3, 2.3), MeanProps, col = "grey")
 AddErrorBars(MidX = c(1, 2), MidY = MeanProps, ErrorRange = StErr,
@@ -178,12 +184,12 @@ AddErrorBars(MidX = c(1, 2), MidY = MeanProps, ErrorRange = StErr,
 CreateDisplayPdf('D:/L1polymORF/Figures/L1propIntron.pdf')
 
 # Calculate proportions of L1 insertions intersecting with gene bodies
-mean(blnL1OverlapGene)
+mean(blnL1OverlapGene_Cat)
 mean(blnL1OverlapGene_Fragm)
-pbinom(q = sum(blnL1OverlapGene), size  = length(blnL1OverlapGene),
+pbinom(q = sum(blnL1OverlapGene_Cat), size  = length(blnL1OverlapGene_Cat),
        prob = mean(blnL1OverlapGene_Fragm))
 
-# Get proportion overlap 
+# Plot proportion overlap per insert size class 
 WidthCut <- cut(width(L1FragmGR), breaks = seq(0, 5000, 500))
 PropInGene <- aggregate(blnL1OverlapGene_Fragm ~ WidthCut, FUN = mean)
 VarInGene <- aggregate(blnL1OverlapGene_Fragm ~ WidthCut, FUN = var)
@@ -200,17 +206,13 @@ AddErrorBars(MidX = AvWidth$`width(L1FragmGR)`, MidY = PropInGene$blnL1OverlapGe
              ErrorRange = StErrInGene,TipWidth = 100)
 WidthOrder <- order(width(L1FragmGR))
 lines(width(L1FragmGR)[WidthOrder], fitted.values(LogRegFit)[WidthOrder])
-segments(0, mean(blnL1OverlapGene), 10^6, mean(blnL1OverlapGene), col = "red",
+segments(0, mean(blnL1OverlapGene_Cat), 10^6, mean(blnL1OverlapGene_Cat), col = "red",
          lty = 2)
 CreateDisplayPdf('D:/L1polymORF/Figures/L1propIntronVsSize.pdf')
 
-# Test whether the observed proportion of catalog L1 overlapping with genes is
-# statistically significant from the proportion expected at size 5000
-idxMax <- which.max(width(L1FragmGR))
-PredictProp <- fitted.values(LogRegFit)[idxMax]
-
-# Get predicted standard error for prediction
-NewData  <- data.frame(FragmWidth = 6000)
+# Get predicted logit transformed proportion and standard error for prediction
+# for length of 6000 bp
+NewData  <- data.frame(FragmWidth = 6064)
 PredictP <- predict(LogRegFit, se.fit = T, newdata = NewData)
 
 # Sample proportion and number of intersecting L1
@@ -221,7 +223,7 @@ hist(SampleProps)
 SampledVals <- sapply(SampleProps, function(x) {
   rbinom(1, length(L1CatalogGR), x)
 })
-ObsVal <- sum(blnL1OverlapGene)
+ObsVal <- sum(blnL1OverlapGene_Cat)
 sum(SampledVals >= ObsVal) / length(SampledVals)
 hist(SampledVals, main = "", xlab = "Number of L1 in gene bodies")
 segments(x0 = ObsVal, y0 = 0, y1 = 5000, col = "red")
@@ -334,8 +336,8 @@ blnFull    <- L1Ins1000G_Info_mapped$InsLength >= 6000
 blnMedFreq <- L1Ins1000G_Info_mapped$Freq >= 10
 blnHiFreq  <- L1Ins1000G_Info_mapped$Freq >= 20
 GRL1Ins1000G_Full       <- GRL1Ins1000G_hg38Mapped[which(blnFull)]
-GRL1Ins1000G_Full_MedF  <- GRL1Ins1000G_hg38Mapped[which(blnFull & blnMedFreq)]
 GRL1Ins1000G_Full_HiF   <- GRL1Ins1000G_hg38Mapped[which(blnFull & blnHiFreq)]
+GRL1Ins1000G_Full_lowF  <- GRL1Ins1000G_hg38Mapped[which(blnFull & !blnHiFreq)]
 GRL1Ins1000G_Fragm      <- GRL1Ins1000G_hg38Mapped[which(!blnFull)]
 GRL1Ins1000G_Fragm_MedF <- GRL1Ins1000G_hg38Mapped[which(!blnFull & blnMedFreq)]
 GRL1Ins1000G_Fragm_HiF  <- GRL1Ins1000G_hg38Mapped[which(!blnFull & blnHiFreq)]
@@ -343,7 +345,7 @@ GRL1Ins1000G_Fragm_HiF  <- GRL1Ins1000G_hg38Mapped[which(!blnFull & blnHiFreq)]
 # Calculate distances from full-length and fragment L1 from 1000 genome data to
 # closest gene
 L1Full1000G_DistGene    <- Dist2ClosestGene(GRL1Ins1000G_Full)
-L1FullMed1000G_DistGene <- Dist2ClosestGene(GRL1Ins1000G_Full_MedF)
+L1FullMed1000G_DistGene <- Dist2ClosestGene(GRL1Ins1000G_Full_lowF)
 L1FullHi1000G_DistGene  <- Dist2ClosestGene(GRL1Ins1000G_Full_HiF)
 
 L1Fragm1000G_DistGene    <- Dist2ClosestGene(GRL1Ins1000G_Fragm)
@@ -355,8 +357,10 @@ qqplot(L1Fragm1000G_DistGene, L1Full1000G_DistGene, ylab = "Distance full-length
 lines(c(0, 10^7), c(0, 10^7))
 # QQMed <- qqplot(L1FragmMed1000G_DistGene, L1FullMed1000G_DistGene, plot.it = F)
 # points(QQMed$x, QQMed$y, pch = 2)
-QQHi <- qqplot(L1FragmHi1000G_DistGene, L1FullHi1000G_DistGene, plot.it = F)
+QQHi <- qqplot(L1Fragm1000G_DistGene, L1FullHi1000G_DistGene, plot.it = F)
+QQHiFragm <- qqplot(L1Fragm1000G_DistGene, L1FragmHi1000G_DistGene, plot.it = F)
 points(QQHi$x, QQHi$y, pch = 2)
+points(QQHiFragm$x, QQHiFragm$y, pch = 3)
 CreateDisplayPdf('D:/L1polymORF/Figures/L1geneDistQQ_1000G.pdf')
 
 # Plot histograms for catalog and fragment distance distribution
@@ -377,22 +381,81 @@ CreateDisplayPdf('D:/L1polymORF/Figures/L1geneDistLogHisto.pdf')
 #  Calculate distances to domain boundaries, catalog L1
 ##########
 
-# Read in domain data
-Domains <- read.delim("D:/L1polymORF/Data/HiCData/GSE63525_GM12878_primary+replicate_Arrowhead_domainlist.txt")
+# Read in domain and loop data
+Domains_GM12878 <- read.delim("D:/L1polymORF/Data/HiCData/GSE63525_GM12878_primary+replicate_Arrowhead_domainlist.txt")
+Domains <- read.delim("D:/L1polymORF/Data/HiCData/GSE63525_HMEC_Arrowhead_domainlist.txt")
+Loops_GM12878 <- read.delim("D:/L1polymORF/Data/HiCData/GSE63525_GM12878_primary+replicate_HiCCUPS_looplist.txt")
+all(Domains[,c("chr1", "x1", "x2")] == Domains[,c("chr2", "y1", "y2")])
+all(Domains$chr1 == Domains$chr2)
+
+# Create genomic ranges for both sides of a loop
+Loops_GM12878$chr1 <- paste("chr", Loops_GM12878$chr1, sep = "")
+Loops_GM12878$chr2 <- paste("chr", Loops_GM12878$chr2, sep = "")
+LoopsGR1 <- makeGRangesFromDataFrame(Loops_GM12878, seqnames.field = "chr1", 
+                                    start.field="x1", end.field = "x2")
+LoopsGR2 <- makeGRangesFromDataFrame(Loops_GM12878, seqnames.field = "chr2", 
+                                     start.field="y1", end.field = "y2")
+LoopsGR <- makeGRangesFromDataFrame(Loops_GM12878, seqnames.field = "chr1", 
+                                     start.field="x1", end.field = "y2")
+sum(overlapsAny(LoopsGR1, LoopsGR2))
+mean(overlapsAny(LoopsGR1, L1CatalogGR_Ref)) * sum(overlapsAny(LoopsGR1, LoopsGR2))
+
+
 Domains$chr1 <- paste("chr", Domains$chr1, sep = "")
 DomainsGR <- makeGRangesFromDataFrame(Domains, seqnames.field = "chr1", 
-   start.field="x1", end.field = "x2")
+   start.field="y1", end.field = "y2")
 DomainBoundaryGR1 <- makeGRangesFromDataFrame(Domains, seqnames.field = "chr1", 
                                       start.field="x1", end.field = "x1")
 DomainBoundaryGR2 <- makeGRangesFromDataFrame(Domains, seqnames.field = "chr1", 
                                               start.field="x2", end.field = "x2")
 DomainBoundariesGR <- c(DomainBoundaryGR1, DomainBoundaryGR2)
 
-DistDomFragm <- Dist2Closest(L1FragmGR, DomainBoundariesGR)
-DistDomRef <- Dist2Closest(L1CatalogGR_Ref, DomainBoundariesGR)
+DistDomFragm <- Dist2Closest(L1FragmGR, DomainsGR)
+DistDomRef   <- Dist2Closest(L1CatalogGR_Ref, DomainsGR)
+DistDomCat   <- Dist2Closest(L1CatalogGR, DomainsGR)
 qqplot(DistDomFragm, DistDomRef, ylab = "Distance full-length L1 to domain",
        xlab = "Distance fragment L1 to domain")
 lines(c(0, 10^10), c(0, 10^10))
+
+DistLoop1Fragm <- Dist2Closest(L1FragmGR, LoopsGR1)
+DistLoop2Fragm <- Dist2Closest(L1FragmGR, LoopsGR2)
+DistLoop1Ref   <- Dist2Closest(L1CatalogGR_Ref, LoopsGR1)
+DistLoop2Ref   <- Dist2Closest(L1CatalogGR_Ref, LoopsGR2)
+
+DistLoopFragm <- Dist2Closest(L1FragmGR, LoopsGR)
+DistLoopRef   <- Dist2Closest(L1CatalogGR_Ref, LoopsGR)
+DistLoopFragm <- Dist2Closest(GRL1Ins1000G_Fragm, LoopsGR)
+DistLoopRef   <- Dist2Closest(GRL1Ins1000G_Full_HiF, LoopsGR)
+DistLoopRefL   <- Dist2Closest(GRL1Ins1000G_Full_lowF, LoopsGR)
+GRL1Ins1000G_Full_lowF
+mean(DistLoopRef == 0)
+mean(DistLoopFragm == 0)
+qqplot(DistLoopFragm, DistLoopRef, 
+       ylab = "Distance full-length L1 to domain",
+       xlab = "Distance fragment L1 to domain")
+lines(c(0, 10^10), c(0, 10^10))
+
+
+LoopsGR
+
+qqplot(c(DistLoop1Fragm, DistLoop2Fragm), c(DistLoop1Ref, DistLoop2Ref), 
+       ylab = "Distance full-length L1 to domain",
+       xlab = "Distance fragment L1 to domain")
+lines(c(0, 10^10), c(0, 10^10))
+
+
+DistDomFragm <- c(DistLoop1Fragm, DistLoop2Fragm)
+DistDomRef   <- c(DistLoop1Ref, DistLoop2Ref)
+mean(DistDomFragm == 0)
+mean(DistDomRef == 0)
+idxL1inBoth <- which(DistLoop1Ref == 0 & DistLoop2Ref == 0)
+overlapsAny(LoopsGR1[idxL1inBoth], LoopsGR2[idxL1inBoth])
+
+# Probability of getting 
+1 - pbinom(sum(DistDomRef == 0) - sum(DistLoop1Ref == 0 & DistLoop2Ref == 0) - 1, length(DistDomRef), mean(DistDomFragm == 0))
+1 - pbinom(sum(DistDomCat == 0) - 1, length(DistDomCat), mean(DistDomFragm == 0))
+1 - pbinom(sum(DistLoopRef == 0) - 1, length(DistLoopRef), mean(DistLoopFragm == 0))
+
 
 ##########
 #  Compare distances to genes with other properties
@@ -435,8 +498,8 @@ for (j in 1:NrSamples) {
 # Plot histogram with sampled number of L1s intersecting with genes
 hist(SampledGeneIntersectCount, xlab = "Number of random insertions in genes",
      main = "")
-segments(sum(blnL1OverlapGene), 0, sum(blnL1OverlapGene), 500, col = "red")
-sum(SampledGeneIntersectCount <= sum(blnL1OverlapGene)) / NrSamples
+segments(sum(blnL1OverlapGene_Cat), 0, sum(blnL1OverlapGene_Cat), 500, col = "red")
+sum(SampledGeneIntersectCount <= sum(blnL1OverlapGene_Cat)) / NrSamples
 CreateDisplayPdf('D:/L1polymORF/Figures/L1propIntronRandom.pdf')
 
 # Plot histogram with sampled mean distance to gene
@@ -485,8 +548,8 @@ for (j in 1:NrSamples) {
 # Plot histogram with sampled number of L1s intersecting with genes
 hist(SampledGeneIntersectCount, xlab = "Number of sampled L1 in genes",
      breaks = seq(5, 45, 2))
-segments(sum(blnL1OverlapGene), 0, sum(blnL1OverlapGene), 500, col = "red")
-sum(SampledGeneIntersectCount <= sum(blnL1OverlapGene)) / NrSamples
+segments(sum(blnL1OverlapGene_Cat), 0, sum(blnL1OverlapGene_Cat), 500, col = "red")
+sum(SampledGeneIntersectCount <= sum(blnL1OverlapGene_Cat)) / NrSamples
 
 # Plot histogram with sampled mean distance to gene
 SampledMeanDist <- colMeans(SampledGeneDist)
