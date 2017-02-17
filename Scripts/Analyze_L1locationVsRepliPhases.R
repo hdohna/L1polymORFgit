@@ -44,6 +44,7 @@ L1CatGR_hg19 <- liftOver(L1CatalogGR,
 NrRanges <- sapply(L1CatGR_hg19, length)
 idxUniqueMapped <- NrRanges == 1
 L1CatGR_hg19 <- unlist(L1CatGR_hg19[idxUniqueMapped])
+L1CatGR_hg19 <- L1CatGR_hg19[width(L1CatGR_hg19) > 6000]
 
 # Find overlap with fragments and catalog elements
 L1RefGR_fragm    <- L1RefGR[width(L1RefGR) < 5000]
