@@ -37,7 +37,7 @@ MaxFragLength <- 5900
 
 # Read repeat table and subset to get only L1HS rows with fragment size below 
 # MaxFragLength
-RepeatTable <- read.csv("D:/L1polymORF/Data/repeatsHg38_L1HS.csv")
+RepeatTable      <- read.csv("D:/L1polymORF/Data/repeatsHg38_L1HS.csv")
 RepeatTable_hg19 <- read.csv("D:/L1polymORF/Data/repeatsHg19_L1HS.csv")
 
 # Create genomic ranges for L1 fragments, match them to distances to get distance
