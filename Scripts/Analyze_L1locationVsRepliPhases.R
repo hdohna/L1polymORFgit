@@ -135,6 +135,12 @@ AddErrorBars(MidX = seq_along(OrderedPhases), MidY = colMeans(RepliFragm),
              ErrorRange = StdErr_Fragm, TipWidth = 0.02, Col = "red")
 AddErrorBars(MidX = seq_along(OrderedPhases), MidY = colMeans(RepliFull),
              ErrorRange = StdErr_Full, TipWidth = 0.02, Col = "blue")
+legend("bottomright", legend = c("Fragment L1", "Full-length L1"), cex = 0.75,
+       lty = c(1, 1), col = c("red", "blue"))
+CreateDisplayPdf('D:/L1polymORF/Figures/L1RepliPhases.pdf', 
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
+
+
 FitDataRepliFragm <- matrix(nrow = nrow(RepliFragm) * length(OrderedPhases), ncol = 2)
 FitDataRepliFull  <- matrix(nrow = nrow(RepliFull) * length(OrderedPhases), ncol = 2)
 for (i in 1:length(OrderedPhases)){
