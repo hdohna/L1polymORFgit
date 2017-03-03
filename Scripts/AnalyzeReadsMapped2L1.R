@@ -51,6 +51,7 @@ L1_1000GenomeDataPath <- "D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData"
 OutFolderName_NonRef  <- "D:/L1polymORF/Data/BZ_NonRef"
 NewL1RefOutPath       <- "D:/L1polymORF/Data/L1RefPacBioNA12878_DelRemoved.fa"
 GenomeBamPath         <- "D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_subreads_hg19masked.sorted.bam"
+#GenomeBamPath         <- "D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_subreads_hg19withL1.sorted.bam"
 ResultPath            <- "D:/L1polymORF/Data/ReadsMapped2L1Info.RData"
 FastaFilePath         <- "D:/L1polymORF/Data/"
 
@@ -94,7 +95,12 @@ L1CatalogGR <- LiftOverList$GRCatalogue_hg19# Specify folder
 # Read in L1 consensus sequence
 L1ConsSeq <- read.fasta("D:/L1polymORF/Data/Homo_sapiens_L1_consensus.fas")
 L1ConsSeq <- toupper(L1ConsSeq[[1]])
-L1ConsSeqDNAst <- DNAString(paste(L1ConsSeq, collapse = ""))
+
+# Turn into a DNAstring and create reverse complement
+L1ConsSeqDNAst    <- DNAString(paste(L1ConsSeq, collapse = ""))
+L1ConsSeqDNAst_RV <- reverseComplement(L1ConsSeqDNAst)
+L1CharV           <- s2c(as.character(L1ConsSeqDNAst))
+L1CharV_RV        <- s2c(as.character(L1ConsSeqDNAst_RV))
 
 ######
 # Read and process repeatmasker table
@@ -103,7 +109,8 @@ L1ConsSeqDNAst <- DNAString(paste(L1ConsSeq, collapse = ""))
 # Read repeat table and subset to get only L1HS rows with fragment size below 
 # MaxFragLength
 RepeatTable <- read.csv("D:/L1polymORF/Data/repeatsHg38_L1HS.csv")
-RepeatTable <- read.delim("D:/L1polymORF/Data/repeatL1hg19")
+#RepeatTable <- read.delim("D:/L1polymORF/Data/repeatL1hg19")
+RepeatTable <- read.delim("D:/L1polymORF/Data/repeatsHg19_L1HS")
 RepeatTable <- RepeatTable[RepeatTable$repName == "L1HS", ]
 
 # Create genomic ranges for L1 fragments, match them to distances to get distance
@@ -189,13 +196,17 @@ FullL1Info$L15PTransdSeq.min          <- NA
 FullL1Info$L15PTransdSeq.max          <- NA
 FullL1Info$NrSupportReads             <- NA
 
-# Loop through potential full-length insertions
-for (i in which(FullL1Info$PotentialFullLength)){
+# Loop through potential full-length insertions and create a list of 
+# read-specific information
+idxPotentialFull <- which(FullL1Info$PotentialFullLength)
+ReadInfoList <- lapply(idxPotentialFull, function(i) {
+  
+  # Get position of current entry in ReadListPerPeak
   x <- idx5P[i]
   
   # Get reads mapped to L1, retain only primary reads and get the number of bp
   # clipped on the left
-  RL <- ReadListPerPeak[[x]]
+  RL          <- ReadListPerPeak[[x]]
   primMap     <- RL$flag <= 2047
   RL          <- lapply(RL, function(y) y[primMap])
   LRClippedL1 <- sapply(RL$cigar, NrClippedFromCigar)
@@ -222,8 +233,17 @@ for (i in which(FullL1Info$PotentialFullLength)){
       InsPos <- GenomeRL[[1]]$pos[idxGR] + 
         ReadLengthFromCigar(GenomeRL[[1]]$cigar[idxGR])
     }
-    c(bpClipped = bpClipped, L1Strand = L1Strand, InsPos = InsPos)
+    c(bpClipped = bpClipped, L1Strand = L1Strand, InsPos = InsPos,
+      L1Length = L1Length, Name = GenomeRL[[1]]$qname[idxGR])
   })
+})
+  
+# Loop through potential full-length insertions and extract info
+for (i in idxPotentialFull){
+  
+  # Get Info
+  L1Info <- ReadInfoList[[i == idxPotentialFull]]  
+  L1Length <- L1Info["L1Length", 1]
   
   # Fill in info about L1 insertion in FullL1Info
   if (mean(L1Info["L1Strand",]) > 0.5) {
@@ -243,32 +263,45 @@ for (i in which(FullL1Info$PotentialFullLength)){
   FullL1Info$NrSupportReads[i]       <- length(ReadMatch)
 }
 
+###############################################
+#                                             #
+#       Create alignments of reads            #
+#         covering full-length L1             #
+#                                             #
+###############################################
+
 # Loop through potential full-length insertions and 
 rownames(FullL1Info)[which(FullL1Info$Max3P >= 6020)]
 idxFull2 <- which(rownames(FullL1Info) %in% FilesWithReads[idxFull])
 i <- 68
 for (i in idxFull2){
 
+  # Get Info
+  L1Info <- ReadInfoList[[i == idxPotentialFull]]  
+  L1Length <- L1Info["L1Length", 1]
+  
   # Create a file name for output fasta file
   FastaFile <- paste(FastaFilePath, FullL1Info$chromosome[i], "_",FullL1Info$idx[i],
                      ".fas", sep = "")
   
-  # Get insertion location and create a reference sequence with
+  # Get insertion location and create a reference sequence with sequence
+  # flanking L1 and the consensus L1
   InsLoc     <- FullL1Info$L1InsertionPosition.median[i]
   L1Str      <- FullL1Info$L1Strand[i]
-  L1ConsSeqLocal <- L1ConsSeqDNAst
-  if (L1Str == "-") L1ConsSeqLocal <- reverseComplement(L1ConsSeqLocal)
+  L1ConsSeqLocal <- L1CharV
+  if (L1Str == "-") L1ConsSeqLocal <- L1CharV_RV
   TransDL    <- FullL1Info$L15PTransdSeq.median[i]
-  LeftFlangR <- GRanges(FullL1Info$chromosome[i], 
+  LeftFlankR <- GRanges(FullL1Info$chromosome[i], 
                         IRanges(start = InsLoc - FlankSize + 1,
-                                   end = InsLoc + FlankSize))
-  RightFlangR <- GRanges(FullL1Info$chromosome[i], IRanges(start = InsLoc + 1,
+                                   end = InsLoc))
+  RightFlankR <- GRanges(FullL1Info$chromosome[i], IRanges(start = InsLoc + 1,
                             end = InsLoc + FlankSize))
-  LeftFlankSeq  <- getSeq(BSgenome.Hsapiens.UCSC.hg19, LeftFlangR)
-  RightFlankSeq <- getSeq(BSgenome.Hsapiens.UCSC.hg19, RightFlangR)
-  RefSeq <- c(LeftFlankSeq[[1]], L1ConsSeqLocal, RightFlankSeq[[1]])
-  RefSeqCharV <- s2c(as.character(RefSeq))
-  
+  LeftFlankSeq    <- getSeq(BSgenome.Hsapiens.UCSC.hg19, LeftFlankR)
+  RightFlankSeq   <- getSeq(BSgenome.Hsapiens.UCSC.hg19, RightFlankR)
+  LeftFlankCharv  <- s2c(as.character(LeftFlankSeq))
+  RightFlankCharv <- s2c(as.character(RightFlankSeq))
+  RefSeqCharV     <- c(LeftFlankCharv, L1ConsSeqLocal, RightFlankCharv)
+
   # Get reads mapped to the genome on current locus
   ScanParam  <- ScanBamParam(what = scanBamWhat(), which = FullL1GR[i])
   GenomeRL   <- scanBam(GenomeBamPath,  param = ScanParam)
@@ -277,8 +310,13 @@ for (i in idxFull2){
     pmax(LRClippedG[1,], LRClippedG[2,]) > MinClipAlign)
 
   # Loop through reads an collect sequence
-  SeqList <- vector(mode = "list", length = length(idxEnoughClipped) + 1)
-  SeqList[[1]] <- RefSeqCharV
+  SeqList   <- vector(mode = "list", length = length(idxEnoughClipped) + 1)
+  FlankList <- vector(mode = "list", length = length(idxEnoughClipped) + 1)
+  L1List    <- vector(mode = "list", length = length(idxEnoughClipped) + 1)
+  SeqList[[1]]     <- RefSeqCharV
+  FlankList[[1]]   <- LeftFlankCharv 
+  if (L1Str == "-")  FlankList[[1]]   <- RightFlankCharv
+  L1List[[1]]      <- L1ConsSeqLocal
   idxL <- 1
   for (y in idxEnoughClipped) {
     LRClipped  <- LRClippedG[,y]
@@ -287,7 +325,7 @@ for (i in idxFull2){
       SeqEnd   <- min(width(Seq), LRClipped[1] + TransDL + FlankSize)
       Seq2Add  <- subseq(Seq, 1, SeqEnd)
     } else {
-      SeqStart <- max(width(Seq), width(Seq) - LRClipped[2] - TransDL - FlankSize)
+      SeqStart <- max(1, width(Seq) - LRClipped[2] - TransDL - FlankSize)
       Seq2Add  <- subseq(Seq, SeqStart, width(Seq))
     }
 #    if (GenomeRL[[1]]$strand[y] == "-") Seq2Add <- reverseComplement(Seq2Add)
@@ -312,6 +350,13 @@ if (any(c(sum(overlapsAny(GRL1Capture100, L1CatalogGR100)),
           sum(overlapsAny(GRL1Capture100, GRL1Ins1000G100))) > 0)){
   cat("Some newly found L1 insertion overlap with catalog or 1000 Genome elements!\n")
 }
+
+###############################################
+#                                             #
+#       Assemble sequences of L1              #
+#             insertions                      #
+#                                             #
+###############################################
 
 # Get sequences of a particular insertion
 NewL1Seq <- sapply(1:length(idx5P), function(i){
