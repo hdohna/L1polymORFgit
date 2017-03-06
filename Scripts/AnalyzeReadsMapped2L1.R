@@ -10,6 +10,7 @@
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load packages
+library(smooth)
 library(ShortRead)
 library(Rsamtools)
 library(rtracklayer)
@@ -170,7 +171,7 @@ FullL1Info$end   <- end(IslGRanges_reduced[FullL1Info$idx])
 FullL1Info$cover   <- CoverMat[idx5P, 100]
 FilesWithReads[idxFull]
 idxFull2 <- which(rownames(FullL1Info) %in% FilesWithReads[idxFull])
-
+FullL1Info[idxFull2, c("chromosome", "idx", "L1Strand")]
 # Get indices of insertions that are not full-length
 FullL1Info$PotentialFullLength <- sapply(1:length(idx5P), function(i){
   x <- idx5P[i]
@@ -199,7 +200,7 @@ FullL1Info$NrSupportReads             <- NA
 # Loop through potential full-length insertions and create a list of 
 # read-specific information
 idxPotentialFull <- which(FullL1Info$PotentialFullLength)
-ReadInfoList <- lapply(idxPotentialFull, function(i) {
+ReadInfoList     <- lapply(idxPotentialFull, function(i) {
   
   # Get position of current entry in ReadListPerPeak
   x <- idx5P[i]
@@ -209,7 +210,7 @@ ReadInfoList <- lapply(idxPotentialFull, function(i) {
   RL          <- ReadListPerPeak[[x]]
   primMap     <- RL$flag <= 2047
   RL          <- lapply(RL, function(y) y[primMap])
-  LRClippedL1 <- sapply(RL$cigar, NrClippedFromCigar)
+  LRClippedL1 <- sapply(RL$cigar, NrClippedFromCigar, USE.NAMES = F)
   L1Length    <- width(RL$seq) - LRClippedL1[1,]
   
   # Get reads mapped to the genome on current locus
@@ -217,50 +218,56 @@ ReadInfoList <- lapply(idxPotentialFull, function(i) {
   GenomeRL  <- scanBam(GenomeBamPath,  param = ScanParam)
   LRClippedG <- sapply(RL$cigar, NrClippedFromCigar)
   ReadMatch <- match(RL$qname, GenomeRL[[1]]$qname)
+  blnSameStrand <- RL$strand == GenomeRL[[1]]$strand[ReadMatch]
   
   # Loop through reads an collect information on number of bps clipped on
   # reads mapped to genome, the insertion location and the insertion strand
-  L1Info <- sapply(1:length(ReadMatch), function(y) {
+  L1Info <- t(sapply(1:length(ReadMatch), function(y) {
     idxGR <- ReadMatch[y]
     LRClipped <- NrClippedFromCigar(GenomeRL[[1]]$cigar[idxGR])
     if (LRClipped[1] > LRClipped[2]) {
       bpClipped <- LRClipped[1]
-      L1Strand  <- 0 # 0 corresponds to negative strand
       InsPos    <- GenomeRL[[1]]$pos[idxGR]
     } else {
       bpClipped <- LRClipped[2]
-      L1Strand  <- 1 # 1 corresponds to positive strand
       InsPos <- GenomeRL[[1]]$pos[idxGR] + 
         ReadLengthFromCigar(GenomeRL[[1]]$cigar[idxGR])
     }
-    c(bpClipped = bpClipped, L1Strand = L1Strand, InsPos = InsPos,
-      L1Length = L1Length, Name = GenomeRL[[1]]$qname[idxGR])
-  })
+    c(LeftClipped = LRClipped[1], RightClipped = LRClipped[2], 
+      bpClipped = bpClipped, InsPos = InsPos)
+  }))
+  L1Info <- as.data.frame(L1Info)
+  L1Info$Name     <- GenomeRL[[1]]$qname[ReadMatch]
+  L1Info$L1Length <- L1Length
+  L1Info$idxRL    <- ReadMatch
+  L1Info$L1Strand <- 1*blnSameStrand # 0 corresponds to negative strand
+  L1Info
 })
-  
+
+
 # Loop through potential full-length insertions and extract info
+i <- idxPotentialFull[1]
 for (i in idxPotentialFull){
   
   # Get Info
-  L1Info <- ReadInfoList[[i == idxPotentialFull]]  
-  L1Length <- L1Info["L1Length", 1]
-  
+  L1Info   <- ReadInfoList[[which(i == idxPotentialFull)]]  
+
   # Fill in info about L1 insertion in FullL1Info
-  if (mean(L1Info["L1Strand",]) > 0.5) {
+  if (mean(L1Info$L1Strand, na.rm = T) > 0.5) {
     FullL1Info$L1Strand[i] <- "+"
   } else {
     FullL1Info$L1Strand[i] <- "-"
   }
-  FullL1Info$L1InsertionPosition.median[i] <- median(L1Info["InsPos",])
-  FullL1Info$L1InsertionPosition.min[i]    <- min(L1Info["InsPos",])
-  FullL1Info$L1InsertionPosition.max[i]    <- max(L1Info["InsPos",])
+  FullL1Info$L1InsertionPosition.median[i] <- median(L1Info$InsPos)
+  FullL1Info$L1InsertionPosition.min[i]    <- min(L1Info$InsPos)
+  FullL1Info$L1InsertionPosition.max[i]    <- max(L1Info$InsPos)
   
   # Get length of transduced sequence and number of supporting reads
-  LengthTransduced <- -(L1Length - L1Info["bpClipped",])
+  LengthTransduced <- -(L1Info$L1Length - L1Info$bpClipped)
   FullL1Info$L15PTransdSeq.median[i] <- median(LengthTransduced)
   FullL1Info$L15PTransdSeq.min[i]    <- min(LengthTransduced)
   FullL1Info$L15PTransdSeq.max[i]    <- max(LengthTransduced)
-  FullL1Info$NrSupportReads[i]       <- length(ReadMatch)
+  FullL1Info$NrSupportReads[i]       <- nrow(L1Info)
 }
 
 ###############################################
@@ -273,13 +280,14 @@ for (i in idxPotentialFull){
 # Loop through potential full-length insertions and 
 rownames(FullL1Info)[which(FullL1Info$Max3P >= 6020)]
 idxFull2 <- which(rownames(FullL1Info) %in% FilesWithReads[idxFull])
-i <- 68
+FullL1InfoSubset <- FullL1Info[idxFull2,]
+NewStrand <- c("+", "-", "+", "-", "+")
+AlignmentFiles <- c()
 for (i in idxFull2){
 
   # Get Info
-  L1Info <- ReadInfoList[[i == idxPotentialFull]]  
-  L1Length <- L1Info["L1Length", 1]
-  
+  L1Info <- ReadInfoList[[which(i == idxPotentialFull)]]  
+
   # Create a file name for output fasta file
   FastaFile <- paste(FastaFilePath, FullL1Info$chromosome[i], "_",FullL1Info$idx[i],
                      ".fas", sep = "")
@@ -287,7 +295,7 @@ for (i in idxFull2){
   # Get insertion location and create a reference sequence with sequence
   # flanking L1 and the consensus L1
   InsLoc     <- FullL1Info$L1InsertionPosition.median[i]
-  L1Str      <- FullL1Info$L1Strand[i]
+  L1Str      <- NewStrand[i == idxFull2]
   L1ConsSeqLocal <- L1CharV
   if (L1Str == "-") L1ConsSeqLocal <- L1CharV_RV
   TransDL    <- FullL1Info$L15PTransdSeq.median[i]
@@ -300,7 +308,7 @@ for (i in idxFull2){
   RightFlankSeq   <- getSeq(BSgenome.Hsapiens.UCSC.hg19, RightFlankR)
   LeftFlankCharv  <- s2c(as.character(LeftFlankSeq))
   RightFlankCharv <- s2c(as.character(RightFlankSeq))
-  RefSeqCharV     <- c(LeftFlankCharv, L1ConsSeqLocal, RightFlankCharv)
+  RefSeqCharV     <- c(LeftFlankCharv, "N", L1ConsSeqLocal, "N", RightFlankCharv)
 
   # Get reads mapped to the genome on current locus
   ScanParam  <- ScanBamParam(what = scanBamWhat(), which = FullL1GR[i])
@@ -309,7 +317,8 @@ for (i in idxFull2){
   idxEnoughClipped <- which(
     pmax(LRClippedG[1,], LRClippedG[2,]) > MinClipAlign)
 
-  # Loop through reads an collect sequence
+  # Loop through reads and collect parts of reads that should align with L1 and
+  # its flanking sequence
   SeqList   <- vector(mode = "list", length = length(idxEnoughClipped) + 1)
   FlankList <- vector(mode = "list", length = length(idxEnoughClipped) + 1)
   L1List    <- vector(mode = "list", length = length(idxEnoughClipped) + 1)
@@ -319,13 +328,21 @@ for (i in idxFull2){
   L1List[[1]]      <- L1ConsSeqLocal
   idxL <- 1
   for (y in idxEnoughClipped) {
-    LRClipped  <- LRClippedG[,y]
+    
+    # Get sequence of current read and the number of left and right clipped bps
     Seq        <- GenomeRL[[1]]$seq[y]
+    LRClipped  <- LRClippedG[,y]
+    
+    # If more is clipped on the left take the sequence from the start into the
+    # flank extending to the right of the cilpper part
     if (LRClipped[1] > LRClipped[2]) {
-      SeqEnd   <- min(width(Seq), LRClipped[1] + TransDL + FlankSize)
+      SeqEnd   <- min(width(Seq), LRClipped[1] + FlankSize)
       Seq2Add  <- subseq(Seq, 1, SeqEnd)
+      PWA <- pairwiseAlignment(subseq(Seq, LRClipped[1], SeqEnd), RightFlankSeq, type = "local")
+      PWA@pattern@range
+      PWA@subject@range
     } else {
-      SeqStart <- max(1, width(Seq) - LRClipped[2] - TransDL - FlankSize)
+      SeqStart <- max(1, width(Seq) - LRClipped[2] - FlankSize)
       Seq2Add  <- subseq(Seq, SeqStart, width(Seq))
     }
 #    if (GenomeRL[[1]]$strand[y] == "-") Seq2Add <- reverseComplement(Seq2Add)
@@ -339,7 +356,83 @@ for (i in idxFull2){
   AlignedFile <- gsub(".fas", "_aligned.fas", FastaFile)
   cat("Aligning", FastaFile, "\n")
   run_MUSCLE(InputPath = FastaFile, OutputPath = AlignedFile) 
+  
+  # Read alignment and reorder so that reference sequence is first
+  Alignment <- read.fasta(AlignedFile)
+  idxRefSeq <- which(names(Alignment) == "RefSeq")
+  AlignmentReordered <- Alignment
+  AlignmentReordered[[1]] <- Alignment[[idxRefSeq]]
+  names(AlignmentReordered)[1] <- names(Alignment)[idxRefSeq]
+  AlignmentReordered[[idxRefSeq]] <- Alignment[[1]]
+  names(AlignmentReordered)[idxRefSeq] <- names(Alignment)[1]
+  write.fasta(AlignmentReordered, names = names(AlignmentReordered), file.out = AlignedFile)
+  
+  # Keep track of alignment file names
+  AlignmentFiles <- c(AlignmentFiles, AlignedFile)
 }
+
+# Loop through alignment files and analyze regions of 
+AlignFile <- AlignmentFiles[1]
+AlignInfoList <- lapply(AlignmentFiles, function(AlignFile){
+  
+  # Extract plot title from file name
+  Fsplit1 <- strsplit(AlignFile, "/")[[1]]
+  Fsplit2 <- strsplit(Fsplit1[length(Fsplit1)], "_")[[1]]
+  Title <- paste(Fsplit2[1:2], collapse = "-")
+  Alignment <- read.dna(AlignFile, format = "fasta", as.character = T, as.matrix = T)
+  blnSame   <- sapply(1:ncol(Alignment), function(x){
+    any(Alignment[2:nrow(Alignment),x] == Alignment[1,x])
+  })
+  blnSameTS <- as.ts(1*blnSame)
+  SmoothedSame <- sma(blnSameTS, order = 20)
+  nPos <- which(Alignment[1,] %in% c("n", "N"))
+  list(nPos = nPos, SmoothedSame = SmoothedSame, Title = Title)
+})
+
+# Plot 
+par(mfrow = c(3, 2), mar = c(3, 2, 2, 0.5), oma = c(2, 2.5, 1, 1))
+for (i in 1:length(AlignInfoList)){
+  SmoothedSame <- AlignInfoList[[i]]$SmoothedSame
+  nPos <- AlignInfoList[[i]]$nPos
+  Title <- AlignInfoList[[i]]$Title
+  plot(SmoothedSame$fitted, type = "l", xlab = "", ylab = "", main = Title,
+       ylim = c(0, 1.1))
+  segments(x0 = nPos, y0 = 0, y1 = 1, col = "red", lwd = 2)
+}
+
+# Get list of sequences with insertions
+InsertionSeqs <- lapply(idxFull2, function(i){
+  
+  # Get Info
+  L1Info <- ReadInfoList[[which(i == idxPotentialFull)]]  
+  
+  # Get insertion location and create a reference sequence with sequence
+  # flanking L1 and the consensus L1
+  InsLoc     <- FullL1Info$L1InsertionPosition.median[i]
+  L1Str      <- NewStrand[i == idxFull2]
+  L1ConsSeqLocal <- L1CharV
+  if (L1Str == "-") L1ConsSeqLocal <- L1CharV_RV
+  LeftFlankR <- GRanges(FullL1Info$chromosome[i], 
+                        IRanges(start = InsLoc - FlankSize + 1,
+                                end = InsLoc))
+  RightFlankR <- GRanges(FullL1Info$chromosome[i], IRanges(start = InsLoc + 1,
+                                                           end = InsLoc + FlankSize))
+  LeftFlankSeq    <- getSeq(BSgenome.Hsapiens.UCSC.hg19, LeftFlankR)
+  RightFlankSeq   <- getSeq(BSgenome.Hsapiens.UCSC.hg19, RightFlankR)
+  LeftFlankCharv  <- s2c(as.character(LeftFlankSeq))
+  RightFlankCharv <- s2c(as.character(RightFlankSeq))
+  c(LeftFlankCharv, L1ConsSeqLocal, RightFlankCharv)
+})
+SeqNames <- paste(FullL1InfoSubset$chromosome, FullL1InfoSubset$idx, sep = "_")
+write.fasta(InsertionSeqs, names = SeqNames, file.out = "D:/L1polymORF/Data/L1InsertionSequences.fas")
+InsertionSummaries <- FullL1InfoSubset[,c("chromosome", "L1InsertionPosition.median")]
+colnames(InsertionSummaries)[colnames(InsertionSummaries) == "L1InsertionPosition.median"] <- "L1InsertionPosition"
+InsertionSummaries$SeqName  <- SeqNames
+InsertionSummaries$L1Strand <- NewStrand
+InsertionSummaries$TransD5P <- c("Yes", "No", "No", "Yes",  "Yes")
+InsertionSummaries$TransD3P <- c("No", "Yes", "No", "No",  "No")
+write.csv(InsertionSummaries, file = "D:/L1polymORF/Data/L1InsertionSummary.csv",
+          row.names = F)
 
 # Create genomic ranges for L1 insertions and compare with known L1 ranges
 GRL1Capture <- makeGRangesFromDataFrame(FullL1Info)
