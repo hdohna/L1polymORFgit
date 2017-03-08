@@ -39,6 +39,10 @@ MaxL1Pos <- 5500
 # Set parameter for minimum proportion of a polymorphism among reads to be called
 MinPolyProp <- 0.6
 
+# Width of a motif to determine which side of a clipped read maps to L1
+MotifWidth  <- 50
+MotifOffSet <- 60
+
 # Specify flank size for sequences flanking L1 to be included in alignment output
 FlankSize <- 500
 
@@ -202,6 +206,38 @@ FullL1Info$NrSupportReads             <- NA
 idxPotentialFull <- which(FullL1Info$PotentialFullLength)
 i <- 289
 rownames(FullL1Info)[i]
+
+# Generate a list of matched reads mapped to genome and to L1
+MatchedReadList     <- lapply(idxPotentialFull, function(i) {
+  
+  # Get position of current entry in ReadListPerPeak
+  x <- idx5P[i]
+  
+  # Get reads mapped to L1, retain only primary reads and get the number of bp
+  # clipped on the left
+  RL          <- ReadListPerPeak[[x]]
+  primMap     <- RL$flag <= 2047 & !(is.na(RL$pos))
+  RL          <- lapply(RL, function(y) y[primMap])
+  LRClippedL1 <- sapply(RL$cigar, NrClippedFromCigar, USE.NAMES = F)
+  L1Length    <- width(RL$seq) - LRClippedL1[1,]
+  
+  # Get reads mapped to the genome on current locus
+  ScanParam <- ScanBamParam(what = scanBamWhat(), which = FullL1GR[i])
+  GenomeRL  <- scanBam(GenomeBamPath,  param = ScanParam)
+  primMap     <- GenomeRL[[1]]$flag <= 2047 & !(is.na(GenomeRL[[1]]$pos))
+  GenomeRL[[1]]    <- lapply(GenomeRL[[1]], function(y) y[primMap])
+  LRClippedG <- sapply(RL$cigar, NrClippedFromCigar)
+  ReadMatch <- match(RL$qname, GenomeRL[[1]]$qname)
+  if (any(is.na(ReadMatch))){
+    browser()
+  }
+  
+  # Generate a list of reads mapped to genome, matching the list of reads 
+  # mapped to L1
+  GenomeMatchRL <- lapply(GenomeRL[[1]], function(y) y[ReadMatch])
+  list(L1ReadList = RL, GenomeReadList = GenomeMatchRL)
+})
+  
 ReadInfoList     <- lapply(idxPotentialFull, function(i) {
   print(i)
   # Get position of current entry in ReadListPerPeak
@@ -218,8 +254,13 @@ ReadInfoList     <- lapply(idxPotentialFull, function(i) {
   # Get reads mapped to the genome on current locus
   ScanParam <- ScanBamParam(what = scanBamWhat(), which = FullL1GR[i])
   GenomeRL  <- scanBam(GenomeBamPath,  param = ScanParam)
+  primMap     <- GenomeRL[[1]]$flag <= 2047 & !(is.na(GenomeRL[[1]]$pos))
+  GenomeRL[[1]]    <- lapply(GenomeRL[[1]], function(y) y[primMap])
   LRClippedG <- sapply(RL$cigar, NrClippedFromCigar)
   ReadMatch <- match(RL$qname, GenomeRL[[1]]$qname)
+  if (any(is.na(ReadMatch))){
+    browser()
+  }
   blnSameStrand <- RL$strand == GenomeRL[[1]]$strand[ReadMatch]
   
   # Loop through reads an collect information on number of bps clipped on
@@ -231,8 +272,10 @@ ReadInfoList     <- lapply(idxPotentialFull, function(i) {
     LeftClippedSeq  <- subseq(GSeq, 1, LRClipped[1])
     RightClippedSeq <- subseq(GSeq, width(GSeq) - LRClipped[2], width(GSeq))
     L1Motif         <- subseq(RL$seq[y], LRClippedL1[1,y],
-                              LRClippedL1[1,y] + 50)
-    if (!blnSameStrand[y]) L1Motif <- reverseComplement(L1Motif)
+                              LRClippedL1[1,y] + MotifWidth)
+    L1Motif         <- subseq(RL$seq[y], LRClippedL1[1,y] + MotifOffSet,
+                              LRClippedL1[1,y] + MotifOffSet + MotifWidth)
+    if (!blnSameStrand[y]) {L1Motif <- reverseComplement(L1Motif)}
     motifMatchLeft  <- matchPattern(L1Motif[[1]], LeftClippedSeq[[1]])
     motifMatchRight <- matchPattern(L1Motif[[1]], RightClippedSeq[[1]])
     InsPos <- NA
@@ -244,7 +287,11 @@ ReadInfoList     <- lapply(idxPotentialFull, function(i) {
         ReadLengthFromCigar(GenomeRL[[1]]$cigar[idxGR])
     } 
     if ((length(motifMatchLeft) > 0) & (length(motifMatchRight) > 0)){
-      warning("L1 motif matches left and right clipped sequence in", i, "\n")
+      warning("L1 motif matches left and right clipped sequence in", i, "\n", immediate. = T)
+    }
+    if ((length(motifMatchLeft) == 0) & (length(motifMatchRight) == 0)){
+       browser()
+       warning("L1 motif matches no clipped sequence in", i, "\n")
     }
     # Scenario: 0 = L1 on negative strand and read maps on right side to L1
     #           1 = L1 on positive strand and read maps on right side to L1
@@ -256,9 +303,9 @@ ReadInfoList     <- lapply(idxPotentialFull, function(i) {
     TD5Pstart <- switch(as.character(Scenario), 
                         '0' = width(GSeq) - LRClippedL1[1,y], 
                         '1' = width(GSeq) - LRClipped[2],
-                        '2' = LRClippedL1[1,y],
+                        '2' = width(GSeq) - LRClippedL1[1,y],
                         '3' = 1)
-    TD5Pend <- switch(as.character(Scenario), 
+    TD5Pend   <- switch(as.character(Scenario), 
                         '0' = width(GSeq), 
                         '1' = LRClippedL1[1,y],
                         '2' = LRClipped[1],
@@ -272,11 +319,12 @@ ReadInfoList     <- lapply(idxPotentialFull, function(i) {
                       '0' = LRClippedL1[2,y], 
                       '1' = width(GSeq),
                       '2' = LRClippedL1[2,y],
-                      '3' =  LRClipped[1])
+                      '3' = LRClipped[1])
     
     # Collect info in a vector
     c(LeftClippedG = LRClipped[1], RightClippedG = LRClipped[2], 
-      InsPos = InsPos, Scenario = Scenario)
+      InsPos = InsPos, Scenario = Scenario, TD5Pstart = TD5Pstart, 
+      TD5Pend = TD5Pend, TD3Pstart = TD3Pstart, TD3Pend = TD3Pend)
   }))
   L1Info <- as.data.frame(L1Info)
   L1Info$Name     <- GenomeRL[[1]]$qname[ReadMatch]
@@ -286,10 +334,11 @@ ReadInfoList     <- lapply(idxPotentialFull, function(i) {
   L1Info$LeftClippedL1  <- LRClippedL1[1,]
   L1Info$RightClippedL1 <- LRClippedL1[2,]
   L1Info$L1pos          <- RL$pos
+  L1Info$Scenario[is.na(L1Info$InsPos)] <- NA
   L1Info
 })
-
-
+ReadInfoList[1:50]
+i <- 1
 # Loop through potential full-length insertions and extract info
 for (i in idxPotentialFull){
   
@@ -307,7 +356,7 @@ for (i in idxPotentialFull){
   FullL1Info$L1InsertionPosition.max[i]    <- max(L1Info$InsPos)
   
   # Get length of transduced sequence and number of supporting reads
-  LengthTransduced <- -(L1Info$L1Length - L1Info$bpClipped)
+  LengthTransduced <- -(L1Info$TD5Pend - L1Info$TD5Pstart)
   FullL1Info$L15PTransdSeq.median[i] <- median(LengthTransduced)
   FullL1Info$L15PTransdSeq.min[i]    <- min(LengthTransduced)
   FullL1Info$L15PTransdSeq.max[i]    <- max(LengthTransduced)
