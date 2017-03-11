@@ -30,7 +30,7 @@ MaxFragLength <- 5900
 # Read in table with regulatory elements
 RegTable      <- read.table("D:/L1polymORF/Data/ChromHMM", header = T)
 EnhancerTable <- RegTable[grep("Enhancer", RegTable$name), ]
-
+unique(EnhancerTable$name)
 # Create genomic ranges for L1 fragments, match them to distances to get distance
 # to consensus per fragment
 RegGR <- makeGRangesFromDataFrame(RegTable, start.field = "ChromStart", 
@@ -88,7 +88,7 @@ GRgenes         <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
 GenesGR_reduced <- GRanges(seqnames = seqnames(GRgenes), ranges(GRgenes))
 GRcombined      <- c(GenesGR_reduced, EnhancerGR)
 
-# Calculate distances from full-length L1 to nearest gene
+# Calculate distances from full-length L1 to nearest feature
 L1Dist_cat <- Dist2ClosestGR(L1CatalogGR, EnhancerGR)
 L1Dist_cat_Combined <- Dist2ClosestGR(L1CatalogGR, GRcombined)
 hist(L1CatDist)
@@ -99,11 +99,25 @@ idxNearestFragm   <- nearest(L1FragmGR, RegGR, ignore.strand = T)
 OverlapTableFragm <- RegTable[idxNearestFragm, ]
 FreqCat   <- table(OverlapTableCat$name)
 FreqFragm <- table(OverlapTableFragm$name)
+chisq.test(FreqCat, FreqFragm)
 plot(as.numeric(FreqCat), as.numeric(FreqFragm))
 text(as.numeric(FreqCat), as.numeric(FreqFragm),names(FreqCat))
 lines(c(0, 1000) * length(L1CatalogGR), c(0, 1000) * length(L1FragmGR))
 
-# Calculate distances from fragment L1 to nearest gene
+# Calculate distances from fragment L1 to nearest enhancer
+idxNearestCat     <- nearest(L1CatalogGR, EnhancerGR, ignore.strand = T)
+OverlapTableCat   <- EnhancerTable[idxNearestCat, ]
+idxNearestFragm   <- nearest(L1FragmGR, EnhancerGR, ignore.strand = T)
+OverlapTableFragm <- EnhancerTable[idxNearestFragm, ]
+FreqCat   <- table(OverlapTableCat$name)
+FreqFragm <- table(OverlapTableFragm$name)
+chisq.test(FreqCat, FreqFragm)
+plot(as.numeric(FreqCat), as.numeric(FreqFragm))
+text(as.numeric(FreqCat), as.numeric(FreqFragm),names(FreqCat))
+lines(c(0, 1000) * length(L1CatalogGR), c(0, 1000) * length(L1FragmGR))
+
+
+
 L1Dist_Fragm <- Dist2ClosestGR(L1FragmGR, EnhancerGR)
 Poverlap <- sum(L1Dist_Fragm == 0) / length(L1Dist_Fragm)
 sum(L1Dist_cat == 0) / length(L1Dist_cat)
