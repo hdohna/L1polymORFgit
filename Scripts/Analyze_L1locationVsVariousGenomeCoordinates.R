@@ -408,7 +408,8 @@ QQDistPlot <- function(FragmDist, Dist1, Dist2 = NULL, Dist3 = NULL,
                        yLab = "", 
                        NrSamples = 10000,
                        QuantV = seq(0, 1, 0.01),
-                       Title = "", blnAxLab = T){
+                       Title = "", blnAxLab = T,
+                       XLim = NULL, YLim = NULL){
   QSampled <- SampleQuantiles(FragmDist, length(Dist1),
                               QuantV = QuantV, NrSamples = NrSamples)
   QSMat <- QSampled$QMat
@@ -416,8 +417,10 @@ QQDistPlot <- function(FragmDist, Dist1, Dist2 = NULL, Dist3 = NULL,
   idxR <- ncol(QSMat):1
   QQ1  <- qqplot(FragmDist, Dist1, plot.it = F)
   AllDist <- c(Dist1, Dist2, Dist3)
+  if (is.null(XLim)) XLim <-  c(min(FragmDist), max(FragmDist))
+  if (is.null(YLim)) YLim <-  c(min(AllDist), max(AllDist))
   plot(QQ1$x, QQ1$y, xlab = xLab, ylab = yLab, main = Title, 
-       ylim = c(min(AllDist), max(AllDist)))
+       xlim = XLim, ylim = YLim)
   polygon(QSMat[1,c(idxF, idxR)], c(QSMat[2, ], QSMat[3, idxR]), 
           col = "grey", border = NA)
   points(QQ1$x, QQ1$y)
@@ -470,16 +473,25 @@ par(mfrow = c(1, 1))
 plot(QSamplesLoop, QSamplesDomain)
 
 # Plot quantiles against each other
-par(mfrow = c(2, 2))
+par(mfrow = c(2, 2), mar = c(3, 2, 2, 0.5), oma = c(2, 2.5, 1, 1))
+YI <- 0.2
 pGeneDistCat <- QQDistPlot(L1DistGene_Fragm, L1DistGene_CatRef, 
-                           L1DistGene_FullnotCat)
-legend("bottomright", legend = c("intact", "not intact"), pch = c(1,2))
-pGeneDist1000G <- QQDistPlot(L1DistGene_1000GFragm, L1DistGene_1000GFullHigh, 
-                             L1DistGene_1000GFullLow)
-legend("bottomright", legend = c("common", "rare"), pch = c(1,2))
+                           L1DistGene_FullnotCat, Title = "Distance to genes")
+legend("bottomright", legend = c("intact", "not intact"), pch = c(1,2),
+       y.intersp = YI, bty = "n")
+# pGeneDist1000G <- QQDistPlot(L1DistGene_1000GFragm, L1DistGene_1000GFullHigh, 
+#                              L1DistGene_1000GFullLow)
 x <- DomainDistList[[1]] 
-pDomainDistCat <- QQDistPlot(x$DistFragm, x$DistCatRef, x$DistRefnotCat)
-legend("bottomright", legend = c("intact", "not intact"), pch = c(1,2))
+pDomainDistCat <- QQDistPlot(x$DistFragm, x$DistCatRef, x$DistRefnotCat,
+                             Title = "Distance to loops GM12878")
+pDomainDistCat <- QQDistPlot(x$DistFragm, x$DistCatRef, x$DistRefnotCat,
+                             Title = "Distance to loops GM12878",
+                             XLim = c(0, 2*10^6), YLim = c(0, 2*10^6))
+pDomainDistCat <- QQDistPlot(x$DistFragm, x$DistCatRef, x$DistRefnotCat,
+                             Title = "Distance to loops GM12878",
+                             XLim = c(0, 10^5), YLim = c(0, 10^5))
+mtext("Distance from fragment L1", side = 1, line = 1, outer = T)
+mtext("Distance full-length L1", side = 2, line = 1, outer = T)
 CreateDisplayPdf('D:/L1polymORF/Figures/L1geneDistQQ_Catalog.pdf')
 
 
