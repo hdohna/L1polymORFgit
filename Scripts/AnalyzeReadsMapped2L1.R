@@ -302,7 +302,7 @@ ReadInfoList <- lapply(MatchedReadList, function(RLL) {
                         '2' = LRClipped_G[1],
                         '3' = LRClipped_L1[1])
     TD3Pstart <- switch(as.character(Scenario), 
-                        '0' = LRClipped_G[2], 
+                        '0' = width(GSeq) - LRClipped_G[2], 
                         '1' = width(GSeq) - LRClipped_L1[2],
                         '2' = 1,
                         '3' = width(GSeq) - LRClipped_L1[2])
@@ -375,7 +375,6 @@ FastaFiles_5P <- c()
 FastaFiles_3P <- c()
 ReadInfoListSubset        <- ReadInfoList[idxPotentialFull %in% idxFull2]
 names(ReadInfoListSubset) <- FilesWithReads[idxFull]
-i <- 68
 for (i in idxFull2){
   
   # Get position of current entry in ReadListPerPeak
@@ -542,7 +541,7 @@ for (i in idxFull2){
     # If more is clipped on the left take the sequence from the start into the
     # flank extending to the right of the cilpper part
     SeqStart <- switch(as.character(L1Info$Scenario[y]), 
-                        '0' = max(1, L1Info$TD3Pstart[y] - width(Seq)), 
+                        '0' = max(1, L1Info$TD3Pstart[y] - FlankSize), 
                         '1' = max(1, L1Info$TD5Pstart[y] - FlankSize),
                         '2' = 1,
                         '3' = 1)
@@ -599,8 +598,12 @@ AlignInfoList <- lapply(AlignmentFiles, function(AlignFile){
   Alignment <- Alignment[ , Alignment[1,] != "-"]
   ConsensusSeq <- apply(Alignment, 2, FUN = function(z) {
     Nucs <- z[z != "-"]
-    NucFreq <- table(Nucs)
-    names(NucFreq)[which.max(NucFreq)]
+    if (z[1] != "n"){
+      NucFreq <- table(Nucs)
+      names(NucFreq)[which.max(NucFreq)]
+    } else {
+      z[1]
+    }
   })
   
   list(nPos = nPos, SmoothedSame = SmoothedSame, Title = Title,
@@ -617,7 +620,7 @@ write.fasta(L1WithFlank, names = names(L1WithFlank),
 
 
 # Plot 
-par(mfrow = c(3, 2), mar = c(3, 2, 2, 0.5), oma = c(2, 2.5, 1, 1))
+par(mfrow = c(3, 2), mar = c(3, 2, 3, 0.5), oma = c(2, 4, 1, 1))
 for (i in 1:length(AlignInfoList)){
   SmoothedSame <- AlignInfoList[[i]]$SmoothedSame
   nPos <- AlignInfoList[[i]]$nPos
@@ -626,6 +629,10 @@ for (i in 1:length(AlignInfoList)){
        ylim = c(0, 1.1))
   segments(x0 = nPos, y0 = 0, y1 = 1, col = "red", lwd = 2)
 }
+mtext("Proportion of bp same as in reference", 2, outer = T, line = 2)
+CreateDisplayPdf("D:/L1polymORF/Figures/InsertionAlignment.pdf",
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+                 height = 10, width = 7)
 
 # Get list of sequences with insertions
 InsertionSeqs <- lapply(idxFull2, function(i){
