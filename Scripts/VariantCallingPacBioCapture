@@ -1,0 +1,27 @@
+java -XX:MaxHeapSize=1g -jar /srv/gsfs0/software/gatk/gatk-3.6/GenomeAnalysisTK.jar \
+     -R /srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19_withL1_Aug_10.fa \
+     -T HaplotypeCaller \
+     -I /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19withL1.sorted.bam \
+     --emitRefConfidence GVCF \
+     -G Standard -G AS_Standard \
+     -o /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19withL1.sorted.vcf
+
+java -XX:+UseG1GC -XX:ParallelGCThreads=1 -jar /srv/gsfs0/software/gatk/gatk-3.6/GenomeAnalysisTK.jar \
+     -R /srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19_withL1_Aug_10.fa \
+     -T HaplotypeCaller \
+     -I /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19withL1.sorted.withRG.bam \
+     --emitRefConfidence GVCF \
+     -G Standard -G AS_Standard \
+     -variant_index_type LINEAR -variant_index_parameter 128000 \
+     -o /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19withL1.sorted.vcf
+
+java -XX:+UseG1GC -XX:ParallelGCThreads=1 -jar /srv/gsfs0/software/picard-tools/2.4.1/picard.jar CreateSequenceDictionary R=/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19_withL1_Aug_10.fa O=/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19_withL1_Aug_10.dict
+
+java -XX:+UseG1GC -XX:ParallelGCThreads=1 -jar /srv/gsfs0/software/picard-tools/2.4.1/picard.jar AddOrReplaceReadGroups \
+      I=/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19withL1.sorted.bam \
+      O=/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19withL1.sorted.withRG.bam \
+      RGID=1 \
+      RGLB=lib1 \
+      RGPL=PacBio \
+      RGPU=unit1 \
+      RGSM=20

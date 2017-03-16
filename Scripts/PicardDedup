@@ -1,0 +1,28 @@
+   'NS500193:118:H7VK5AFXX:1:21306:7713:7702'
+qlogin -l h_stack=10M -l h_vmem=5G
+module load java
+InFile=$1
+OutFile=${InFile%.bam}dedup.bam
+MetricsFile=${InFile%.bam}dedup.metrics
+
+
+module load java/8u66
+java -XX:MaxHeapSize=1g -jar /srv/gsfs0/software/picard-tools/2.4.1/picard.jar MarkDuplicates \
+   INPUT=/srv/gsfs0/projects/levinson/hzudohna/10Xcapture/NA12878_capt10X_aln2hg19.bam \
+   OUTPUT=/srv/gsfs0/projects/levinson/hzudohna/10Xcapture/NA12878_capt10X_aln2hg19.dedup.bam \
+   METRICS_FILE=/srv/gsfs0/projects/levinson/hzudohna/10Xcapture/NA12878_capt10X_aln2hg19.dedup.metrics \
+   REMOVE_DUPLICATES=true ASSUME_SORTED=true \
+   TMP_DIR=/home/hzudohna/tmp \
+   VALIDATION_STRINGENCY=SILENT \
+   MAX_RECORDS_IN_RAM=2000000 \
+   PROGRAM_RECORD_ID=MarkDuplicates \
+   PROGRAM_GROUP_NAME=MarkDuplicates \
+   MAX_SEQUENCES_FOR_DISK_READ_ENDS_MAP=50000 \
+   MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=8000 \
+   SORTING_COLLECTION_SIZE_RATIO=0.25 \
+   OPTICAL_DUPLICATE_PIXEL_DISTANCE=100 \
+   VERBOSITY=INFO \
+   QUIET=false \
+   COMPRESSION_LEVEL=5 \
+   CREATE_INDEX=false \
+   CREATE_MD5_FILE=false
