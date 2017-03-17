@@ -31,6 +31,7 @@ MaxFragLength <- 5900
 RegTable      <- read.table("D:/L1polymORF/Data/ChromHMM", header = T)
 EnhancerTable <- RegTable[grep("Enhancer", RegTable$name), ]
 unique(EnhancerTable$name)
+
 # Create genomic ranges for L1 fragments, match them to distances to get distance
 # to consensus per fragment
 RegGR <- makeGRangesFromDataFrame(RegTable, start.field = "ChromStart", 
@@ -51,8 +52,8 @@ L1RefGR <- GRanges(seqnames = RepeatTable$genoName,
                    ranges = IRanges(start = RepeatTable$genoStart,
                                     end = RepeatTable$genoEnd),
                    strand = RepeatTable$strand)
-L1RefGRFull <- L1RefGR[width(L1RefGR) > 6000]
-L1FragmGR <- L1RefGR[width(L1RefGR) < MaxFragLength]
+L1RefGRFull  <- L1RefGR[width(L1RefGR) > 6000]
+L1FragmGR    <- L1RefGR[width(L1RefGR) < MaxFragLength]
 L1FragmNames <- paste(seqnames(L1FragmGR), start(L1FragmGR), end(L1FragmGR),
                       strand(L1FragmGR), sep = "_")
 
@@ -93,29 +94,13 @@ L1Dist_cat <- Dist2ClosestGR(L1CatalogGR, EnhancerGR)
 L1Dist_cat_Combined <- Dist2ClosestGR(L1CatalogGR, GRcombined)
 hist(L1CatDist)
 
-idxNearestCat     <- nearest(L1CatalogGR, RegGR, ignore.strand = T)
-OverlapTableCat   <- RegTable[idxNearestCat, ]
-idxNearestFragm   <- nearest(L1FragmGR, RegGR, ignore.strand = T)
-OverlapTableFragm <- RegTable[idxNearestFragm, ]
-FreqCat   <- table(OverlapTableCat$name)
-FreqFragm <- table(OverlapTableFragm$name)
-chisq.test(FreqCat, FreqFragm)
-plot(as.numeric(FreqCat), as.numeric(FreqFragm))
-text(as.numeric(FreqCat), as.numeric(FreqFragm),names(FreqCat))
-lines(c(0, 1000) * length(L1CatalogGR), c(0, 1000) * length(L1FragmGR))
-
-# Calculate distances from fragment L1 to nearest enhancer
-idxNearestCat     <- nearest(L1CatalogGR, EnhancerGR, ignore.strand = T)
-OverlapTableCat   <- EnhancerTable[idxNearestCat, ]
-idxNearestFragm   <- nearest(L1FragmGR, EnhancerGR, ignore.strand = T)
-OverlapTableFragm <- EnhancerTable[idxNearestFragm, ]
-FreqCat   <- table(OverlapTableCat$name)
-FreqFragm <- table(OverlapTableFragm$name)
-chisq.test(FreqCat, FreqFragm)
-plot(as.numeric(FreqCat), as.numeric(FreqFragm))
-text(as.numeric(FreqCat), as.numeric(FreqFragm),names(FreqCat))
-lines(c(0, 1000) * length(L1CatalogGR), c(0, 1000) * length(L1FragmGR))
-
+# Test for enrichment in different segment classes
+EnrichTests_Reg <- Compare2RangesWith3rd(L1CatalogGR, L1FragmGR, RegGR, 
+                                     RegTable$name)
+barplot(EnrichTests_Reg$ORs)
+EnrichTests_Enhancer <- Compare2RangesWith3rd(L1CatalogGR, L1FragmGR, EnhancerGR, 
+                                         EnhancerTable$name)
+barplot(EnrichTests_Enhancer$ORs)
 
 
 L1Dist_Fragm <- Dist2ClosestGR(L1FragmGR, EnhancerGR)
