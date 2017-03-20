@@ -12,11 +12,11 @@ library(irlba)
 ############
 
 #  Set paths
-RepeatTablePath <- "D:/L1polymORF/Data/repeatsHg19_L1HS.csv"
-ChainFile38To19 <- "D:/L1polymORF/Data/hg38ToHg19.over.chain"
-ChainFile19To18 <- "D:/L1polymORF/Data/hg19ToHg18.over.chain"
-L1CatalogPath   <- "D:/L1polymORF/Data/L1Catalog_Updated_Wed_Aug_10_17-32-20_2016.csv"
-HiCFolderPath   <- "D:/L1polymORF/Data/HiCData"
+RepeatTablePath <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/repeatsHg19_L1HS.csv"
+ChainFile38To19 <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg38ToHg19.over.chain"
+ChainFile19To18 <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19ToHg18.over.chain"
+L1CatalogPath   <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/L1Catalog_Updated_Wed_Aug_10_17-32-20_2016.csv"
+HiCFolderPath   <- "/srv/gsfs0/projects/levinson/hzudohna/HiCData"
 
 # Set chromosome and window length
 Chrom   <- "chr1"
@@ -33,9 +33,9 @@ RepeatTable <- read.csv(RepeatTablePath)
 # Create genomic ranges for L1 fragments, match them to distances to get distance
 # to consensus per fragment
 L1RefGR_hg19 <- GRanges(seqnames = RepeatTable$genoName,
-                   ranges = IRanges(start = RepeatTable$genoStart,
-                                    end = RepeatTable$genoEnd),
-                   strand = RepeatTable$strand)
+                        ranges = IRanges(start = RepeatTable$genoStart,
+                                         end = RepeatTable$genoEnd),
+                        strand = RepeatTable$strand)
 L1GRhg19_fragm <- L1RefGR_hg19[width(L1RefGR_hg19) < 5900]
 
 
