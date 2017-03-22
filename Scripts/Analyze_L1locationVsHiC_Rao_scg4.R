@@ -5,22 +5,40 @@ library(GenomicRanges)
 library(rtracklayer)
 library(Matrix)
 library(irlba)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 
+# Source start script
+source('/home/hzudohna/L1polymORFgit/Scripts/_Start_L1polymORF_scg4.R')
 
 ############
 #  Set parameters
 ############
 
 #  Set paths
+RepeatTablePath <- "D:/L1polymORF/Data/repeatsHg19_L1HS.csv"
+ChainFile38To19 <- "D:/L1polymORF/Data/hg38ToHg19.over.chain"
+ChainFile19To18 <- "D:/L1polymORF/Data/hg19ToHg18.over.chain"
+L1CatalogPath   <- "D:/L1polymORF/Data/L1Catalog_Updated_Wed_Aug_10_17-32-20_2016.csv"
+HiCFolderPath   <- "D:/L1polymORF/Data/HiCData"
+ChromLenghtPath <- "D:/L1polymORF/Data/ChromLengthsHg19.RData"
+
+# Set window length and number of rows to be read in
+Resolution <- '10kb'
+WindowL <- as.numeric(strsplit(Resolution, 'kb')[[1]][1]) * 1000
+NRows   <- 10^6
+
+#  Set paths
 RepeatTablePath <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/repeatsHg19_L1HS.csv"
 ChainFile38To19 <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg38ToHg19.over.chain"
 ChainFile19To18 <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19ToHg18.over.chain"
 L1CatalogPath   <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/L1Catalog_Updated_Wed_Aug_10_17-32-20_2016.csv"
-HiCFolderPath   <- "/srv/gsfs0/projects/levinson/hzudohna/HiCData"
+HiCFolderPath   <- paste("/srv/gsfs0/projects/levinson/hzudohna/HiCData/GM12878_combined/", 
+                         Resolution, "_resolution_intrachromosomal/", sep = "")
+MAPQFolder      <- "MAPQGE30"
+ChromLenghtPath <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/ChromLengthsHg19.Rdata"
+OutputPath <- paste("/srv/gsfs0/projects/levinson/hzudohna/HiCData/GM12878_combined/", Resolution,
+                    "_L1summary.Rdata", sep = "")
 
-# Set chromosome and window length
-Chrom   <- "chr1"
-WindowL <- 50000
 
 ############
 #  Process L1 data
@@ -58,73 +76,130 @@ L1CatalogGR <- GRanges(seqnames = L1CatalogL1Mapped$Chromosome,
                                         end = pmax(L1CatalogL1Mapped$start_HG38,
                                                    L1CatalogL1Mapped$end_HG38)),
                        strand = L1CatalogL1Mapped$strand_L1toRef)
-L1CatGR_hg19 <- liftOver(L1CatalogGR, 
-                         chain = import.chain(ChainFile38To19))
-NrRanges <- sapply(L1CatGR_hg19, length)
+L1GRhg19_cat    <- liftOver(L1CatalogGR, 
+                            chain = import.chain(ChainFile38To19))
+NrRanges        <- sapply(L1GRhg19_cat, length)
 idxUniqueMapped <- NrRanges == 1
-L1CatGR_hg19 <- unlist(L1CatGR_hg19[idxUniqueMapped])
+L1GRhg19_cat    <- unlist(L1GRhg19_cat[idxUniqueMapped])
 
+# Load data with chromosome length
+load(ChromLenghtPath)
+ChromLengthsHg19
 
 ############
 #  Process Hi-C data
 ############
 
-# Get lists of files 
-RawMatFile <- list.files(HiCFolderPath, full.names = T, 
-                         pattern = "RAWobserved")
-StVFile   <- list.files(HiCFolderPath, full.names = T, pattern = "kb.VCnorm")
-ExpFile   <- list.files(HiCFolderPath, full.names = T, pattern = ".VCexpected")
+# Initialize data frame that collects HiC Data
+HicByL1Type <- data.frame()
 
-# Read in Hi-C data and standardization vectors
-HiCMat           <- read.table(RawMatFile)
-colnames(HiCMat) <- c("Left1", "Left2", "RawReads")
-StVect           <- read.table(StVFile)
-ExpVect          <- read.table(ExpFile)
-dim(HiCMat)
+# Set chromosome and window length
+for (Chrom in names(ChromLengthsHg19)) {
+  cat("**********    Processing chromosome", Chrom, "    *************\n")
+  CurrentFolder <- paste(HiCFolderPath, Chrom, MAPQFolder, sep = "/")
+  
+  # Create a genomic ranges of all HiC windows
+  WStarts <- seq(0, ChromLengthsHg19[Chrom], WindowL)
+  HiCGR   <- GRanges(seqnames = Chrom, 
+                     ranges = IRanges(start = WStarts, width = WindowL))
+  
+  overlapL1Fragm <- findOverlaps(L1GRhg19_fragm, HiCGR)
+  overlapL1Cat   <- findOverlaps(L1GRhg19_cat, HiCGR)
+  idxHicGR       <- c(overlapL1Fragm@to, overlapL1Cat@to)
+  WStartsL1      <- WStarts[idxHicGR]
+  
+  # Get lists of files 
+  RawMatFile <- list.files(CurrentFolder, full.names = T, 
+                           pattern = paste(Resolution, "RAWobserved", sep = "."))
+  StVFile   <- list.files(CurrentFolder, full.names = T, 
+                          pattern = paste(Resolution, "VCnorm", sep = "."))
+  ExpFile   <- list.files(CurrentFolder, full.names = T, 
+                          pattern = paste(Resolution, "VCexpected", sep = "."))
+  
+  # Read in Hi-C data and standardization vectors
+  StVect  <- read.table(StVFile)
+  ExpVect <- read.table(ExpFile)
+  
+  # Create a standardization vector for the number of genes per range
+  PromGR    <- promoters(TxDb.Hsapiens.UCSC.hg19.knownGene)
+  PromCount <- countOverlaps(HiCGR, PromGR)
+  PromCount <- PromCount[-1]
+  
+  HiCAgg       <- data.frame()
+  Lines2Skip   <- 0 
+  LinesRead    <- NRows
+  TotLinesRead <- 0
+  while(LinesRead == NRows){
+    
+    # Read in matrix of H-C values and standardization vectors
+    HiCMat           <- read.table(RawMatFile, nrows = NRows, skip = Lines2Skip)
+    LinesRead  <- nrow(HiCMat)
+    colnames(HiCMat) <- c("Left1", "Left2", "RawReads")
+    HiCMat <- HiCMat[HiCMat$Left1 %in% WStartsL1,]
+    
+    if (nrow(HiCMat) > 0) {
+      # Standardize Hi-C data and standardization vectors
+      idx1             <- HiCMat[,1] / WindowL + 1
+      idx2             <- HiCMat[,2] / WindowL + 1
+      idx3             <- (HiCMat[,2] - HiCMat[,1]) / WindowL + 1
+      HiCMat$NormReads <- HiCMat[,3] / StVect[idx1,] / StVect[idx2,] 
+      HiCMat$NormEO    <- HiCMat$NormReads / ExpVect[idx3,] 
+      HiCMat$NormProm1 <- HiCMat$NormEO * PromCount[idx1]
+      HiCMat$NormProm2 <- HiCMat$NormEO * PromCount[idx2]
+      
+      # Aggregate interchromosomal interaction
+      HiCAggNew1 <- aggregate(cbind(NormEO, NormProm2) ~ Left1, data = HiCMat, FUN = sum)
+      HiCAggNew2 <- aggregate(cbind(NormEO, NormProm1) ~ Left2, data = HiCMat, FUN = sum)
+      colnames(HiCAggNew2)[colnames(HiCAggNew2) == "Left2"] <- "Left1"
+      colnames(HiCAggNew2)[colnames(HiCAggNew2) == "NormProm1"] <- "NormProm2"
+      HiCAgg    <- rbind(HiCAgg, HiCAggNew1, HiCAggNew2)
+      HiCAgg    <- aggregate(cbind(NormEO, NormProm2) ~ Left1, data = HiCAgg, FUN = sum)
+    }
+    
+    # Update iteration variables and produce status message
+    cat("Processed line", Lines2Skip + 1, "to", Lines2Skip + nrow(HiCMat), "\n")
+    Lines2Skip <- Lines2Skip + LinesRead 
+    TotLinesRead <- TotLinesRead + LinesRead
+    cat("Total lines read is", TotLinesRead, "\n")
+  }
+  
+  # Aggregate total HiC interaction value by L1
+  blnHicGRAgg <- start(HiCGR) %in% HiCAgg$Left1
+  HicByL1TypeNew1 <- AggregateValsBy2GRangesSet(L1GRhg19_cat, L1GRhg19_fragm, 
+                      HiCGR[blnHicGRAgg], HiCAgg$NormProm2, 
+                      Type12Names = c("full", "fragm"), ValueName = "NormPromSum", 
+                      TypeName = "L1type")
+  HicByL1TypeNew2 <- AggregateValsBy2GRangesSet(L1GRhg19_cat, L1GRhg19_fragm, 
+                      HiCGR[blnHicGRAgg], HiCAgg$NormEO, 
+                      Type12Names = c("full", "fragm"), ValueName = "NormEOsum", 
+                      TypeName = "L1type")
+  HicByL1TypeNew <- merge(HicByL1TypeNew1, HicByL1TypeNew2)
+  HicByL1Type <- rbind(HicByL1Type, HicByL1TypeNew)
+  
+}
 
-# Standardize Hi-C data and standardization vectors
-idx1             <- HiCMat[,1] / WindowL + 1
-idx2             <- HiCMat[,2] / WindowL + 1
-idx3             <- (HiCMat[,2] - HiCMat[,1]) / WindowL + 1
-HiCMat$NormReads <- HiCMat[,3] / StVect[idx1,] / StVect[idx2,]
-HiCMat$NormEO    <- HiCMat$NormReads / ExpVect[idx3,]
-
-# Aggregate interchromosomal interaction
-HiCAgg <- aggregate(NormEO ~ Left1, data = HiCMat, FUN = sum)
-min(HiCMat$Left1)
-HiCGR <- GRanges(seqnames = Chrom, 
-                 IRanges(start = HiCAgg$Left1,
-                 width = WindowL))
 
 ############
-#  Intersect HiC data with L1
+#  Test for difference in aggregation level 
 ############
 
-# Aggregate total HiC interaction value by L1
-HicByL1Type <- AggregateValsBy2GRangesSet(L1CatGR_hg19, L1GRhg19_fragm, HiCGR, 
-   HiCAgg$NormEO, Type12Names = c("full", "fragm"), ValueName = "NormEOsum", 
-   TypeName = "L1type")
-t.test(NormEOsum ~ L1type, HicByL1Type)
-boxplot(NormEOsum ~ L1type, HicByL1Type)
+# Overall test
+t.test(NormEOsum   ~ L1type, HicByL1Type)
+t.test(NormPromSum ~ L1type, HicByL1Type)
 
-############
-#  Perform PCA
-############
+# Test per chromosome
+pValPerChrom <- sapply(names(ChromLengthsHg19), function(x){
+  HicSubset <- HicByL1Type[HicByL1Type$chromosome == x, ]
+  L1Count <- table(HicSubset$L1type)
+  if (min(L1Count) > 3 & length(L1Count) == 2){
+    c(pEO = t.test(NormEOsum   ~ L1type, HicSubset)$p.value,
+      pProm = t.test(NormPromSum ~ L1type, HicSubset)$p.value)
+  } else {
+    c(pEO = NA, pProm = NA)
+  }
+})
 
-# # Create a sparse matrix of contact
-# M <- sparseMatrix(i = idx1, j = idx2, x = HiCMat$NormEO, symmetric = T)
-# SVDM <- irlba(M, nv = 1, nu = 0, center = colMeans(M), fastpath = FALSE)
-# PC1 <- M %*% SVDM$v
-# length(PC1)
-# plot(PC1, ylim = c(-0.1, 3))
-# plot(PC1[1:200], ylim = c(-0.1, 3), type = "l")
-# 
-# # Turn Hi-C data into a GRanges object
-# idxV  <- 0:nrow(StVect)* WindowL
-# HiCGR <- GRanges(seqnames = Chrom, IRanges(start = idxV[-length(idxV)],
-#                                            end = idxV[-1]))
-# # Find overlap with fragments and catalog elements
-# L1RefGR_hg19_fragm <- L1RefGR_hg19[width(L1RefGR_hg19) < 5000]
-# idxOverlap_fragm   <- findOverlaps(HiCGR, L1RefGR_hg19_fragm)
-# idxOverlap_Cat     <- findOverlaps(HiCGR, L1CatGR_hg19)
+HiCSumPerChrom <- aggregate(cbind(NormPromSum, NormEOsum) ~ L1type + chromosome, HicByL1Type, FUN = mean)
 
+# Save workspace
+save.image(OutputPath)
