@@ -30,28 +30,35 @@ AggregateValsBy2GRangesSet <- function(GRanges1, GRanges2, GRanges3, Values,
     stop("GRanges3 and Range3Names have to have the same length!\n")
   }
   
+  # Set up empty data frames
+  AggData1 <- data.frame()
+  AggData2 <- data.frame()
+  
   # Aggregate values per GRanges1   
   Overlaps1  <- findOverlaps(GRanges3, GRanges1)
-  AggData1  <- aggregate(
-    Values[Overlaps1@from] ~ Overlaps1@to, FUN = mean)
-  colnames(AggData1)  <- c("idxGR", ValueName)
-  AggData1$start      <- start(GRanges1)[AggData1$idxGR]
-  AggData1$end        <- end(GRanges1)[AggData1$idxGR]
-  AggData1$chromosome <- as.vector(seqnames(GRanges1))[AggData1$idxGR]
-  AggData1$Type       <- Type12Names[1]
-  colnames(AggData1)[colnames(AggData1) == "Type"] <- TypeName
+  if (length(overlapL1Fragm@from) > 0){
+    AggData1  <- aggregate(
+      Values[Overlaps1@from] ~ Overlaps1@to, FUN = mean)
+    colnames(AggData1)  <- c("idxGR", ValueName)
+    AggData1$start      <- start(GRanges1)[AggData1$idxGR]
+    AggData1$end        <- end(GRanges1)[AggData1$idxGR]
+    AggData1$chromosome <- as.vector(seqnames(GRanges1))[AggData1$idxGR]
+    AggData1$Type       <- Type12Names[1]
+    colnames(AggData1)[colnames(AggData1) == "Type"] <- TypeName
+  }
   
   # Aggregate histone values per full-length L1   
   Overlaps2  <- findOverlaps(GRanges3, GRanges2)
-  AggData2  <- aggregate(
+  if (length(Overlaps2@from) > 0){
+    AggData2  <- aggregate(
     Values[Overlaps2@from] ~ Overlaps2@to, FUN = mean)
-  colnames(AggData2)  <- c("idxGR", ValueName)
-  AggData2$start      <- start(GRanges2)[AggData2$idxGR]
-  AggData2$end        <- end(GRanges2)[AggData2$idxGR]
-  AggData2$chromosome <- as.vector(seqnames(GRanges2))[AggData2$idxGR]
-  AggData2$Type       <- Type12Names[2]
-  colnames(AggData2)[colnames(AggData2) == "Type"] <- TypeName
-  
+    colnames(AggData2)  <- c("idxGR", ValueName)
+    AggData2$start      <- start(GRanges2)[AggData2$idxGR]
+    AggData2$end        <- end(GRanges2)[AggData2$idxGR]
+    AggData2$chromosome <- as.vector(seqnames(GRanges2))[AggData2$idxGR]
+    AggData2$Type       <- Type12Names[2]
+    colnames(AggData2)[colnames(AggData2) == "Type"] <- TypeName
+  }
   # Combine both 
   rbind(AggData1, AggData2)
   
