@@ -29,14 +29,14 @@ AggregateValsBy2GRangesSet <- function(GRanges1, GRanges2, GRanges3, Values,
   if (length(GRanges3) != length(Values)){
     stop("GRanges3 and Range3Names have to have the same length!\n")
   }
-  
-  # Set up empty data frames
+
+    # Set up empty data frames
   AggData1 <- data.frame()
   AggData2 <- data.frame()
   
   # Aggregate values per GRanges1   
   Overlaps1  <- findOverlaps(GRanges3, GRanges1)
-  if (length(overlapL1Fragm@from) > 0){
+  if (length(Overlaps1@from) > 0){
     AggData1  <- aggregate(
       Values[Overlaps1@from] ~ Overlaps1@to, FUN = mean)
     colnames(AggData1)  <- c("idxGR", ValueName)
