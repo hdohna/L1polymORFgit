@@ -95,7 +95,7 @@ HicByL1Type <- data.frame()
 
 # Set chromosome and window length
 for (Chrom in names(ChromLengthsHg19)) {
-  cat("**********    Processing chromosome", Chrom, "    *************\n")
+  cat("\n**********    Processing chromosome", Chrom, "    *************\n")
   CurrentFolder <- paste(HiCFolderPath, Chrom, MAPQFolder, sep = "/")
   
   # Create a genomic ranges of all HiC windows
