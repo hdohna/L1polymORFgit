@@ -161,20 +161,22 @@ for (Chrom in names(ChromLengthsHg19)) {
     Lines2Skip <- Lines2Skip + LinesRead 
     TotLinesRead <- TotLinesRead + LinesRead
     cat("Total lines read is", TotLinesRead, "\n")
+    cat("Current HiCAgg rows:", nrow(HiCAgg), "\n")
   }
   
   # Aggregate total HiC interaction value by L1
-  blnHicGRAgg <- start(HiCGR) %in% HiCAgg$Left1
+  StartMatch <- match(HiCAgg$Left1, start(HiCGR))
   HicByL1TypeNew1 <- AggregateValsBy2GRangesSet(L1GRhg19_cat, L1GRhg19_fragm, 
-                      HiCGR[blnHicGRAgg], HiCAgg$NormProm2, 
+                      HiCGR[StartMatch], HiCAgg$NormProm2, 
                       Type12Names = c("full", "fragm"), ValueName = "NormPromSum", 
                       TypeName = "L1type")
   HicByL1TypeNew2 <- AggregateValsBy2GRangesSet(L1GRhg19_cat, L1GRhg19_fragm, 
-                      HiCGR[blnHicGRAgg], HiCAgg$NormEO, 
+                      HiCGR[StartMatch], HiCAgg$NormEO, 
                       Type12Names = c("full", "fragm"), ValueName = "NormEOsum", 
                       TypeName = "L1type")
   HicByL1TypeNew <- merge(HicByL1TypeNew1, HicByL1TypeNew2)
-  HicByL1Type <- rbind(HicByL1Type, HicByL1TypeNew)
+  HicByL1Type    <- rbind(HicByL1Type, HicByL1TypeNew)
+  cat("Current HicByL1Type rows:", nrow(HicByL1Type), "\n")
   
 }
 
