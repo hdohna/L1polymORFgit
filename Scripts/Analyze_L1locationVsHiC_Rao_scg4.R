@@ -107,6 +107,7 @@ for (Chrom in names(ChromLengthsHg19)) {
   overlapL1Cat   <- findOverlaps(L1GRhg19_cat, HiCGR)
   idxHicGR       <- c(overlapL1Fragm@to, overlapL1Cat@to)
   WStartsL1      <- WStarts[idxHicGR]
+  cat(length(WStartsL1), "ranges intersect with L1s\n")
   
   # Get lists of files 
   RawMatFile <- list.files(CurrentFolder, full.names = T, 
@@ -135,7 +136,8 @@ for (Chrom in names(ChromLengthsHg19)) {
     HiCMat           <- read.table(RawMatFile, nrows = NRows, skip = Lines2Skip)
     LinesRead  <- nrow(HiCMat)
     colnames(HiCMat) <- c("Left1", "Left2", "RawReads")
-    HiCMat <- HiCMat[HiCMat$Left1 %in% WStartsL1,]
+    blnInL1 <- (HiCMat$Left1 %in% WStartsL1) | (HiCMat$Left2 %in% WStartsL1) 
+    HiCMat  <- HiCMat[blnInL1,]
     
     if (nrow(HiCMat) > 0) {
       # Standardize Hi-C data and standardization vectors
