@@ -25,7 +25,7 @@ ChromLenghtPath <- "D:/L1polymORF/Data/ChromLengthsHg19.RData"
 # Set window length and number of rows to be read in
 Resolution <- '10kb'
 WindowL <- as.numeric(strsplit(Resolution, 'kb')[[1]][1]) * 1000
-NRows   <- 10^6
+NRows   <- 10^7
 
 #  Set paths
 RepeatTablePath <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/repeatsHg19_L1HS.csv"
