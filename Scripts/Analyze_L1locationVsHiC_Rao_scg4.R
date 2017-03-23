@@ -136,24 +136,36 @@ for (Chrom in names(ChromLengthsHg19)) {
     HiCMat           <- read.table(RawMatFile, nrows = NRows, skip = Lines2Skip)
     LinesRead  <- nrow(HiCMat)
     colnames(HiCMat) <- c("Left1", "Left2", "RawReads")
-    blnInL1 <- (HiCMat$Left1 %in% WStartsL1) | (HiCMat$Left2 %in% WStartsL1) 
-    HiCMat  <- HiCMat[blnInL1,]
-    
-    if (nrow(HiCMat) > 0) {
-      # Standardize Hi-C data and standardization vectors
-      idx1             <- HiCMat[,1] / WindowL + 1
-      idx2             <- HiCMat[,2] / WindowL + 1
-      idx3             <- (HiCMat[,2] - HiCMat[,1]) / WindowL + 1
-      HiCMat$NormReads <- HiCMat[,3] / StVect[idx1,] / StVect[idx2,] 
-      HiCMat$NormEO    <- HiCMat$NormReads / ExpVect[idx3,] 
-      HiCMat$NormProm1 <- HiCMat$NormEO * PromCount[idx1]
-      HiCMat$NormProm2 <- HiCMat$NormEO * PromCount[idx2]
+    blnLeft1InL1 <- HiCMat$Left1 %in% WStartsL1 
+    blnLeft2InL1 <- HiCMat$Left2 %in% WStartsL1 
+
+    if (sum(blnLeft1InL1 | blnLeft2InL1) > 0) {
       
-      # Aggregate interchromosomal interaction
-      HiCAggNew1 <- aggregate(cbind(NormEO, NormProm2) ~ Left1, data = HiCMat, FUN = sum)
-      HiCAggNew2 <- aggregate(cbind(NormEO, NormProm1) ~ Left2, data = HiCMat, FUN = sum)
+      # Subset and standardize Hi-C data
+      HiCMat1 <- HiCMat[blnLeft1InL1, ]
+      idx1             <- HiCMat1[,1] / WindowL + 1
+      idx2             <- HiCMat1[,2] / WindowL + 1
+      idx3             <- (HiCMat1[,2] - HiCMat1[,1]) / WindowL + 1
+      HiCMat1$NormReads <- HiCMat1[,3] / StVect[idx1,] / StVect[idx2,] 
+      HiCMat1$NormEO    <- HiCMat1$NormReads / ExpVect[idx3,] 
+      HiCMat1$NormProm1 <- HiCMat1$NormEO * PromCount[idx1]
+      HiCMat1$NormProm2 <- HiCMat1$NormEO * PromCount[idx2]
+      HiCAggNew1 <- aggregate(cbind(NormEO, NormProm2) ~ Left1, data = HiCMat1, FUN = sum)
+     
+       # Subset and standardize Hi-C data
+      HiCMat2 <- HiCMat[blnLeft2InL1, ]
+      idx1             <- HiCMat2[,1] / WindowL + 1
+      idx2             <- HiCMat2[,2] / WindowL + 1
+      idx3             <- (HiCMat2[,2] - HiCMat2[,1]) / WindowL + 1
+      HiCMat2$NormReads <- HiCMat2[,3] / StVect[idx1,] / StVect[idx2,] 
+      HiCMat2$NormEO    <- HiCMat2$NormReads / ExpVect[idx3,] 
+      HiCMat2$NormProm1 <- HiCMat2$NormEO * PromCount[idx1]
+      HiCMat2$NormProm2 <- HiCMat2$NormEO * PromCount[idx2]
+      HiCAggNew2 <- aggregate(cbind(NormEO, NormProm1) ~ Left2, data = HiCMat2, FUN = sum)
       colnames(HiCAggNew2)[colnames(HiCAggNew2) == "Left2"] <- "Left1"
       colnames(HiCAggNew2)[colnames(HiCAggNew2) == "NormProm1"] <- "NormProm2"
+      
+      # Aggregate interchromosomal interaction
       HiCAgg    <- rbind(HiCAgg, HiCAggNew1, HiCAggNew2)
       HiCAgg    <- aggregate(cbind(NormEO, NormProm2) ~ Left1, data = HiCAgg, FUN = sum)
     }
