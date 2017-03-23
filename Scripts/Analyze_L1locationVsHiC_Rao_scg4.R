@@ -23,7 +23,7 @@ HiCFolderPath   <- "D:/L1polymORF/Data/HiCData"
 ChromLenghtPath <- "D:/L1polymORF/Data/ChromLengthsHg19.RData"
 
 # Set window length and number of rows to be read in
-Resolution <- '10kb'
+Resolution <- '50kb'
 WindowL <- as.numeric(strsplit(Resolution, 'kb')[[1]][1]) * 1000
 NRows   <- 10^7
 
