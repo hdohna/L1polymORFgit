@@ -94,7 +94,7 @@ ChromLengthsHg19
 HicByL1Type <- data.frame()
 
 # Set chromosome and window length
-for (Chrom in names(ChromLengthsHg19)) {
+for (Chrom in names(ChromLengthsHg19)[names(ChromLengthsHg19) != "chrY"]) {
   cat("\n**********    Processing chromosome", Chrom, "    *************\n")
   CurrentFolder <- paste(HiCFolderPath, Chrom, MAPQFolder, sep = "/")
   
