@@ -139,7 +139,10 @@ for (Chrom in names(ChromLengthsHg19)[names(ChromLengthsHg19) != "chrY"]) {
     blnLeft1InL1 <- HiCMat$Left1 %in% WStartsL1 
     blnLeft2InL1 <- HiCMat$Left2 %in% WStartsL1 
 
-    if (sum(blnLeft1InL1 | blnLeft2InL1) > 0) {
+    HiCAggNew1 <- data.frame()
+    HiCAggNew2 <- data.frame()
+    
+    if (any(blnLeft1InL1)) {
       
       # Subset and standardize Hi-C data
       HiCMat1 <- HiCMat[blnLeft1InL1, ]
@@ -151,8 +154,10 @@ for (Chrom in names(ChromLengthsHg19)[names(ChromLengthsHg19) != "chrY"]) {
       HiCMat1$NormProm1 <- HiCMat1$NormEO * PromCount[idx1]
       HiCMat1$NormProm2 <- HiCMat1$NormEO * PromCount[idx2]
       HiCAggNew1 <- aggregate(cbind(NormEO, NormProm2) ~ Left1, data = HiCMat1, FUN = sum)
-     
-       # Subset and standardize Hi-C data
+    }
+    if (any(blnLeft2InL1)) {
+      
+      # Subset and standardize Hi-C data
       HiCMat2 <- HiCMat[blnLeft2InL1, ]
       idx1             <- HiCMat2[,1] / WindowL + 1
       idx2             <- HiCMat2[,2] / WindowL + 1
@@ -164,12 +169,11 @@ for (Chrom in names(ChromLengthsHg19)[names(ChromLengthsHg19) != "chrY"]) {
       HiCAggNew2 <- aggregate(cbind(NormEO, NormProm1) ~ Left2, data = HiCMat2, FUN = sum)
       colnames(HiCAggNew2)[colnames(HiCAggNew2) == "Left2"] <- "Left1"
       colnames(HiCAggNew2)[colnames(HiCAggNew2) == "NormProm1"] <- "NormProm2"
-      
+    }   
       # Aggregate interchromosomal interaction
       HiCAgg    <- rbind(HiCAgg, HiCAggNew1, HiCAggNew2)
       HiCAgg    <- aggregate(cbind(NormEO, NormProm2) ~ Left1, data = HiCAgg, FUN = sum)
-    }
-    
+
     # Update iteration variables and produce status message
     cat("Processed line", Lines2Skip + 1, "to", Lines2Skip + nrow(HiCMat), "\n")
     Lines2Skip <- Lines2Skip + LinesRead 
