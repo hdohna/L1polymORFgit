@@ -27,6 +27,13 @@ Resolution <- '10kb'
 WindowL <- as.numeric(strsplit(Resolution, 'kb')[[1]][1]) * 1000
 NRows   <- 10^7
 
+# Specify patterns 
+NormPattern <- "VCnorm"
+ExpPattern  <- "VCexpected"
+NormPattern <- "KRnorm"
+ExpPattern  <- "KRexpected"
+MAPQFolder  <- "MAPQGE30"
+
 #  Set paths
 RepeatTablePath <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/repeatsHg19_L1HS.csv"
 ChainFile38To19 <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg38ToHg19.over.chain"
@@ -34,10 +41,9 @@ ChainFile19To18 <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19ToHg18.
 L1CatalogPath   <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/L1Catalog_Updated_Wed_Aug_10_17-32-20_2016.csv"
 HiCFolderPath   <- paste("/srv/gsfs0/projects/levinson/hzudohna/HiCData/GM12878_combined/", 
                          Resolution, "_resolution_intrachromosomal/", sep = "")
-MAPQFolder      <- "MAPQGE30"
 ChromLenghtPath <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/ChromLengthsHg19.Rdata"
-OutputPath <- paste("/srv/gsfs0/projects/levinson/hzudohna/HiCData/GM12878_combined/", Resolution,
-                    "_L1summary.Rdata", sep = "")
+OutputPath <- paste("/srv/gsfs0/projects/levinson/hzudohna/HiCData/GM12878_combined/", Resolution, 
+                    NormPattern, "L1summary.Rdata", sep = "_")
 
 
 ############
@@ -113,9 +119,9 @@ for (Chrom in names(ChromLengthsHg19)[names(ChromLengthsHg19) != "chrY"]) {
   RawMatFile <- list.files(CurrentFolder, full.names = T, 
                            pattern = paste(Resolution, "RAWobserved", sep = "."))
   StVFile   <- list.files(CurrentFolder, full.names = T, 
-                          pattern = paste(Resolution, "VCnorm", sep = "."))
+                          pattern = paste(Resolution, NormPattern, sep = "."))
   ExpFile   <- list.files(CurrentFolder, full.names = T, 
-                          pattern = paste(Resolution, "VCexpected", sep = "."))
+                          pattern = paste(Resolution, ExpPattern, sep = "."))
   
   # Read in Hi-C data and standardization vectors
   StVect  <- read.table(StVFile)
@@ -125,11 +131,17 @@ for (Chrom in names(ChromLengthsHg19)[names(ChromLengthsHg19) != "chrY"]) {
   PromGR    <- promoters(TxDb.Hsapiens.UCSC.hg19.knownGene)
   PromCount <- countOverlaps(HiCGR, PromGR)
   PromCount <- PromCount[-1]
+  cat("Number of HiC genomic ranges:", length(HiCGR), "\n")
+  cat("Length of norm vector:", nrow(StVect), "\n")
   
   HiCAgg       <- data.frame()
   Lines2Skip   <- 0 
   LinesRead    <- NRows
   TotLinesRead <- 0
+  MinLeft1     <- Inf
+  MaxLeft1     <- 0
+  MinLeft2     <- Inf
+  MaxLeft2     <- 0
   while(LinesRead == NRows){
     
     # Read in matrix of H-C values and standardization vectors
@@ -138,7 +150,11 @@ for (Chrom in names(ChromLengthsHg19)[names(ChromLengthsHg19) != "chrY"]) {
     colnames(HiCMat) <- c("Left1", "Left2", "RawReads")
     blnLeft1InL1 <- HiCMat$Left1 %in% WStartsL1 
     blnLeft2InL1 <- HiCMat$Left2 %in% WStartsL1 
-
+    MinLeft1 <- min(MinLeft1, HiCMat$Left1)
+    MaxLeft1 <- max(MaxLeft1, HiCMat$Left1)
+    MinLeft2 <- min(MinLeft2, HiCMat$Left2)
+    MaxLeft2 <- max(MaxLeft2, HiCMat$Left2)
+    
     HiCAggNew1 <- data.frame()
     HiCAggNew2 <- data.frame()
     
@@ -182,6 +198,14 @@ for (Chrom in names(ChromLengthsHg19)[names(ChromLengthsHg19) != "chrY"]) {
     cat("Current HiCAgg rows:", nrow(HiCAgg), "\n")
   }
   
+  # Report minimum and maximum Left1
+  cat("Minimum Left1:", MinLeft1, "\n")
+  cat("Maximum Left1:", MaxLeft1, "\n")
+  cat("Minimum Left2:", MinLeft2, "\n")
+  cat("Maximum Left2:", MaxLeft2, "\n")
+  cat("Chromosome length:", MaxLeft2, "\n")
+  
+  
   # Aggregate total HiC interaction value by L1
   StartMatch <- match(HiCAgg$Left1, start(HiCGR))
   HicByL1TypeNew1 <- AggregateValsBy2GRangesSet(L1GRhg19_cat, L1GRhg19_fragm, 
@@ -195,9 +219,7 @@ for (Chrom in names(ChromLengthsHg19)[names(ChromLengthsHg19) != "chrY"]) {
   HicByL1TypeNew <- merge(HicByL1TypeNew1, HicByL1TypeNew2)
   HicByL1Type    <- rbind(HicByL1Type, HicByL1TypeNew)
   cat("Current HicByL1Type rows:", nrow(HicByL1Type), "\n")
-  
 }
-
 
 ############
 #  Test for difference in aggregation level 
