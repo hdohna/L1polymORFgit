@@ -44,10 +44,13 @@ MotifWidth  <- 50
 MotifOffSet <- 60
 
 # Specify flank size for sequences flanking L1 to be included in alignment output
-FlankSize <- 500
+FlankSize <- 2000
 
 # Minimum number of bp clipped of a read for it to be included in alignment
 MinClipAlign <- 1000
+
+# Minimum length of full-length L1
+MinFullL1 <- 6020
 
 # Set file paths
 CoveragePlotPath      <- 'D:/L1polymORF/Figures/L1InsertionCoverage_NA12878_PacBio.pdf'
@@ -173,10 +176,10 @@ FullL1Info$idx   <- as.numeric(FullL1Info$idx)
 FullL1Info$start <- start(IslGRanges_reduced[FullL1Info$idx])
 FullL1Info$end   <- end(IslGRanges_reduced[FullL1Info$idx])
 FullL1Info$cover   <- CoverMat[idx5P, 100]
-FilesWithReads[idxFull]
+
 idxFull2 <- which(rownames(FullL1Info) %in% FilesWithReads[idxFull])
-FullL1Info[idxFull2, c("chromosome", "idx", "L1Strand")]
-# Get indices of insertions that are not full-length
+
+# Determine whether L1 might be potentially full-length
 FullL1Info$PotentialFullLength <- sapply(1:length(idx5P), function(i){
   x <- idx5P[i]
   RL <- ReadListPerPeak[[x]]
@@ -195,17 +198,30 @@ FullL1GR <- makeGRangesFromDataFrame(FullL1Info)
 FullL1Info$L1InsertionPosition.median <- NA
 FullL1Info$L1InsertionPosition.min    <- NA
 FullL1Info$L1InsertionPosition.max    <- NA
+FullL1Info$L1StrandNum                <- NA
 FullL1Info$L1Strand                   <- NA
+FullL1Info$L1Start.median             <- NA
+FullL1Info$L1Start.min                <- NA
+FullL1Info$L1Start.max                <- NA
+FullL1Info$L1End.median               <- NA
+FullL1Info$L1End.min                  <- NA
+FullL1Info$L1End.max                  <- NA
 FullL1Info$L15PTransdSeq.median       <- NA
 FullL1Info$L15PTransdSeq.min          <- NA
 FullL1Info$L15PTransdSeq.max          <- NA
+FullL1Info$L13PTransdSeq.median       <- NA
+FullL1Info$L13PTransdSeq.min          <- NA
+FullL1Info$L13PTransdSeq.max          <- NA
 FullL1Info$NrSupportReads             <- NA
+FullL1Info$NrReadsCover5P             <- NA
+FullL1Info$NrReadsCover3P             <- NA
+FullL1Info$NrReadsReach5P             <- NA
+FullL1Info$NrReadsReach3P             <- NA
 
 # Loop through potential full-length insertions and create a list of 
 # read-specific information
 idxPotentialFull <- which(FullL1Info$PotentialFullLength)
-i <- 289
-rownames(FullL1Info)[i]
+idxPotentialFull <- 1:nrow(FullL1Info)
 
 # Generate a list of matched reads mapped to genome and to L1
 MatchedReadList <- lapply(idxPotentialFull, function(i) {
@@ -251,7 +267,11 @@ ReadInfoList <- lapply(MatchedReadList, function(RLL) {
     # Get sequence and nr clipped of read mapped to L1 
     L1Seq        <- RLL$L1ReadList$seq[y]
     LRClipped_L1 <- NrClippedFromCigar(RLL$L1ReadList$cigar[y])
-
+    
+    # Get start and end position on L1
+    L1Start <- RLL$L1ReadList$pos[y]
+    L1End   <- L1Start + ReadLengthFromCigar(RLL$L1ReadList$cigar[y])
+    
     # Get sequence and nr clipped of read mapped to genome 
     GSeq        <- RLL$GenomeReadList$seq[y]
     LRClipped_G <- NrClippedFromCigar(RLL$GenomeReadList$cigar[y])
@@ -267,34 +287,36 @@ ReadInfoList <- lapply(MatchedReadList, function(RLL) {
     if (!blnSameStrand[y]) {L1Motif <- reverseComplement(L1Motif)}
     motifMatchLeft  <- matchPattern(L1Motif[[1]], LeftClippedSeq[[1]])
     motifMatchRight <- matchPattern(L1Motif[[1]], RightClippedSeq[[1]])
+    blnL1OnLeft  <- length(motifMatchLeft)  > 0
+    blnL1OnRight <- length(motifMatchRight) > 0
     
     # Identify position of L1 insertion
     InsPos <- NA
-    if (length(motifMatchLeft) > 0){
+    if (blnL1OnLeft){
       InsPos <- RLL$GenomeReadList$pos[y]
     } 
-    if (length(motifMatchRight) > 0){
+    if (blnL1OnRight){
       InsPos <- RLL$GenomeReadList$pos[y] + 
         ReadLengthFromCigar(RLL$GenomeReadList$cigar[y])
     } 
-    if ((length(motifMatchLeft) > 0) & (length(motifMatchRight) > 0)){
+    if (blnL1OnLeft & blnL1OnRight){
       warning("L1 motif matches left and right clipped sequence in", i, "\n", immediate. = T)
     }
     if ((length(motifMatchLeft) == 0) & (length(motifMatchRight) == 0)){
        browser()
        warning("L1 motif matches no clipped sequence in", i, "\n")
     }
-    # Scenario: 0 = L1 on negative strand and read maps on right side to L1
-    #           1 = L1 on positive strand and read maps on right side to L1
-    #           2 = L1 on negative strand and read maps on left side to L1
-    #           3 = L1 on positive strand and read maps on left side to L1
-    Scenario <- blnSameStrand[y] + 2*(length(motifMatchLeft) > 0)
+    # Scenario: 0 = L1 on negative strand and read maps on left side of L1
+    #           1 = L1 on positive strand and read maps on left side of L1
+    #           2 = L1 on negative strand and read maps on right side of L1
+    #           3 = L1 on positive strand and read maps on right side of L1
+    Scenario <- blnSameStrand[y] + 2 * blnL1OnLeft
     
     # Get start and stop indices of transduced sequence of 5' and 3' end
     TD5Pstart <- switch(as.character(Scenario), 
                         '0' = width(GSeq) - LRClipped_L1[1], 
                         '1' = width(GSeq) - LRClipped_G[2],
-                        '2' = width(GSeq) - LRClipped_L1[1],
+                        '2' = LRClipped_L1[1],
                         '3' = 1)
     TD5Pend   <- switch(as.character(Scenario), 
                         '0' = width(GSeq), 
@@ -302,7 +324,7 @@ ReadInfoList <- lapply(MatchedReadList, function(RLL) {
                         '2' = LRClipped_G[1],
                         '3' = LRClipped_L1[1])
     TD3Pstart <- switch(as.character(Scenario), 
-                        '0' = width(GSeq) - LRClipped_G[2], 
+                        '0' = LRClipped_G[2], 
                         '1' = width(GSeq) - LRClipped_L1[2],
                         '2' = 1,
                         '3' = width(GSeq) - LRClipped_L1[2])
@@ -312,12 +334,25 @@ ReadInfoList <- lapply(MatchedReadList, function(RLL) {
                       '2' = LRClipped_L1[2],
                       '3' = LRClipped_G[1])
     
+    # Determine which junction is covered by a read
+    JunctionCovered <- switch(as.character(Scenario), 
+                        '0' = 3, 
+                        '1' = 5,
+                        '2' = 5,
+                        '3' = 3)
+    # Determine whether read reaches into 5' or 3' junction
+    ClipWithL1 <- c(1:2)[c(blnL1OnLeft, blnL1OnRight)]
+    Reaches5P  <- JunctionCovered == 5 | LRClipped_G[ClipWithL1] > MinFullL1
+    Reaches3P  <- JunctionCovered == 3 | LRClipped_G[ClipWithL1] > MinFullL1
+ 
     # Collect info in a vector
     c(LeftClipped_G = LRClipped_G[1], RightClipped_G = LRClipped_G[2], 
       LeftClipped_L1 = LRClipped_L1[1], RightClipped_L1 = LRClipped_L1[2],
       InsPos = InsPos, Scenario = Scenario, TD5Pstart = TD5Pstart, 
       TD5Pend = TD5Pend, TD5Pwidth = TD5Pend - TD5Pstart,
-      TD3Pstart = TD3Pstart, TD3Pend = TD3Pend, TD3Pwidth = TD3Pend - TD3Pstart)
+      TD3Pstart = TD3Pstart, TD3Pend = TD3Pend, TD3Pwidth = TD3Pend - TD3Pstart,
+      JunctionCovered = JunctionCovered, L1Start = L1Start, L1End = L1End,
+      Reaches5P = Reaches5P, Reaches3P = Reaches3P)
   }))
   L1Info <- as.data.frame(L1Info)
   L1Info$Name     <- RLL$GenomeReadList$qname
@@ -334,6 +369,7 @@ for (i in idxPotentialFull){
   L1Info   <- ReadInfoList[[which(i == idxPotentialFull)]]  
 
   # Fill in info about L1 insertion in FullL1Info
+  FullL1Info$L1StrandNum[i] <- mean(L1Info$L1Strand, na.rm = T)
   if (mean(L1Info$L1Strand, na.rm = T) > 0.5) {
     FullL1Info$L1Strand[i] <- "+"
   } else {
@@ -343,13 +379,62 @@ for (i in idxPotentialFull){
   FullL1Info$L1InsertionPosition.min[i]    <- min(L1Info$InsPos)
   FullL1Info$L1InsertionPosition.max[i]    <- max(L1Info$InsPos)
   
-  # Get length of transduced sequence and number of supporting reads
-  LengthTransduced <- -(L1Info$TD5Pend - L1Info$TD5Pstart)
-  FullL1Info$L15PTransdSeq.median[i] <- median(LengthTransduced)
-  FullL1Info$L15PTransdSeq.min[i]    <- min(LengthTransduced)
-  FullL1Info$L15PTransdSeq.max[i]    <- max(LengthTransduced)
-  FullL1Info$NrSupportReads[i]       <- nrow(L1Info)
+  # Determine which reads cover which junction
+  bln5Covered <- L1Info$JunctionCovered == 5
+  bln3Covered <- L1Info$JunctionCovered == 3
+  
+  # Get start and end of L1 
+  FullL1Info$L1Start.median[i] <- median(L1Info$L1Start[L1Info$Reaches5P])
+  FullL1Info$L1Start.min[i]    <- min(L1Info$L1Start[L1Info$Reaches5P])
+  FullL1Info$L1Start.max[i]    <- max(L1Info$L1Start[L1Info$Reaches5P])
+  FullL1Info$L1End.median[i]   <- median(L1Info$L1End[L1Info$Reaches3P])
+  FullL1Info$L1End.min[i]      <- min(L1Info$L1End[L1Info$Reaches3P])
+  FullL1Info$L1End.max[i]      <- max(L1Info$L1End[L1Info$Reaches3P])
+
+  # Get length of 5' transduced sequence 
+  FullL1Info$L15PTransdSeq.median[i] <- median(L1Info$TD5Pwidth[bln5Covered])
+  FullL1Info$L15PTransdSeq.min[i]    <- min(L1Info$TD5Pwidth[bln5Covered])
+  FullL1Info$L15PTransdSeq.max[i]    <- max(L1Info$TD5Pwidth[bln5Covered])
+ 
+  # Get length of 3' transduced sequence 
+  FullL1Info$L13PTransdSeq.median[i] <- median(L1Info$TD3Pwidth[bln3Covered])
+  FullL1Info$L13PTransdSeq.min[i]    <- min(L1Info$TD3Pwidth[bln3Covered])
+  FullL1Info$L13PTransdSeq.max[i]    <- max(L1Info$TD3Pwidth[bln3Covered])
+  
+  # Get number of supporting reads
+  FullL1Info$NrReads5P[i] <- sum(L1Info$JunctionCovered == 5)
+  FullL1Info$NrReads3P[i] <- sum(L1Info$JunctionCovered == 3)
+  FullL1Info$NrReadsCover5P[i] <- sum(L1Info$JunctionCovered == 5)
+  FullL1Info$NrReadsCover3P[i] <- sum(L1Info$JunctionCovered == 3)
+  FullL1Info$NrReadsReach5P[i] <- sum(L1Info$Reaches5P)
+  FullL1Info$NrReadsReach3P[i] <- sum(L1Info$Reaches3P)
+  FullL1Info$NrSupportReads[i] <- nrow(L1Info)
 }
+
+# Write out table with L1 info
+write.csv(FullL1Info, file = "D:/L1polymORF/Data/L1InsertionInfo.csv")
+
+# Assess L1 insertion quality
+mean(FullL1Info$NrSupportReads)
+mean(FullL1Info$NrReadsCover5P)
+mean(FullL1Info$NrReadsCover3P)
+mean(FullL1Info$NrReadsReach3P)
+blnMultipleReads    <- FullL1Info$NrSupportReads > 1
+blnConsistentStrand <- (FullL1Info$L1StrandNum == 0 | FullL1Info$L1StrandNum == 1)
+blnBothJunctionsCovered <- FullL1Info$NrReads5P > 0 & FullL1Info$NrReads3P > 0
+sum(blnMultipleReads & blnConsistentStrand)
+sum(blnMultipleReads & blnConsistentStrand & blnBothJunctionsCovered)
+sum(blnMultipleReads & blnBothJunctionsCovered)
+hist(FullL1Info$NrReads5P, breaks = 0:25)
+hist(FullL1Info$NrReads3P, breaks = 0:25)
+
+# Range in estimate of 5' transduced sequence
+Range5PTdSeq <- (FullL1Info$L15PTransdSeq.max - FullL1Info$L15PTransdSeq.min)[FullL1Info$NrReadsCover5P > 1]
+PropVar5PTdSeq <- Range5PTdSeq / (FullL1Info$L15PTransdSeq.med[FullL1Info$NrReadsCover5P > 1])
+hist(PropVar5PTdSeq, breaks = seq(-200, 200, 0.1), xlim = c(-2, 2))
+hist(Range5PTdSeq)
+hist(FullL1Info$L15PTransdSeq.med)
+sum(abs(PropVar5PTdSeq) < 0.1)
 
 ###############################################
 #                                             #
@@ -596,9 +681,19 @@ AlignInfoList <- lapply(AlignmentFiles, function(AlignFile){
   
   # Extract consensus sequence
   Alignment <- Alignment[ , Alignment[1,] != "-"]
-  ConsensusSeq <- apply(Alignment, 2, FUN = function(z) {
+  # ConsensusSeq <- apply(Alignment, 2, FUN = function(z) {
+  #   Nucs <- z[z != "-"]
+  #   if (z[1] != "n"){
+  #     NucFreq <- table(Nucs)
+  #     names(NucFreq)[which.max(NucFreq)]
+  #   } else {
+  #     z[1]
+  #   }
+  # })
+  ConsensusSeq <- sapply(1:ncol(Alignment), function(v) {
+    z <- Alignment[,v]
     Nucs <- z[z != "-"]
-    if (z[1] != "n"){
+    if (z[1] != "n" & v > min(nPos) & v < max(nPos)){
       NucFreq <- table(Nucs)
       names(NucFreq)[which.max(NucFreq)]
     } else {
@@ -616,7 +711,7 @@ L1WithFlank <- lapply(AlignInfoList, function(x) x$ConsensusSeq)
 names(L1WithFlank) <- sapply(AlignInfoList, function(x) x$Title)
 names(L1WithFlank) <- gsub("-", "_", names(L1WithFlank))
 write.fasta(L1WithFlank, names = names(L1WithFlank), 
-            file.out = "D:/L1polymORF/Data/L1InsertionWithFlank.fas")
+            file.out = "D:/L1polymORF/Data/L1InsertionWithFlank2kb.fas")
 
 
 # Plot 
@@ -780,4 +875,3 @@ write.fasta(L1StumpList, colnames(L1StumpRef), NewL1RefOutPath)
 # Save info about insertions
 cat("*****   Saving image to", ResultPath, "  *****\n")
 save.image(ResultPath)
-
