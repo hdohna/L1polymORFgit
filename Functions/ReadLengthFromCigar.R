@@ -8,7 +8,7 @@
 
 # Output:
 #   
-#    number of bp clipped (from both sides)
+#    length of mapped read on genome
 
 # Comment:
 
