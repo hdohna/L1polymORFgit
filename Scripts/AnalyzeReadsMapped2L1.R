@@ -62,6 +62,8 @@ GenomeBamPath         <- "D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_subreads_hg19
 #GenomeBamPath         <- "D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_subreads_hg19withL1.sorted.bam"
 ResultPath            <- "D:/L1polymORF/Data/ReadsMapped2L1Info.RData"
 FastaFilePath         <- "D:/L1polymORF/Data/"
+L1InsertionFastaPath  <- paste(FastaFilePath, "L1InsertionWithFlank", FlankSize,
+                               "bp.fas", sep = "")
 
 ################################
 #                              #
@@ -316,7 +318,7 @@ ReadInfoList <- lapply(MatchedReadList, function(RLL) {
     TD5Pstart <- switch(as.character(Scenario), 
                         '0' = width(GSeq) - LRClipped_L1[1], 
                         '1' = width(GSeq) - LRClipped_G[2],
-                        '2' = LRClipped_L1[1],
+                        '2' = width(GSeq) - LRClipped_L1[1],
                         '3' = 1)
     TD5Pend   <- switch(as.character(Scenario), 
                         '0' = width(GSeq), 
@@ -324,7 +326,7 @@ ReadInfoList <- lapply(MatchedReadList, function(RLL) {
                         '2' = LRClipped_G[1],
                         '3' = LRClipped_L1[1])
     TD3Pstart <- switch(as.character(Scenario), 
-                        '0' = LRClipped_G[2], 
+                        '0' = width(GSeq) - LRClipped_G[2], 
                         '1' = width(GSeq) - LRClipped_L1[2],
                         '2' = 1,
                         '3' = width(GSeq) - LRClipped_L1[2])
@@ -425,13 +427,13 @@ blnBothJunctionsCovered <- FullL1Info$NrReads5P > 0 & FullL1Info$NrReads3P > 0
 sum(blnMultipleReads & blnConsistentStrand)
 sum(blnMultipleReads & blnConsistentStrand & blnBothJunctionsCovered)
 sum(blnMultipleReads & blnBothJunctionsCovered)
-hist(FullL1Info$NrReads5P, breaks = 0:25)
-hist(FullL1Info$NrReads3P, breaks = 0:25)
+hist(FullL1Info$NrReads5P)
+hist(FullL1Info$NrReads3P)
 
 # Range in estimate of 5' transduced sequence
 Range5PTdSeq <- (FullL1Info$L15PTransdSeq.max - FullL1Info$L15PTransdSeq.min)[FullL1Info$NrReadsCover5P > 1]
 PropVar5PTdSeq <- Range5PTdSeq / (FullL1Info$L15PTransdSeq.med[FullL1Info$NrReadsCover5P > 1])
-hist(PropVar5PTdSeq, breaks = seq(-200, 200, 0.1), xlim = c(-2, 2))
+hist(PropVar5PTdSeq)
 hist(Range5PTdSeq)
 hist(FullL1Info$L15PTransdSeq.med)
 sum(abs(PropVar5PTdSeq) < 0.1)
@@ -700,21 +702,42 @@ AlignInfoList <- lapply(AlignmentFiles, function(AlignFile){
       z[1]
     }
   })
+  ConsensNPos <- which(ConsensusSeq %in% c("n", "N"))
+  
   
   list(nPos = nPos, SmoothedSame = SmoothedSame, Title = Title,
-       ConsensusSeq = ConsensusSeq)
+       ConsensusSeq = ConsensusSeq, ConsensNPos = ConsensNPos)
 })
-AlignInfoList[[4]]$nPos
 
 # Get consensus sequence of flanking sequence and insertion
 L1WithFlank <- lapply(AlignInfoList, function(x) x$ConsensusSeq)
 names(L1WithFlank) <- sapply(AlignInfoList, function(x) x$Title)
 names(L1WithFlank) <- gsub("-", "_", names(L1WithFlank))
-write.fasta(L1WithFlank, names = names(L1WithFlank), 
-            file.out = "D:/L1polymORF/Data/L1InsertionWithFlank2kb.fas")
+write.fasta(L1WithFlank, names = names(L1WithFlank),
+            file.out = L1InsertionFastaPath)
 
+# Write reconstructed L1 insertions as individual fasta files so that reads
+# can be aligned to them
+i <- 4
+for (i in 1:length(L1WithFlank)){
+  FileNameL1 <- paste(FastaFilePath, "L1WithFlank", FlankSize, 
+                  "bp_",names(L1WithFlank)[i], ".fas", sep = "")
+  FileNameTdSeq <- paste(FastaFilePath, "TdSeq", FlankSize, 
+                      "bp_",names(L1WithFlank)[i], ".bed", sep = "")
+  FileNameL1pos <- paste(FastaFilePath, "L1pos", FlankSize, 
+                         "bp_",names(L1WithFlank)[i], ".bed", sep = "")
+  write.fasta(L1WithFlank[[i]], names = names(L1WithFlank)[i], FileNameL1)
+  NPos      <- AlignInfoList[[i]]$ConsensNPos
+  TransdPos <- data.frame(rep(names(L1WithFlank)[i], 2), NPos[c(1,3)], 
+                          NPos[c(2,4)])
+  L1Pos <- data.frame(names(L1WithFlank)[i], NPos[2], NPos[3])
+  write.table(TransdPos, file = FileNameTdSeq, col.names = F, quote = F, 
+              row.names = F, sep = "\t")
+  write.table(L1Pos, file = FileNameL1pos, col.names = F, quote = F, 
+              row.names = F, sep = "\t")
+}
 
-# Plot 
+# Plot alignment quality
 par(mfrow = c(3, 2), mar = c(3, 2, 3, 0.5), oma = c(2, 4, 1, 1))
 for (i in 1:length(AlignInfoList)){
   SmoothedSame <- AlignInfoList[[i]]$SmoothedSame
