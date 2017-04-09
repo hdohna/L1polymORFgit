@@ -1,0 +1,1 @@
+rsync -a -P rsync://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/rmsk.txt.gz ./

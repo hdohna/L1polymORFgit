@@ -204,8 +204,7 @@ for (Chrom in names(ChromLengthsHg19)[names(ChromLengthsHg19) != "chrY"]) {
   cat("Minimum Left2:", MinLeft2, "\n")
   cat("Maximum Left2:", MaxLeft2, "\n")
   cat("Chromosome length:", MaxLeft2, "\n")
-  
-  
+
   # Aggregate total HiC interaction value by L1
   StartMatch <- match(HiCAgg$Left1, start(HiCGR))
   HicByL1TypeNew1 <- AggregateValsBy2GRangesSet(L1GRhg19_cat, L1GRhg19_fragm, 

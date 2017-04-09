@@ -30,11 +30,12 @@ ChrSet1 <- paste("chr", 1:11, sep = "")
 ChrSet2 <- paste("chr", c(12:23, "X", "Y"), sep = "")
 plotOnIdeo(L1Chr[L1Chr %in% ChrSet1], ideoTable = hg38ideo, 
            values_GR = L1GR, plotType = "rect",
-           lwd = 20, xaxt = "n", yaxt = "n", addScale = F)
+           lwd = 20, xaxt = "n", yaxt = "n", addScale = F, col = "red")
+
 dev.copy2pdf(file = "D:/L1polymORF/Figures/L1Ideo1_11.pdf")
 plotOnIdeo(L1Chr[L1Chr %in% ChrSet2], ideoTable = hg38ideo, 
            values_GR = L1GR, plotType = "rect",
-           lwd = 20, xaxt = "n", yaxt = "n", addScale = F)
+           lwd = 20, xaxt = "n", yaxt = "n", addScale = F, col = "red")
 dev.copy2pdf(file = "D:/L1polymORF/Figures/L1Ideo12_X.pdf")
 
 

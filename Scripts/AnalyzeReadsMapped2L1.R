@@ -718,7 +718,6 @@ write.fasta(L1WithFlank, names = names(L1WithFlank),
 
 # Write reconstructed L1 insertions as individual fasta files so that reads
 # can be aligned to them
-i <- 4
 for (i in 1:length(L1WithFlank)){
   FileNameL1 <- paste(FastaFilePath, "L1WithFlank", FlankSize, 
                   "bp_",names(L1WithFlank)[i], ".fas", sep = "")
