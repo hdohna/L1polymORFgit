@@ -173,7 +173,7 @@ ComparePeaksWithRefL1 <- function(
    SuspectL1Ranges    <- IslGRanges_reduced[idxSuspectL1Ranges]
    cat(length(idxSuspectL1Ranges), "peaks have maximum coverage of at least",
       MinMaxCover, "and do not overlap with reference L1\n")
-
+browser()
    # Remove ranges of suspected L1s that are too close to reference L1
    DistToNearestL1    <- nearest(SuspectL1Ranges, L1GRanges)
    idxSuspectL1Ranges <- idxSuspectL1Ranges[DistToNearestL1 >= MinDist2L1]
