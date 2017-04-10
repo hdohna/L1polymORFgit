@@ -25,7 +25,7 @@ driverL1Analysis(
   blnComparePeaksWithRefL1 = F,
   blnWriteFastq     = T,
   blnFilterBamPerL1 = F,
-  blnBam2Fastq = T,
+  blnBam2Fastq = F,
   blnMap2L1         = T, 
   blnFilterBam = F,
   blnAddReadGroups  = F, 
