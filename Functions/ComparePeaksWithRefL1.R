@@ -90,7 +90,7 @@ ComparePeaksWithRefL1 <- function(
       StepW <- median(Ends[-1] - Ends[-length(Ends)])
       cat("****   Extracting reads of chromosome", Chrom, "*****\n")
       GRList <- lapply (1:(length(Ends) - 1), function (j) {
-        cat("Pocessing from", Chrom, "piece", j, "of", length(Ends), "\n")
+        cat("Pocessing from", Chrom, "piece", j, "of", length(Ends) - 1, "\n")
         
         # Create a genomic reange
         R1 <- GRanges(seqnames = Chrom, ranges = IRanges(start = Ends[j], 
@@ -173,9 +173,9 @@ ComparePeaksWithRefL1 <- function(
    SuspectL1Ranges    <- IslGRanges_reduced[idxSuspectL1Ranges]
    cat(length(idxSuspectL1Ranges), "peaks have maximum coverage of at least",
       MinMaxCover, "and do not overlap with reference L1\n")
-browser()
+
    # Remove ranges of suspected L1s that are too close to reference L1
-   DistToNearestL1    <- nearest(SuspectL1Ranges, L1GRanges)
+   DistToNearestL1    <- Dist2Closest(SuspectL1Ranges, L1GRanges)
    idxSuspectL1Ranges <- idxSuspectL1Ranges[DistToNearestL1 >= MinDist2L1]
    SuspectL1Ranges    <- IslGRanges_reduced[idxSuspectL1Ranges]
    maxCoverPos_SuspL1Ranges <- maxCoverPos[idxSuspectL1Ranges]
