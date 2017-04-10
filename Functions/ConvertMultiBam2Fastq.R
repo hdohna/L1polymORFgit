@@ -2,8 +2,7 @@
 #
 # General description:
 #
-#   The following function aligns all fastq files in a folder
-#   to the same reference using bwa
+#   The following function converts multiple bam files to fastq
 
 # Input:
 #
