@@ -57,6 +57,7 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
   
   # Create a vector of all read names and range indices
   AllReadNames    <- unlist(ReadIDsPerRange) 
+  cat("A total of", length(AllReadNames), "should be written out\n")
   NrReadsPerRange <- sapply(ReadIDsPerRange, function(x) length(x$qname))
   AllReadIndices  <- rep(1:length(ReadIDsPerRange), NrReadsPerRange) 
 
