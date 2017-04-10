@@ -79,6 +79,8 @@ L1InsertionFastaPath  <- paste(FastaFilePath, "L1InsertionWithFlank", FlankSize,
 load("D:/L1polymORF/Data/L1RefRanges_hg19.RData")
 load("D:/L1polymORF/Data/BZ_L1Ranges.RData")
 load(L1_1000GenomeDataPath)
+
+# Load coverage data (calculated in CalcCoverMatReadList)
 load(CoverDataPath)
 
 ######
