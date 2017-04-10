@@ -52,6 +52,9 @@ MapMultiFastq <- function(FastQFolder, Reference,
   if (length(CmdLines) > NrJobsPerBatch){
     Starts <- seq(1, length(CmdLines), NrJobsPerBatch)
     Ends   <- c(Starts[-1] - 1, length(CmdLines))
+  } else {
+    Starts <- 1
+    Ends <- length(CmdLines)
   }
   for (j in 1:length(Starts)){
     for (i in Starts[j]:Ends[j]){
