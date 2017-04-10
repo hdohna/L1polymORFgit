@@ -32,10 +32,20 @@ plotOnIdeo(L1Chr[L1Chr %in% ChrSet1], ideoTable = hg38ideo,
            values_GR = L1GR, plotType = "rect",
            lwd = 20, xaxt = "n", yaxt = "n", addScale = F, col = "red")
 
-dev.copy2pdf(file = "D:/L1polymORF/Figures/L1Ideo1_11.pdf")
+dev.copy2pdf(file = "D:/L1polymORF/Figures/L1Ideo1_11_red.pdf")
 plotOnIdeo(L1Chr[L1Chr %in% ChrSet2], ideoTable = hg38ideo, 
            values_GR = L1GR, plotType = "rect",
            lwd = 20, xaxt = "n", yaxt = "n", addScale = F, col = "red")
-dev.copy2pdf(file = "D:/L1polymORF/Figures/L1Ideo12_X.pdf")
+dev.copy2pdf(file = "D:/L1polymORF/Figures/L1Ideo12_X_red.pdf")
 
+# Ideoplot with black lines
+plotOnIdeo(L1Chr[L1Chr %in% ChrSet1], ideoTable = hg38ideo, 
+           values_GR = L1GR, plotType = "rect",
+           lwd = 20, xaxt = "n", yaxt = "n", addScale = F, col = "black")
+
+dev.copy2pdf(file = "D:/L1polymORF/Figures/L1Ideo1_11_black.pdf")
+plotOnIdeo(L1Chr[L1Chr %in% ChrSet2], ideoTable = hg38ideo, 
+           values_GR = L1GR, plotType = "rect",
+           lwd = 20, xaxt = "n", yaxt = "n", addScale = F, col = "black")
+dev.copy2pdf(file = "D:/L1polymORF/Figures/L1Ideo12_X_black.pdf")
 

@@ -12,8 +12,8 @@ library(csaw)
 library(GenomicRanges)
 
 # Set file paths
-CoveragePlotPath     <- 'D:/L1polymORF/Figures/L1InsertionCoverage_NA12878_PacBio.pdf'
-OutputFilePath       <- 'D:/L1polymORF/Data/L1_NA12878_PacBio_Coverage.RData'
+CoveragePlotPath     <- 'D:/L1polymORF/Figures/L1InsertionCoverage_NA12878_PacBio_New.pdf'
+OutputFilePath       <- 'D:/L1polymORF/Data/L1_NA12878_PacBio_Coverage_New.RData'
 OutFolderName_NonRef <- "D:/L1polymORF/Data/BZ_NonRef"
 
 # Load ranges
