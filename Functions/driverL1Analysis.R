@@ -71,7 +71,7 @@ driverL1Analysis <- function(
   blnCreateBamIndices = F,
   blnFilterBam = F,
   blnCallHaplotypes = F, 
-  blnAnalyze        = F,
+  blnCalcCoverMat = F,
   IdChar2Remove = 4,
   EndList = NULL,
   blnFilterOverlap = F,
@@ -122,7 +122,7 @@ driverL1Analysis <- function(
   # Create path to result file
   OutResults_RangeComparison  <- paste(OutputFolder, FolderPrefix, 
                                        "_L1Ranges.RData", sep = "")
-  OutResults  <- paste(OutputFolder, ResultFileName, sep = "")
+  OutResults_Analysis  <- paste(OutputFolder, ResultFileName, sep = "")
   
   # Create paths for plots
   CoverSummaryPlot <- paste(PlotFolder, FolderPrefix, 
@@ -304,66 +304,14 @@ driverL1Analysis <- function(
   
   #######################################
   #                                     #
-  #     Import reads mapped to L1       #
+  #     Calculate coverage on L1        #
   #                                     #
   #######################################
   
-  if (blnAnalyze){
-    cat("*******  Analyzing mapped reads ...   *******\n")
-    
-    # get names of newly created bam files
-    FileNames <- list.files(OutFolderName_NonRef, pattern = ".bam",
-                            full.names = T)
-    FileNames <- FileNames[-grep(".bam.", FileNames)]
-    
-    # Loop through file names and read in bam files of reads mapped to L1
-    ScannedL1Ranges <- lapply(FileNames, function(x) scanBam(x))
-    
-    # Count the number of reads mapped
-    NrMapped2L1 <- sapply(ScannedL1Ranges, function(x){
-      sum(!is.na(x[[1]]$pos))
-    })
-    
-    # Get aligned reads per peak
-    R1 <- GRanges(seqnames = "L1HS_L1_Homo_sapiens", 
-                  ranges = IRanges(start = 1, end = 6000))
-    ReadsPerL1 <- lapply(FileNames[NrMapped2L1 > 0], function(x) {
-      Reads <- extractReads(x, R1)
-    })
-    
-    # Calculate a coverage matrix
-    CoverMat <- t(sapply(ReadsPerL1, function(x){
-      Cov <- coverage(x)
-      as.vector(Cov[[1]])
-    }))
-    
-    # Get means and 95% quantiles 
-    QuantileMat <- apply(CoverMat, 2, FUN = function(x) quantile(x, c(0.05, 0.5, 0.95)))
-    idxFw <- 1:ncol(CoverMat)
-    idxRv <- ncol(CoverMat):1
-    pdf(file = CoverSummaryPlot)
-    plot(QuantileMat[2,], type = "n", ylim = c(0, max(QuantileMat)), 
-         ylab = 'Coverage', xlab = "Genomic position")
-    polygon(c(idxFw, idxRv), c(QuantileMat[1, idxFw], QuantileMat[3, idxRv]),
-            col = "grey", border = NA)
-    lines(QuantileMat[2,], lwd = 1.2)
-    dev.off()
-    
-    # # Determine range index from file name 
-    pdf(file = CoverComparePlot)
-    plot(CoverMat[1,], type = "s", xlab = "Position on L1",
-         ylab = "Coverage", ylim = c(0, 100))
-    Cols <- rainbow(nrow(CoverMat))
-    for (i in 1:nrow(CoverMat)){
-      lines(CoverMat[i,], type = "s", col = Cols[i])
-      
-    }
-    dev.off()
-    
+  if (blnCalcCoverMat){
+    CalcCoverMatReadList(
+      OutputFilePath = OutResults_Analysis,
+      OutFolderName_NonRef = OutFolderName_NonRef,
+      L1RangesPath = OutResults_RangeComparison)
   }
-  
-  # Save results
-  cat("*******  Saving results to", OutResults  ,"*******\n")
-  save(list = ls(all.names = TRUE), file = OutResults)
-  
 }
