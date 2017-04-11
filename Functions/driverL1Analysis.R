@@ -68,30 +68,17 @@ driverL1Analysis <- function(
   blnBam2Fastq      = F,
   blnMap2L1         = F, 
   blnSam2Bam        = F,
-  blnAddReadGroups  = F,
   blnCreateBamIndices = F,
-  blnFilterBam = F,
-  blnCallHaplotypes = F, 
   blnCalcCoverMat = F,
   IdChar2Remove = 4,
   EndList = NULL,
-  blnFilterOverlap = F,
   NrJobsPerBatch = 100, 
   WaitBetwJobs = 1000,
   NrReadsPerIter = 10^6,
   AlignCommand = c('module load bwa', 'bwa mem'),
   IndexCommand = c('module load bwa', 'bwa index'),
-  AddGroupCmd  = c('module load picard-tools/2.0.1', 
-                   "java -jar picard.jar AddOrReplaceReadGroups"),
-  AddGroupOptions = c("RGLB=lib1", "RGPL=illumina", "RGPU=unit1", "RGSM=20",
-                      "SORT_ORDER=null", "CREATE_INDEX=TRUE", "VALIDATION_STRINGENCY=LENIENT"),
   CreateBamIndexCmd = c('module load samtools', 'samtools index'),
-  HapTypeCallCmd = c("module load gatk/3.4.0", 
-                     "java -jar GenomeAnalysisTK.jar -T HaplotypeCaller"),
-  HapTypeCallOptions = "--emitRefConfidence GVCF",
   BamSuffix = ".bam",
-  ReadGroupSuffix = "withRG.bam",
-  BamSuffixHapTypeCall = ".bam",
   SamSuffix = ".sam",
   VCFSuffix = ".vcf" 
 ){
@@ -194,12 +181,7 @@ driverL1Analysis <- function(
   }
   
   OutBamFilePaths <- gsub(".fastq", ".bam", LittleFastqPaths)
-  if(blnFilterBamPerL1 & is.null(L1HSBamFile)){
-    InBamFilePaths <- FilterBamPerRange(Ranges = SuspectL1Ranges, 
-                          InBamfilePath = PeakBam, 
-                          OutBamFilePaths = OutBamFilePaths) 
-  } 
-  if(blnBam2Fastq & is.null(L1HSBamFile)){
+  if(blnBam2Fastq){
     ConvertMultiBam2Fastq(OutBamFilePaths, 
                           NrJobsPerBatch = NrJobsPerBatch, 
                           WaitBetwJobs = WaitBetwJobs) 
@@ -212,7 +194,7 @@ driverL1Analysis <- function(
   #                                     #
   #######################################
   
-  if(blnMap2L1 & is.null(L1HSBamFile)){
+  if(blnMap2L1){
     
     FilePaths <- MapMultiFastq(FastQFolder  = OutFolderName_NonRef,
                                AlignCommand = AlignCommand,
@@ -229,7 +211,7 @@ driverL1Analysis <- function(
   #                                     #
   #######################################
   
-  if(is.null(L1HSBamFile) & blnSam2Bam){
+  if(blnSam2Bam){
     
     # Get all names of sam files created by BWA
     SamFileNames <- list.files(OutFolderName_NonRef, pattern = SamSuffix,
@@ -243,42 +225,7 @@ driverL1Analysis <- function(
     
   }
   
-  ###################################################
-  #                                                 #
-  #     Filter bam file with reads mapped to L1HS   #
-  #                                                 #
-  ###################################################
-  
-  if(!is.null(L1HSBamFile) & blnFilterBam){
-    
-    # Loop over peaks that do not overlap with reference L1 and write out a
-    # per peak a separate bam file of reads mapped to L1HS
-    for (i in 1:length(SuspectL1Ranges)){
-      param <- ScanBamParam(which = SuspectL1Ranges[i], what = "qname")
-      IDs   <- scanBam(PeakBam, param = param)
-      IDs   <- unlist(IDs)
-      IDFilter <- FilterRules(getIDs <- function(DF){DF$qname %in% IDs})
-      cat("Writing filtered L1Hs bam file", LittleBamPaths[i], "\n")
-      filterBam(L1HSBamFile, LittleBamPaths[i], filter = IDFilter)
-    }
-  }
-  
-  #######################################
-  #                                     #
-  #     Add read groups                 #
-  #                                     #
-  #######################################
-  
-  if(blnAddReadGroups){
-    
-    BamSuffix   <- ReadGroupSuffix
-    BamSuffixHapTypeCall <- ReadGroupSuffix
-    FilePathsRG <- AddMultiReadGroups(BamFolder = OutFolderName_NonRef,
-                                      AddGroupCmd   = AddGroupCmd,
-                                      AddGroupOptions = AddGroupOptions,
-                                      ReadGroupSuffix = ReadGroupSuffix)
-  }
-  
+
   #######################################
   #                                     #
   #     Create bam indices              #
@@ -291,17 +238,6 @@ driverL1Analysis <- function(
                         BamSuffix = BamSuffix)
   }
   
-  
-  
-  if(blnCallHaplotypes){
-    
-    FilePathsVCF <- CallMultiVariants(BamFolder = OutFolderName_NonRef,  
-                                      HapTypeCallCmd = HapTypeCallCmd,
-                                      RefSeqPath  = L1HSConsensus,
-                                      OptionLines = HapTypeCallOptions,
-                                      BamSuffix = BamSuffixHapTypeCall,
-                                      VCFSuffix = VCFSuffix) 
-  }
   
   #######################################
   #                                     #
