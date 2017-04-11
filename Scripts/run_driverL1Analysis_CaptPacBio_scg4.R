@@ -27,6 +27,7 @@ driverL1Analysis(
   blnFilterBamPerL1        = F,
   blnBam2Fastq             = F,
   blnMap2L1                = F, 
+  blnSam2Bam        = F,
   blnFilterBam             = F,
   blnAddReadGroups         = F, 
   blnCreateBamIndices      = F,

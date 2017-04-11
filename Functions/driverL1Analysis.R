@@ -65,8 +65,9 @@ driverL1Analysis <- function(
   blnComparePeaksWithRefL1 = F,
   blnWriteFastq     = F,
   blnFilterBamPerL1 = F,
-  blnBam2Fastq = F,
+  blnBam2Fastq      = F,
   blnMap2L1         = F, 
+  blnSam2Bam        = F,
   blnAddReadGroups  = F,
   blnCreateBamIndices = F,
   blnFilterBam = F,
@@ -228,7 +229,7 @@ driverL1Analysis <- function(
   #                                     #
   #######################################
   
-  if(is.null(L1HSBamFile)){
+  if(is.null(L1HSBamFile) & blnSam2Bam){
     
     # Get all names of sam files created by BWA
     SamFileNames <- list.files(OutFolderName_NonRef, pattern = SamSuffix,
