@@ -10,7 +10,6 @@
 #
 #  Folders and file names:
 #     PeakBam:       bam file containing peaks around L1HS
-#     L1HSBamFile:   bam file with reads mapped to L1HS
 #     FastQFolder:   Folder containing the original fast
 #     L1HSConsensus: fasta file containing the L1HS consensus sequence
 #     OutputFolder:  folder where analysis data output is saved
@@ -52,7 +51,6 @@
 
 driverL1Analysis <- function(
   PeakBam, 
-  L1HSBamFile = NULL, 
   FastQFolder, 
   L1HSConsensus = "/home/hzudohna/L1polymORF/Data/Homo_sapiens_L1_consensus.fa",
   L1RefRanges    = '/home/hzudohna/L1polymORF/Data/L1RefRanges_hg19.Rdata',
@@ -64,7 +62,6 @@ driverL1Analysis <- function(
   NrChromPieces = 1,
   blnComparePeaksWithRefL1 = F,
   blnWriteFastq     = F,
-  blnFilterBamPerL1 = F,
   blnBam2Fastq      = F,
   blnMap2L1         = F, 
   blnSam2Bam        = F,
@@ -169,7 +166,7 @@ driverL1Analysis <- function(
   #                                                     #
   #######################################################
   
-  if(blnWriteFastq & is.null(L1HSBamFile)){
+  if(blnWriteFastq){
     
     # Write little fastq files per suspected peak
     WriteFastQPerRange(Ranges = SuspectL1Ranges, 

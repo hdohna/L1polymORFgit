@@ -11,7 +11,6 @@ library(csaw)
 driverL1Analysis(
   PeakBam = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19masked.sorted.bam", 
 #  L1HSBamFile = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_sub_reads_aln2L1.sorted.bam", 
-  L1HSBamFile = NULL, 
   FastQFolder = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/FastqSubreads/", 
   L1HSConsensus = "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/Homo_sapiens_L1_consensus.fas",
   L1RefRanges    = '/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/L1RefRanges_hg19.Rdata',
@@ -24,14 +23,10 @@ driverL1Analysis(
   NrChromPieces = 1,
   blnComparePeaksWithRefL1 = F,
   blnWriteFastq            = F,
-  blnFilterBamPerL1        = F,
   blnBam2Fastq             = F,
   blnMap2L1                = F, 
   blnSam2Bam        = F,
-  blnFilterBam             = F,
-  blnAddReadGroups         = F, 
   blnCreateBamIndices      = F,
-  blnCallHaplotypes        = F, 
   blnCalcCoverMat          = T,
   IdChar2Remove = 4,
   NrJobsPerBatch = 50, 
@@ -39,8 +34,5 @@ driverL1Analysis(
   NrReadsPerIter = 10^3,
   AlignCommand = c('module load bwa', 'bwa mem -k17 -W40 -r10 -A2 -B5 -O2 -E1 -L0'),
   IndexCommand = c('module load bwa', 'bwa index'),
-  ReadGroupSuffix = "withRG.bam",
-  BamSuffix = "withRG.bam",
-  HapTypeCallOptions = "",
-  BamSuffixHapTypeCall = "withRG.bam"
+  BamSuffix = ".bam"
 )
