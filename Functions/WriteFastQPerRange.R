@@ -61,6 +61,8 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
     # Loop over ranges and write out fastq file per range
     for(i in 1:length(ReadsPerRange)){
       RL <- ReadsPerRange[[i]]
+      blnNegStrand <- RL$strand == "-"
+      RL$seq[blnNegStrand] <- reverseComplement(RL$seq[blnNegStrand])
       WriteFastq(Reads = as.character(RL$seq), 
                  ReadNames = RL$qname, 
                  ReadQual = as.character(RL$qual),
