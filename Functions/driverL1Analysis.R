@@ -62,7 +62,6 @@ driverL1Analysis <- function(
   NrChromPieces = 1,
   blnComparePeaksWithRefL1 = F,
   blnWriteFastq     = F,
-  blnBam2Fastq      = F,
   blnMap2L1         = F, 
   blnSam2Bam        = F,
   blnCreateBamIndices = F,
@@ -178,12 +177,7 @@ driverL1Analysis <- function(
   }
   
   OutBamFilePaths <- gsub(".fastq", ".bam", LittleFastqPaths)
-  if(blnBam2Fastq){
-    ConvertMultiBam2Fastq(OutBamFilePaths, 
-                          NrJobsPerBatch = NrJobsPerBatch, 
-                          WaitBetwJobs = WaitBetwJobs) 
-  }
-  
+
   #######################################
   #                                     #
   #     Map fastq file per range        #
