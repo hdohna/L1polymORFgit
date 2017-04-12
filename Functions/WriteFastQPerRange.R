@@ -64,6 +64,7 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
       RL <- ReadsPerRange[[i]]
       blnNegStrand <- RL$strand == "-"
       RL$seq[blnNegStrand] <- reverseComplement(RL$seq[blnNegStrand])
+      RL$qual[blnNegStrand] <- reverse(RL$qual[blnNegStrand])
       WriteFastq(Reads = as.character(RL$seq), 
                  ReadNames = RL$qname, 
                  ReadQual = as.character(RL$qual),
