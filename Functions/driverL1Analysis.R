@@ -61,6 +61,7 @@ driverL1Analysis <- function(
   MinDist2L1, 
   NrChromPieces = 1,
   blnComparePeaksWithRefL1 = F,
+  blnFilterOverlap = F,
   blnWriteFastq     = F,
   blnMap2L1         = F, 
   blnSam2Bam        = F,
