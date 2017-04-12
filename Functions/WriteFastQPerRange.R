@@ -44,7 +44,6 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
   cat("**                                                **\n")
   cat("****************************************************\n\n")
 
-  cat("Number of reads to read per iteration is", NrReadsPerIter, "\n")
   
   # Check that Ranges and OutFilePaths have the same length
   if (length(Ranges) !=  length(OutFilePaths)) {
@@ -53,6 +52,8 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
   
   # Choose between two options to write out fastq files
   if (WriteFastqFromBam){ # If fastq files are written directly from bam file
+    cat("Writing out fastq files from bam file\n")
+    cat("Number of fastq files to write out:", length(Ranges), "\n")
     
     # Get info per range
     param <- ScanBamParam(which = Ranges, what = scanBamWhat())
@@ -69,6 +70,9 @@ WriteFastQPerRange <- function(Ranges, InBamfilePath, InFastQfilePaths,
                  FilePath = OutFilePaths[i])
     }
   } else {# If fastq files are written from fastq file
+    cat("Writing out fastq files from fastq file\n")
+    cat("Number of reads to read per iteration is", NrReadsPerIter, "\n")
+    
     # Get read IDs per range
     param <- ScanBamParam(which = Ranges, what = "qname")
     ReadIDsPerRange <- scanBam(file = InBamfilePath, param = param)
