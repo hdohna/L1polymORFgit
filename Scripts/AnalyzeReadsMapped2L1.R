@@ -33,8 +33,9 @@ MinCover   <- 1
 # Set parameter to determine whether a L1 insertion is potentially full-length
 # (it is not full-length if it has reads that are clipped by MinClip or more,
 # at position MaxL1Pos or less)
-MinClip  <- 500
-MaxL1Pos <- 5500
+MaxClip    <- 100
+MinL1End   <- 6000
+MaxL1Start <- 100
 
 # Set parameter for minimum proportion of a polymorphism among reads to be called
 MinPolyProp <- 0.6
@@ -53,8 +54,10 @@ MinClipAlign <- 1000
 MinFullL1 <- 6020
 
 # Set file paths
+# Path to L1 GRanges from 1000 genome data
 CoveragePlotPath      <- 'D:/L1polymORF/Figures/L1InsertionCoverage_NA12878_PacBio.pdf'
 CoverDataPath         <- 'D:/L1polymORF/Data/L1_NA12878_PacBio_Coverage.RData'
+CoverDataPath         <- 'D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_Results.Rdata'
 L1_1000GenomeDataPath <- "D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData"
 OutFolderName_NonRef  <- "D:/L1polymORF/Data/BZ_NonRef"
 NewL1RefOutPath       <- "D:/L1polymORF/Data/L1RefPacBioNA12878_DelRemoved.fa"
@@ -183,22 +186,9 @@ FullL1Info$cover   <- CoverMat[idx5P, 100]
 
 idxFull2 <- which(rownames(FullL1Info) %in% FilesWithReads[idxFull])
 
-# Determine whether L1 might be potentially full-length
-FullL1Info$PotentialFullLength <- sapply(1:length(idx5P), function(i){
-  x <- idx5P[i]
-  RL <- ReadListPerPeak[[x]]
-  primMap <- RL$flag <= 2047
-  RL <- lapply(RL, function(y) y[primMap])
-  ReadLenghsL1 <- sapply(RL$cigar, ReadLengthFromCigar)
-  LRClipped <- sapply(RL$cigar, NrClippedFromCigar)
-  !any((ReadLenghsL1 <= MaxL1Pos) & (LRClipped[2,] > MinClip))
-})
-FullL1Info$PotentialFullLength[idxFull2] <- T
-cat("******  ", sum(FullL1Info$PotentialFullLength, na.rm = T), 
-    "insertions are potentially full length *********\n")
-
 # Set up insertion descriptors
 FullL1GR <- makeGRangesFromDataFrame(FullL1Info)
+FullL1Info$PotentialFullLength        <- NA
 FullL1Info$L1InsertionPosition.median <- NA
 FullL1Info$L1InsertionPosition.min    <- NA
 FullL1Info$L1InsertionPosition.max    <- NA
@@ -222,13 +212,8 @@ FullL1Info$NrReadsCover3P             <- NA
 FullL1Info$NrReadsReach5P             <- NA
 FullL1Info$NrReadsReach3P             <- NA
 
-# Loop through potential full-length insertions and create a list of 
-# read-specific information
-idxPotentialFull <- which(FullL1Info$PotentialFullLength)
-idxPotentialFull <- 1:nrow(FullL1Info)
-
 # Generate a list of matched reads mapped to genome and to L1
-MatchedReadList <- lapply(idxPotentialFull, function(i) {
+MatchedReadList <- lapply(1:nrow(FullL1Info), function(i) {
   
   # Get position of current entry in ReadListPerPeak
   x <- idx5P[i]
@@ -257,6 +242,7 @@ MatchedReadList <- lapply(idxPotentialFull, function(i) {
   GenomeMatchRL <- lapply(GenomeRL[[1]], function(y) y[ReadMatch])
   list(L1ReadList = RL, GenomeReadList = GenomeMatchRL)
 })
+names(MatchedReadList) <- paste(FullL1Info$chromosome, FullL1Info$idx, sep = "_")
 
 # Loop through list of matching reads and collect info
 ReadInfoList <- lapply(MatchedReadList, function(RLL) {
@@ -266,6 +252,7 @@ ReadInfoList <- lapply(MatchedReadList, function(RLL) {
   
   # Loop through reads an collect information on number of bps clipped on
   # reads mapped to genome, the insertion location and the insertion strand
+  ClipWithL1 <- 0
   L1Info <- t(sapply(1:length(RLL$GenomeReadList$pos), function(y) {
     
     # Get sequence and nr clipped of read mapped to L1 
@@ -303,25 +290,30 @@ ReadInfoList <- lapply(MatchedReadList, function(RLL) {
       InsPos <- RLL$GenomeReadList$pos[y] + 
         ReadLengthFromCigar(RLL$GenomeReadList$cigar[y])
     } 
-    if (blnL1OnLeft & blnL1OnRight){
-      warning("L1 motif matches left and right clipped sequence in", i, "\n", immediate. = T)
-    }
-    if ((length(motifMatchLeft) == 0) & (length(motifMatchRight) == 0)){
-       browser()
-       warning("L1 motif matches no clipped sequence in", i, "\n")
-    }
     # Scenario: 0 = L1 on negative strand and read maps on left side of L1
     #           1 = L1 on positive strand and read maps on left side of L1
     #           2 = L1 on negative strand and read maps on right side of L1
     #           3 = L1 on positive strand and read maps on right side of L1
     Scenario <- blnSameStrand[y] + 2 * blnL1OnLeft
     
+    if (blnL1OnLeft & blnL1OnRight){
+      warning("L1 motif matches left and right clipped sequence in", y, "\n", immediate. = T)
+      Scenario <- NA
+      ClipWithL1 <- NA
+    }
+    if ((length(motifMatchLeft) == 0) & (length(motifMatchRight) == 0)){
+      #browser()
+      warning("L1 motif matches no clipped sequence in read", y, "\n")
+      Scenario <- NA
+      ClipWithL1 <- NA
+    }
+
     # Get start and stop indices of transduced sequence of 5' and 3' end
     TD5Pstart <- switch(as.character(Scenario), 
                         '0' = width(GSeq) - LRClipped_L1[1], 
                         '1' = width(GSeq) - LRClipped_G[2],
                         '2' = width(GSeq) - LRClipped_L1[1],
-                        '3' = 1)
+                        '3' = 1, NA)
     TD5Pend   <- switch(as.character(Scenario), 
                         '0' = width(GSeq), 
                         '1' = LRClipped_L1[1],
@@ -331,21 +323,23 @@ ReadInfoList <- lapply(MatchedReadList, function(RLL) {
                         '0' = width(GSeq) - LRClipped_G[2], 
                         '1' = width(GSeq) - LRClipped_L1[2],
                         '2' = 1,
-                        '3' = width(GSeq) - LRClipped_L1[2])
+                        '3' = width(GSeq) - LRClipped_L1[2], NA)
     TD3Pend <- switch(as.character(Scenario), 
                       '0' = LRClipped_L1[2], 
                       '1' = width(GSeq),
                       '2' = LRClipped_L1[2],
-                      '3' = LRClipped_G[1])
+                      '3' = LRClipped_G[1], NA)
     
     # Determine which junction is covered by a read
     JunctionCovered <- switch(as.character(Scenario), 
                         '0' = 3, 
                         '1' = 5,
                         '2' = 5,
-                        '3' = 3)
+                        '3' = 3, NA)
     # Determine whether read reaches into 5' or 3' junction
-    ClipWithL1 <- c(1:2)[c(blnL1OnLeft, blnL1OnRight)]
+    if (!is.na(ClipWithL1)){
+      ClipWithL1 <- c(1:2)[c(blnL1OnLeft, blnL1OnRight)]
+    }
     Reaches5P  <- JunctionCovered == 5 | LRClipped_G[ClipWithL1] > MinFullL1
     Reaches3P  <- JunctionCovered == 3 | LRClipped_G[ClipWithL1] > MinFullL1
  
@@ -366,13 +360,19 @@ ReadInfoList <- lapply(MatchedReadList, function(RLL) {
   L1Info
 })
 
-# Loop through potential full-length insertions and extract info
-for (i in idxPotentialFull){
+# Loop through insertions and extract info
+for (i in 1:length(ReadInfoList)){
   
   # Get Info
-  L1Info   <- ReadInfoList[[which(i == idxPotentialFull)]]  
-
-  # Fill in info about L1 insertion in FullL1Info
+  L1Info   <- ReadInfoList[[i]]  
+  
+  # Check whether any read has a long left-clipped pr right-clipped sequence 
+  # on L1 that indicates L1 insertion might not be full-length
+  blnNotFull <- (L1Info$LeftClipped_L1 > MaxClip & L1Info$L1Start > MaxL1Start) |
+                (L1Info$RightClipped_L1 > MaxClip & L1Info$L1End < MinL1End)
+  FullL1Info$PotentialFullLength[i] <- !blnNotFull
+  
+  # Fill in info about L1 insertion (strandedness and position)
   FullL1Info$L1StrandNum[i] <- mean(L1Info$L1Strand, na.rm = T)
   if (mean(L1Info$L1Strand, na.rm = T) > 0.5) {
     FullL1Info$L1Strand[i] <- "+"
@@ -414,11 +414,14 @@ for (i in idxPotentialFull){
   FullL1Info$NrReadsReach3P[i] <- sum(L1Info$Reaches3P)
   FullL1Info$NrSupportReads[i] <- nrow(L1Info)
 }
+cat("******  ", sum(FullL1Info$PotentialFullLength, na.rm = T), 
+    "insertions are potentially full length *********\n")
 
 # Write out table with L1 info
 write.csv(FullL1Info, file = "D:/L1polymORF/Data/L1InsertionInfo.csv")
 
 # Assess L1 insertion quality
+blnAllCovered <- sapply(1:nrow(CoverMat), function(x) all(CoverMat[x, 50:6040] > 0))
 mean(FullL1Info$NrSupportReads)
 mean(FullL1Info$NrReadsCover5P)
 mean(FullL1Info$NrReadsCover3P)
@@ -426,12 +429,17 @@ mean(FullL1Info$NrReadsReach3P)
 blnMultipleReads    <- FullL1Info$NrSupportReads > 1
 blnConsistentStrand <- (FullL1Info$L1StrandNum == 0 | FullL1Info$L1StrandNum == 1)
 blnBothJunctionsCovered <- FullL1Info$NrReads5P > 0 & FullL1Info$NrReads3P > 0
+sum(blnMultipleReads)
 sum(blnMultipleReads & blnConsistentStrand)
 sum(blnMultipleReads & blnConsistentStrand & blnBothJunctionsCovered)
 sum(blnMultipleReads & blnBothJunctionsCovered)
 hist(FullL1Info$NrReads5P)
 hist(FullL1Info$NrReads3P)
-
+which(idx5P %in% which(blnAllCovered))
+rownames(CoverMat)[blnAllCovered]
+which(blnMultipleReads & blnBothJunctionsCovered)
+FullL1Info[blnMultipleReads & blnBothJunctionsCovered, c("chromosome", "idx")]
+FullL1Info$L1InsertionPosition.median[blnMultipleReads & blnBothJunctionsCovered]
 # Range in estimate of 5' transduced sequence
 Range5PTdSeq <- (FullL1Info$L15PTransdSeq.max - FullL1Info$L15PTransdSeq.min)[FullL1Info$NrReadsCover5P > 1]
 PropVar5PTdSeq <- Range5PTdSeq / (FullL1Info$L15PTransdSeq.med[FullL1Info$NrReadsCover5P > 1])
@@ -439,6 +447,27 @@ hist(PropVar5PTdSeq)
 hist(Range5PTdSeq)
 hist(FullL1Info$L15PTransdSeq.med)
 sum(abs(PropVar5PTdSeq) < 0.1)
+
+###############################################
+#                                             #
+#  Compare to 1000                            #
+#                                             #
+###############################################
+
+# Create genomic ranges from table 
+L1InsGR <- makeGRangesFromDataFrame(FullL1Info)
+
+L1GR_1000G_NA12878 <- import.bed("D:/L1polymORF/Data/NA12878.1000genome.L1HS.insert.bed")
+L1_1000G_NA12878 <- read.delim("D:/L1polymORF/Data/NA12878.1000genome.L1HS.insert.bed",
+                               header = F)
+colnames(L1_1000G_NA12878)[1:2] <- c("chromosome", "start")
+L1_1000G_NA12878$chromosome <- paste("chr", L1_1000G_NA12878$chromosome, sep = "")
+L1_1000G_NA12878_GR <- makeGRangesFromDataFrame(L1_1000G_NA12878, end.field="start")
+
+Dist2Closest(L1InsGR, L1_1000G_NA12878_GR)
+
+load("D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData")
+Dist2Closest(L1InsGR, GRL1Ins1000G_hg19$LiftedRanges)
 
 ###############################################
 #                                             #
