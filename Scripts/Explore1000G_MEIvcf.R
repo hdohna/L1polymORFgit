@@ -9,7 +9,7 @@
 #############################################
 
 # Source start script
-source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
+source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load packages
 library(BSgenome.Hsapiens.UCSC.hg38)
@@ -42,7 +42,7 @@ Kuhn2014Genotypes1000G <- read.csv("D:/L1polymORF/Data/Kuhn et al 2014 PNAS Tabl
 # Read vcf file from 1000 Genome data
 MEI1000Gvcf <- ReadVCF("D:/L1polymORF/Data/union.2010_06.MobileElementInsertions.genotypes.vcf")
 MEI1000GLines <- readLines("D:/L1polymORF/Data/union.2010_06.MobileElementInsertions.genotypes.vcf")
-MEI1000GLines[1:32]
+# MEIDF <- read.delim(text = MEI1000GLines[33:length(MEI1000GLines)])
 
 # Look up which names in Kuhn at al 2014 are in 1000 genome dataset
 colnames(Kuhn2014Genotypes1000G)[colnames(Kuhn2014Genotypes1000G) %in% MEI1000Gvcf$ID]
@@ -50,6 +50,7 @@ colnames(Kuhn2014Genotypes1000G)[!colnames(Kuhn2014Genotypes1000G) %in% MEI1000G
 
 # Subset to obtain only L1s
 L1Ins1000G <- MEI1000Gvcf[MEI1000Gvcf$ALT == "<INS:ME:L1>", ]
+
 
 ##############################################
 #                                            #
@@ -87,19 +88,28 @@ table(Geno)
 SampleColumns <- grep("NA", colnames(L1Ins1000G), value = T)
 GenoDF <- sapply(SampleColumns, function(x)GetGenotype(L1Ins1000G[,x]))
 colnames(GenoDF) <- paste("Geno", SampleColumns, sep = "_")
-L1Ins1000Ggeno <- cbind(L1Ins1000G, GenoDF)
+L1Ins1000Ggeno <- cbind(L1Ins1000G[,1:7], GenoDF)
+L1Ins1000Ggeno$InsLength <- L1Ins1000G$InsLength
+
+# Save table with L1 insertion and genotype
+write.table(L1Ins1000Ggeno, "D:/L1polymORF/Data/L1_1000G_withGeno")
+
+
 L1Ins1000G$InsLength > 6000
 GenoWithData <- !is.na(GenoDF)
 sum(L1Ins1000G$InsLength > 6000, na.rm = T)
 
 # Explore genotype data
 L1Ins1000G$Freq <- rowSums(GenoDF, na.rm = T)
+ncol(L1Ins1000G)
 hist(rowSums(GenoDF[L1Ins1000G$InsLength > 6000, ], na.rm = T)/ 2 /
        rowSums(GenoWithData[L1Ins1000G$InsLength > 6000, ]))
 hist(colSums(GenoDF, na.rm = T))
 hist(colSums(GenoDF > 0, na.rm = T) / colSums(GenoWithData),
      xlab = "Proportion of L1 insertions present")
 hist(rowSums(GenoDF, na.rm = T) / rowSums(GenoWithData)) 
+
+# Save table with L1 insertion info
 
 # Create info dataset without the genotype columns
 L1Ins1000G_Info <- L1Ins1000G[,!colnames(L1Ins1000G) %in% SampleColumns]
@@ -114,14 +124,17 @@ L1Ins1000G_Info <- L1Ins1000G[,!colnames(L1Ins1000G) %in% SampleColumns]
 GRL1Ins1000G <- GRanges(seqnames = paste("chr", L1Ins1000Ggeno$X.CHROM, sep = ""),
                         ranges = IRanges(start = L1Ins1000Ggeno$POS,  
                                          end = L1Ins1000Ggeno$POS))
-GRL1Ins1000G_hg38    <- liftOver(GRL1Ins1000G, 
-                           chain = import.chain("D:/L1polymORF/Data/hg18ToHg38.over.chain"))
-length(GRL1Ins1000G_hg38)
-NrMapped_hg38        <- sapply(GRL1Ins1000G_hg38, length)
-length(NrMapped_hg38)
-idxUniqueMapped_hg38 <- which(NrMapped_hg38 == 1) 
-GRL1Ins1000G_hg38Mapped <- unlist(GRL1Ins1000G_hg38[idxUniqueMapped_hg38])
-length(idxUniqueMapped_hg38)
+GRL1Ins1000G_hg19 <- UniqueLiftover(GRL1Ins1000G,
+                                    ChainFilePath = "D:/L1polymORF/Data/hg18ToHg19.over.chain")
+GRL1Ins1000G_hg38 <- UniqueLiftover(GRL1Ins1000G,
+    ChainFilePath = "D:/L1polymORF/Data/hg18ToHg38.over.chain")
+  
+# length(GRL1Ins1000G_hg38)
+# NrMapped_hg38        <- sapply(GRL1Ins1000G_hg38, length)
+# length(NrMapped_hg38)
+# idxUniqueMapped_hg38 <- which(NrMapped_hg38 == 1) 
+# GRL1Ins1000G_hg38Mapped <- unlist(GRL1Ins1000G_hg38[idxUniqueMapped_hg38])
+# length(idxUniqueMapped_hg38)
 
 # Lift Kuhn coordinates over to Hg38 
 Kuhn2014PrimersNotNA <- Kuhn2014Primers[!is.na(Kuhn2014Primers$left.coordinate),]
@@ -174,8 +187,7 @@ hist(Dists, breaks = seq(0, 1.5*10^8, 10^5))
 #                                            #
 ##############################################
 
-save(list = c("GRL1Ins1000G_hg38Mapped", "idxUniqueMapped_hg38", "GRL1Ins1000G", 
-              "L1Ins1000G_Info"), 
+save(list = c("GRL1Ins1000G", "GRL1Ins1000G_hg19", "GRL1Ins1000G_hg38", "L1Ins1000G_Info"), 
      file = GROutputPath)
 
 
