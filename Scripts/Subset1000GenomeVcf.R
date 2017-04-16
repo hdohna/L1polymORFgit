@@ -2,16 +2,16 @@
 # only files with Line1 insertions
 
 # Source start script
-source('/home/hzudohna/L1polymORF/Scripts/_Start_L1polymORF_bix2.R')
+source('/home/hzudohna/L1polymORFgit/Scripts/_Start_L1polymORF_scg4.R')
 
 # Specify parameters
-DataFolder     <- "/share/diskarray3/hzudohna/1000Genomes/"
+DataFolder     <- "/srv/gsfs0/projects/levinson/hzudohna/1000Genomes/"
 LineIdentifier <- "INS:ME:LINE1"
 FilePrefix     <- "LINE1"
 
 # Get file names, loop over files and do the filtering
 AllFiles <- list.files(DataFolder, pattern = ".vcf", full.names = T)
-InFile <- AllFiles[1]
+AllFiles <- AllFiles[-grep("vcf.", AllFiles)]
 for (InFile in AllFiles){
   InFileSplit <- strsplit(InFile, "\\.")[[1]]
   OutFile     <- paste(c(InFileSplit[1:2], ".vcf"), collapse = "")

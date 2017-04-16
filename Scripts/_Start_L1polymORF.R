@@ -23,8 +23,8 @@
 
 
 # Load packages
-library(seqinr)
-library(ape)
+# library(seqinr)
+# library(ape)
 
 # Source all functions from GeneralRFunctions folder
 AllFunctions <- list.files(path = "D:/GeneralRFunctions/", 
