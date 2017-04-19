@@ -20,8 +20,8 @@ library(csaw)
 # Source start script
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.r')
 
-# Path to L1 catalogue file 
-L1CataloguePath <- "D:/L1polymORF/Data/L1Catalog_Updated_Wed_Aug_10_16-33-31_2016.csv"
+# Path to L1 catalogue file (Created in script AddColumns2L1Catalog.R)
+L1CataloguePath <- "D:/L1polymORF/Data/L1CatalogExtended.csv"
 
 # Path to chain file for b37 to hg19 (obtained from ftp://gsapubftp-anonymous@ftp.broadinstitute.org/Liftover_Chain_Files/)
 Chain_b37tohg19 <- "D:/L1polymORF/Data/b37tohg19.chain"
@@ -114,18 +114,16 @@ L1RefGRFullnotCat_hg19 <- L1RefGRFull_hg19[!blnOverlapCatalog_hg19]
 # Load data
 load(L1GRanges1000GenomesPath)
 
-# Subset L1Ins1000G_Info so that it only contains the infor for L1 mapped to hg38
-L1Ins1000G_Info_mapped <- L1Ins1000G_Info[idxUniqueMapped_hg38,]
-
 # Subset genomic ranges to get full-length and fragments in three different 
 # frequency classes
-blnFull    <- L1Ins1000G_Info_mapped$InsLength >= 6000
-blnMedFreq <- L1Ins1000G_Info_mapped$Freq >= 10
-blnHiFreq  <- L1Ins1000G_Info_mapped$Freq >= 20
-GRL1Ins1000G_Full       <- GRL1Ins1000G_hg38Mapped[which(blnFull)]
-GRL1Ins1000G_Full_HiF   <- GRL1Ins1000G_hg38Mapped[which(blnFull & blnHiFreq)]
-GRL1Ins1000G_Full_lowF  <- GRL1Ins1000G_hg38Mapped[which(blnFull & !blnHiFreq)]
-GRL1Ins1000G_Fragm      <- GRL1Ins1000G_hg38Mapped[which(!blnFull)]
+blnFull           <- L1_1000G_GR_hg19@elementMetadata@listData$InsLength >= 6000
+GRL1Ins1000G_Full <- L1_1000G_GR_hg19[which(blnFull)]
+FreqQuant_Full    <- quantile(GRL1Ins1000G_Full@elementMetadata@listData$Frequency)
+blnAbove75        <- GRL1Ins1000G_Full@elementMetadata@listData$Frequency >=
+                     FreqQuant_Full['75%']
+GRL1Ins1000G_Full_HiF   <- GRL1Ins1000G_Full[blnAbove75]
+GRL1Ins1000G_Full_lowF  <- GRL1Ins1000G_Full[!blnAbove75]
+GRL1Ins1000G_Fragm      <- L1_1000G_GR_hg19[which(!blnFull)]
 
 ############################
 #                          #
@@ -296,6 +294,7 @@ Dist2Closest <- function(GR1, GR2){
   DistObj <- distanceToNearest(GR1, GR2, ignore.strand = T) 
   DistObj@elementMetadata@listData$distance
 }
+
 # Auxiliary unction to create genomic ranges for both sides of a loop
 getLoopGRs <- function(FileName){
   Loops <- read.delim(FileName)
@@ -306,11 +305,7 @@ getLoopGRs <- function(FileName){
   LoopsGR2 <- makeGRangesFromDataFrame(Loops, seqnames.field = "chr2", 
                                        start.field="y1", end.field = "y2")
   blnOverlapLoop <- overlapsAny(LoopsGR1, LoopsGR2)
-  
-  LoopsGR1 <- UniqueLiftover(LoopsGR1, Chain_b37tohg19)$LiftedRanges  
-  LoopsGR2 <- UniqueLiftover(LoopsGR2, Chain_b37tohg19)$LiftedRanges  
   AllLoops <- c(LoopsGR1, LoopsGR2[!blnOverlapLoop])
-  AllLoops <- UniqueLiftover(AllLoops, Chain_b37tohg19)$LiftedRanges  
   GRangesList(LoopsGR1 = LoopsGR1, LoopsGR2 = LoopsGR2, AllLoops = AllLoops)
 }
 
@@ -334,6 +329,7 @@ L1DistPiRNA_FullnotCat_hg19 <- Dist2Closest(L1RefGRFullnotCat_hg19, PiRNA_GR)
 
 # Calculate distances from full-length and fragment L1 from 1000 genome data to
 # closest gene
+L1DistGene_1000GFull      <- Dist2Closest(GRL1Ins1000G_Full, GRgenes_hg19)
 L1DistGene_1000GFullLow   <- Dist2Closest(GRL1Ins1000G_Full_lowF, GRgenes_hg19)
 L1DistGene_1000GFullHigh  <- Dist2Closest(GRL1Ins1000G_Full_HiF, GRgenes_hg19)
 L1DistGene_1000GFragm     <- Dist2Closest(GRL1Ins1000G_Fragm, GRgenes_hg19)
@@ -487,6 +483,8 @@ mtext("Distance full-length L1 to domain", side = 2, line = 1, outer = T)
 CreateDisplayPdf('D:/L1polymORF/Figures/L1DomainDistQQ_1000G.pdf', 
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
 
+plot(QSamplesDomain, QSamplesDomain_1000G)
+
 par(mfrow = c(3, 3)) 
 QSamplesLoop <- sapply (1:length(LoopDistList), function(i){
     x <- LoopDistList[[i]] 
@@ -566,4 +564,9 @@ mean(L1DistPiRNA_Fragm_hg19 == 0)
 Nr
 pbinom(length(L1DistPiRNA_CatRef_hg19))
 
+QQDistPlot(L1DistGene_1000GFragm, L1DistGene_1000GFullHigh, L1DistGene_1000GFullLow)
+QQDistPlot(L1DistGene_1000GFullLow, L1DistGene_1000GFullHigh)
+QQDistPlot(L1DistGene_1000GFragm, L1DistGene_1000GFull, 
+           xLab = "Distance from L1 fragments",
+           yLab = "Distance from full-length L1")
 
