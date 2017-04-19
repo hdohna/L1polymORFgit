@@ -59,6 +59,7 @@ CoveragePlotPath      <- 'D:/L1polymORF/Figures/L1InsertionCoverage_NA12878_PacB
 CoverDataPath         <- 'D:/L1polymORF/Data/L1_NA12878_PacBio_Coverage.RData'
 CoverDataPath         <- 'D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_Results.Rdata'
 L1_1000GenomeDataPath <- "D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData"
+L1_1000_NA12878_Path  <- "D:/L1polymORF/Data/NA12878.1000genome.L1HS.insert.bed"
 OutFolderName_NonRef  <- "D:/L1polymORF/Data/BZ_NonRef"
 NewL1RefOutPath       <- "D:/L1polymORF/Data/L1RefPacBioNA12878_DelRemoved.fa"
 GenomeBamPath         <- "D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_subreads_hg19masked.sorted.bam"
@@ -450,24 +451,24 @@ sum(abs(PropVar5PTdSeq) < 0.1)
 
 ###############################################
 #                                             #
-#  Compare to 1000                            #
+#  Compare to 1000 genome data                       #
 #                                             #
 ###############################################
 
 # Create genomic ranges from table 
 L1InsGR <- makeGRangesFromDataFrame(FullL1Info)
 
-L1GR_1000G_NA12878 <- import.bed("D:/L1polymORF/Data/NA12878.1000genome.L1HS.insert.bed")
-L1_1000G_NA12878 <- read.delim("D:/L1polymORF/Data/NA12878.1000genome.L1HS.insert.bed",
-                               header = F)
+# Read in 1000 Genome insertions for NA12878
+L1_1000G_NA12878 <- read.delim(L1_1000_NA12878_Path,  header = F)
 colnames(L1_1000G_NA12878)[1:2] <- c("chromosome", "start")
 L1_1000G_NA12878$chromosome <- paste("chr", L1_1000G_NA12878$chromosome, sep = "")
 L1_1000G_NA12878_GR <- makeGRangesFromDataFrame(L1_1000G_NA12878, end.field="start")
-
 Dist2Closest(L1InsGR, L1_1000G_NA12878_GR)
 
-load("D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData")
-Dist2Closest(L1InsGR, GRL1Ins1000G_hg19$LiftedRanges)
+# Read in 1000 Genome L1 insertion (created in script Create_1000G_L1GRanges.R)
+load(L1_1000GenomeDataPath)
+Dist2_1000GL1 <- Dist2Closest(L1InsGR, L1_1000G_GR_hg19)
+sum(Dist2_1000GL1)
 
 ###############################################
 #                                             #
