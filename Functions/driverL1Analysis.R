@@ -167,13 +167,9 @@ driverL1Analysis <- function(
   if(blnWriteFastq){
     
     # Write little fastq files per suspected peak
-    WriteFastQPerRange(Ranges = SuspectL1Ranges, 
+    WriteFastQPerRangeFromBam(Ranges = SuspectL1Ranges, 
                        InBamfilePath  = PeakBam,
-                       InFastQfilePaths = NULL,
-                       OutFilePaths = LittleFastqPaths,
-                       NrReadsPerIter = NrReadsPerIter,
-                       IdChar2Remove = IdChar2Remove,
-                       WriteFastqFromBam = T) 
+                       OutFilePaths = LittleFastqPaths) 
   }
   
   OutBamFilePaths <- gsub(".fastq", ".bam", LittleFastqPaths)
