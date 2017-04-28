@@ -532,7 +532,16 @@ piRNADistCat <- QQDistPlot(L1DistPiRNA_Fragm_hg19, L1DistPiRNA_CatRef_hg19,
                            Title = "Distance to piRNA")
 legend("bottomright", legend = c("intact", "not intact"), pch = c(1,2),
        y.intersp = YI, bty = "n")
+sum(L1DistPiRNA_Fragm_hg19 == 0) / length(L1DistPiRNA_Fragm_hg19)
+sum(L1DistPiRNA_CatRef_hg19 == 0) / length(L1DistPiRNA_CatRef_hg19)
 
+# Determine where on the L1 
+idxClosestPiRNA <- nearest(L1CatalogGR_Ref_hg19, PiRNA_GR)
+StartDiff <- start(PiRNA_GR)[idxClosestPiRNA] - start(L1CatalogGR_Ref_hg19)
+EndDiff <- end(L1CatalogGR_Ref_hg19) - end(PiRNA_GR)[idxClosestPiRNA]
+blnPos <- as.vector(strand(L1CatalogGR_Ref_hg19)) == "+"
+StartDiff[blnPos]
+EndDiff[!blnPos]
 
 ##################################
 #                                #
@@ -561,7 +570,6 @@ FitDistVsLength <- glm(L1DistGene_Fragm ~ width(L1FragmGR))
 summary(FitDistVsLength)
 
 mean(L1DistPiRNA_Fragm_hg19 == 0)
-Nr
 pbinom(length(L1DistPiRNA_CatRef_hg19))
 
 QQDistPlot(L1DistGene_1000GFragm, L1DistGene_1000GFullHigh, L1DistGene_1000GFullLow)
@@ -569,4 +577,8 @@ QQDistPlot(L1DistGene_1000GFullLow, L1DistGene_1000GFullHigh)
 QQDistPlot(L1DistGene_1000GFragm, L1DistGene_1000GFull, 
            xLab = "Distance from L1 fragments",
            yLab = "Distance from full-length L1")
+
+# Test linear regression fragemnt size vs distance
+DistVsWidth <- lm(L1DistGene_Fragm ~ width(L1FragmGR))
+summary(DistVsWidth)
 
