@@ -12,6 +12,8 @@ library(rtracklayer)
 
 # Specify file paths
 GROutputPath <- 'D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData'
+L1RefRangePath <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
+load(L1RefRangePath)
 
 # Specify parameters
 NrInfoCols <- 9
@@ -43,7 +45,10 @@ L1_1000G_GRList_hg38 <- UniqueLiftover(L1_1000G_GR_hg19,
 cat("Saving genomic ranges\n")
 save(list = c("L1_1000G_GR_hg19", "L1_1000G_GRList_hg38", "L1_1000G_reduced"), 
      file = GROutputPath)
-L1_1000G_GR_hg19@elementMetadata@listData$InsLength
+
+# Get for each 1000 genome L1 the closest distance to a reference L1
+ClostestDist <- Dist2Closest(L1_1000G_GR_hg19, L1GRanges)
+hist(ClostestDist, breaks = seq(0, 60000, 250))
 
 # Plot frequency histogram of full-length and 
 hist(L1_1000G$Frequency[L1_1000G$InsLength > 6000], breaks = seq(0, 1, 0.01))
@@ -104,13 +109,21 @@ ObservedAct <- sapply(SampleColumns, function(x){
 hist(ObservedAct)
 mean(ObservedAct)
 
+# Plot activity vs frequency
+plot(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency)
+cor(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency)
+cor.test(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency)
+
 # Sample individual activity sums
 NrSamples <- 100000
 SampledActSums <- sapply(1:NrSamples, function(x){
   rbinom(nrow(L1_1000G_match), 2, L1_1000G_match$Frequency) %*% 
     L1CatalogMatch1000G$ActivityNum
 })
-SamplQuantList <- SampleQuantiles(SampledActSums, length(SampleColumns), NrSamples = 1000)
+cat("Sampling quantiles of activity sums\n")
+SamplQuantList <- SampleQuantiles(SampledActSums, length(SampleColumns), 
+                                  NrSamples = 10000, QuantV = seq(0, 1, 0.0001),
+                                  LowerQ = 0.005, UpperQ = 0.995)
 QSMat <- SamplQuantList$QMat
 idxF <- 1:ncol(QSMat)
 idxR <- ncol(QSMat):1
@@ -118,10 +131,18 @@ mean(SampledActSums)
 QQ1  <- qqplot(SampledActSums, ObservedAct, plot.it = F)
 plot(QQ1$x, QQ1$y, xlab = "Sampled activity sums", 
      ylab = "Observed activity sums")
+MedianMatch1 <- sapply(QQ1$x, function(z) which.min(abs(z - QSMat[1, ])))
+MedianMatch2 <- sapply(QQ1$x, function(z) which.min(abs(z + 1 - QSMat[1, ])))
+MedianMatch3 <- sapply(QQ1$x, function(z) which.min(abs(z - 1 - QSMat[1, ])))
 polygon(QSMat[1, c(idxF, idxR)], c(QSMat[2, ], QSMat[3, idxR]), 
         col = "grey", border = NA)
 points(QQ1$x, QQ1$y)
 lines(c(0, 1000), c(0, 1000))
-
-hist(SampledActSums)
-                            
+blnOutside <- (QQ1$y < QSMat[2, MedianMatch1] | QQ1$y > QSMat[3, MedianMatch1]) &
+  (QQ1$y < QSMat[2, MedianMatch2] | QQ1$y > QSMat[3, MedianMatch2]) &
+  (QQ1$y < QSMat[2, MedianMatch3] | QQ1$y > QSMat[3, MedianMatch3])
+sum(blnOutside)
+points(QQ1$x[blnOutside],  QQ1$y[blnOutside], col = "red")
+  
+CreateDisplayPdf('D:/L1polymORF/Figures/L1ActivitySums.pdf', 
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
