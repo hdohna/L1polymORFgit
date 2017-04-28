@@ -9,9 +9,8 @@ library(csaw)
 
 # Run function
 driverL1Analysis(
-  PeakBam = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19masked.sorted.bam", 
+  PeakBam = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/BZ_NA12878L1capt5-9kb_subreads_hg19masked.sorted.bam", 
 #  L1HSBamFile = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_sub_reads_aln2L1.sorted.bam", 
-  FastQFolder = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/FastqSubreads/", 
   L1HSConsensus = "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/Homo_sapiens_L1_consensus.fas",
   L1RefRanges    = '/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/L1RefRanges_hg19.Rdata',
   OutputFolder = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/", 
@@ -19,7 +18,7 @@ driverL1Analysis(
   PlotFolder = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/Figures/", 
   MinMaxCover = 1, 
   MinGap = 100, 
-  MinDist2L1 = 1000, 
+  MinDist2L1 = 500, 
   NrChromPieces = 1,
   blnComparePeaksWithRefL1 = T,
   blnFilterOverlap         = F,

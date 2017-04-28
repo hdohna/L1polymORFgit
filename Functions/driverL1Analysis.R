@@ -10,7 +10,6 @@
 #
 #  Folders and file names:
 #     PeakBam:       bam file containing peaks around L1HS
-#     FastQFolder:   Folder containing the original fast
 #     L1HSConsensus: fasta file containing the L1HS consensus sequence
 #     OutputFolder:  folder where analysis data output is saved
 #     CoverSummaryPlot: path where pdf file with plot of coverage summary is 
@@ -51,7 +50,6 @@
 
 driverL1Analysis <- function(
   PeakBam, 
-  FastQFolder, 
   L1HSConsensus = "/home/hzudohna/L1polymORF/Data/Homo_sapiens_L1_consensus.fa",
   L1RefRanges    = '/home/hzudohna/L1polymORF/Data/L1RefRanges_hg19.Rdata',
   OutputFolder = "/home/hzudohna/L1polymORF/Data/", 
@@ -171,10 +169,11 @@ driverL1Analysis <- function(
     # Write little fastq files per suspected peak
     WriteFastQPerRange(Ranges = SuspectL1Ranges, 
                        InBamfilePath  = PeakBam,
-                       InFastQfilePaths = list.files(FastQFolder, full.names = T),
+                       InFastQfilePaths = NULL,
                        OutFilePaths = LittleFastqPaths,
                        NrReadsPerIter = NrReadsPerIter,
-                       IdChar2Remove = IdChar2Remove) 
+                       IdChar2Remove = IdChar2Remove,
+                       WriteFastqFromBam = T) 
   }
   
   OutBamFilePaths <- gsub(".fastq", ".bam", LittleFastqPaths)
