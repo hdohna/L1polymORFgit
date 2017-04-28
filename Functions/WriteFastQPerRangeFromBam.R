@@ -61,10 +61,12 @@ WriteFastQPerRangeFromBam <- function(Ranges, InBamfilePath,
       blnNegStrand <- RL$strand == "-"
       RL$seq[blnNegStrand] <- reverseComplement(RL$seq[blnNegStrand])
       RL$qual[blnNegStrand] <- reverse(RL$qual[blnNegStrand])
+      cat("Writing out file", i, "out of", length(ReadsPerRange), "\n")
       WriteFastq(Reads = as.character(RL$seq), 
                  ReadNames = RL$qname, 
                  ReadQual = as.character(RL$qual),
                  FilePath = OutFilePaths[i])
+      cat("File written out:", OutFilePaths[i], "\n")
   }
 }
 
