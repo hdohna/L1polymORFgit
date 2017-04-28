@@ -10,6 +10,7 @@
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load packages
+library(seqinr)
 library(smooth)
 library(ShortRead)
 library(Rsamtools)
@@ -58,6 +59,7 @@ MinFullL1 <- 6020
 CoveragePlotPath      <- 'D:/L1polymORF/Figures/L1InsertionCoverage_NA12878_PacBio.pdf'
 CoverDataPath         <- 'D:/L1polymORF/Data/L1_NA12878_PacBio_Coverage.RData'
 CoverDataPath         <- 'D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_Results.Rdata'
+CoverDataPath         <- 'D:/L1polymORF/Data/PacBioHiFi__Results.Rdata'
 L1_1000GenomeDataPath <- "D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData"
 L1_1000_NA12878_Path  <- "D:/L1polymORF/Data/NA12878.1000genome.L1HS.insert.bed"
 OutFolderName_NonRef  <- "D:/L1polymORF/Data/BZ_NonRef"
@@ -468,7 +470,7 @@ Dist2Closest(L1InsGR, L1_1000G_NA12878_GR)
 # Read in 1000 Genome L1 insertion (created in script Create_1000G_L1GRanges.R)
 load(L1_1000GenomeDataPath)
 Dist2_1000GL1 <- Dist2Closest(L1InsGR, L1_1000G_GR_hg19)
-sum(Dist2_1000GL1)
+sum(Dist2_1000GL1 < 100)
 
 ###############################################
 #                                             #
