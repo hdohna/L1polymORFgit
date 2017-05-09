@@ -88,8 +88,8 @@ CalcCoverMatReadList <- function(
     # Get reads mapped to the genome on current locus
     ScanParam <- ScanBamParam(what = scanBamWhat(), which = PeakGR)
     GenomeRL  <- scanBam(GenomeBamPath,  param = ScanParam)
-    primMap     <- GenomeRL[[1]]$flag <= 2047 & !(is.na(GenomeRL[[1]]$pos))
-    GenomeRL[[1]]    <- lapply(GenomeRL[[1]], function(y) y[primMap])
+    # primMap     <- GenomeRL[[1]]$flag <= 2047 & !(is.na(GenomeRL[[1]]$pos))
+    # GenomeRL[[1]]    <- lapply(GenomeRL[[1]], function(y) y[primMap])
     LRClippedG <- sapply(RL$cigar, NrClippedFromCigar)
     ReadMatch <- match(RL$qname, GenomeRL[[1]]$qname)
     if (any(is.na(ReadMatch))){
