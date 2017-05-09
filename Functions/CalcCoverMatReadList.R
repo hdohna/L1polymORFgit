@@ -55,11 +55,11 @@ CalcCoverMatReadList <- function(
   FilesWithReads    <- FileNames[idxFilesWithReads]
   
   # Extract the names of files with reads
-  PeakNames <- sapply(FilesWithReads){
-    FPathSplit <- strsplit(FPath, "/")[[1]]
+  PeakNames <- sapply(FilesWithReads, function(x) {
+    FPathSplit <- strsplit(x, "/")[[1]]
     FName <- FPathSplit[length(FPathSplit)]
     substr(FName, 1, nchar(FName) - 4)
-  }
+  })
   
   # Get read list per peak
   ReadListPerPeak <- lapply(idxFilesWithReads, function(x) {
