@@ -234,8 +234,9 @@ driverL1Analysis <- function(
   
   if (blnCalcCoverMat){
     CalcCoverMatReadList(
-      OutputFilePath = OutResults_Analysis,
+      OutputFilePath       = OutResults_Analysis,
       OutFolderName_NonRef = OutFolderName_NonRef,
-      L1RangesPath = OutResults_RangeComparison)
+      L1RangesPath         = OutResults_RangeComparison,
+      GenomeBamPath        = PeakBam)
   }
 }
