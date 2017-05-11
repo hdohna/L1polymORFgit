@@ -11,13 +11,12 @@ source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load packages
 library(seqinr)
-library(smooth)
 library(ShortRead)
 library(Rsamtools)
 library(rtracklayer)
 library(csaw)
 library(GenomicRanges)
-library(BSgenome.Hsapiens.UCSC.hg19)
+#library(BSgenome.Hsapiens.UCSC.hg19)
 
 ############################
 #                          #
@@ -127,7 +126,7 @@ L1CharV_RV        <- s2c(as.character(L1ConsSeqDNAst_RV))
 
 # Read repeat table and subset to get only L1HS rows with fragment size below 
 # MaxFragLength
-RepeatTable <- read.delim("D:/L1polymORF/Data/repeatsHg19_L1HS")
+RepeatTable <- read.csv("D:/L1polymORF/Data/repeatsHg19_L1HS.csv")
 #RepeatTable <- RepeatTable[RepeatTable$repName == "L1HS", ]
 
 # Create genomic ranges for L1 fragments, match them to distances to get distance

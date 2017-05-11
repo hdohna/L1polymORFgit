@@ -2,7 +2,7 @@
 # and saves the result as "L1CatalogExtended.csv:
 
 # Read in table with known L1 
-L1Catalog <- read.csv("D:/L1polymORF/Data/L1Catalog_Updated_Wed_Aug_10_16-33-31_2016.csv", as.is = T)
+L1Catalog <- read.csv("D:/L1polymORF/Data/L1Catalog_Updated_Wed_Aug_10_17-32-20_2016.csv", as.is = T)
 
 # Add numeric activity
 L1Catalog$ActivityNum <- L1Catalog$Activity
