@@ -23,7 +23,8 @@
 
 ##############################################
 
-MapMultiFastq <- function(FastQFolder, Reference, 
+MapMultiFastq <- function(FastQPaths, 
+                          Reference, 
                           IndexCommand,
                           AlignCommand,
                           SamSuffix = "_aln.sam", NrJobsPerBatch = 100, WaitBetwJobs = 100) {
@@ -34,8 +35,8 @@ MapMultiFastq <- function(FastQFolder, Reference,
   cat("**                                                **\n")
   cat("****************************************************\n\n")
   
-  # Get all paths to fastq files in the folder
-  FastQPaths <- list.files(FastQFolder, pattern = ".fastq", full.names = T)
+  # Get all paths to fastq files in the folder (legacy of previous version)
+#  FastQPaths <- list.files(FastQFolder, pattern = ".fastq", full.names = T)
   
   # Create index file
   cat("*******   Creating index for", Reference, "...   *******\n")

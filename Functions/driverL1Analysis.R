@@ -158,6 +158,10 @@ driverL1Analysis <- function(
   LittleFastqPaths <- paste(OutFolderName_NonRef, LittleFastqFiles, sep = "/")
   LittleBamPaths   <- paste(OutFolderName_NonRef, LittleBamFiles, sep = "/")
   
+  # Get all files that are already in the output folder to restrict subsequent
+  # analysis to new files to be generated
+  OutFilesPresent <- list.files(OutFolderName_NonRef, full.names = T)
+  
   #######################################################
   #                                                     #
   #    Write fastq of suspected L1 not in reference     #
@@ -183,7 +187,10 @@ driverL1Analysis <- function(
   
   if(blnMap2L1){
     
-    FilePaths <- MapMultiFastq(FastQFolder  = OutFolderName_NonRef,
+    # Determine new fastq files to be mapped
+    NewFastqFiles <- setdiff(LittleFastqPaths, OutFilesPresent)
+    
+    FilePaths <- MapMultiFastq(FastQPaths  = NewFastqFiles,
                                AlignCommand = AlignCommand,
                                IndexCommand = IndexCommand,
                                Reference = L1HSConsensus,
@@ -201,9 +208,8 @@ driverL1Analysis <- function(
   if(blnSam2Bam){
     
     # Get all names of sam files created by BWA
-    SamFileNames <- list.files(OutFolderName_NonRef, pattern = SamSuffix,
-                               full.names = T)
-    
+    SamFileNames <- FilePaths$SamPath
+
     # Turn sam files into bam files
     for (fn in SamFileNames) {
       cat("Turning", fn, "into a bam file\n")
@@ -221,7 +227,8 @@ driverL1Analysis <- function(
   
   if(blnCreateBamIndices){
     
-    CreateMultiBamIndex(BamFolder  = OutFolderName_NonRef, CreateBamIndexCmd = CreateBamIndexCmd, 
+    CreateMultiBamIndex(BamFolder = OutFolderName_NonRef, 
+                        CreateBamIndexCmd = CreateBamIndexCmd, 
                         BamSuffix = BamSuffix)
   }
   
