@@ -72,10 +72,13 @@ CalcCoverMatReadList <- function(
   cat("*******  Calculating MatchedReadList   *************\n")
   MatchedReadList <- lapply(1:length(ReadListPerPeak), function(x) {
     
+    # Status message
+    cat("Analyzing peak ", x, "out of ", length(ReadListPerPeak), "\n")
+    
     # Extract range index from file name
     FName    <- names(ReadListPerPeak)[x]
     idxRange <- as.numeric(strsplit(FName, "_")[[1]][2])
-    PeakGR    <- IslGRanges_reduced[idxRange]
+    PeakGR   <- IslGRanges_reduced[idxRange]
     
     # Get reads mapped to L1, retain only primary reads and get the number of bp
     # clipped on the left

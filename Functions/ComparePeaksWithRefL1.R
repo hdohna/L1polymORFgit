@@ -34,7 +34,9 @@ ComparePeaksWithRefL1 <- function(
    MinMaxCover = 5,    # minimum maximum coverage to be called a peak 
    MinGap      = 10,
    NrChromPieces = 20,
-   MinDist2L1  = 3*10^4, # minimum distance to L1 to be called a peak 
+   MinDist2L1  = 3*10^4, # minimum distance to L1 to be called a non-reference peak 
+   MinDist2L1_overlap  = 3, # minimum distance to L1 to be called overlapping 
+                            # with a reference peak 
    OutFile = "/home/hzudohna/L1polymORF/Data/AnalyzedPacBioL1Ranges.RData",
    EndList = NULL,
    blnFilterOverlap = T
@@ -133,10 +135,16 @@ ComparePeaksWithRefL1 <- function(
    IslandGRanges <- GRangesList(IslandGRanges)
    IslandGRanges <- unlist(IslandGRanges)
    cat(length(IslandGRanges), "distinct peaks before merging peaks\n\n")
+   
+   # Initiate a summary report
+   SummaryReport <- data.frame(Description = "Distinct peaks before merging", 
+                                 Count = length(IslandGRanges), 
+                                 stringsAsFactors = F)
+   
 
    #######################################
    #                                     #
-   #    Reduce 'islands' with         #
+   #    Reduce 'islands' with            #
    #        nonzero coverage             #
    #                                     #
    #######################################
@@ -146,7 +154,12 @@ ComparePeaksWithRefL1 <- function(
                              with.revmap = T)
    cat(length(IslGRanges_reduced), "distinct peaks after merging peaks that")
    cat("are less than", MinGap, "apart\n\n")
-
+   
+   # Update summary report
+   SummaryReport <- rbind(SummaryReport,
+       c(paste("Distinct peaks after merging peaks less than", MinGap, "apart"),
+         length(IslGRanges_reduced)))
+   
    #######################################
    #                                     #
    #    Find 'islands' not overlapping   #
@@ -157,7 +170,7 @@ ComparePeaksWithRefL1 <- function(
    cat("***** Finding 'islands' not overlapping with reference L1 ... *****\n")
 
    # Find overlaps between islands and L1HS ranges
-   blnOverlapIslands_All <- overlapsAny(IslGRanges_reduced, L1GRanges)
+#   blnOverlapIslands_All <- overlapsAny(IslGRanges_reduced, L1GRanges)
 
    # Get maximum cover and position of maximum cover in reduced ranges
    maxCoverOriginal    <- IslandGRanges@elementMetadata@listData$coverMax
@@ -167,20 +180,29 @@ ComparePeaksWithRefL1 <- function(
    maxCoverPos <- sapply(IslGRanges_reduced@elementMetadata@listData$revmap, 
                       function(x) maxCoverPosOriginal[x[which.max(maxCoverOriginal[x])]])
    
-   # Get all ranges that make the maximum cover cut-off and don't overlap with
+   # Get distances to closest reference L1s
+   DistToNearestL1 <- rep(NA, length(IslGRanges_reduced))
+   DistObj <- distanceToNearest(IslGRanges_reduced, L1GRanges, ignore.strand = T) 
+   Dists   <- DistObj@elementMetadata@listData$distance
+   DistToNearestL1[DistObj@from]  <- Dists
+   
+   # Get all ranges that make the maximum cover cut-off and are MinDist2L1 from
    # reference L1
-   idxSuspectL1Ranges <- which(maxCover >= MinMaxCover & (!blnOverlapIslands_All))
+   idxSuspectL1Ranges <- which(maxCover >= MinMaxCover & (DistToNearestL1 >= MinDist2L1))
    SuspectL1Ranges    <- IslGRanges_reduced[idxSuspectL1Ranges]
    cat(length(idxSuspectL1Ranges), "peaks have maximum coverage of at least",
-      MinMaxCover, "and do not overlap with reference L1\n")
+      MinMaxCover, "and are at least", MinDist2L1, "bp from nearest reference L1\n\n")
 
-   # Remove ranges of suspected L1s that are too close to reference L1
-   DistToNearestL1    <- Dist2Closest(SuspectL1Ranges, L1GRanges)
-   idxSuspectL1Ranges <- idxSuspectL1Ranges[DistToNearestL1 >= MinDist2L1]
    SuspectL1Ranges    <- IslGRanges_reduced[idxSuspectL1Ranges]
    maxCoverPos_SuspL1Ranges <- maxCoverPos[idxSuspectL1Ranges]
    cat(length(idxSuspectL1Ranges), "of the above peaks are at least", 
        MinDist2L1, "bp from nearest reference L1\n\n")
+   
+   # Update summary report
+   SummaryReport <- rbind(SummaryReport,
+      c(paste("Distinct peaks with peak coverage of at least", MinMaxCover, 
+              "and at least", MinDist2L1, "bp from nearest reference L1"),
+                            length(idxSuspectL1Ranges)))
    
    #######################################
    #                                     #
@@ -189,8 +211,12 @@ ComparePeaksWithRefL1 <- function(
    #                                     #
    #######################################
    
-   cat("***** Filtering reads overlapping with full-length reference L1 ... *****\n")
-
+   # Find which peaks adjacent to reference L1
+   blnIslAdj2RefL1 <- DistToNearestL1 <= MinDist2L1_overlap
+   SummaryReport <- rbind(SummaryReport,
+      c(paste("Distinct peaks adjacent to reference L1"),
+                            sum(blnIslAdj2RefL1, na.rm = T)))
+   
    # Find overlaps between islands and full-length L1HS ranges
    blnOverlapIslands_L1HS <- overlapsAny(IslGRanges_reduced, 
                                          L1HSFullLength_GRanges)
@@ -201,6 +227,7 @@ ComparePeaksWithRefL1 <- function(
    
    # Filter bam file to get reads in islands overlapping with full-length L1
    if (blnFilterOverlap){
+     cat("***** Filtering reads overlapping with full-length reference L1 ... *****\n")
      param <- ScanBamParam(which = FullRefL1Ranges, what = scanBamWhat())
      filterBam(file = BamFile, destination = OutBamFileFullLengthL1, param = param)
    }
@@ -216,7 +243,7 @@ ComparePeaksWithRefL1 <- function(
    cat("*******", OutFile,  "*******\n")
    save(list = c("IslGRanges_reduced", "maxCover", "maxCoverPos", 
               "idxSuspectL1Ranges", "SuspectL1Ranges", 
-              "FullRefL1Ranges", "idxFullRefL1Ranges"), 
+              "FullRefL1Ranges", "idxFullRefL1Ranges", "SummaryReport"), 
      file = OutFile)
 
 }

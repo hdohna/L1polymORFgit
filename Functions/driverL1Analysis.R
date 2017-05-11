@@ -56,7 +56,7 @@ driverL1Analysis <- function(
   PlotFolder = "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/Figures/", 
   ResultFileName,
   MinMaxCover, MinGap, 
-  MinDist2L1, 
+  MinDist2L1, MinDist2L1_overlap = 3,
   NrChromPieces = 1,
   blnComparePeaksWithRefL1 = F,
   blnFilterOverlap = F,
@@ -129,9 +129,11 @@ driverL1Analysis <- function(
       BamFile = PeakBam,
       OutBamFileFullLengthL1 = OutBamFileFullLengthL1,
       L1Ranges = L1RefRanges,
-      MinMaxCover = MinMaxCover,    # minimum maximum coverage to be called a peak 
+      MinMaxCover = MinMaxCover, # minimum maximum coverage to be called a peak 
       MinGap      = MinGap,
-      MinDist2L1  = MinDist2L1, # minimum distance to L1 to be called a peak 
+      MinDist2L1  = MinDist2L1, # minimum distance to L1 to be called a non-reference peak 
+      MinDist2L1_overlap  = MinDist2L1_overlap, # minimum distance to L1 to be called overlapping 
+      # with a reference peak 
       NrChromPieces = NrChromPieces,
       OutFile = OutResults_RangeComparison,
       EndList = EndList,

@@ -37,7 +37,7 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 L1TableFileName   <- "D:/L1polymORF/Data/L1_repeat_table_Hg19.csv"
 OutResults        <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
 
-FullLength     <- 6000
+FullLength       <- 6000
 
 #######################################
 #                                     #

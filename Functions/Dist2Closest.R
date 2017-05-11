@@ -19,5 +19,11 @@
 
 Dist2Closest <- function(GR1, GR2){
   DistObj <- distanceToNearest(GR1, GR2, ignore.strand = T) 
-  DistObj@elementMetadata@listData$distance
+  Dists <- DistObj@elementMetadata@listData$distance
+  
+  # Return a warning message if not all GR1s received a distance
+  if (length(Dists) != length(GR1)) {
+    warning("Not the same number of distances as input ranges!\n")
+  }
+  Dists
 }
