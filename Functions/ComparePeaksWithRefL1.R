@@ -169,7 +169,7 @@ ComparePeaksWithRefL1 <- function(
    
    # Get all ranges that make the maximum cover cut-off and don't overlap with
    # reference L1
-   idxSuspectL1Ranges <- which(maxCover > MinMaxCover & (!blnOverlapIslands_All))
+   idxSuspectL1Ranges <- which(maxCover >= MinMaxCover & (!blnOverlapIslands_All))
    SuspectL1Ranges    <- IslGRanges_reduced[idxSuspectL1Ranges]
    cat(length(idxSuspectL1Ranges), "peaks have maximum coverage of at least",
       MinMaxCover, "and do not overlap with reference L1\n")
