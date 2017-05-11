@@ -36,6 +36,9 @@ L1_1000G_GR_hg19 <- makeGRangesFromDataFrame(L1_1000G_reduced,
                                        keep.extra.columns = T,
                                        start.field="POS",
                                        end.field ="POS")
+# Create a subset for NA12878 
+L1_1000G_GR_hg19_NA12878 <- L1_1000G_GR_hg19[L1_1000G$NA12878 > 0]
+
 # Lift over to other genome builds
 cat("Lift over to hg38\n")
 L1_1000G_GRList_hg38 <- UniqueLiftover(L1_1000G_GR_hg19,
@@ -43,7 +46,8 @@ L1_1000G_GRList_hg38 <- UniqueLiftover(L1_1000G_GR_hg19,
 
 # Save genomic ranges
 cat("Saving genomic ranges\n")
-save(list = c("L1_1000G_GR_hg19", "L1_1000G_GRList_hg38", "L1_1000G_reduced"), 
+save(list = c("L1_1000G_GR_hg19", "L1_1000G_GR_hg19_NA12878", "L1_1000G_GRList_hg38", 
+              "L1_1000G_reduced"), 
      file = GROutputPath)
 
 # Get for each 1000 genome L1 the closest distance to a reference L1
