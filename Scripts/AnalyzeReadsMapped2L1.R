@@ -467,7 +467,6 @@ CreateDisplayPdf("D:/L1polymORF/Figures/AverageCoverPerL1.pdf",
 hist(FullL1Info$First0Cover, xlab = "Position on L1 where coverage ends")
 hist(FullL1Info$FirstCover, xlab = "Position on L1 where coverage starts")
 
-
 # Create boolean vectors of various indicators
 blnCloseNA12878     <- FullL1Info$Dist2_NA12878 < 50
 blnCloseNA12878Full <- FullL1Info$L1LengthClosest_NA12878 > 6000
@@ -508,6 +507,9 @@ NrPerEnd <- sapply(StartThreshold, function(x) {
 })
 plot(StartThreshold, PropFullPerEnd, type= "s",
      xlab = "Coverage on L1 ends after", ylab = "Proportion of full-length L1")
+CreateDisplayPdf("D:/L1polymORF/Figures/PropFullL1.pdf",
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+                 height = 7, width = 7)
 
 # Range in estimate of 5' transduced sequence
 Range5PTdSeq <- (FullL1Info$L15PTransdSeq.max - FullL1Info$L15PTransdSeq.min)[FullL1Info$NrReadsCover5P > 1]

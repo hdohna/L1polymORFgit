@@ -15,8 +15,8 @@ source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 library(BSgenome.Hsapiens.UCSC.hg38)
 names(BSgenome.Hsapiens.UCSC.hg38)
 
-# Specify file paths
-GROutputPath <- 'D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData'
+# Specify file paths (Moved to script 'Create_1000G_L1GRanges')
+ GROutputPath <- 'D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData'
 
 ############################
 #                          #
@@ -39,7 +39,7 @@ Kuhn2014Primers <- read.csv("D:/L1polymORF/Data/Kuhn et al 2014 PNAS Table S5.cs
 Kuhn2014Genotypes1000G <- read.csv("D:/L1polymORF/Data/Kuhn et al 2014 PNAS Table S6.csv", 
                             as.is = T)
 
-# Read vcf file from 1000 Genome data
+# Read vcf file from 1000 Genome data (optained from ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/pilot_data/paper_data_sets/companion_papers/mapping_structural_variation/)
 MEI1000Gvcf <- ReadVCF("D:/L1polymORF/Data/union.2010_06.MobileElementInsertions.genotypes.vcf")
 MEI1000GLines <- readLines("D:/L1polymORF/Data/union.2010_06.MobileElementInsertions.genotypes.vcf")
 # MEIDF <- read.delim(text = MEI1000GLines[33:length(MEI1000GLines)])
@@ -120,21 +120,24 @@ L1Ins1000G_Info <- L1Ins1000G[,!colnames(L1Ins1000G) %in% SampleColumns]
 #                                            #
 ##############################################
 
-# Lift 1000Genome coordinates over to Hg38 
+# Lift 1000Genome coordinates over to Hg38
 GRL1Ins1000G <- GRanges(seqnames = paste("chr", L1Ins1000Ggeno$X.CHROM, sep = ""),
-                        ranges = IRanges(start = L1Ins1000Ggeno$POS,  
+                        ranges = IRanges(start = L1Ins1000Ggeno$POS,
                                          end = L1Ins1000Ggeno$POS))
 GRL1Ins1000G_hg19 <- UniqueLiftover(GRL1Ins1000G,
                                     ChainFilePath = "D:/L1polymORF/Data/hg18ToHg19.over.chain")
 GRL1Ins1000G_hg38 <- UniqueLiftover(GRL1Ins1000G,
-    ChainFilePath = "D:/L1polymORF/Data/hg18ToHg38.over.chain")
-  
-# length(GRL1Ins1000G_hg38)
-# NrMapped_hg38        <- sapply(GRL1Ins1000G_hg38, length)
-# length(NrMapped_hg38)
-# idxUniqueMapped_hg38 <- which(NrMapped_hg38 == 1) 
-# GRL1Ins1000G_hg38Mapped <- unlist(GRL1Ins1000G_hg38[idxUniqueMapped_hg38])
-# length(idxUniqueMapped_hg38)
+   ChainFilePath = "D:/L1polymORF/Data/hg18ToHg38.over.chain")
+
+length(GRL1Ins1000G_hg38)
+NrMapped_hg38        <- sapply(GRL1Ins1000G_hg38, length)
+length(NrMapped_hg38)
+idxUniqueMapped_hg38 <- which(NrMapped_hg38 == 1)
+GRL1Ins1000G_hg38Mapped <- unlist(GRL1Ins1000G_hg38[idxUniqueMapped_hg38])
+length(idxUniqueMapped_hg38)
+
+save(list = c("GRL1Ins1000G", "GRL1Ins1000G_hg19", "GRL1Ins1000G_hg38", "L1Ins1000G_Info"),
+     file = GROutputPath)
 
 # Lift Kuhn coordinates over to Hg38 
 Kuhn2014PrimersNotNA <- Kuhn2014Primers[!is.na(Kuhn2014Primers$left.coordinate),]
@@ -187,8 +190,6 @@ hist(Dists, breaks = seq(0, 1.5*10^8, 10^5))
 #                                            #
 ##############################################
 
-save(list = c("GRL1Ins1000G", "GRL1Ins1000G_hg19", "GRL1Ins1000G_hg38", "L1Ins1000G_Info"), 
-     file = GROutputPath)
 
 
 ##############################################

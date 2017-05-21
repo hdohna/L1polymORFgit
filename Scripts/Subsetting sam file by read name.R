@@ -1,0 +1,1 @@
+LC_ALL=C grep -w -F -f idFile.txt  < in.sam > subset.sam
