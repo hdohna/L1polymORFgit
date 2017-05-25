@@ -98,7 +98,7 @@ ComparePeaksWithRefL1 <- function(
         R1 <- GRanges(seqnames = Chrom, ranges = IRanges(start = Ends[j], 
                                                          end = Ends[j] + StepW))
         # Extract reads overlapping with range and determine coverage
-        Reads <- extractReads(bam.file = BamFile, region = R1)
+        Reads   <- extractReads(bam.file = BamFile, region = R1)
         ReadCov <- coverage(Reads)
         if (length(ReadCov[[Chrom]]@values) > 1){
           
@@ -109,8 +109,8 @@ ComparePeaksWithRefL1 <- function(
                   coverTotal = viewSums(Islands)[[1]],
                   coverMax   = viewMaxs(Islands)[[1]],
                   coverMaxPos   = viewWhichMaxs(Islands)[[1]])
-          blnOverlapIslands_All <- overlapsAny(GRs, L1GRanges)
-          GRs <- GRs[!blnOverlapIslands_All]
+          # blnOverlapIslands_All <- overlapsAny(GRs, L1GRanges)
+          # GRs <- GRs[!blnOverlapIslands_All]
           
         } else {
           GRanges()
