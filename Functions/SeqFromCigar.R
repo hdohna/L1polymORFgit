@@ -16,7 +16,7 @@
 
 SeqFromCigar <- function(CigarString, Seq){
   SeqV <- strsplit(as.character(Seq), "")[[1]]
-  Nrs <- as.numeric(strsplit(CigarString, "[A-Z]")[[1]])
+  Nrs  <- as.numeric(strsplit(CigarString, "[A-Z]")[[1]])
   Ltrs <- strsplit(CigarString, "[0-9]")[[1]]
   Ltrs <- Ltrs[Ltrs != ""]
   StartV <- if(Ltrs[1] == "S") 2 else 1
