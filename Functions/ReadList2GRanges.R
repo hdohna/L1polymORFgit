@@ -15,7 +15,7 @@
 
 # Comments:
 #   
-#    Requires packages csaw
+#    Requires function ReadLengthFromCigar
 
 ##############################################
 
