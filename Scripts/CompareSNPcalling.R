@@ -22,6 +22,7 @@ PathBam_Normal        <- ""
 
 # Paths (SCG4)
 PathStart             <- '/home/hzudohna/L1polymORFgit/Scripts/_Start_L1polymORF_scg4.R'
+PathChrLen            <- '/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/ChromLengthsHg19.Rdata'
 PathReadRanges_HiFi   <- "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioHiFiSubreads_L1Ranges.RData"
 PathReadRanges_Normal <- "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_L1Ranges.RData"
 PathSNP_NA12878       <- "/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/NISTIntegratedCalls_14datasets_131103_allcall_UGHapMerge_HetHomVarPASS_VQSRv2.19_2mindatasets_5minYesNoRatio_all_nouncert_excludesimplerep_excludesegdups_excludedecoy_excludeRepSeqSTRs_noCNVs.vcf"
@@ -46,7 +47,9 @@ load(PathReadRanges_Normal)
 IslGRanges_reduced_Normal <- IslGRanges_reduced
 
 # Get intersection of both sets of genomic range
-GRIntersect <- intersect(IslGRanges_reduced_HiFi, IslGRanges_reduced_Normal)
+GRUnion <- union(IslGRanges_reduced_HiFi, IslGRanges_reduced_Normal)
+
+load(PathChrLen)
 
 ###############################################
 #                                             #
@@ -68,7 +71,7 @@ while(NrLinesRead >= NrLines2Read){
   colnames(SNPs)  <- c("chromosome", "start", "end", "REF", "ALT")
   SNPs$chromosome <- paste("chr", SNPs$chromosome, sep = "")
   SNP_GR_local    <- makeGRangesFromDataFrame(SNPs, keep.extra.columns = T)
-  SNP_GR_local    <- subsetByOverlaps(SNP_GR_local, GRIntersect)
+  SNP_GR_local    <- subsetByOverlaps(SNP_GR_local, GRUnion)
   SNP_GR          <- c(SNP_GR, SNP_GR_local)
   NrLinesRead     <- nrow(SNPs)
   LinesSkip       <- LinesSkip + NrLinesRead
@@ -83,92 +86,113 @@ gc()
 #                                             #
 ###############################################
 
-# Subset GRIntersect to get the ones containing SNPs 
-GRIntersect_withSNP <- subsetByOverlaps(GRIntersect, SNP_GR)
+# Subset GRUnion to get the ones containing SNPs 
+GRUnion_withSNP <- subsetByOverlaps(GRUnion, SNP_GR)
 
-findOverlaps(GRIntersect_withSNP, SNP_GR)
-findOverlaps(SNP_GR, GRIntersect)
-SNP_GR[1:3]
 # Get reference sequence for each range
-RefSeqs <- getSeq(BSgenome.Hsapiens.UCSC.hg19, GRIntersect_withSNP)
+RefSeqs <- getSeq(BSgenome.Hsapiens.UCSC.hg19, GRUnion_withSNP)
 
 # Get Reads for 
-scanPars      <- ScanBamParam(which = GRIntersect_withSNP, what = scanBamWhat())
+scanPars        <- ScanBamParam(which = GRUnion_withSNP, what = scanBamWhat())
 ReadList_HiFi   <- scanBam(PathBam_HiFi, param = scanPars)
 ReadList_Normal <- scanBam(PathBam_Normal, param = scanPars)
 
-# Get indicator for regions with enough ZMW ids to call SNPs
-blnEnoughZMW_HiFi <- sapply(ReadList_HiFi, function(RL){
-  ZMW_IDs <- sapply(1:length(RL$pos), function(j) {
-    strsplit(RL$qname[j], "/")[[1]][2]
-  })
-  ZMW_Count <- table(ZMW_IDs)
-  sum(ZMW_Count > 2) > 1
-})
-
-PropSNP_inAll_HiFi <- sapply(which(blnEnoughZMW_HiFi), function(i){
+# Get ranges with minimum coverage
+MinCoverRanges_HiFi <- GRanges()
+for (i in 1:length(ReadList_HiFi)){
+  print(i)
   RL <- ReadList_HiFi[[i]]
-  GStart <- start(GRIntersect_withSNP)[i]
-  GEnd   <- end(GRIntersect_withSNP)[i]
-  GWidth <- width(GRIntersect_withSNP)[i]
-  RefSeq <- RefSeqs[i]
-  RefSeqV <- strsplit(as.character(RefSeq), "")[[1]]
-  
-  # Get a list of all 
-  SeqList <- lapply(1:length(RL$pos), function(j) {
-    SeqFromCigar(RL$cigar[j], RL$seq[j])
-  })
-  StartAll <- max(c(GStart, RL$pos))
-  EndAll   <- min(c(GEnd, RL$pos + sapply(SeqList, length) - 1))
-  RefStart <- StartAll - GStart + 1
-  RefEnd   <- GWidth - (GEnd - EndAll)
-  
-  if (RefEnd > RefStart){
-    DiffPosList <- lapply(1:length(RL$pos), function(j) {
-      SeqV     <- SeqList[[j]]
-      SeqStart <- StartAll - RL$pos[j] + 1
-      SeqEnd   <- EndAll - RL$pos[j] + 1
-      if(length(SeqStart:SeqEnd) != length(RefStart:RefEnd)) browser()
-      RL$pos[j] + SeqStart + which(SeqV[SeqStart:SeqEnd] != RefSeqV[RefStart:RefEnd]) - 1
-    })
-    DiffPos <- unlist(DiffPosList)
-    DiffPos <- DiffPos[duplicated(DiffPos)]
-    DiffPos
+  if (length(RL$qname) > 0){
+    blnNaPos <- is.na(RL$pos)
+    RL <- lapply(RL, function(x) x[!blnNaPos])
+    MCR <- MinCoverRangesPacBio(RL, ChrLen = ChromLengthsHg19[as.character(RL$rname[1])])
+    MinCoverRanges_HiFi <- c(MinCoverRanges_HiFi, MCR)
     
-    # Get ZMW id from read ID
+  }
+}
+
+
+
+
+
+# Get indicator for regions with enough ZMW ids to call SNPs
+i <- 4
+blnEnoughZMW_HiFi <- sapply(ReadList_HiFi, function(RL){
+  if (length(RL$pos) > 0){
     ZMW_IDs <- sapply(1:length(RL$pos), function(j) {
       strsplit(RL$qname[j], "/")[[1]][2]
     })
-    ZMW_IDs
     ZMW_Count <- table(ZMW_IDs)
-    ZMW_ID_subset <- names(ZMW_Count)[ZMW_Count > 2]
-    
-    DiffPosList_PerZMW <- lapply(ZMW_ID_subset, function(x){
-      idxSubset <- which(ZMW_IDs == x)
-      DiffPosSubset <- DiffPosList[idxSubset]
-      DiffPosCount  <- table(unlist(DiffPosSubset))
-      names(DiffPosCount)[(DiffPosCount / length(idxSubset)) > MinPropCall ]
-    })
-    DiffPos_PerZMW <- unlist(DiffPosList_PerZMW)
-    sum(table(DiffPos_PerZMW) == length(DiffPosList_PerZMW)) / length(unique(DiffPos_PerZMW))
+    sum(ZMW_Count > 2) > 1
     
   } else {
-    NULL
+    FALSE
   }
 })
 
-mean(unlist(PropSNP_inAll_HiFi), na.rm = T)
+# PropSNP_inAll_HiFi <- sapply(which(blnEnoughZMW_HiFi), function(i){
+#   RL <- ReadList_HiFi[[i]]
+#   GStart <- start(GRUnion_withSNP)[i]
+#   GEnd   <- end(GRUnion_withSNP)[i]
+#   GWidth <- width(GRUnion_withSNP)[i]
+#   RefSeq <- RefSeqs[i]
+#   RefSeqV <- strsplit(as.character(RefSeq), "")[[1]]
+#   
+#   # Get a list of all 
+#   SeqList <- lapply(1:length(RL$pos), function(j) {
+#     SeqFromCigar(RL$cigar[j], RL$seq[j])
+#   })
+#   StartAll <- max(c(GStart, RL$pos))
+#   EndAll   <- min(c(GEnd, RL$pos + sapply(SeqList, length) - 1))
+#   RefStart <- StartAll - GStart + 1
+#   RefEnd   <- GWidth - (GEnd - EndAll)
+#   
+#   if (RefEnd > RefStart){
+#     DiffPosList <- lapply(1:length(RL$pos), function(j) {
+#       SeqV     <- SeqList[[j]]
+#       SeqStart <- StartAll - RL$pos[j] + 1
+#       SeqEnd   <- EndAll - RL$pos[j] + 1
+#       if(length(SeqStart:SeqEnd) != length(RefStart:RefEnd)) browser()
+#       RL$pos[j] + SeqStart + which(SeqV[SeqStart:SeqEnd] != RefSeqV[RefStart:RefEnd]) - 1
+#     })
+#     DiffPos <- unlist(DiffPosList)
+#     DiffPos <- DiffPos[duplicated(DiffPos)]
+#     DiffPos
+#     
+#     # Get ZMW id from read ID
+#     ZMW_IDs <- sapply(1:length(RL$pos), function(j) {
+#       strsplit(RL$qname[j], "/")[[1]][2]
+#     })
+#     ZMW_IDs
+#     ZMW_Count <- table(ZMW_IDs)
+#     ZMW_ID_subset <- names(ZMW_Count)[ZMW_Count > 2]
+#     
+#     DiffPosList_PerZMW <- lapply(ZMW_ID_subset, function(x){
+#       idxSubset <- which(ZMW_IDs == x)
+#       DiffPosSubset <- DiffPosList[idxSubset]
+#       DiffPosCount  <- table(unlist(DiffPosSubset))
+#       names(DiffPosCount)[(DiffPosCount / length(idxSubset)) > MinPropCall ]
+#     })
+#     DiffPos_PerZMW <- unlist(DiffPosList_PerZMW)
+#     sum(table(DiffPos_PerZMW) == length(DiffPosList_PerZMW)) / length(unique(DiffPos_PerZMW))
+#     
+#   } else {
+#     NULL
+#   }
+# })
+# 
+# mean(unlist(PropSNP_inAll_HiFi), na.rm = T)
 
 DiffPosList_HiFi <- lapply(which(blnEnoughZMW_HiFi), function(i){
   RL <- ReadList_HiFi[[i]]
-  GStart <- start(GRIntersect_withSNP)[i]
-  GEnd   <- end(GRIntersect_withSNP)[i]
-  GWidth <- width(GRIntersect_withSNP)[i]
+  GStart <- start(GRUnion_withSNP)[i]
+  GEnd   <- end(GRUnion_withSNP)[i]
+  GWidth <- width(GRUnion_withSNP)[i]
   RefSeq <- RefSeqs[i]
   RefSeqV <- strsplit(as.character(RefSeq), "")[[1]]
   Chr <- RL$rname[1]
   
-  # Get a list of all 
+  # Get a list of all aligned sequences
   SeqList <- lapply(1:length(RL$pos), function(j) {
     SeqFromCigar(RL$cigar[j], RL$seq[j])
   })
@@ -225,18 +249,23 @@ DiffPosList_HiFi <- lapply(which(blnEnoughZMW_HiFi), function(i){
 
 # Get indicator for regions with enough ZMW ids to call SNPs
 blnEnoughZMW_Normal <- sapply(ReadList_Normal, function(RL){
-  ZMW_IDs <- sapply(1:length(RL$pos), function(j) {
-    strsplit(RL$qname[j], "/")[[1]][2]
-  })
-  ZMW_Count <- table(ZMW_IDs)
-  sum(ZMW_Count > 2) > 1
+  if (length(RL$pos) > 0){
+    ZMW_IDs <- sapply(1:length(RL$pos), function(j) {
+      strsplit(RL$qname[j], "/")[[1]][2]
+    })
+    ZMW_Count <- table(ZMW_IDs)
+    sum(ZMW_Count > 2) > 1
+    
+  } else {
+    FALSE
+  }
 })
 
 DiffPosList_Normal <- lapply(which(blnEnoughZMW_Normal), function(i){
   RL <- ReadList_Normal[[i]]
-  GStart <- start(GRIntersect_withSNP)[i]
-  GEnd   <- end(GRIntersect_withSNP)[i]
-  GWidth <- width(GRIntersect_withSNP)[i]
+  GStart <- start(GRUnion_withSNP)[i]
+  GEnd   <- end(GRUnion_withSNP)[i]
+  GWidth <- width(GRUnion_withSNP)[i]
   RefSeq <- RefSeqs[i]
   RefSeqV <- strsplit(as.character(RefSeq), "")[[1]]
   Chr <- RL$rname[1]
@@ -304,6 +333,7 @@ MeanProps <- c(HiFi = mean(unlist(PropSNP_inAll_HiFi), na.rm = T),
 NrSNPs_HiFi <- 0
 NrSNPsCalled_HiFi <- 0
 NrSNPsCorrectCalled_HiFi <- 0
+DPList <- DiffPosList_HiFi[[1]]
 for (DPList in DiffPosList_HiFi){
   if (length(DPList) > 0){
     NrSNPs_HiFi <- NrSNPs_HiFi + DPList$NrSNPs
