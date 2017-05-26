@@ -37,11 +37,14 @@ MinCoverRangesPacBio <- function(RL, MinZMWCover = 2,
   # Get regions with minimum coverage
   ZCoverIR <- slice(ZCover, lower = MinZMWCover, rangesOnly = T)
   RCoverIR <- slice(RCover, lower = MinReadCover, rangesOnly = T)
-  ZCoverGR <- GRanges(RL$rname[1], ZCoverIR)
-  RCoverGR <- GRanges(RL$rname[1], RCoverIR)
+  Zseqname <- rep(RL$rname[1], length(ZCoverIR))
+  Rseqname <- rep(RL$rname[1], length(RCoverIR))
+  ZCoverGR <- GRanges(Zseqname, ranges = ZCoverIR)
+  RCoverGR <- GRanges(Rseqname, ranges = RCoverIR)
   
   # Intersect regions with minimum coverage
   MinCoverGR <- intersect(ZCoverGR, RCoverGR)
-}
+  MinCoverGR
+  }
 
 
