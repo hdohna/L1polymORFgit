@@ -30,5 +30,7 @@ PhredFromCigar <- function(CigarString, Phred){
     PhredVector <- c(PhredVector, Phred2Append)
     StartS    <- StartS + Nrs[i] * (Ltrs[i] != "D")
   }
-  PhredVector
+  sapply(PhredVector, function(x) strtoi(charToRaw(x), base = 16L) - 33,
+         USE.NAMES = F)
+  
 }
