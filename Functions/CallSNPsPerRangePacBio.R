@@ -78,10 +78,4 @@ CallSNPsPerRangePacBio <- function(RL, GR, RefGenome = BSgenome.Hsapiens.UCSC.hg
          NrDiffPosInAll_SNP = sum(as.numeric(DiffPosInAll) %in% SNPposRange),
          DiffPosAll_SNP = sum(as.numeric(DiffPosInAll) %in% SNPposRange),
          NrSNPs = length(SNPpos))
-    
-  } else {
-    NULL
-  }  
 }
-
-
