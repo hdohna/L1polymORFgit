@@ -30,6 +30,7 @@ ConsensusFromReads <- function(RL, GR){
   # Get the consensus sequence
   apply(SeqMat, 1, FUN = function(x) {
     NucCount <- table(x)
+    NucCount <- NucCount[names(NucCount) != "*"]
     names(NucCount)[which.max(NucCount)]
   })
 }
