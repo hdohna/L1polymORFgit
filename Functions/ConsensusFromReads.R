@@ -17,30 +17,15 @@
 
 # Comments:
 #   
-#    Requires function SeqFromCigar and ReadList2GRanges. RL cannot contain NA
+#    Requires function SeqMatFromReads, SeqFromCigar and ReadList2GRanges. 
+#    RL cannot contain NA. Sequences are extened using *
 
 ##############################################
 
 ConsensusFromReads <- function(RL, GR){
   
-  # Turn reads into genomic ranges and only retain the ones overlapping with GR
-  RGR         <- ReadList2GRanges(RL)
-  StartAll    <- start(GR)
-  EndAll      <- end(GR)
-  blnInRange  <- overlapsAny(RGR, GR)
-  RL          <- lapply(RL, function(x) x[blnInRange])
-  
   # Get a matrix of sequences
-  SeqMat <- sapply(seq_along(RL$pos), function(j) {
-    SeqV      <- SeqFromCigar(RL$cigar[j], RL$seq[j])
-    SeqStart  <- max(1, StartAll - RL$pos[j] + 1)
-    SeqEnd    <- min(length(SeqV), EndAll - RL$pos[j] + 1)
-    NrPrepend <- max(0, RL$pos[j] - StartAll)
-    Prepend   <- rep("*", NrPrepend)
-    NrAppend  <- max(0, EndAll - RL$pos[j] - SeqEnd + 1)
-    Append    <- rep("*", NrAppend)
-    c(Prepend, SeqV[SeqStart:SeqEnd], Append)
-  })
+  SeqMat <- SeqMatFromReads(RL, GR)
   
   # Get the consensus sequence
   apply(SeqMat, 1, FUN = function(x) {
