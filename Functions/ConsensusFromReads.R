@@ -9,7 +9,9 @@
 #
 #     RL: list with read info (as created by the function scanBam)
 #     GR: Genomic range within which to call SNPs
-#     MinProp: minimum proportion of reads that should contain SNP
+#     IncludeStar: option to include stars. Reads that do not extend over the
+#        entire range of GR are extended with stars. Consensus sequences can
+#        include the stars.
 
 # Output:
 #   
