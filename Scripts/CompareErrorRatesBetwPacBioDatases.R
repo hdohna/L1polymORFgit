@@ -124,7 +124,7 @@ GRNormalBWA    <- c()
 
 # Loop through ranges and get error rates 
 length(GRUnion_withSNP)
-for (i in 1001:1500){
+for (i in 1:length(GRUnion_withSNP)){
   cat("Processing range", i, "of",  length(GRUnion_withSNP), "\n")
   # Get genomic range and reference sequence
   GR <- GRUnion_withSNP[i]
