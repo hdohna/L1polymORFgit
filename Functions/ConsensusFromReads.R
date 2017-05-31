@@ -22,7 +22,7 @@
 
 ##############################################
 
-ConsensusFromReads <- function(RL, GR){
+ConsensusFromReads <- function(RL, GR, IncludeStar = F){
   
   # Get a matrix of sequences
   SeqMat <- SeqMatFromReads(RL, GR)
@@ -30,7 +30,7 @@ ConsensusFromReads <- function(RL, GR){
   # Get the consensus sequence
   apply(SeqMat, 1, FUN = function(x) {
     NucCount <- table(x)
-    NucCount <- NucCount[names(NucCount) != "*"]
+    NucCount <- NucCount[names(NucCount) != "*" | IncludeStar]
     names(NucCount)[which.max(NucCount)]
   })
 }
