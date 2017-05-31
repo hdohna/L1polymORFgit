@@ -52,22 +52,53 @@ ReadList_Normal <- scanBam(PathBam_Normal, param = scanPars)
 ReadList_Normal_BWA <- scanBam(PathBam_Normal_BWA, param = scanPars)
 
 # Auxilliary function to get error rate
-GetErrorRate <- function(RL, RefSeqV){
+GetConsens <- function(SMat) {
+  apply(SMat, 1, FUN = function(x) {
+    NucCount <- table(x)
+    names(NucCount)[which.max(NucCount)]
+  })
+}
+
+
+GetErrorRate <- function(RL, GR, RefSeqV, MinCoverPerZMW = 5){
   
   # Get ZMW id from read ID
   ZMW_IDs <- sapply(1:length(RL$pos), function(j) {
     strsplit(RL$qname[j], "/")[[1]][2]
   })
   
-  # Get consensus per ZMW ID
-  ErrorRate <- sapply(unique(ZMW_IDs), function(x) {
-    blnZMW  <- ZMW_IDs == x
-    RLLocal <- lapply(RL, function(y) y[blnZMW])
-    ConsSeq <- ConsensusFromReads(RLLocal, GR)
-    Rate    <- sum(ConsSeq != RefSeqV & ConsSeq != "*") / sum(ConsSeq != "*")
-    c(Rate, NA)[1 + ((sum(blnZMW) < 3) | (sum(ConsSeq != "*") < 500))]
-  })
-  ErrorRate[!is.na(ErrorRate)]
+  # Count ZMWIDs
+  ZMWIDcount <- table(ZMW_IDs)
+  ZMWIDcount <- ZMWIDcount[ZMWIDcount >= 5]
+  if (length(ZMWIDcount) >= 2) {
+    CountOrder <- order(ZMWIDcount, decreasing = T)
+    ZMW2Use    <- names(ZMWIDcount)[CountOrder[1:2]]
+    blnZMW     <- ZMW_IDs %in% ZMW2Use
+    RLLocal    <- lapply(RL, function(y) y[blnZMW])
+    
+    # Get a matrix of sequences
+    SeqMat <- SeqMatFromReads(RLLocal, GR)
+    
+    # Get the consensus sequences
+    Consens1 <- GetConsens(SeqMat[,ZMW_IDs[blnZMW] == ZMW2Use[1]])
+    Consens2 <- GetConsens(SeqMat[,ZMW_IDs[blnZMW] == ZMW2Use[2]])
+    
+    # Get consensus per ZMW ID
+    blnNoStar1 <- Consens1 != "*"
+    blnNoStar2 <- Consens2 != "*" 
+    blnNoStar  <- blnNoStar1 & blnNoStar2
+    blnDiff   <- Consens1 != Consens2
+    blnMinL1   <- sum(blnNoStar1) > 500
+    blnMinL2   <- sum(blnNoStar2) > 500
+    blnMinL   <- sum(blnNoStar) > 500
+    blnDiffRef1 <- Consens1 != RefSeqV
+    blnDiffRef2 <- Consens2 != RefSeqV
+    
+    # Calculate error rate
+    c(sum(blnNoStar & blnDiff & blnMinL) / sum(blnNoStar & blnMinL),
+      sum(blnNoStar1 & blnDiffRef1 & blnMinL1) / sum(blnNoStar1 & blnMinL1),
+      sum(blnNoStar2 & blnDiffRef2 & blnMinL2) / sum(blnNoStar2 & blnMinL2))
+  }
 }
 
 # Function to remove NAs
@@ -82,13 +113,18 @@ ErrorHiFi      <- c()
 ErrorHiFiBWA   <- c()
 ErrorNormal    <- c()
 ErrorNormalBWA <- c()
+ErrorRefHiFi      <- c()
+ErrorRefHiFiBWA   <- c()
+ErrorRefNormal    <- c()
+ErrorRefNormalBWA <- c()
 GRHiFi         <- c()
 GRHiFiBWA      <- c()
 GRNormal       <- c()
 GRNormalBWA    <- c()
 
 # Loop through ranges and get error rates 
-for (i in 1:length(GRUnion_withSNP)){
+length(GRUnion_withSNP)
+for (i in 101:1000){
   cat("Processing range", i, "of",  length(GRUnion_withSNP), "\n")
   # Get genomic range and reference sequence
   GR <- GRUnion_withSNP[i]
@@ -97,13 +133,15 @@ for (i in 1:length(GRUnion_withSNP)){
   GWidth <- width(GR)
   RefSeq <- RefSeqs[i]
   RefSeqV <- strsplit(as.character(RefSeq), "")[[1]]
-  
+#if (i == 98) browser()  
   # Get HiFi reads and remove NAs
   RL  <- RemoveNA(ReadList_HiFi[[i]])
   
   # Get error rates per ZMW
   if (length(RL$pos) > 0){
-    ErrorHiFi <- c(ErrorHiFi, GetErrorRate(RL, RefSeqV))
+    ErrRates  <- GetErrorRate(RL, GR, RefSeqV)
+    ErrorHiFi <- c(ErrorHiFi, ErrRates[1])
+    ErrorRefHiFi <- c(ErrorRefHiFi, ErrRates[2:3])
     GRHiFi    <- c(GRHiFi, GR)
   }
   
@@ -112,7 +150,9 @@ for (i in 1:length(GRUnion_withSNP)){
 
   # Get error rates per ZMW
   if (length(RL$pos) > 0){
-    ErrorHiFiBWA <- c(ErrorHiFiBWA, GetErrorRate(RL, RefSeqV))
+    ErrRates  <- GetErrorRate(RL, GR, RefSeqV)
+    ErrorHiFiBWA <- c(ErrorHiFiBWA, ErrRates[1])
+    ErrorRefHiFiBWA <- c(ErrorRefHiFiBWA, ErrRates[2:3])
     GRHiFiBWA    <- c(GRHiFiBWA, GR)
   }
 
@@ -121,7 +161,9 @@ for (i in 1:length(GRUnion_withSNP)){
   
   # Get ZMW id from read ID
   if (length(RL$pos) > 0){
-    ErrorNormal <- c(ErrorNormal, GetErrorRate(RL, RefSeqV))
+    ErrRates  <- GetErrorRate(RL, GR, RefSeqV)
+    ErrorNormal <- c(ErrorNormal, ErrRates[1])
+    ErrorRefNormal <- c(ErrorRefNormal, ErrRates[2:3])
     GRNormal    <- c(GRNormal, GR)
   }
   
@@ -130,19 +172,24 @@ for (i in 1:length(GRUnion_withSNP)){
   
   # Get ZMW id from read ID
   if (length(RL$pos) > 0){
-    ErrorNormalBWA <- c(ErrorNormal, GetErrorRate(RL, RefSeqV))
-    GRNormalBWA    <- c(GRNormal, GR)
+    ErrRates  <- GetErrorRate(RL, GR, RefSeqV)
+    ErrorNormalBWA <- c(ErrorNormalBWA, ErrRates[1])
+    ErrorRefNormalBWA <- c(ErrorRefNormalBWA, ErrRates[2:3])
+    GRNormalBWA    <- c(GRNormalBWA, GR)
   }
-  
-  
 }
 ErrorHiFi
 ErrorHiFiBWA
 ErrorNormal
-mean(ErrorHiFi)
-mean(ErrorHiFiBWA)
-mean(ErrorNormal)
-mean(ErrorNormalBWA)
+ErrorNormalBWA
+ErrorRefHiFi      
+ErrorRefHiFiBWA   
+ErrorRefNormal    
+ErrorRefNormalBWA 
+mean(ErrorHiFi, na.rm = T)
+mean(ErrorHiFiBWA, na.rm = T)
+mean(ErrorNormal, na.rm = T)
+mean(ErrorNormalBWA, na.rm = T)
 
 # Plot distribution of error rates
 cat("\n***** Writing plot to", PathPlot, "  *****\n")
