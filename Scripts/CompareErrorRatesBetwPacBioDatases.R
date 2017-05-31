@@ -142,7 +142,7 @@ ErrorNormal
 mean(ErrorHiFi)
 mean(ErrorHiFiBWA)
 mean(ErrorNormal)
-mean(ErrorNormal_BWA)
+mean(ErrorNormalBWA)
 
 # Plot distribution of error rates
 cat("\n***** Writing plot to", PathPlot, "  *****\n")
