@@ -83,5 +83,6 @@ SeqFromCigarWithInsertion <- function(CigarString, Seq){
     SeqVector <- append(SeqVector, rep("-", Nrs[i]), idxConsStart[i] - 1)
   }
   SeqVector
+  idxConsEnd[blnI]
 }
 
