@@ -229,6 +229,6 @@ dev.off()
 cat("\n***** Saving data to", PathOutputNew, "  *****\n")
 save(list = c("ErrorHiFi", "ErrorHiFiBWA", "ErrorNormal", "ErrorNormalBWA", 
  "ErrorRefHiFi", "ErrorRefHiFiBWA", "ErrorRefNormal", "ErrorRefNormalBWA",
- "idxGRHiFi",  "idxGRHiFiBWA", "idxGRNormal", "idxGRNormalBWA"), 
+ "idxGRHiFi",  "idxGRHiFiBWA", "idxGRNormal", "idxGRNormalBWA", "GRUnion_withSNP"), 
     file = PathOutputNew)
 
