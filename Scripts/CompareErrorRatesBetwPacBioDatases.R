@@ -117,10 +117,10 @@ ErrorRefHiFi      <- c()
 ErrorRefHiFiBWA   <- c()
 ErrorRefNormal    <- c()
 ErrorRefNormalBWA <- c()
-GRHiFi         <- c()
-GRHiFiBWA      <- c()
-GRNormal       <- c()
-GRNormalBWA    <- c()
+idxGRHiFi         <- c()
+idxGRHiFiBWA      <- c()
+idxGRNormal       <- c()
+idxGRNormalBWA    <- c()
 
 # Loop through ranges and get error rates 
 length(GRUnion_withSNP)
@@ -142,7 +142,7 @@ for (i in 1:length(GRUnion_withSNP)){
     ErrRates  <- GetErrorRate(RL, GR, RefSeqV)
     ErrorHiFi <- c(ErrorHiFi, ErrRates[1])
     ErrorRefHiFi <- c(ErrorRefHiFi, ErrRates[2:3])
-    GRHiFi    <- c(GRHiFi, GR)
+    idxGRHiFi    <- c(idxGRHiFi, i)
   }
   
   # Get HiFi BWA reads and remove NAs
@@ -153,7 +153,7 @@ for (i in 1:length(GRUnion_withSNP)){
     ErrRates  <- GetErrorRate(RL, GR, RefSeqV)
     ErrorHiFiBWA <- c(ErrorHiFiBWA, ErrRates[1])
     ErrorRefHiFiBWA <- c(ErrorRefHiFiBWA, ErrRates[2:3])
-    GRHiFiBWA    <- c(GRHiFiBWA, GR)
+    idxGRHiFiBWA    <- c(idxGRHiFiBWA, i)
   }
 
   # Get Normal reads and remove NAs
@@ -164,7 +164,7 @@ for (i in 1:length(GRUnion_withSNP)){
     ErrRates  <- GetErrorRate(RL, GR, RefSeqV)
     ErrorNormal <- c(ErrorNormal, ErrRates[1])
     ErrorRefNormal <- c(ErrorRefNormal, ErrRates[2:3])
-    GRNormal    <- c(GRNormal, GR)
+    idxGRNormal    <- c(idxGRNormal, i)
   }
   
   # Get Normal reads aligned with bwaand remove NAs
@@ -175,7 +175,7 @@ for (i in 1:length(GRUnion_withSNP)){
     ErrRates  <- GetErrorRate(RL, GR, RefSeqV)
     ErrorNormalBWA <- c(ErrorNormalBWA, ErrRates[1])
     ErrorRefNormalBWA <- c(ErrorRefNormalBWA, ErrRates[2:3])
-    GRNormalBWA    <- c(GRNormalBWA, GR)
+    idxGRNormalBWA    <- c(idxGRNormalBWA, i)
   }
 }
 ErrorHiFi
@@ -229,6 +229,6 @@ dev.off()
 cat("\n***** Saving data to", PathOutputNew, "  *****\n")
 save(list = c("ErrorHiFi", "ErrorHiFiBWA", "ErrorNormal", "ErrorNormalBWA", 
  "ErrorRefHiFi", "ErrorRefHiFiBWA", "ErrorRefNormal", "ErrorRefNormalBWA",
- "GRHiFi",  "GRHiFiBWA", "GRNormalBWA"), 
+ "idxGRHiFi",  "idxGRHiFiBWA", "idxGRNormal", "idxGRNormalBWA"), 
     file = PathOutputNew)
 
