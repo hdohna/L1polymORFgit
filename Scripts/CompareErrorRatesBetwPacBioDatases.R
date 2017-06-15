@@ -194,36 +194,36 @@ mean(ErrorRefNormal, na.rm = T)
 mean(ErrorRefNormalBWA, na.rm = T)
 
 # Plot distribution of error rates
-cat("\n***** Writing plot to", PathPlot, "  *****\n")
-CountBreaks        <- seq(0, 1, 0.05)
-HistErrorHiFi         <- hist(ErrorHiFi,       plot = F, breaks = CountBreaks)
-HistErrorHiFiBWA      <- hist(ErrorHiFiBWA,    plot = F, breaks = CountBreaks)
-HistErrorNormal       <- hist(ErrorNormal,     plot = F, breaks = CountBreaks)
-HistErrorNormalBWA    <- hist(ErrorNormalBWA,  plot = F, breaks = CountBreaks)
-HistErrorRefHiFi      <- hist(ErrorRefHiFi,    plot = F, breaks = CountBreaks)   
-HistErrorRefHiFiBWA   <- hist(ErrorRefHiFiBWA, plot = F, breaks = CountBreaks)  
-HistErrorRefNormal    <- hist(ErrorRefNormal,  plot = F, breaks = CountBreaks)  
-HistErrorRefNormalBWA <- hist(ErrorRefNormalBWA, plot = F, breaks = CountBreaks)
-
-OffSet <- 3*10^-3
-Cols <- rainbow(8)
-pdf(file = PathPlot)
-plot(HistErrorHiFi$mids - OffSet, HistErrorHiFi$density, type = "s", col = Cols[1],
-     xlim = c(0, 1), xlab = "Error rate", ylab = "Frequency")
-lines(HistErrorHiFiBWA$mids, HistErrorHiFiBWA$density, type = "s", col =  Cols[2])
-lines(HistErrorNormal$mids, HistErrorNormal$density, type = "s", col =  Cols[3])
-lines(HistErrorNormalBWA$mids, HistErrorNormalBWA$density, type = "s", col =  Cols[4])
-lines(HistErrorRefHiFi$mids + OffSet, HistErrorRefHiFi$density, type = "s", col =  Cols[5])
-lines(HistErrorRefHiFiBWA$mids + OffSet, HistErrorRefHiFiBWA$density, type = "s", col =  Cols[6])
-lines(HistErrorRefNormal$mids + OffSet, HistErrorRefNormal$density, type = "s", col =  Cols[7])
-lines(HistErrorRefNormalBWA$mids + OffSet, HistErrorRefNormalBWA$density, type = "s", col = Cols[8])
-legend(x = 0.5, y = 15, legend = c("New polymerase nglmr", "New polymerase bwa", 
-                                  "Old polymerase nglmr", "Old polymerase bwa",
-                                  "New polymerase nglmr ref", "New polymerase bwa ref", 
-                                  "Old polymerase nglmr ref", "Old polymerase bwa ref"), 
-       col = Cols,
-       lty = rep(1, 8), bty = "n")
-dev.off()
+# cat("\n***** Writing plot to", PathPlot, "  *****\n")
+# CountBreaks        <- seq(0, 1, 0.05)
+# HistErrorHiFi         <- hist(ErrorHiFi,       plot = F, breaks = CountBreaks)
+# HistErrorHiFiBWA      <- hist(ErrorHiFiBWA,    plot = F, breaks = CountBreaks)
+# HistErrorNormal       <- hist(ErrorNormal,     plot = F, breaks = CountBreaks)
+# HistErrorNormalBWA    <- hist(ErrorNormalBWA,  plot = F, breaks = CountBreaks)
+# HistErrorRefHiFi      <- hist(ErrorRefHiFi,    plot = F, breaks = CountBreaks)   
+# HistErrorRefHiFiBWA   <- hist(ErrorRefHiFiBWA, plot = F, breaks = CountBreaks)  
+# HistErrorRefNormal    <- hist(ErrorRefNormal,  plot = F, breaks = CountBreaks)  
+# HistErrorRefNormalBWA <- hist(ErrorRefNormalBWA, plot = F, breaks = CountBreaks)
+# 
+# OffSet <- 3*10^-3
+# Cols <- rainbow(8)
+# pdf(file = PathPlot)
+# plot(HistErrorHiFi$mids - OffSet, HistErrorHiFi$density, type = "s", col = Cols[1],
+#      xlim = c(0, 1), xlab = "Error rate", ylab = "Frequency")
+# lines(HistErrorHiFiBWA$mids, HistErrorHiFiBWA$density, type = "s", col =  Cols[2])
+# lines(HistErrorNormal$mids, HistErrorNormal$density, type = "s", col =  Cols[3])
+# lines(HistErrorNormalBWA$mids, HistErrorNormalBWA$density, type = "s", col =  Cols[4])
+# lines(HistErrorRefHiFi$mids + OffSet, HistErrorRefHiFi$density, type = "s", col =  Cols[5])
+# lines(HistErrorRefHiFiBWA$mids + OffSet, HistErrorRefHiFiBWA$density, type = "s", col =  Cols[6])
+# lines(HistErrorRefNormal$mids + OffSet, HistErrorRefNormal$density, type = "s", col =  Cols[7])
+# lines(HistErrorRefNormalBWA$mids + OffSet, HistErrorRefNormalBWA$density, type = "s", col = Cols[8])
+# legend(x = 0.5, y = 15, legend = c("New polymerase nglmr", "New polymerase bwa", 
+#                                   "Old polymerase nglmr", "Old polymerase bwa",
+#                                   "New polymerase nglmr ref", "New polymerase bwa ref", 
+#                                   "Old polymerase nglmr ref", "Old polymerase bwa ref"), 
+#        col = Cols,
+#        lty = rep(1, 8), bty = "n")
+# dev.off()
 
 # Saving data
 cat("\n***** Saving data to", PathOutputNew, "  *****\n")
