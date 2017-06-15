@@ -98,7 +98,7 @@ GetErrorRate <- function(RL, GR, RefSeqV, MinCoverPerZMW = 5){
     c(sum(blnNoStar & blnDiff & blnMinL) / sum(blnNoStar & blnMinL),
       sum(blnNoStar1 & blnDiffRef1 & blnMinL1) / sum(blnNoStar1 & blnMinL1),
       sum(blnNoStar2 & blnDiffRef2 & blnMinL2) / sum(blnNoStar2 & blnMinL2))
-  }
+  } else {rep(NA, 3)}
 }
 
 # Function to remove NAs
@@ -141,7 +141,7 @@ for (i in 1:length(GRUnion_withSNP)){
   if (length(RL$pos) > 0){
     ErrRates  <- GetErrorRate(RL, GR, RefSeqV)
     ErrorHiFi <- c(ErrorHiFi, ErrRates[1])
-    ErrorRefHiFi <- c(ErrorRefHiFi, ErrRates[2:3])
+    ErrorRefHiFi <- c(ErrorRefHiFi, list(ErrRates[2:3]))
     idxGRHiFi    <- c(idxGRHiFi, i)
   }
   
@@ -152,7 +152,7 @@ for (i in 1:length(GRUnion_withSNP)){
   if (length(RL$pos) > 0){
     ErrRates  <- GetErrorRate(RL, GR, RefSeqV)
     ErrorHiFiBWA <- c(ErrorHiFiBWA, ErrRates[1])
-    ErrorRefHiFiBWA <- c(ErrorRefHiFiBWA, ErrRates[2:3])
+    ErrorRefHiFiBWA <- c(ErrorRefHiFiBWA, list(ErrRates[2:3]))
     idxGRHiFiBWA    <- c(idxGRHiFiBWA, i)
   }
 
@@ -163,7 +163,7 @@ for (i in 1:length(GRUnion_withSNP)){
   if (length(RL$pos) > 0){
     ErrRates  <- GetErrorRate(RL, GR, RefSeqV)
     ErrorNormal <- c(ErrorNormal, ErrRates[1])
-    ErrorRefNormal <- c(ErrorRefNormal, ErrRates[2:3])
+    ErrorRefNormal <- c(ErrorRefNormal,list(ErrRates[2:3]))
     idxGRNormal    <- c(idxGRNormal, i)
   }
   
@@ -174,7 +174,7 @@ for (i in 1:length(GRUnion_withSNP)){
   if (length(RL$pos) > 0){
     ErrRates  <- GetErrorRate(RL, GR, RefSeqV)
     ErrorNormalBWA <- c(ErrorNormalBWA, ErrRates[1])
-    ErrorRefNormalBWA <- c(ErrorRefNormalBWA, ErrRates[2:3])
+    ErrorRefNormalBWA <- c(ErrorRefNormalBWA, list(ErrRates[2:3]))
     idxGRNormalBWA    <- c(idxGRNormalBWA, i)
   }
 }
