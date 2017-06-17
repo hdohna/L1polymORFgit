@@ -1,0 +1,15 @@
+qlogin -l h_stack=10M -l h_vmem=5G
+module load java/8u66
+java -XX:MaxHeapSize=1g -jar /srv/gsfs0/software/picard-tools/2.4.1/picard.jar EstimateLibraryComplexity \
+     I=/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/CCS_BCDE.ccs.sorted.bam \
+     O=/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/CCS_BCDE.ccs_lib_complex_metrics.txt \
+     MAX_DIFF_RATE=0.1
+     
+java -XX:MaxHeapSize=1g -jar /srv/gsfs0/software/picard-tools/2.4.1/picard.jar EstimateLibraryComplexity \
+     I=/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/CCS_BCDE.ccs.bam \
+     O=/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/CCS_BCDE.ccs_lib_complex_metrics_unmapped.txt
+     
+java -XX:MaxHeapSize=1g -jar /srv/gsfs0/software/picard-tools/2.4.1/picard.jar MarkDuplicates \
+     I=/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/CCS_BCDE.ccs.sorted.bam \
+     O=/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/CCS_BCDE.ccs.sorted.duplMarked.bam \
+     M=/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/CCS_BCDE.ccs_markedDupMetr.txt
