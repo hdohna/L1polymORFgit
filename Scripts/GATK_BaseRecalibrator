@@ -1,0 +1,58 @@
+module load java/8u66
+java -XX:MaxHeapSize=1g -jar /srv/gsfs0/software/gatk/gatk-3.7/GenomeAnalysisTK.jar \
+   -T BaseRecalibrator \
+   -R /srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19masked.fa \
+   -I /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked_ngmlr.sorted.wRG.reordered.bam \
+   -o /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked_ngmlr_recal_data.table
+   
+java -XX:+UseG1GC -XX:ParallelGCThreads=2 -jar /srv/gsfs0/software/gatk/gatk-3.7/GenomeAnalysisTK.jar \
+   -T BaseRecalibrator \
+   -R /srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19masked.fa \
+   -I /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked_ngmlr.sorted.bam \
+   -o /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked_ngmlr_recal_data.table
+
+java -XX:ParallelGCThreads=1 -jar /srv/gsfs0/software/gatk/gatk-3.7/GenomeAnalysisTK.jar \
+   -T BaseRecalibrator \
+   -R /srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19masked.fa \
+   -I /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked_ngmlr.sorted.bam \
+   -o /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked_ngmlr_recal_data.table
+
+java -jar /srv/gsfs0/software/gatk/gatk-3.7/GenomeAnalysisTK.jar \
+   -T BaseRecalibrator \
+   -R /srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19masked.fa \
+   -I /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked_ngmlr.sorted.bam \
+   -o /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked_ngmlr_recal_data.table
+   
+   
+   
+   
+java  -XX:MaxHeapSize=1g -jar /srv/gsfs0/software/picard-tools/2.4.1/picard.jar CreateSequenceDictionary \
+R= /srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19masked.fa \
+O= /srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19masked.dict  
+   
+   
+   samtools faidx /srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19masked.fa
+   
+   
+   
+java -XX:MaxHeapSize=1g -jar /srv/gsfs0/software/picard-tools/2.4.1/picard.jar AddOrReplaceReadGroups \
+I=/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked_ngmlr.sorted.bam \
+O=/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked_ngmlr.sorted.wRG.bam \
+RGID=4 \
+RGLB=lib1 \
+RGPL=Pacbio \
+RGPU=unit1 \
+RGSM=20
+
+module load java/8u66
+java -XX:MaxHeapSize=3g -jar /srv/gsfs0/software/picard-tools/2.4.1/picard.jar ReorderSam \
+    I=/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked_ngmlr.sorted.wRG.bam \
+    O=/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked_ngmlr.sorted.wRG.reordered.bam \
+    R=/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19masked.fa \
+    CREATE_INDEX=TRUE
+    module load java/8u66
+java -Xmx1g -jar /srv/gsfs0/software/picard-tools/2.4.1/picard.jar ReorderSam \
+    I=/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked_ngmlr.sorted.wRG.bam \
+    O=/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked_ngmlr.sorted.wRG.reordered.bam \
+    R=/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19masked.fa \
+    CREATE_INDEX=TRUE
