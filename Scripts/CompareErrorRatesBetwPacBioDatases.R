@@ -20,8 +20,8 @@ PathBam_HiFi       <- "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBi
 PathBam_HiFi_BWA   <- '/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked.sorted.bam'
 PathBam_Normal     <- "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19masked.nglmr.sorted.bam"
 PathBam_Normal_BWA <- "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19masked.sorted.bam"
-PathOutputNew      <- '/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/ErrorComparer.RData'
-PathPlot           <- "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/ErrorRateComparison.pdf"
+PathOutputNew      <- '/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/ErrorComparer_ErrorRegionsRemoved.RData'
+PathPlot           <- "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/ErrorRateComparison_ErrorRegionsRemoved.pdf"
 
 # Source start script
 source(PathStart)
