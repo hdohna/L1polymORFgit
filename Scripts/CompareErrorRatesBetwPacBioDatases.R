@@ -59,6 +59,16 @@ GetConsens <- function(SMat) {
   })
 }
 
+NotErrorRegion <- function(blnDiff, WWidth = 10, ErrorThresh = 0.25){
+  SLen   <- length(blnDiff)
+  WStart <- seq(1, SLen, WWidth)
+  WEnd   <- c(WStart[-1], SLen)
+  AvDiff <- rep(NA, SLen)
+  for (i in 1:length(WStart)){
+    AvDiff[WStart[i]:WEnd[i]] <- mean(blnDiff[WStart[i]:WEnd[i]])
+  }
+  AvDiff < ErrorThresh
+}
 
 GetErrorRate <- function(RL, GR, RefSeqV, MinCoverPerZMW = 5){
   
@@ -87,17 +97,20 @@ GetErrorRate <- function(RL, GR, RefSeqV, MinCoverPerZMW = 5){
     blnNoStar1 <- Consens1 != "*"
     blnNoStar2 <- Consens2 != "*" 
     blnNoStar  <- blnNoStar1 & blnNoStar2
-    blnDiff   <- Consens1 != Consens2
+    blnDiff    <- Consens1 != Consens2
     blnMinL1   <- sum(blnNoStar1) > 500
     blnMinL2   <- sum(blnNoStar2) > 500
-    blnMinL   <- sum(blnNoStar) > 500
+    blnMinL    <- sum(blnNoStar)  > 500
     blnDiffRef1 <- Consens1 != RefSeqV
     blnDiffRef2 <- Consens2 != RefSeqV
+    blnNotError1 <- NotErrorRegion(blnDiffRef1)
+    blnNotError2 <- NotErrorRegion(blnDiffRef2)
+    blnNotError  <- blnNotError1 & blnNotError2
     
     # Calculate error rate
-    c(sum(blnNoStar & blnDiff & blnMinL) / sum(blnNoStar & blnMinL),
-      sum(blnNoStar1 & blnDiffRef1 & blnMinL1) / sum(blnNoStar1 & blnMinL1),
-      sum(blnNoStar2 & blnDiffRef2 & blnMinL2) / sum(blnNoStar2 & blnMinL2))
+    c(sum(blnDiff & blnMinL & blnNotError) / sum(blnMinL & blnNotError),
+      sum(blnDiffRef1 & blnMinL1 & blnNotError1) / sum(blnMinL1 & blnNotError1),
+      sum(blnDiffRef2 & blnMinL2 & blnNotError2) / sum(blnMinL2 & blnNotError2))
   } else {rep(NA, 3)}
 }
 
