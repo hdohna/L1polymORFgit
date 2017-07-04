@@ -48,7 +48,7 @@ ReadList_Normal_BWA <- scanBam(PathBam_Normal_BWA, param = scanPars)
 GetConsens <- function(SMat) {
   apply(SMat, 1, FUN = function(x) {
     NucCount <- table(x)
-    names(NucCount)[which.max(NucCount)[1]]
+    names(NucCount)[which.max(NucCount)]
   })
 }
 
