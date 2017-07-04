@@ -17,7 +17,7 @@ MinPropCall <- 0.6
 PathStart          <- '/home/hzudohna/L1polymORFgit/Scripts/_Start_L1polymORF_scg4.R'
 PathSNPRanges      <- '/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/SNPinRangesNA12878.RData'
 PathBam_Normal_BWA <- "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19masked.sorted.bam"
-PathOutput         <- '/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioHighErrorRegions.RData'
+PathOutput         <- '/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioHighErrorRegions_WithBetw.RData'
 
 # Source start script
 source(PathStart)
@@ -63,7 +63,7 @@ ErrorRegion <- function(blnDiff, WWidth = 10, ErrorThresh = 0.25){
   AvDiff > ErrorThresh
 }
 
-GetErrorRate <- function(RL, GR, RefSeqV, MinCoverPerZMW = 5){
+GetErrorRate <- function(RL, GR, RefSeqV, MinCoverPerZMW = 2){
   
   # Get ZMW id from read ID
   ZMW_IDs <- sapply(1:length(RL$pos), function(j) {
@@ -72,7 +72,7 @@ GetErrorRate <- function(RL, GR, RefSeqV, MinCoverPerZMW = 5){
   
   # Count ZMWIDs
   ZMWIDcount <- table(ZMW_IDs)
-  ZMWIDcount <- ZMWIDcount[ZMWIDcount >= 5]
+  ZMWIDcount <- ZMWIDcount[ZMWIDcount >= MinCoverPerZMW]
   if (length(ZMWIDcount) >= 2) {
     CountOrder <- order(ZMWIDcount, decreasing = T)
     ZMW2Use    <- names(ZMWIDcount)[CountOrder[1:2]]
@@ -91,8 +91,10 @@ GetErrorRate <- function(RL, GR, RefSeqV, MinCoverPerZMW = 5){
     blnDiffWithinZMW2 <- SeqMat[,idxZMW2[1]] != SeqMat[,idxZMW2[2]]
     
     # Get the consensus sequences
-    Consens1 <- GetConsens(SeqMat[,idxZMW1])
-    Consens2 <- GetConsens(SeqMat[,idxZMW2])
+    # Consens1 <- GetConsens(SeqMat[,idxZMW1])
+    # Consens2 <- GetConsens(SeqMat[,idxZMW2])
+    Consens1 <- SeqMat[,idxZMW1[1]]
+    Consens2 <- SeqMat[,idxZMW2[1]]
     
     # Get consensus per ZMW ID
     blnNoStar1 <- Consens1 != "*"
@@ -109,7 +111,12 @@ GetErrorRate <- function(RL, GR, RefSeqV, MinCoverPerZMW = 5){
     blnError  <- blnError1 & blnError2
     
     # Calculate error rate
+    # 1) Difference between ZMWs for high error regions
+    # 2) Difference between ZMWs for low error regions
+    # 3+4) Difference within ZMWs for high error regions
+    # 5+6) Difference within ZMWs for high error regions
     c(sum(blnDiff & blnMinL & blnError & blnNoStar) / sum(blnMinL & blnError & blnNoStar),
+      sum(blnDiff & blnMinL & (!blnError) & blnNoStar) / sum(blnMinL & (!blnError) & blnNoStar),
       sum(blnDiffWithinZMW1 & blnMinL1 & blnError1 & blnNoStar1) / 
         sum(blnMinL1 & blnError1 & blnNoStar1),
       sum(blnDiffWithinZMW2 & blnMinL2 & blnError2 & blnNoStar2) / 
@@ -118,7 +125,7 @@ GetErrorRate <- function(RL, GR, RefSeqV, MinCoverPerZMW = 5){
         sum(blnMinL1 & (!blnError1) & blnNoStar1),
       sum(blnDiffWithinZMW2 & blnMinL2 & (!blnError2) & blnNoStar2) / 
         sum(blnMinL2 & (!blnError2) & blnNoStar2))
-  } else {rep(NA, 5)}
+  } else {rep(NA, 6)}
 }
 
 # Function to remove NAs
@@ -130,6 +137,7 @@ cat("\n**********    Calculating error rate    *************\n")
 
 # Initialize vectors of error rate
 ErrorBetwZMW_highErr  <- c()
+ErrorBetwZMW_Normal   <- c()
 ErrorWithZMW_highErr  <- c()
 ErrorWithZMW_Normal   <- c()
 idxGRNormalBWA        <- c()
@@ -154,16 +162,17 @@ for (i in 1:length(GRUnion_withSNP)){
   if (length(RL$pos) > 0){
     ErrRates  <- GetErrorRate(RL, GR, RefSeqV)
     ErrorBetwZMW_highErr <- c(ErrorBetwZMW_highErr, ErrRates[1])
-    ErrorWithZMW_highErr <- c(ErrorWithZMW_highErr, list(ErrRates[2:3]))
-    ErrorWithZMW_Normal  <- c(ErrorWithZMW_Normal, list(ErrRates[4:5]))
-    idxGRNormalBWA    <- c(idxGRNormalBWA, i)
+    ErrorBetwZMW_Normal  <- c(ErrorBetwZMW_highErr, ErrRates[2])
+    ErrorWithZMW_highErr <- c(ErrorWithZMW_highErr, list(ErrRates[3:4]))
+    ErrorWithZMW_Normal  <- c(ErrorWithZMW_Normal, list(ErrRates[5:6]))
+    idxGRNormalBWA       <- c(idxGRNormalBWA, i)
   }
 }
 
 
 # Saving data
 cat("\n***** Saving data to", PathOutput, "  *****\n")
-save(list = c("ErrorBetwZMW_highErr", "ErrorWithZMW_highErr", "ErrorWithZMW_Normal", 
+save(list = c("ErrorBetwZMW_highErr", "ErrorBetwZMW_Normal", "ErrorWithZMW_highErr", "ErrorWithZMW_Normal", 
   "idxGRNormalBWA", "GRUnion_withSNP"), 
     file = PathOutput)
 
