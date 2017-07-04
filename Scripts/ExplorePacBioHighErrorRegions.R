@@ -48,7 +48,7 @@ ReadList_Normal_BWA <- scanBam(PathBam_Normal_BWA, param = scanPars)
 GetConsens <- function(SMat) {
   apply(SMat, 1, FUN = function(x) {
     NucCount <- table(x)
-    names(NucCount)[which.max(NucCount)]
+    names(NucCount)[which.max(NucCount)[1]]
   })
 }
 
@@ -72,7 +72,7 @@ GetErrorRate <- function(RL, GR, RefSeqV, MinCoverPerZMW = 5){
   
   # Count ZMWIDs
   ZMWIDcount <- table(ZMW_IDs)
-  ZMWIDcount <- ZMWIDcount[ZMWIDcount >= 3]
+  ZMWIDcount <- ZMWIDcount[ZMWIDcount >= 5]
   if (length(ZMWIDcount) >= 2) {
     CountOrder <- order(ZMWIDcount, decreasing = T)
     ZMW2Use    <- names(ZMWIDcount)[CountOrder[1:2]]
