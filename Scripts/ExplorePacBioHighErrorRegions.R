@@ -15,6 +15,7 @@ MinPropCall <- 0.6
 
 # Paths (SCG4)
 PathStart          <- '/home/hzudohna/L1polymORFgit/Scripts/_Start_L1polymORF_scg4.R'
+PathSNPRanges      <- '/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/SNPinRangesNA12878.RData'
 PathBam_Normal_BWA <- "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19masked.sorted.bam"
 PathOutput         <- '/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioHighErrorRegions.RData'
 
