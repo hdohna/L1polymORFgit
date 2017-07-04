@@ -17,7 +17,7 @@ MinPropCall <- 0.6
 PathStart          <- '/home/hzudohna/L1polymORFgit/Scripts/_Start_L1polymORF_scg4.R'
 PathSNPRanges      <- '/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/SNPinRangesNA12878.RData'
 PathBam_Normal_BWA <- "/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19masked.sorted.bam"
-PathOutput         <- '/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioHighErrorRegions_WithBetw.RData'
+PathOutputNew         <- '/srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioHighErrorRegions_WithBetw.RData'
 
 # Source start script
 source(PathStart)
@@ -171,8 +171,9 @@ for (i in 1:length(GRUnion_withSNP)){
 
 
 # Saving data
-cat("\n***** Saving data to", PathOutput, "  *****\n")
-save(list = c("ErrorBetwZMW_highErr", "ErrorBetwZMW_Normal", "ErrorWithZMW_highErr", "ErrorWithZMW_Normal", 
+cat("\n***** Saving data to", PathOutputNew, "  *****\n")
+save(list = c("ErrorBetwZMW_highErr", "ErrorBetwZMW_Normal", 
+              "ErrorWithZMW_highErr", "ErrorWithZMW_Normal", 
   "idxGRNormalBWA", "GRUnion_withSNP"), 
-    file = PathOutput)
+    file = PathOutputNew)
 
