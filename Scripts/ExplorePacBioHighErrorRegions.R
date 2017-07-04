@@ -132,6 +132,7 @@ cat("\n**********    Calculating error rate    *************\n")
 ErrorBetwZMW_highErr  <- c()
 ErrorWithZMW_highErr  <- c()
 ErrorWithZMW_Normal   <- c()
+idxGRNormalBWA        <- c()
 
 # Loop through ranges and get error rates 
 length(GRUnion_withSNP)
