@@ -47,7 +47,7 @@ L1_1000G_GRList_hg38 <- UniqueLiftover(L1_1000G_GR_hg19,
 # Save genomic ranges
 cat("Saving genomic ranges\n")
 save(list = c("L1_1000G_GR_hg19", "L1_1000G_GR_hg19_NA12878", "L1_1000G_GRList_hg38", 
-              "L1_1000G_reduced"), 
+              "L1_1000G_reduced", "SampleColumns", "L1_1000G"), 
      file = GROutputPath)
 
 # Get for each 1000 genome L1 the closest distance to a reference L1
