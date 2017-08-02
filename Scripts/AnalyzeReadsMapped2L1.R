@@ -60,6 +60,7 @@ CoverDataPath         <- 'D:/L1polymORF/Data/L1_NA12878_PacBio_Coverage.RData'
 CoverDataPath         <- 'D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_Results.Rdata'
 CoverDataPath         <- 'D:/L1polymORF/Data/PacBioHiFi__Results.Rdata'
 PeakRangePath         <- "D:/L1polymORF/Data/PacBioHiFiSubreads_L1Ranges.RData"
+PeakRangePath         <- "D:/L1polymORF/Data/BZ_L1Ranges.RData"
 RefRangePath          <- "D:/L1polymORF/Data/L1RefRanges_hg19.RData"
 L1_1000GenomeDataPath <- "D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData"
 L1_1000_NA12878_Path  <- "D:/L1polymORF/Data/NA12878.1000genome.L1HS.insert.bed"
@@ -71,6 +72,7 @@ ResultPath            <- "D:/L1polymORF/Data/ReadsMapped2L1Info.RData"
 FastaFilePath         <- "D:/L1polymORF/Data/"
 L1InsertionFastaPath  <- paste(FastaFilePath, "L1InsertionWithFlank", FlankSize,
                                "bp.fas", sep = "")
+L1InsertionTablePath  <- "D:/L1polymORF/Data/BZ_NA12878L1capt5-9kb_Results_L1InsInfo.csv"
 
 ################################
 #                              #
@@ -408,7 +410,7 @@ cat("******  ", sum(FullL1Info$PotentialFullLength, na.rm = T),
 warnings()
 
 # Write out table with L1 info
-write.csv(FullL1Info, file = "D:/L1polymORF/Data/L1InsertionInfo.csv")
+write.csv(FullL1Info, file = L1InsertionTablePath)
 
 
 ###############################################
