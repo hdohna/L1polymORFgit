@@ -92,7 +92,7 @@ GRcombined      <- c(GenesGR_reduced, EnhancerGR)
 # Calculate distances from full-length L1 to nearest feature
 L1Dist_cat <- Dist2ClosestGR(L1CatalogGR, EnhancerGR)
 L1Dist_cat_Combined <- Dist2ClosestGR(L1CatalogGR, GRcombined)
-hist(L1CatDist)
+hist(L1Dist_cat)
 
 # Test for enrichment in different segment classes
 EnrichTests_Reg <- Compare2RangesWith3rd(L1CatalogGR, L1FragmGR, RegGR, 

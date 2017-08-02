@@ -37,7 +37,7 @@ L1CatalogGR <- GRanges(seqnames = L1CatalogL1Mapped$Chromosome,
                                                    L1CatalogL1Mapped$end_HG38)),
                        strand = L1CatalogL1Mapped$strand_L1toRef)
 L1CatGR_hg19 <- liftOver(L1CatalogGR, 
-                         chain = import.chain(ChainFile38To19))
+                         chain = import.chain("D:/L1polymORF/Data/hg38ToHg19.over.chain"))
 NrRanges <- sapply(L1CatGR_hg19, length)
 idxUniqueMapped <- NrRanges == 1
 L1CatGR_hg19 <- unlist(L1CatGR_hg19[idxUniqueMapped])

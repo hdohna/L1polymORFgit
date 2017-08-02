@@ -60,6 +60,7 @@ L1RefGR_hg19 <- GRanges(seqnames = RepeatTable_hg19$genoName,
                    strand = RepeatTable_hg19$strand)
 L1RefGRFull_hg19 <- L1RefGR_hg19[width(L1RefGR_hg19) > 6000]
 L1FragmGR_hg19   <- L1RefGR_hg19[width(L1RefGR_hg19) < MaxFragLength]
+length(L1FragmGR_hg19)
 
 # Read in table with known L1 
 L1Catalogue <- read.csv(L1CataloguePath, as.is = T)
@@ -145,7 +146,7 @@ ChromLengths <- ChromLengthsHg38
 ChromNames   <- names(ChromLengthsHg38)
 
 # Match chromosome names
-ChromMatch          <- match(ChromNames, names(L1CountPerChrom))
+ChromMatch           <- match(ChromNames, names(L1CountPerChrom))
 ChromMatch_Fragm     <- match(ChromNames, names(L1FragmPerChrom))
 L1CountMatched       <- L1CountPerChrom[ChromMatch]
 L1CountMatched_Fragm <- L1FragmPerChrom[ChromMatch_Fragm]
@@ -469,6 +470,7 @@ mtext("Distance full-length L1 to domain", side = 2, line = 1, outer = T)
 #CreateDisplayPdf('D:/L1polymORF/Figures/L1DomainDistQQ.pdf')
 CreateDisplayPdf('D:/L1polymORF/Figures/L1DomainDistQQ.pdf', 
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
+write.csv(QSamplesDomain, "D:/L1polymORF/Manuscript_InsertionLocation/DomainDistP.csv")
 
 par(mfrow = c(3, 3), mar = c(3, 2, 2, 0.5), oma = c(2, 2.5, 1, 1))
 QSamplesDomain_1000G <- sapply (1:length(DomainDistList_1000G), function(i){
@@ -497,6 +499,7 @@ mtext("Distance full-length L1 to loop borders", side = 2, line = 1, outer = T)
 #CreateDisplayPdf('D:/L1polymORF/Figures/L1LoopDistQQ.pdf')
 CreateDisplayPdf('D:/L1polymORF/Figures/L1LoopDistQQ.pdf', 
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
+write.csv(QSamplesLoop, "D:/L1polymORF/Manuscript_InsertionLocation/LoopDistP.csv")
 
 par(mfrow = c(1, 1))
 plot(QSamplesLoop, QSamplesDomain)
@@ -508,8 +511,6 @@ pGeneDistCat <- QQDistPlot(L1DistGene_Fragm, L1DistGene_CatRef,
                            L1DistGene_FullnotCat, Title = "Distance to genes")
 legend("bottomright", legend = c("intact", "not intact"), pch = c(1,2),
        y.intersp = YI, bty = "n")
-# pGeneDist1000G <- QQDistPlot(L1DistGene_1000GFragm, L1DistGene_1000GFullHigh, 
-#                              L1DistGene_1000GFullLow)
 x <- DomainDistList[[1]] 
 pDomainDistCat <- QQDistPlot(x$DistFragm, x$DistCatRef, x$DistRefnotCat,
                              Title = "Distance to loops GM12878")
@@ -524,6 +525,10 @@ mtext("Distance full-length L1", side = 2, line = 1, outer = T)
 #CreateDisplayPdf('D:/L1polymORF/Figures/L1geneDistQQ_Catalog.pdf')
 CreateDisplayPdf('D:/L1polymORF/Figures/L1geneDistQQ_Catalog.pdf', 
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
+
+pGeneDist1000G <- QQDistPlot(L1DistGene_1000GFragm, L1DistGene_1000GFullHigh,
+                             L1DistGene_1000GFullLow)
+
 
 # Plot quantiles against each other for distance to piRNA and distance to domains
 par(mfrow = c(1,1), mar = c(3, 2, 2, 0.5), oma = c(2, 2.5, 1, 1))
@@ -570,7 +575,7 @@ FitDistVsLength <- glm(L1DistGene_Fragm ~ width(L1FragmGR))
 summary(FitDistVsLength)
 
 mean(L1DistPiRNA_Fragm_hg19 == 0)
-pbinom(length(L1DistPiRNA_CatRef_hg19))
+#pbinom(length(L1DistPiRNA_CatRef_hg19))
 
 QQDistPlot(L1DistGene_1000GFragm, L1DistGene_1000GFullHigh, L1DistGene_1000GFullLow)
 QQDistPlot(L1DistGene_1000GFullLow, L1DistGene_1000GFullHigh)
