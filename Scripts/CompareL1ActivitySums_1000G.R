@@ -79,6 +79,8 @@ StartVals <- seq(1, NrSamples, length(ObservedAct))
 SampledVars <- sapply(StartVals[-length(StartVals)], function(x){
   var(SampledActSums[x:(x+length(ObservedAct))])
 })
+
+# Plot variance histogram
 par(mar = c(5, 4, 4, 2) + 0.1)
 hist(SampledVars, main = "", xlab = "Variance in activity sum")
 segments(var(ObservedAct), y0 = 0, y1 = 50, col = "red")
@@ -115,6 +117,34 @@ points(QQ1$x[blnOutside],  QQ1$y[blnOutside], col = "red")
 CreateDisplayPdf('D:/L1polymORF/Figures/L1ActivitySums.pdf', 
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
 
+# Plot variance histogram and quantiles
+par(mfrow = c(1, 2), mar = c(5, 4, 4, 2) + 0.1)
+hist(SampledVars, xlab = "Variance in activity sum",
+     main = "A")
+segments(var(ObservedAct), y0 = 0, y1 = 50, col = "red")
+PVar <- mean(SampledVars <= var(ObservedAct))
+
+plot(QQ1$x, QQ1$y, xlab = "Sampled activity sums", 
+     ylab = "Observed activity sums", main = "B")
+MedianMatch1 <- sapply(QQ1$x, function(z) which.min(abs(z - QSMat[1, ])))
+MedianMatch2 <- sapply(QQ1$x, function(z) which.min(abs(z + 1 - QSMat[1, ])))
+MedianMatch3 <- sapply(QQ1$x, function(z) which.min(abs(z - 1 - QSMat[1, ])))
+polygon(QSMat[1, c(idxF, idxR)], c(QSMat[2, ], QSMat[3, idxR]), 
+        col = "grey", border = NA)
+points(QQ1$x, QQ1$y)
+lines(c(0, 1000), c(0, 1000))
+blnOutside <- (QQ1$y < QSMat[2, MedianMatch1] | QQ1$y > QSMat[3, MedianMatch1]) &
+  (QQ1$y < QSMat[2, MedianMatch2] | QQ1$y > QSMat[3, MedianMatch2]) &
+  (QQ1$y < QSMat[2, MedianMatch3] | QQ1$y > QSMat[3, MedianMatch3])
+sum(blnOutside)
+points(QQ1$x[blnOutside],  QQ1$y[blnOutside], col = "red")
+
+CreateDisplayPdf('D:/L1polymORF/Figures/L1VarianceAndQQActivitySums.pdf', height = 4,
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
+
+
+
+
 # Compare histogram of observed activity sum with histograms of simulated sums
 BinWidth <- 25
 HistBreaks <- seq(0, 2000, BinWidth)
@@ -126,11 +156,18 @@ SampledDens <- sapply(StartVals[-length(StartVals)], function(x){
 dim(SampledDens)
 SampledDensMean <- rowMeans(SampledDens)
 SampledDensQMat <- apply(SampledDens, 1, function(x) quantile(x, c(0.025, 0.5, 0.975)))
+dim(SampledDensQMat)
 
 plot(c(0, HistBreaks[-length(HistBreaks)]), c(0, ObsDens), 
      type = "s", xlim = c(0, 600))
+polygon(c(HistBreaks[-length(HistBreaks)], 
+          HistBreaks[(length(HistBreaks) - 1):1]), 
+        c(SampledDensQMat[1,], SampledDensQMat[3,(length(HistBreaks) - 1):1]), col = "grey",
+        border = NA)
 lines(c(0, HistBreaks[-length(HistBreaks)]), c(0, SampledDensMean),
       type = "s", col = "red")
+lines(c(0, HistBreaks[-length(HistBreaks)]), c(0, ObsDens), 
+     type = "s")
 
 plot(HistBreaks[-length(HistBreaks)], (ObsDens - SampledDensMean) / SampledDensMean,
      xlim = c(0, 1000))
