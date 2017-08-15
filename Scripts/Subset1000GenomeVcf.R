@@ -10,6 +10,7 @@ LineIdentifier <- "INS:ME:LINE1"
 FilePrefix     <- "LINE1"
 
 # Get file names, loop over files and do the filtering
+# Example file name: ALL.chr2.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf
 AllFiles <- list.files(DataFolder, pattern = ".vcf", full.names = T)
 AllFiles <- AllFiles[-grep("vcf.", AllFiles)]
 for (InFile in AllFiles){
