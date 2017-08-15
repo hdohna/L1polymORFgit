@@ -335,6 +335,6 @@ points(QQ1$x[blnOutside],  QQ1$y[blnOutside], col = "red")
 CreateDisplayPdf('D:/L1polymORF/Figures/L1ActivitySums_PopStr.pdf', 
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
 
-#
+# Compare means
 colMeans(SampleMat)
 mean(ObservedAct)
