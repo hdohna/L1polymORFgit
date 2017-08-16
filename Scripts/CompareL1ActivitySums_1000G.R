@@ -9,6 +9,7 @@ source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 # Load packages
 library(GenomicRanges)
 library(rtracklayer)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 
 # Specify file paths
 G1000SamplePath <- 'D:/L1polymORF/Data/1000GenomeSampleInfo.txt'
@@ -18,10 +19,15 @@ L1RefRangePath  <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
 # Specify parameters
 NrInfoCols <- 9
 
+##########################################
+#                                        #
+#     Load and process data              #
+#                                        #
+##########################################
+
 # Load previously generated objects
 load(L1RefRangePath)
 load(L1GRPath)
-
 
 ##########
 # Process L1 catalog
@@ -63,12 +69,40 @@ L1CatalogMatch1000G$ActivityDummy <- 1
 
 # Get rows of L1_1000G table that can be matched to catalog
 L1_1000G_match <- L1_1000G[idx1000GMatchCat, ]
+
+# Get expected and observed activity sums
 ExpectedAct <- 2 * L1CatalogMatch1000G$ActivityNum %*% L1_1000G_match$Frequency
 ObservedAct <- sapply(SampleColumns, function(x){
   L1CatalogMatch1000G$ActivityNum %*% L1_1000G_match[,x]})
 hist(ObservedAct)
 mean(ObservedAct)
 length(ObservedAct)
+
+##########################################
+#                                        #
+#     Compare frequency and 
+#     distance to genes among fragments  #
+#                                        #
+##########################################
+
+# Get ranges of genes
+GRgenes_hg19 <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
+
+# Auxiliary function to get distances to closest gene
+DistGeneObj <- distanceToNearest(L1_1000G_GR_hg19, GRgenes_hg19, ignore.strand = T) 
+Dist2ClosestGene <- DistGeneObj@elementMetadata@listData$distance
+
+LMF <- lm(L1_1000G_reduced$Frequency ~ Dist2ClosestGene + L1_1000G_reduced$InsLength+
+            Dist2ClosestGene : L1_1000G_reduced$InsLength)
+summary(LMF)
+cor.test(L1_1000G_reduced$Frequency, Dist2ClosestGene, method = "kendall")
+
+##########################################
+#                                        #
+#     Analyze linkage disequilibrium     #
+#     (across all samples)               #
+#                                        #
+##########################################
 
 # Get linkage disequilibrium, activity sum and indicator of same chromosome 
 # for pairs of LINE-1s
@@ -88,24 +122,33 @@ for(x in 1:(nrow(L1_1000G_match) - 1)){
     ChiSq        <- chisq.test(x = as.vector(blnA), y = as.vector(blnB))$statistic
     Cor <- cor(t(L1_1000G_match[x, SampleColumns]), 
                t(L1_1000G_match[y, SampleColumns]), method = "spearman")
-    LDMat   <- rbind(LDMat, c(LD = (PaPb - Pab), Cor = Cor, SameChrom = blnSameChrom,
-                     ActSum  = L1CatalogMatch1000G$ActivityNum[x] +
-                       L1CatalogMatch1000G$ActivityNum[y]),
-                     ChiSq = ChiSq)
+    if (Cor > 1) browser()
+    LDMat   <- rbind(LDMat, c(LD = (PaPb - Pab), 
+                              Cor = Cor, 
+                              SameChrom = blnSameChrom,
+                              ActSum  = L1CatalogMatch1000G$ActivityNum[x] +
+                                 L1CatalogMatch1000G$ActivityNum[y],
+                              ChiSq = ChiSq))
   }
 }
 LDMat <- LDMat[!is.na(LDMat$LD),]
-
+max( LDMat$ActSum)
+max( LDMat$LD)
+LDMat[LDMat$LD == max(LDMat$LD), ]
 # Plot histogram of linkage disequilibrium values
-hist(LDMat$LD, breaks = seq(-0.5, 1, 0.01))
+hist(LDMat$LD)
 boxplot(LD ~ SameChrom, data = LDMat)
 boxplot(ActSum ~ SameChrom, data = LDMat)
 plot(LD ~ ActSum, data = LDMat)
+plot(LDMat$ActSum, LDMat$Cor)
+plot(LDMat$LD, LDMat$Cor)
+points(LDMat$Cor[LDMat$SameChrom], LDMat$Cor[LDMat$SameChrom])
 cor.test(LDMat$LD, LDMat$ActSum, method = "spearman")
 cor.test(LDMat$Cor, LDMat$ActSum, method = "spearman")
 t.test(LD ~ SameChrom, data = LDMat)
 LMLD <- lm(LD ~ SameChrom + ActSum, data = LDMat)
-LMCor<- lm(Cor ~ SameChrom + ActSum, data = LDMat)
+LMCor<- lm(Cor ~ SameChrom + ActSum, data = LDMat,
+           subset = Cor < 1)
 summary(LMLD)
 summary(LMCor)
 
@@ -122,6 +165,10 @@ L1CatalogMatch1000G$HomoDiff <- sapply(1:nrow(L1_1000G_match), function(x){
 plot(L1CatalogMatch1000G$ActivityNum, L1CatalogMatch1000G$HomoDiff)
 cor(L1CatalogMatch1000G$ActivityNum, L1CatalogMatch1000G$HomoDiff)
 cor.test(L1CatalogMatch1000G$ActivityNum, L1CatalogMatch1000G$HomoDiff, method = "spearman")
+
+# Compare frequency and activity
+plot(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency)
+cor.test(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency, method = "spearman")
 
 ##########################################
 #                                        #
@@ -246,7 +293,7 @@ mean(ObservedAct)
 ##########################################
 
 # Total number of samples
-NrSamplesPerPop <- 100000
+NrSamplesPerPop <- 10000
 
 # Sample individual activity sums
 cat("Sampling L1 activity sums with population structure\n")
@@ -266,7 +313,7 @@ FreqMat <- sapply(SamplePerPopList, function(Samples){
   rowSums(L1_1000G_match[,Samples]) / 2 / length(Samples)
 })
 
-SampleMat <- sapply(1:1000, function(x){
+SampleMat <- sapply(1:NrSamplesPerPop, function(x){
   
   # Initialize sample vector
   SampledActSums_P <- c()
@@ -288,19 +335,10 @@ dim(SampleMat)
 # Get samples of variances
 SampledVars_P <- apply(SampleMat, 2, var)
 
-# Plot variance histogram
-par(mar = c(5, 4, 4, 2) + 0.1)
-hist(SampledVars_P, main = "", xlab = "Variance in activity sum",
-     xlim = c(10500, 13500))
-segments(var(ObservedAct), y0 = 0, y1 = 50, col = "red")
-PVar_P <- mean(SampledVars_P <= var(ObservedAct))
-CreateDisplayPdf('D:/L1polymORF/Figures/L1VarianceOfActivitySums_PStruct.pdf', 
-                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
-
-# Get 95% range of each quantile
-QuantV = seq(0, 1, 0.001) 
-LowerQ = 0.025
-UpperQ = 0.975
+# Get 99% range of each quantile
+QuantV = seq(0, 1, 0.0001) 
+LowerQ = 0.005
+UpperQ = 0.995
 NrSamples = ncol(SampleMat)
 SampleMeans <- rep(NA, NrSamples)
 SampledQMat <- matrix(nrow = NrSamples, ncol = length(QuantV))
@@ -316,9 +354,23 @@ idxR <- ncol(QSMat):1
 mean(SampledActSums)
 QQ1  <- qqplot(SampleMat[,1], ObservedAct, plot.it = F)
 #QQ1  <- qqplot(as.vector(sampleMat), ObservedAct, plot.it = F)
-par(mfrow = c(1, 1))
+
+###########
+# Plot variance histogram and quantiles
+###########
+
+# Set parameters
+par(mfrow = c(1, 2), mar = c(5, 4, 4, 2) + 0.1)
+
+# Plot variance 
+hist(SampledVars_P, main = "A", xlab = "Variance in activity sum",
+     xlim = c(10500, 13500))
+segments(var(ObservedAct), y0 = 0, y1 = 1000, col = "red")
+PVar_P <- mean(SampledVars_P <= var(ObservedAct))
+
+# Plot quantiles
 plot(QQ1$x, QQ1$y, xlab = "Sampled activity sums", 
-     ylab = "Observed activity sums")
+     ylab = "Observed activity sums", main = "B")
 MedianMatch1 <- sapply(QQ1$x, function(z) which.min(abs(z - QSMat[1, ])))
 MedianMatch2 <- sapply(QQ1$x, function(z) which.min(abs(z + 1 - QSMat[1, ])))
 MedianMatch3 <- sapply(QQ1$x, function(z) which.min(abs(z - 1 - QSMat[1, ])))
@@ -332,9 +384,10 @@ blnOutside <- (QQ1$y < QSMat[2, MedianMatch1] | QQ1$y > QSMat[3, MedianMatch1]) 
 sum(blnOutside)
 points(QQ1$x[blnOutside],  QQ1$y[blnOutside], col = "red")
 
-CreateDisplayPdf('D:/L1polymORF/Figures/L1ActivitySums_PopStr.pdf', 
+CreateDisplayPdf('D:/L1polymORF/Figures/L1ActivityVarianceAndQQ_PopStr.pdf', 
+                 height = 4,
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
 
 # Compare means
-colMeans(SampleMat)
+mean(colMeans(SampleMat))
 mean(ObservedAct)
