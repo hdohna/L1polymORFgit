@@ -112,6 +112,8 @@ L1RefGRFullnotCat_hg19 <- L1RefGRFull_hg19[!blnOverlapCatalog_hg19]
 #                                     #
 #######################################
 
+cat("Processing 1000 Genome data\n")
+
 # Load data
 load(L1GRanges1000GenomesPath)
 
@@ -528,6 +530,17 @@ CreateDisplayPdf('D:/L1polymORF/Figures/L1geneDistQQ_Catalog.pdf',
 
 pGeneDist1000G <- QQDistPlot(L1DistGene_1000GFragm, L1DistGene_1000GFullHigh,
                              L1DistGene_1000GFullLow)
+
+# Plot quantiles against each other for distance to genes 
+par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1)
+pGeneDistCat <- QQDistPlot(L1DistGene_Fragm, L1DistGene_CatRef, 
+                           L1DistGene_FullnotCat, Title = "",
+                           xLab = "Distance from fragment L1",
+                           yLab = "Distance from full-length L1")
+legend("bottomright", legend = c("PTC", "non-TC"), pch = c(1,2),
+       y.intersp = YI, bty = "n")
+CreateDisplayPdf('D:/L1polymORF/Figures/L1geneDistQQ.pdf', 
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
 
 
 # Plot quantiles against each other for distance to piRNA and distance to domains
