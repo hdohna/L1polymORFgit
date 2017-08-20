@@ -77,7 +77,7 @@ ObservedAct <- sapply(SampleColumns, function(x){
 hist(ObservedAct)
 mean(ObservedAct)
 length(ObservedAct)
-
+mean(L1_1000G_reduced$Frequency)
 ##########################################
 #                                        #
 #     Compare frequency and 
