@@ -32,6 +32,12 @@ library(rtracklayer)
 load("D:/L1polymORF/Data/L1CatalogGRanges.RData")
 load('D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData')
 
+# Read in Charite L1 data
+L1base    <- read.csv("D:/L1polymORF/Data/L1baseCharite.csv")
+L1base_GR <- GRanges(seqnames = paste("chr", L1base$Chr, sep = ""),
+    ranges = IRanges(start = pmin(L1base$Start, L1base$End),
+                     end   = pmax(L1base$Start, L1base$End)))
+
 # Read in data
 Families    <- read.delim("D:/L1polymORF/Data/eul1db_Family.txt", skip = 5)
 Individuals <- read.delim("D:/L1polymORF/Data/eul1db_Individuals.txt", skip = 5)
@@ -106,3 +112,17 @@ hist(MRIP$pseudoallelefreq[MRIP$integrity == "full-length"],
      breaks = seq(0, 1, 0.01))
 hist(MRIP$pseudoallelefreq[MRIP$integrity == "5prime-truncated"],
      breaks = seq(0, 1, 0.01))
+
+##############
+# Check overlap of L1base with others
+##############
+
+blnL1CatInL1base <- overlapsAny(L1CatalogGR, L1base_GR)
+length(L1base_GR)
+length(L1CatalogGR)
+L1base_GRList_hg19 <- liftOver(L1base_GR, 
+                           import.chain("D:/L1polymORF/Data/hg38ToHg19.over.chain"))
+NrMapped <- sapply(L1base_GRList_hg19, length)
+idxUnique <- which(NrMapped == 1)
+L1base_GR_hg19   <- unlist(L1base_GRList_hg19[idxUnique])
+blnL1baseIn1000G <- overlapsAny(L1base_GR_hg19, L1_1000G_GR_hg19)
