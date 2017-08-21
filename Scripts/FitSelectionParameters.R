@@ -49,7 +49,8 @@ cat("done!\n")
 
 # Function to generate allele frequencies based on parameters of a distribution
 # of Selection coefficients
-GenerateAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3){
+GenerateAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
+                               NrRep = 10^4, NrSamples = 10^3){
   
   # Create a vector of replicated selection coefficients
   PCoeff  <- rgamma(NrRep, shape = Gshape, scale = GSscale)
@@ -64,10 +65,26 @@ GenerateAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3){
     AlleleFreq  <- pmin(1 - 1/(2*n), AlleleFreq)
     AlleleFreq  <- pmax(1/(2*n), AlleleFreq)
   }
-  AlleleFreq
+  sample(AlleleFreq, NrSamples, prob = AlleleFreq)
 }
 
-AlleleFreq <- GenerateAlleleFreq(10000, 1/10000, NrGen = 1000)
-hist(AlleleFreq, breaks = seq(0, 1, 0.001))
-hist(MRIP$pseudoallelefreq)
-ks.test(AlleleFreq, MRIP$pseudoallelefreq)$statistic
+# Function to calculate Kolmogorov-Smirnov Statistic for the difference between
+# simulated and observed frequencies.
+DiffAlleleFreqKS <- function(ObservedFreq, Gshape, GSscale, n = 10^4, NrGen = 10^3,
+                             NrRep = 10^4, NrSamples = 10^3){ 
+   
+  # Simulate allele frequencies
+  AlleleFreq <- GenerateAlleleFreq(Gshape, GSscale, n = n, NrGen = NrGen,
+                                 NrRep = NrRep, NrSamples = NrSamples)
+  
+  # Calculate Kolmogorov-Smirnov statistic for the difference
+  ks.test(AlleleFreq, ObservedFreq)$statistic
+}
+DiffAlleleFreqKS(MRIP$pseudoallelefreq,70, 1/100, 100)
+DiffAlleleFreqKS(MRIP$pseudoallelefreq,10^(3), 10^(-3), 10)
+
+# Find optimal shape, scale and population size
+OptPar <- optim(par = c(70, 1/100, 100), fn = function(x) {
+  DiffAlleleFreqKS(MRIP$pseudoallelefreq, Gshape = x[1], GSscale = x[2], n = x[3])},
+  lower = c(10^(-3), 10^(-6), 10)
+)
