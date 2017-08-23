@@ -42,8 +42,8 @@ plot(xVals, dgamma(xVals, shape = Gshape, scale = GSscale))
 cat("Loading and processing data ... ")
 
 # Read in data on transposable elements
-MRIP <- read.delim("D:/L1polymORF/Data/eul1db_MRIP.txt", skip = 5)
-SRIP <- read.delim("D:/L1polymORF/Data/eul1db_SRIP.txt", skip = 5)
+MRIP <- read.delim("/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/eul1db_MRIP.txt", skip = 5)
+SRIP <- read.delim("/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/eul1db_SRIP.txt", skip = 5)
 IDmatch        <- match(MRIP$X.mrip_accession.no, SRIP$mrip)
 MRIP$integrity <- SRIP$integrity[IDmatch]
 MRIP$subgroup  <- SRIP$sub_group[IDmatch]
