@@ -179,13 +179,13 @@ cat("******  Exploring fine grid    ***********\n\n")
 ResultList2Full <- ExploreGrid(MRIP$pseudoallelefreq[idxFull],
                            aValsBasic = seq(70, 100, 2),
                    proPs = seq(0.8, 0.9, 0.001))
-dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FullFitDistnPlot.pdf")
+#dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FullFitDistnPlot.pdf")
 
 # Results for distribution of fragment L1
 ResultList2Full <- ExploreGrid(MRIP$pseudoallelefreq[blnFragm],
                                aValsBasic = seq(70, 100, 2),
                                proPs = seq(0.7, 0.9, 0.001))
-dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FragmFitDistnPlot.pdf")
+#dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FragmFitDistnPlot.pdf")
 
 #########
 # Save results
