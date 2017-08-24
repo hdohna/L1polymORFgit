@@ -67,6 +67,21 @@ load('/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/GRanges_L1_1000Genomes.RD
 cor.test(L1Catalogue$Allele_frequency_Num, L1Catalogue$ActivityNum)
 sum(!is.na(L1Catalogue$Allele_frequency_Num))
 
+# Get the distance between catalog and 1000 Genome L1
+DistCat2_1000G <- Dist2Closest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
+DistCat2_1000G_hg19 <- Dist2Closest(L1CatalogGR_hg19, L1_1000G_GR_hg19)
+
+# Get indices of 1000 Genome and catalog elements that match
+idx1000G <- nearest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
+L1CatalogMatch1000G <- L1CatalogL1Mapped[DistCat2_1000G < 100, ]
+idx1000GMatchCat    <- idx1000G[DistCat2_1000G < 100]
+
+# Result for distribution of catalog elements
+blnCatFreq      <- !is.na(L1Catalogue$Allele_frequency_Num)
+blnCatFreq1000G <- is.na(L1CatalogMatch1000G$Allele_frequency)
+L1CatFreq <- c(L1Catalogue$Allele_frequency_Num[blnCatFreq],
+               L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G]])
+
 ###################################################
 #                                                 #
 #  Functions to simulate allele frequencies       #
@@ -130,6 +145,13 @@ ExploreGrid <- function(ObservedFreq,
     DiffAlleleFreqKS(ObservedFreq, aVals[i], bVals[i], n = PopSize)
   })
   
+  # get indices of minimum difference per alpha value
+  idxMinDiffKS <- sapply(aValsBasic, function (x) {
+    idxA <- which(aVals == x)
+    idxMin <- which.min(DiffKS[idxA])
+    idxA[idxMin]})
+  
+  
   if (blnPlot){
     par(mfrow = c(2, 2))
     # Plot difference vs alpha
@@ -149,11 +171,16 @@ ExploreGrid <- function(ObservedFreq,
       points(proPsRep[blnA], DiffKS[blnA], col = Cols[i])
     }
     legend("bottomright", legend = aValsBasic, col = Cols, pch = 1, cex = 0.5)
+    
+    # Plot minimum difference per alpha
+    plot(aVals[idxMinDiffKS], DiffKS[idxMinDiffKS], xlab = "alpha")
+    
   }
   
   
   # Return values in a list
-  list(proPsRep  = proPsRep, aVals = aVals, bVals = bVals, DiffKS = DiffKS)
+  list(proPsRep  = proPsRep, aVals = aVals, bVals = bVals, DiffKS = DiffKS,
+       idxMinDiffKS = idxMinDiffKS)
 }
 
 ###################################################
@@ -196,8 +223,8 @@ ResultList2Full <- ExploreGrid(MRIP$pseudoallelefreq[idxFull],
 #dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FullFitDistnPlot.pdf")
 
 # Result for distribution of catalog elements
-ResultList2Cat <- ExploreGrid(L1Catalogue$Allele_frequency_Num[blnCatFeq],
-                              aValsBasic = seq(20, 90, 10),
+ResultList2Cat <- ExploreGrid(L1CatFreq,
+                              aValsBasic = seq(20, 70, 10),
                               proPs = seq(0.7, 0.9, 0.005))
 
 # Results for distribution of fragment L1
