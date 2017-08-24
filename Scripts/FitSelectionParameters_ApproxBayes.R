@@ -62,8 +62,8 @@ hist(MRIP$pseudoallelefreq[idxFull], breaks = seq(0, 0.1, 0.0005))
 hist(MRIP$pseudoallelefreq[blnFragm], breaks = seq(0, 0.1, 0.0005))
 
 # Load L1 catalog GenomicRanges
-load("D:/L1polymORF/Data/L1CatalogGRanges.RData")
-load('D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData')
+load("/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/L1CatalogGRanges.RData")
+load('/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/GRanges_L1_1000Genomes.RData')
 cor.test(L1Catalogue$Allele_frequency_Num, L1Catalogue$ActivityNum)
 sum(!is.na(L1Catalogue$Allele_frequency_Num))
 
