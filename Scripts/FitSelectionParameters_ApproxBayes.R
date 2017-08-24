@@ -225,7 +225,7 @@ ResultList2Full <- ExploreGrid(MRIP$pseudoallelefreq[idxFull],
 # Result for distribution of catalog elements
 ResultList2Cat <- ExploreGrid(L1CatFreq,
                               aValsBasic = seq(20, 70, 10),
-                              proPs = seq(0.7, 0.9, 0.005))
+                              proPs = seq(0.7, 0.9, 0.001))
 
 # Results for distribution of fragment L1
 ResultList2Full <- ExploreGrid(MRIP$pseudoallelefreq[blnFragm],
