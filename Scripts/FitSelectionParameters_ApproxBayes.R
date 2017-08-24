@@ -61,6 +61,12 @@ mean(MRIP$pseudoallelefreq[blnFragm])
 hist(MRIP$pseudoallelefreq[idxFull], breaks = seq(0, 0.1, 0.0005))
 hist(MRIP$pseudoallelefreq[blnFragm], breaks = seq(0, 0.1, 0.0005))
 
+# Load L1 catalog GenomicRanges
+load("D:/L1polymORF/Data/L1CatalogGRanges.RData")
+load('D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData')
+cor.test(L1Catalogue$Allele_frequency_Num, L1Catalogue$ActivityNum)
+sum(!is.na(L1Catalogue$Allele_frequency_Num))
+
 ###################################################
 #                                                 #
 #  Functions to simulate allele frequencies       #
@@ -133,6 +139,7 @@ ExploreGrid <- function(ObservedFreq,
       blnProps <- proPsRep == proPs[i]
       points(aVals[blnProps], DiffKS[blnProps], col = Cols[i])
     }
+    legend("bottomright", legend = proPs, col = Cols, pch = 1, cex = 0.5)
     
     # Plot difference vs selection coefficient
     Cols <- rainbow(length(aValsBasic))
@@ -141,7 +148,7 @@ ExploreGrid <- function(ObservedFreq,
       blnA <- aVals == aValsBasic[i]
       points(proPsRep[blnA], DiffKS[blnA], col = Cols[i])
     }
-    
+    legend("bottomright", legend = aValsBasic, col = Cols, pch = 1, cex = 0.5)
   }
   
   
@@ -165,10 +172,17 @@ ResultList1Full <- ExploreGrid(MRIP$pseudoallelefreq[idxFull],
                            aValsBasic = seq(1, 101, 10),
                            proPs = seq(0.2, 1.5, 0.1))
 
+# Result for distribution of catalog elements
+blnCatFeq <- !is.na(L1Catalogue$Allele_frequency_Num)
+ResultList1Cat <- ExploreGrid(L1Catalogue$Allele_frequency_Num[blnCatFeq],
+                              aValsBasic = seq(1, 101, 10),
+                              proPs = seq(0.2, 1.5, 0.1))
+
 # Results for distribution of fragment L1
 ResultList1Fragm <- ExploreGrid(MRIP$pseudoallelefreq[blnFragm],
-                               aValsBasic = seq(seq(1, 101, 10)),
+                               aValsBasic = seq(1, 101, 10),
                                proPs = seq(0.2, 1.5, 0.1))
+
 
 #######
 # Analyze finer grid
@@ -180,6 +194,11 @@ ResultList2Full <- ExploreGrid(MRIP$pseudoallelefreq[idxFull],
                            aValsBasic = seq(70, 100, 2),
                    proPs = seq(0.8, 0.9, 0.001))
 #dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FullFitDistnPlot.pdf")
+
+# Result for distribution of catalog elements
+ResultList2Cat <- ExploreGrid(L1Catalogue$Allele_frequency_Num[blnCatFeq],
+                              aValsBasic = seq(20, 90, 10),
+                              proPs = seq(0.7, 0.9, 0.005))
 
 # Results for distribution of fragment L1
 ResultList2Full <- ExploreGrid(MRIP$pseudoallelefreq[blnFragm],
