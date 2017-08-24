@@ -81,6 +81,11 @@ blnCatFreq      <- !is.na(L1Catalogue$Allele_frequency_Num)
 blnCatFreq1000G <- is.na(L1CatalogMatch1000G$Allele_frequency)
 L1CatFreq <- c(L1Catalogue$Allele_frequency_Num[blnCatFreq],
                L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G]])
+ks.test(L1Catalogue$Allele_frequency_Num[blnCatFreq],
+        L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G]])
+mean(L1Catalogue$Allele_frequency_Num[blnCatFreq])
+mean(L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G]])
+hist(L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G]])
 
 ###################################################
 #                                                 #
@@ -223,7 +228,10 @@ ResultList2Full <- ExploreGrid(MRIP$pseudoallelefreq[idxFull],
 #dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FullFitDistnPlot.pdf")
 
 # Result for distribution of catalog elements
-ResultList2Cat <- ExploreGrid(L1CatFreq,
+# ResultList2Cat <- ExploreGrid(L1CatFreq,
+#                               aValsBasic = seq(20, 70, 10),
+#                               proPs = seq(0.7, 0.9, 0.005))
+ResultList2Cat <- ExploreGrid(L1_1000G_reduced$Frequency[idx1000GMatchCat],
                               aValsBasic = seq(20, 70, 10),
                               proPs = seq(0.7, 0.9, 0.001))
 
