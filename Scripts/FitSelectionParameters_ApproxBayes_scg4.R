@@ -42,14 +42,13 @@ plot(xVals, dgamma(xVals, shape = Gshape, scale = GSscale))
 cat("Loading and processing data ... ")
 
 # Read in data on transposable elements
-MRIP <- read.delim("D:/L1polymORF/Data/eul1db_MRIP.txt", skip = 5)
-SRIP <- read.delim("D:/L1polymORF/Data/eul1db_SRIP.txt", skip = 5)
+MRIP <- read.delim("/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/eul1db_MRIP.txt", skip = 5)
+SRIP <- read.delim("/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/eul1db_SRIP.txt", skip = 5)
 IDmatch        <- match(MRIP$X.mrip_accession.no, SRIP$mrip)
 MRIP$integrity <- SRIP$integrity[IDmatch]
 MRIP$subgroup  <- SRIP$sub_group[IDmatch]
 MRIP <- MRIP[MRIP$subgroup == "L1-Ta", ]
 
-grep("Boissinot2006", MRIP$studies)
 # Test whether full-length and fragment L1 have different frequency
 idxFull  <- which(MRIP$integrity == "full-length")
 blnFragm <- MRIP$integrity %in% c("5prime-truncated", "3prime-truncated")
@@ -62,10 +61,14 @@ hist(MRIP$pseudoallelefreq[idxFull], breaks = seq(0, 0.1, 0.0005))
 hist(MRIP$pseudoallelefreq[blnFragm], breaks = seq(0, 0.1, 0.0005))
 
 # Load L1 catalog GenomicRanges
-load("D:/L1polymORF/Data/L1CatalogGRanges.RData")
-load('D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData')
+load("/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/L1CatalogGRanges.RData")
+load('/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/GRanges_L1_1000Genomes.RData')
 cor.test(L1Catalogue$Allele_frequency_Num, L1Catalogue$ActivityNum)
 sum(!is.na(L1Catalogue$Allele_frequency_Num))
+
+# Get frequency of full-length and fragment L1 in 1000 genome data
+FreqFull_1000G  <- L1_1000G_reduced$Frequency[which(L1_1000G_reduced$InsLength > 6000)]
+FreqFragm_1000G <- L1_1000G_reduced$Frequency[which(L1_1000G_reduced$InsLength <= 5900)]
 
 # Get the distance between catalog and 1000 Genome L1
 DistCat2_1000G <- Dist2Closest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
@@ -205,18 +208,18 @@ ExploreGrid <- function(ObservedFreq,
 
 cat("******  Exploring coarse grid    ***********\n\n")
 # Results for distribution of full-length L1
-ResultList1Full <- ExploreGrid(MRIP$pseudoallelefreq[idxFull],
+ResultList1Full_1000G <- ExploreGrid(FreqFull_1000G,
                            aValsBasic = seq(1, 101, 10),
                            proPs = seq(0.2, 1.5, 0.1))
 
 # Result for distribution of catalog elements
-blnCatFeq <- !is.na(L1Catalogue$Allele_frequency_Num)
-ResultList1Cat <- ExploreGrid(L1Catalogue$Allele_frequency_Num[blnCatFeq],
-                              aValsBasic = seq(1, 101, 10),
-                              proPs = seq(0.2, 1.5, 0.1))
+# blnCatFeq <- !is.na(L1Catalogue$Allele_frequency_Num)
+# ResultList1Cat <- ExploreGrid(L1Catalogue$Allele_frequency_Num[blnCatFeq],
+#                               aValsBasic = seq(1, 101, 10),
+#                               proPs = seq(0.2, 1.5, 0.1))
 
 # Results for distribution of fragment L1
-ResultList1Fragm <- ExploreGrid(MRIP$pseudoallelefreq[blnFragm],
+ResultList1Fragm_1000G <- ExploreGrid(FreqFragm_1000G,
                                aValsBasic = seq(1, 101, 10),
                                proPs = seq(0.2, 1.5, 0.1))
 
@@ -227,21 +230,21 @@ ResultList1Fragm <- ExploreGrid(MRIP$pseudoallelefreq[blnFragm],
 
 cat("******  Exploring fine grid    ***********\n\n")
 # Results for distribution of full-length L1
-ResultList2Full <- ExploreGrid(MRIP$pseudoallelefreq[idxFull],
+ResultList2Full_1000G <- ExploreGrid(FreqFull_1000G,
                            aValsBasic = seq(70, 100, 2),
                    proPs = seq(0.8, 0.9, 0.001))
 #dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FullFitDistnPlot.pdf")
 
 # Result for distribution of catalog elements
-ResultList2Cat <- ExploreGrid(L1CatFreq,
-                              aValsBasic = seq(20, 70, 10),
-                              proPs = seq(0.7, 0.9, 0.005))
-ResultList2Cat <- ExploreGrid(L1_1000G_reduced$Frequency[idx1000GMatchCat],
-                              aValsBasic = seq(20, 70, 10),
-                              proPs = seq(0.7, 0.9, 0.001))
-
+# ResultList2Cat <- ExploreGrid(L1CatFreq,
+#                               aValsBasic = seq(20, 70, 10),
+#                               proPs = seq(0.7, 0.9, 0.005))
+# ResultList2Cat <- ExploreGrid(L1_1000G_reduced$Frequency[idx1000GMatchCat],
+#                               aValsBasic = seq(20, 70, 10),
+#                               proPs = seq(0.7, 0.9, 0.001))
+# 
 # Results for distribution of fragment L1
-ResultList2Full <- ExploreGrid(MRIP$pseudoallelefreq[blnFragm],
+ResultList2Full_1000G <- ExploreGrid(FreqFragm_1000G,
                                aValsBasic = seq(70, 100, 2),
                                proPs = seq(0.7, 0.9, 0.001))
 #dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FragmFitDistnPlot.pdf")
@@ -250,4 +253,4 @@ ResultList2Full <- ExploreGrid(MRIP$pseudoallelefreq[blnFragm],
 # Save results
 #########
 
-save.image("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/SelectionParameterFit.RData")
+save.image("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/SelectionParameterFit_1000G.RData")
