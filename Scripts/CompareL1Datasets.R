@@ -38,7 +38,7 @@ L1base_GR <- GRanges(seqnames = paste("chr", L1base$Chr, sep = ""),
     ranges = IRanges(start = pmin(L1base$Start, L1base$End),
                      end   = pmax(L1base$Start, L1base$End)))
 
-# Read in data
+# Read in eul1db data
 Families    <- read.delim("D:/L1polymORF/Data/eul1db_Family.txt", skip = 5)
 Individuals <- read.delim("D:/L1polymORF/Data/eul1db_Individuals.txt", skip = 5)
 Methods     <- read.delim("D:/L1polymORF/Data/eul1db_Methods.txt", skip = 5)
@@ -63,6 +63,10 @@ SRIP_GR <- GRanges(seqnames = paste("chr", SRIP$chromosome, sep = ""),
                                     end = pmax(SRIP$g_start, SRIP$g_stop)))
 hist(width(MRIP_GR), breaks = seq(0, 50000, 100), xlim = c(0, 7000))
 
+# Read in table by Kuhn et al. 
+L1Kuhn2014 <- read.csv("D:/L1polymORF/Data/Kuhn2014PNAS_TableS2.csv")
+L1Kuhn2014_GR <- makeGRangesFromDataFrame(L1Kuhn2014)
+
 ##############
 # Check overlap with MRIP
 ##############
@@ -77,6 +81,7 @@ chisq.test(blnL1CatInMRIP, blnCatInRef)
 # Find overlap between 1000 genome L1  and MRIP
 blnL1_100GInMRIP <- overlapsAny(L1_1000G_GR_hg19, MRIP_GR)
 cat("Proportion of 1000 Genome L1 in MRIP:", sum(blnL1_100GInMRIP) /length(blnL1_100GInMRIP))
+cat("Proportion of MRIP L1 in 1000 Genomex :", sum(blnL1_100GInMRIP) /length(MRIP_GR))
 length(L1_1000G_GR_hg19)
 L1_1000G_reduced$InsLength[blnL1_100GInMRIP]
 
@@ -126,3 +131,15 @@ NrMapped <- sapply(L1base_GRList_hg19, length)
 idxUnique <- which(NrMapped == 1)
 L1base_GR_hg19   <- unlist(L1base_GRList_hg19[idxUnique])
 blnL1baseIn1000G <- overlapsAny(L1base_GR_hg19, L1_1000G_GR_hg19)
+
+##############
+# Check overlap of L1Kuhn2014_GR with 1000 Genomes and MRIP
+##############
+
+blnL1_KuhnIn1000G <- overlapsAny(L1Kuhn2014_GR, L1_1000G_GR_hg19)
+sum(blnL1_KuhnIn1000G)
+blnL1_KuhnInMRIP <- overlapsAny(L1Kuhn2014_GR, MRIP_GR)
+sum(blnL1_KuhnInMRIP)
+table(blnL1_KuhnIn1000G, blnL1_KuhnInMRIP)
+sum(blnL1_KuhnInMRIP | blnL1_KuhnIn1000G)
+table(L1Kuhn2014$KR_KNR)
