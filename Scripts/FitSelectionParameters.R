@@ -51,7 +51,8 @@ cat("done!\n")
 # of Selection coefficients
 GenerateAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
                                NrRep = 10^4, NrSamples = 10^3){
-  
+  cat("Simulating allele frequencies with Gshape =", Gshape, 
+      "and GSscale = ", GSscale, " ....")
   # Create a vector of replicated selection coefficients
   PCoeff  <- rgamma(NrRep, shape = Gshape, scale = GSscale)
   
@@ -60,11 +61,13 @@ GenerateAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
   
   # Loop over generations and calculate new allele frequencies
   for (i in 1:NrGen){
+    if (any(is.na(AlleleFreq))) browser()
     SampleProbs <- AlleleFreq * PCoeff / (1 + AlleleFreq * (PCoeff - 1) )
     AlleleFreq  <- rbinom(length(SampleProbs), 2*n, SampleProbs) / (2*n)
     AlleleFreq  <- pmin(1 - 1/(2*n), AlleleFreq)
     AlleleFreq  <- pmax(1/(2*n), AlleleFreq)
   }
+  cat("done!\n")
   sample(AlleleFreq, NrSamples, prob = AlleleFreq)
 }
 
@@ -78,13 +81,18 @@ DiffAlleleFreqKS <- function(ObservedFreq, Gshape, GSscale, n = 10^4, NrGen = 10
                                  NrRep = NrRep, NrSamples = NrSamples)
   
   # Calculate Kolmogorov-Smirnov statistic for the difference
+  cat("Calculating Kolmogorov-Smirnov test\n\n")
   ks.test(AlleleFreq, ObservedFreq)$statistic
 }
 DiffAlleleFreqKS(MRIP$pseudoallelefreq,70, 1/100, 100)
 DiffAlleleFreqKS(MRIP$pseudoallelefreq,10^(3), 10^(-3), 10)
 
 # Find optimal shape, scale and population size
-OptPar <- optim(par = c(70, 1/100, 100), fn = function(x) {
-  DiffAlleleFreqKS(MRIP$pseudoallelefreq, Gshape = x[1], GSscale = x[2], n = x[3])},
+OptParN1000 <- optim(par = c(70, 1/100), fn = function(x) {
+  DiffAlleleFreqKS(MRIP$pseudoallelefreq, Gshape = x[1], GSscale = x[2], n = 1000)},
+  lower = c(10^(-3), 10^(-9), 10)
+)
+OptParN100 <- optim(par = c(70, 1/100), fn = function(x) {
+  DiffAlleleFreqKS(MRIP$pseudoallelefreq, Gshape = x[1], GSscale = x[2], n = 100)},
   lower = c(10^(-3), 10^(-6), 10)
 )
