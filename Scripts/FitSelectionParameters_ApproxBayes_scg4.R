@@ -52,46 +52,37 @@ MRIP <- MRIP[MRIP$subgroup == "L1-Ta", ]
 # Test whether full-length and fragment L1 have different frequency
 idxFull  <- which(MRIP$integrity == "full-length")
 blnFragm <- MRIP$integrity %in% c("5prime-truncated", "3prime-truncated")
-ks.test(MRIP$pseudoallelefreq[idxFull], MRIP$pseudoallelefreq[blnFragm])
-var(MRIP$pseudoallelefreq[idxFull])
-var(MRIP$pseudoallelefreq[blnFragm])
-mean(MRIP$pseudoallelefreq[idxFull])
-mean(MRIP$pseudoallelefreq[blnFragm])
-hist(MRIP$pseudoallelefreq[idxFull], breaks = seq(0, 0.1, 0.0005))
-hist(MRIP$pseudoallelefreq[blnFragm], breaks = seq(0, 0.1, 0.0005))
 
 # Load L1 catalog GenomicRanges
 load("/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/L1CatalogGRanges.RData")
 load('/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/GRanges_L1_1000Genomes.RData')
-cor.test(L1Catalogue$Allele_frequency_Num, L1Catalogue$ActivityNum)
-sum(!is.na(L1Catalogue$Allele_frequency_Num))
 
 # Get frequency of full-length and fragment L1 in 1000 genome data
 FreqFull_1000G  <- L1_1000G_reduced$Frequency[which(L1_1000G_reduced$InsLength > 6000)]
 FreqFragm_1000G <- L1_1000G_reduced$Frequency[which(L1_1000G_reduced$InsLength <= 5900)]
 
-# Get the distance between catalog and 1000 Genome L1
-DistCat2_1000G <- Dist2Closest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
-DistCat2_1000G_hg19 <- Dist2Closest(L1CatalogGR_hg19, L1_1000G_GR_hg19)
-
-# Get indices of 1000 Genome and catalog elements that match
-idx1000G <- nearest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
-L1CatalogMatch1000G <- L1CatalogL1Mapped[DistCat2_1000G < 100, ]
-idx1000GMatchCat    <- idx1000G[DistCat2_1000G < 100]
-
-# Result for distribution of catalog elements
-blnCatFreq      <- !is.na(L1Catalogue$Allele_frequency_Num)
-blnCatAct       <- L1Catalogue$ActivityNum > 0
-blnCatFreq1000G <- is.na(L1CatalogMatch1000G$Allele_frequency)
-blnCatAct1000G  <- L1CatalogMatch1000G$ActivityNum > 0
-L1CatFreq <- c(L1Catalogue$Allele_frequency_Num[which(blnCatFreq & blnCatAct)],
-               L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G & blnCatAct1000G]])
-ks.test(L1Catalogue$Allele_frequency_Num[blnCatFreq],
-        L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G]])
-mean(L1Catalogue$Allele_frequency_Num[blnCatFreq])
-mean(L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G]])
-hist(L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G]])
-mean(L1CatFreq)
+# # Get the distance between catalog and 1000 Genome L1
+# DistCat2_1000G <- Dist2Closest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
+# DistCat2_1000G_hg19 <- Dist2Closest(L1CatalogGR_hg19, L1_1000G_GR_hg19)
+# 
+# # Get indices of 1000 Genome and catalog elements that match
+# idx1000G <- nearest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
+# L1CatalogMatch1000G <- L1CatalogL1Mapped[DistCat2_1000G < 100, ]
+# idx1000GMatchCat    <- idx1000G[DistCat2_1000G < 100]
+# 
+# # Result for distribution of catalog elements
+# blnCatFreq      <- !is.na(L1Catalogue$Allele_frequency_Num)
+# blnCatAct       <- L1Catalogue$ActivityNum > 0
+# blnCatFreq1000G <- is.na(L1CatalogMatch1000G$Allele_frequency)
+# blnCatAct1000G  <- L1CatalogMatch1000G$ActivityNum > 0
+# L1CatFreq <- c(L1Catalogue$Allele_frequency_Num[which(blnCatFreq & blnCatAct)],
+#                L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G & blnCatAct1000G]])
+# ks.test(L1Catalogue$Allele_frequency_Num[blnCatFreq],
+#         L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G]])
+# mean(L1Catalogue$Allele_frequency_Num[blnCatFreq])
+# mean(L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G]])
+# hist(L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G]])
+# mean(L1CatFreq)
 
 cat("done!\n")
 
