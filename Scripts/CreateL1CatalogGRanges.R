@@ -1,7 +1,10 @@
 # The script below reads in L1 catalog, creates genomic ranges and saves them
 
+# Load packages
+library(rtracklayer)
+
 # Path to L1 catalogue file (Created in script AddColumns2L1Catalog.R)
-L1CataloguePath <- "D:/L1polymORF/Data/L1CatalogExtended.csv"
+L1CataloguePath   <- "D:/L1polymORF/Data/L1CatalogExtended.csv"
 L1CatalogGROutput <- "D:/L1polymORF/Data/L1CatalogGRanges.RData"
 
 # Read in table with known L1 

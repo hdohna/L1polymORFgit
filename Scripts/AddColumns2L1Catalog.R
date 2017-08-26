@@ -9,6 +9,9 @@ L1Catalog$ActivityNum <- L1Catalog$Activity
 L1Catalog$ActivityNum <- gsub("<", "", L1Catalog$ActivityNum)
 L1Catalog$ActivityNum <- as.numeric(L1Catalog$ActivityNum)
 
+# Add numeric allele frequency
+L1Catalog$Allele_frequency_Num <- as.numeric(L1Catalog$Allele_frequency)
+
 # Add boolean variable indicating L1s in reference genopme
 L1Catalog$blnInRef <- (L1Catalog$end_HG38 - L1Catalog$start_HG38) > 6000 
 
