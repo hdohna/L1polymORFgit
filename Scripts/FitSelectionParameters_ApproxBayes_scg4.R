@@ -235,7 +235,7 @@ ResultList2Full_1000G <- ExploreGrid(FreqFull_1000G,
 #                               proPs = seq(0.7, 0.9, 0.001))
 # 
 # Results for distribution of fragment L1
-ResultList2Full_1000G <- ExploreGrid(FreqFragm_1000G,
+ResultList2Fragm_1000G <- ExploreGrid(FreqFragm_1000G,
                                aValsBasic = seq(70, 100, 2),
                                proPs = seq(0.7, 0.9, 0.001))
 #dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FragmFitDistnPlot.pdf")
