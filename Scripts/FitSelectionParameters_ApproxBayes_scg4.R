@@ -29,6 +29,10 @@ NrGen <- 1000
 Gshape = 90
 GSscale = 1/100
 
+# Maximum frequency (because high frequency insertions are in reference but not 
+# 1000 genomes)
+MaxF <- 0.5
+
 # Plot gamma distn for comparison
 xVals <- seq(0, 2, 0.01)
 plot(xVals, dgamma(xVals, shape = Gshape, scale = GSscale))
@@ -95,7 +99,7 @@ cat("done!\n")
 # Function to generate allele frequencies based on parameters of a distribution
 # of Selection coefficients
 GenerateAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
-                               NrRep = 10^4, NrSamples = 10^3){
+                               NrRep = 10^4, NrSamples = 10^3, MaxFreq = 0.5){
   cat("Simulating allele frequencies with Gshape =", Gshape, 
       "and GSscale = ", GSscale, " ....")
   # Create a vector of replicated selection coefficients
@@ -113,33 +117,41 @@ GenerateAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
     AlleleFreq  <- pmax(1/(2*n), AlleleFreq)
   }
   cat("done!\n")
-  sample(AlleleFreq, NrSamples, prob = AlleleFreq)
+  AlleleFreqProb <- AlleleFreq
+  AlleleFreqProb[AlleleFreqProb >= MaxFreq] <- 0
+  sample(AlleleFreq, NrSamples, prob = AlleleFreqProb)
 }
 
 # Function to calculate Kolmogorov-Smirnov Statistic for the difference between
 # simulated and observed frequencies.
 DiffAlleleFreqKS <- function(ObservedFreq, Gshape, GSscale, n = 10^4, NrGen = 10^3,
-                             NrRep = 10^4, NrSamples = 10^3){ 
+                             NrRep = 10^4, NrSamples = 10^3, MaxFreq = 0.5){ 
    
   # Simulate allele frequencies
   AlleleFreq <- GenerateAlleleFreq(Gshape, GSscale, n = n, NrGen = NrGen,
-                                 NrRep = NrRep, NrSamples = NrSamples)
+                                 NrRep = NrRep, NrSamples = NrSamples,
+                                 MaxFreq = MaxFreq)
   
   # Calculate Kolmogorov-Smirnov statistic for the difference
   cat("Calculating Kolmogorov-Smirnov test\n\n")
+  ObservedFreq <- ObservedFreq[ObservedFreq < MaxFreq]
   ks.test(AlleleFreq, ObservedFreq)$statistic
 }
 
 # Function to calculate differences in quantiles between simulated and 
 # observed frequencies.
 DiffAlleleFreq_Quant <- function(ObservedFreq, Gshape, GSscale, n = 10^4, NrGen = 10^3,
-                             NrRep = 10^4, NrSamples = 10^3, ProbV = seq(0.05, 0.95, 0.1)){ 
+                             NrRep = 10^4, NrSamples = 10^3, 
+                             ProbV = seq(0.05, 0.95, 0.1),
+                             MaxFreq = 0.5){ 
   
   # Simulate allele frequencies
   AlleleFreq <- GenerateAlleleFreq(Gshape, GSscale, n = n, NrGen = NrGen,
-                                   NrRep = NrRep, NrSamples = NrSamples)
+                                   NrRep = NrRep, NrSamples = NrSamples,
+                                   MaxFreq = MaxFreq)
   
   # Determine simulated and observed quantiles
+  ObservedFreq <- ObservedFreq[ObservedFreq < MaxFreq]
   QuantSim <- quantile(AlleleFreq,   ProbV)
   QuantObs <- quantile(ObservedFreq, ProbV)
   
@@ -154,6 +166,7 @@ ExploreGrid <- function(ObservedFreq,
                         aValsBasic = seq(1, 101, 10),
                         proPs      = seq(0.5, 1.5, 0.1),
                         PopSize  = 10^4,
+                        MaxFreq = 0.5,
                         blnPlot = T){
   
   # Repeat proportion (fitness) values so that each alpha gets combined with
@@ -164,7 +177,8 @@ ExploreGrid <- function(ObservedFreq,
   
   # Evaluate difference according to Kolmogorov-Smirnov statistic 
   DiffKS <- sapply(1:length(aVals), function(i){
-    DiffAlleleFreqKS(ObservedFreq, aVals[i], bVals[i], n = PopSize)
+    DiffAlleleFreqKS(ObservedFreq, aVals[i], bVals[i], n = PopSize,
+                     MaxFreq = MaxFreq)
   })
   
   # get indices of minimum difference per alpha value
@@ -212,6 +226,7 @@ ExploreGrid_Quant <- function(ObservedFreq,
                         proPs      = seq(0.5, 1.5, 0.1),
                         PopSize  = 10^4,
                         blnPlot = T,
+                        MaxFreq = 0.5,
                         ProbV = seq(0.05, 0.95, 0.1),
                         Epsilon = 0.1){
   
@@ -224,7 +239,7 @@ ExploreGrid_Quant <- function(ObservedFreq,
   # Evaluate difference according to Kolmogorov-Smirnov statistic 
   DiffQuant <- sapply(1:length(aVals), function(i){
     DiffAlleleFreq_Quant(ObservedFreq, aVals[i], bVals[i], n = PopSize,
-                         ProbV = ProbV)
+                         ProbV = ProbV, MaxFreq = MaxFreq)
   })
   AbsDiffQuant  <- abs(DiffQuant)
   DiffQuantMean <- colMeans(AbsDiffQuant)
@@ -315,7 +330,8 @@ cat("******  Exploring fine grid    ***********\n\n")
 # Results for distribution of full-length L1
 ResultList2Full_1000G <- ExploreGrid(FreqFull_1000G,
                            aValsBasic = seq(50, 200, 5),
-                           proPs = seq(0.75, 0.9, 0.001))
+                           proPs = seq(0.75, 0.9, 0.001),
+                           MaxFreq = MaxF)
 #dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FullFitDistnPlot.pdf")
 
 # Result for distribution of catalog elements
@@ -329,7 +345,8 @@ ResultList2Full_1000G <- ExploreGrid(FreqFull_1000G,
 # Results for distribution of fragment L1
 ResultList2Fragm_1000G <- ExploreGrid(FreqFragm_1000G,
                                       aValsBasic = seq(50, 200, 5),
-                                      proPs = seq(0.75, 0.9, 0.001))
+                                      proPs = seq(0.75, 0.9, 0.001),
+                                      MaxFreq = MaxF)
 #dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FragmFitDistnPlot.pdf")
 
 #########
