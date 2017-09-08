@@ -26,7 +26,7 @@ NrRep <- 10000
 NrGen <- 1000
 
 # alpha and selection values for fine grid
-aValsBasic_fineGrid = seq(1, 201, 5)
+aValsBasic_fineGrid = seq(51, 201, 5)
 propS_fineGrid = seq(0.70, 1.3, 0.003)
 
 # Parameters of the gamma distribution of selection coefficients
@@ -65,9 +65,23 @@ blnFragm <- MRIP$integrity %in% c("5prime-truncated", "3prime-truncated")
 load("/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/L1CatalogGRanges.RData")
 load('/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/GRanges_L1_1000Genomes.RData')
 
+# Read in info about reference L1
+L1Ref <- read.csv("/srv/gsfs0/projects/levinson/hzudohna/RefSeqData/repeatsHg19_L1HS.csv")
+L1Ref$Width  <- L1Ref$genoEnd - L1Ref$genoStart
+L1RefNrFull  <- sum(L1Ref$Width >  6000, na.rm = T)
+L1RefNrFragm <- sum(L1Ref$Width <= 5900, na.rm = T)
+
 # Get frequency of full-length and fragment L1 in 1000 genome data
 FreqFull_1000G  <- L1_1000G_reduced$Frequency[which(L1_1000G_reduced$InsLength > 6000)]
 FreqFragm_1000G <- L1_1000G_reduced$Frequency[which(L1_1000G_reduced$InsLength <= 5900)]
+
+# Add frequency of one for all insertions above maximum frequency and reference 
+# insertions
+NrAboveFull     <- sum(FreqFull_1000G >= MaxF)  + L1RefNrFull
+NrAboveFragm    <- sum(FreqFragm_1000G >= MaxF) + L1RefNrFragm
+FreqFull_1000G  <- c(FreqFull_1000G[FreqFull_1000G < MaxF], rep(1, NrAboveFull))
+FreqFragm_1000G <- c(FreqFragm_1000G[FreqFragm_1000G < MaxF], 
+                      rep(1, NrAboveFragm))
 
 # # Get the distance between catalog and 1000 Genome L1
 # DistCat2_1000G <- Dist2Closest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
@@ -121,8 +135,9 @@ GenerateAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
     AlleleFreq  <- pmax(1/(2*n), AlleleFreq)
   }
   cat("done!\n")
-  AlleleFreqProb <- AlleleFreq
-  AlleleFreqProb[AlleleFreqProb >= MaxFreq] <- 0
+  AlleleFreqProb                            <- AlleleFreq
+  AlleleFreq[AlleleFreq >= MaxFreq]         <- 1 
+  AlleleFreqProb[AlleleFreqProb >= MaxFreq] <- sum(AlleleFreqProb[AlleleFreqProb >= MaxFreq])
   sample(AlleleFreq, NrSamples, prob = AlleleFreqProb)
 }
 
