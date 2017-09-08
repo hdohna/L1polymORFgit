@@ -136,6 +136,24 @@ DiffAlleleFreqKS <- function(ObservedFreq, Gshape, GSscale, n = 10^4, NrGen = 10
   ks.test(AlleleFreq, ObservedFreq)$statistic
 }
 
+# Function to calculate differences in quantiles between simulated and 
+# observed frequencies.
+DiffAlleleFreq_Quant <- function(ObservedFreq, Gshape, GSscale, n = 10^4, NrGen = 10^3,
+                                 NrRep = 10^4, NrSamples = 10^3, ProbV = seq(0.05, 0.95, 0.1)){ 
+  
+  # Simulate allele frequencies
+  AlleleFreq <- GenerateAlleleFreq(Gshape, GSscale, n = n, NrGen = NrGen,
+                                   NrRep = NrRep, NrSamples = NrSamples)
+  
+  # Determine simulated and observed quantiles
+  QuantSim <- quantile(AlleleFreq,   ProbV)
+  QuantObs <- quantile(ObservedFreq, ProbV)
+  
+  # Calculate Kolmogorov-Smirnov statistic for the difference
+  cat("Calculating quantile differences\n\n")
+  QuantSim - QuantObs
+}
+
 # Function to explore a grid of alpha values and fitness values
 # Grid of parameter values
 ExploreGrid <- function(ObservedFreq, 
@@ -193,6 +211,67 @@ ExploreGrid <- function(ObservedFreq,
        idxMinDiffKS = idxMinDiffKS)
 }
 
+# Function to explore a grid of alpha values and fitness values
+# and calculate qunatile differences
+ExploreGrid_Quant <- function(ObservedFreq, 
+                              aValsBasic = seq(1, 101, 10),
+                              proPs      = seq(0.5, 1.5, 0.1),
+                              PopSize  = 10^4,
+                              blnPlot = T,
+                              ProbV = seq(0.05, 0.95, 0.1)){
+  
+  # Repeat proportion (fitness) values so that each alpha gets combined with
+  # the full range of fitness values
+  proPsRep   <- rep(proPs, length(aValsBasic))
+  aVals      <- rep(aValsBasic, each = length(proPs))
+  bVals      <- 1/aVals * proPsRep
+  
+  # Evaluate difference according to Kolmogorov-Smirnov statistic 
+  DiffQuant <- sapply(1:length(aVals), function(i){
+    DiffAlleleFreq_Quant(ObservedFreq, aVals[i], bVals[i], n = PopSize,
+                         ProbV = ProbV)
+  })
+  DiffQuantMean <- rowMeans(DiffQuant)
+  
+  # get indices of minimum difference per alpha value
+  idxMinDiffQuantMean <- sapply(aValsBasic, function (x) {
+    idxA <- which(aVals == x)
+    idxMin <- which.min(DiffQuantMean[idxA])
+    idxA[idxMin]})
+  
+  
+  if (blnPlot){
+    par(mfrow = c(2, 2))
+    # Plot difference vs alpha
+    Cols <- rainbow(length(proPs))
+    plot(aVals, DiffQuantMean, xlab = "alpha")
+    for (i in 1:length(Cols)){
+      blnProps <- proPsRep == proPs[i]
+      points(aVals[blnProps], DiffQuantMean[blnProps], col = Cols[i])
+    }
+    legend("bottomright", legend = proPs, col = Cols, pch = 1, cex = 0.5)
+    
+    # Plot difference vs selection coefficient
+    Cols <- rainbow(length(aValsBasic))
+    plot(proPsRep, DiffQuantMean, xlab = "Mean fitness")
+    for (i in 1:length(Cols)){
+      blnA <- aVals == aValsBasic[i]
+      points(proPsRep[blnA], DiffQuantMean[blnA], col = Cols[i])
+    }
+    legend("bottomright", legend = aValsBasic, col = Cols, pch = 1, cex = 0.5)
+    
+    # Plot minimum difference per alpha
+    plot(aVals[idxMinDiffQuantMean], DiffQuantMean[idxMinDiffQuantMean], xlab = "alpha")
+    
+  }
+  
+  
+  # Return values in a list
+  list(proPsRep  = proPsRep, aVals = aVals, bVals = bVals, 
+       DiffQuant = DiffQuant, DiffQuantMean = DiffQuantMean,
+       idxMinDiffQuantMean = idxMinDiffQuantMean)
+}
+
 ###################################################
 #                                                 #
 #  Explore fit for simulations                    #
@@ -205,7 +284,7 @@ ExploreGrid <- function(ObservedFreq,
 
 cat("******  Exploring coarse grid    ***********\n\n")
 # Results for distribution of full-length L1
-ResultList1Full <- ExploreGrid(MRIP$pseudoallelefreq[idxFull],
+ResultList1Full <- ExploreGrid_Quant(MRIP$pseudoallelefreq[idxFull],
                            aValsBasic = seq(1, 101, 10),
                            proPs = seq(0.2, 1.5, 0.1))
 
@@ -230,7 +309,7 @@ cat("******  Exploring fine grid    ***********\n\n")
 ResultList2Full <- ExploreGrid(MRIP$pseudoallelefreq[idxFull],
                            aValsBasic = seq(70, 100, 2),
                    proPs = seq(0.8, 0.9, 0.001))
-#dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FullFitDistnPlot.pdf")
+#dev.copy2pdf("D:/L1polymORF/Data/L1FullFitDistnPlot.pdf")
 
 # Result for distribution of catalog elements
 ResultList2Cat <- ExploreGrid(L1CatFreq,
@@ -244,10 +323,10 @@ ResultList2Cat <- ExploreGrid(L1_1000G_reduced$Frequency[idx1000GMatchCat],
 ResultList2Full <- ExploreGrid(MRIP$pseudoallelefreq[blnFragm],
                                aValsBasic = seq(70, 100, 2),
                                proPs = seq(0.7, 0.9, 0.001))
-#dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FragmFitDistnPlot.pdf")
+#dev.copy2pdf("D:/L1polymORF/Data/L1FragmFitDistnPlot.pdf")
 
 #########
 # Save results
 #########
 
-save.image("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/SelectionParameterFit.RData")
+save.image("D:/L1polymORF/Data/SelectionParameterFit.RData")
