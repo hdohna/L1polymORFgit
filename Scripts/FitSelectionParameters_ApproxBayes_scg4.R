@@ -25,13 +25,17 @@ NrRep <- 10000
 # Set the number of generations
 NrGen <- 1000
 
+# alpha and selection values for fine grid
+aValsBasic_fineGrid = seq(1, 201, 5)
+propS_fineGrid = seq(0.70, 1.3, 0.003)
+
 # Parameters of the gamma distribution of selection coefficients
 Gshape = 90
 GSscale = 1/100
 
 # Maximum frequency (because high frequency insertions are in reference but not 
 # 1000 genomes)
-MaxF <- 0.5
+MaxF <- 0.6
 
 # Plot gamma distn for comparison
 xVals <- seq(0, 2, 0.01)
@@ -329,23 +333,14 @@ cat("******  Exploring coarse grid    ***********\n\n")
 cat("******  Exploring fine grid    ***********\n\n")
 # Results for distribution of full-length L1
 ResultList2Full_1000G <- ExploreGrid(FreqFull_1000G,
-                           aValsBasic = seq(50, 200, 5),
-                           proPs = seq(0.75, 0.9, 0.001),
-                           MaxFreq = MaxF)
-#dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FullFitDistnPlot.pdf")
+                                     aValsBasic = aValsBasic_fineGrid,
+                                     proPs = propS_fineGrid,
+                                     MaxFreq = MaxF)
 
-# Result for distribution of catalog elements
-# ResultList2Cat <- ExploreGrid(L1CatFreq,
-#                               aValsBasic = seq(20, 70, 10),
-#                               proPs = seq(0.7, 0.9, 0.005))
-# ResultList2Cat <- ExploreGrid(L1_1000G_reduced$Frequency[idx1000GMatchCat],
-#                               aValsBasic = seq(20, 70, 10),
-#                               proPs = seq(0.7, 0.9, 0.001))
-# 
 # Results for distribution of fragment L1
 ResultList2Fragm_1000G <- ExploreGrid(FreqFragm_1000G,
-                                      aValsBasic = seq(50, 200, 5),
-                                      proPs = seq(0.75, 0.9, 0.001),
+                                      aValsBasic = aValsBasic_fineGrid,
+                                      proPs = propS_fineGrid,
                                       MaxFreq = MaxF)
 #dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FragmFitDistnPlot.pdf")
 
