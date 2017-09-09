@@ -29,8 +29,8 @@ NrRep <- 10000
 NrGen <- 1000
 
 # alpha and selection values for fine grid
-aValsBasic_fineGrid = seq(51, 301, 5)
-propS_fineGrid = seq(0.70, 0.9, 0.005)
+aValsBasic_fineGrid = seq(51, 401, 10)
+propS_fineGrid = seq(0.70, 0.9, 0.01)
 
 # Parameters of the gamma distribution of selection coefficients
 Gshape = 90
