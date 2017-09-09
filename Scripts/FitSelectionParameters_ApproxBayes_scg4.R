@@ -30,7 +30,7 @@ NrGen <- 1000
 
 # alpha and selection values for fine grid
 aValsBasic_fineGrid = seq(51, 401, 10)
-propS_fineGrid = seq(0.70, 0.9, 0.01)
+propS_fineGrid = seq(0.70, 1, 0.02)
 
 # Parameters of the gamma distribution of selection coefficients
 Gshape = 90
