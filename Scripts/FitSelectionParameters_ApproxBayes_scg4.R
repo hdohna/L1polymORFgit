@@ -366,4 +366,4 @@ ResultList2Fragm_1000G <- ExploreGrid(FreqFragm_1000G,
 # Save results
 #########
 
-save.image()
+save.image(OutPath)
