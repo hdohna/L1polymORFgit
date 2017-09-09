@@ -17,7 +17,7 @@
 ##########################################
 
 # Path to ouput file
-OutPath <- "/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/SelectionParameterFit_1000G_maxF0.6_Acc1.RData"
+OutPath <- "/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/SelectionParameterFit_1000G_maxF0.6_Acc_Quant.RData"
 
 # Set population size
 n = 10^4
@@ -29,7 +29,7 @@ NrRep <- 10000
 NrGen <- 1000
 
 # alpha and selection values for fine grid
-aValsBasic_fineGrid = seq(51, 401, 10)
+aValsBasic_fineGrid = seq(51, 501, 10)
 propS_fineGrid = seq(0.70, 1, 0.02)
 
 # Parameters of the gamma distribution of selection coefficients
@@ -40,9 +40,8 @@ GSscale = 1/100
 # 1000 genomes)
 MaxF <- 0.6
 
-# Plot gamma distn for comparison
-xVals <- seq(0, 2, 0.01)
-plot(xVals, dgamma(xVals, shape = Gshape, scale = GSscale))
+# Probability vector for quantiles
+PV <- seq(0, 0.40, 0.1)
 
 
 ##########################################
@@ -85,29 +84,6 @@ NrAboveFragm    <- sum(FreqFragm_1000G >= MaxF) + L1RefNrFragm
 FreqFull_1000G  <- c(FreqFull_1000G[FreqFull_1000G < MaxF], rep(1, NrAboveFull))
 FreqFragm_1000G <- c(FreqFragm_1000G[FreqFragm_1000G < MaxF], 
                       rep(1, NrAboveFragm))
-
-# # Get the distance between catalog and 1000 Genome L1
-# DistCat2_1000G <- Dist2Closest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
-# DistCat2_1000G_hg19 <- Dist2Closest(L1CatalogGR_hg19, L1_1000G_GR_hg19)
-# 
-# # Get indices of 1000 Genome and catalog elements that match
-# idx1000G <- nearest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
-# L1CatalogMatch1000G <- L1CatalogL1Mapped[DistCat2_1000G < 100, ]
-# idx1000GMatchCat    <- idx1000G[DistCat2_1000G < 100]
-# 
-# # Result for distribution of catalog elements
-# blnCatFreq      <- !is.na(L1Catalogue$Allele_frequency_Num)
-# blnCatAct       <- L1Catalogue$ActivityNum > 0
-# blnCatFreq1000G <- is.na(L1CatalogMatch1000G$Allele_frequency)
-# blnCatAct1000G  <- L1CatalogMatch1000G$ActivityNum > 0
-# L1CatFreq <- c(L1Catalogue$Allele_frequency_Num[which(blnCatFreq & blnCatAct)],
-#                L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G & blnCatAct1000G]])
-# ks.test(L1Catalogue$Allele_frequency_Num[blnCatFreq],
-#         L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G]])
-# mean(L1Catalogue$Allele_frequency_Num[blnCatFreq])
-# mean(L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G]])
-# hist(L1_1000G_reduced$Frequency[idx1000GMatchCat[blnCatFreq1000G]])
-# mean(L1CatFreq)
 
 cat("done!\n")
 
@@ -189,7 +165,7 @@ ExploreGrid <- function(ObservedFreq,
                         proPs      = seq(0.5, 1.5, 0.1),
                         PopSize  = 10^4,
                         MaxFreq = 0.5,
-                        blnPlot = T){
+                        blnPlot = F){
   
   # Repeat proportion (fitness) values so that each alpha gets combined with
   # the full range of fitness values
@@ -247,7 +223,7 @@ ExploreGrid_Quant <- function(ObservedFreq,
                         aValsBasic = seq(1, 101, 10),
                         proPs      = seq(0.5, 1.5, 0.1),
                         PopSize  = 10^4,
-                        blnPlot = T,
+                        blnPlot = F,
                         MaxFreq = 0.5,
                         ProbV = seq(0.05, 0.95, 0.1),
                         Epsilon = 0.1){
@@ -350,17 +326,18 @@ cat("******  Exploring coarse grid    ***********\n\n")
 
 cat("******  Exploring fine grid    ***********\n\n")
 # Results for distribution of full-length L1
-ResultList2Full_1000G <- ExploreGrid(FreqFull_1000G,
+ResultList2Full_1000G <- ExploreGrid_Quant(FreqFull_1000G,
                                      aValsBasic = aValsBasic_fineGrid,
                                      proPs = propS_fineGrid,
-                                     MaxFreq = MaxF)
+                                     MaxFreq = MaxF,
+                                     ProbV = PV)
 
 # Results for distribution of fragment L1
-ResultList2Fragm_1000G <- ExploreGrid(FreqFragm_1000G,
+ResultList2Fragm_1000G <- ExploreGrid_Quant(FreqFragm_1000G,
                                       aValsBasic = aValsBasic_fineGrid,
                                       proPs = propS_fineGrid,
-                                      MaxFreq = MaxF)
-#dev.copy2pdf("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/L1FragmFitDistnPlot.pdf")
+                                      MaxFreq = MaxF,
+                                      ProbV = PV)
 
 #########
 # Save results
