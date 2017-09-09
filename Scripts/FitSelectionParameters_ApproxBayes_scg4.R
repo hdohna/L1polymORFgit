@@ -17,7 +17,7 @@
 ##########################################
 
 # Path to ouput file
-OutPath <- "/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/SelectionParameterFit_1000G_maxF0.6_Acc.RData"
+OutPath <- "/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/SelectionParameterFit_1000G_maxF0.6_Acc1.RData"
 
 # Set population size
 n = 10^4
