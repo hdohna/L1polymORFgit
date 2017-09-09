@@ -16,6 +16,9 @@
 #                                        #
 ##########################################
 
+# Path to ouput file
+OutPath <- "/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/SelectionParameterFit_1000G_maxF0.6_Acc.RData"
+
 # Set population size
 n = 10^4
 
@@ -26,8 +29,8 @@ NrRep <- 10000
 NrGen <- 1000
 
 # alpha and selection values for fine grid
-aValsBasic_fineGrid = seq(51, 201, 5)
-propS_fineGrid = seq(0.70, 1.3, 0.003)
+aValsBasic_fineGrid = seq(51, 301, 5)
+propS_fineGrid = seq(0.70, 0.9, 0.005)
 
 # Parameters of the gamma distribution of selection coefficients
 Gshape = 90
@@ -131,7 +134,7 @@ GenerateAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
     if (any(is.na(AlleleFreq))) browser()
     SampleProbs <- AlleleFreq * PCoeff / (1 + AlleleFreq * (PCoeff - 1) )
     AlleleFreq  <- rbinom(length(SampleProbs), 2*n, SampleProbs) / (2*n)
-    AlleleFreq  <- pmin(1 - 1/(2*n), AlleleFreq)
+#    AlleleFreq  <- pmin(1 - 1/(2*n), AlleleFreq)
     AlleleFreq  <- pmax(1/(2*n), AlleleFreq)
   }
   cat("done!\n")
@@ -363,4 +366,4 @@ ResultList2Fragm_1000G <- ExploreGrid(FreqFragm_1000G,
 # Save results
 #########
 
-save.image("/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/SelectionParameterFit_1000G.RData")
+save.image()
