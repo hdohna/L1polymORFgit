@@ -67,6 +67,34 @@ load('D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData')
 cor.test(L1Catalogue$Allele_frequency_Num, L1Catalogue$ActivityNum)
 sum(!is.na(L1Catalogue$Allele_frequency_Num))
 
+# Read in info about reference L1
+L1Ref <- read.csv("D:/L1polymORF/Data/repeatsHg19_L1HS.csv")
+L1Ref$Width  <- L1Ref$genoEnd - L1Ref$genoStart
+L1RefNrFull  <- sum(L1Ref$Width >  6000, na.rm = T)
+L1RefNrFragm <- sum(L1Ref$Width <= 5900, na.rm = T)
+
+# Get frequency of full-length and fragment L1 in 1000 genome data
+FreqFull_1000G  <- L1_1000G_reduced$Frequency[which(L1_1000G_reduced$InsLength > 6000)]
+FreqFragm_1000G <- L1_1000G_reduced$Frequency[which(L1_1000G_reduced$InsLength <= 5900)]
+
+
+# Add frequency of one for all insertions above maximum frequency and reference 
+# insertions
+NrAboveFull     <- sum(FreqFull_1000G >= MaxF)  + L1RefNrFull
+NrAboveFragm    <- sum(FreqFragm_1000G >= MaxF) + L1RefNrFragm
+FreqFull_1000G  <- c(FreqFull_1000G[FreqFull_1000G < MaxF], rep(1, NrAboveFull))
+FreqFragm_1000G <- c(FreqFragm_1000G[FreqFragm_1000G < MaxF], 
+                     rep(1, NrAboveFragm))
+
+# Count L1 per frequency bin
+BinBreaks <- seq(0, 1, 0.2)
+L1HistFragm <- hist(FreqFragm_1000G, breaks = BinBreaks, plot  = F)
+L1HistFull <- hist(FreqFull_1000G,   breaks = BinBreaks, plot  = F)
+par(mfrow = c(1, 1))
+plot(L1HistFragm$mids, L1HistFull$density / L1HistFragm$density)
+lines(c(0, 1), c(1, 1), lty = 2)
+
+
 # Get the distance between catalog and 1000 Genome L1
 DistCat2_1000G <- Dist2Closest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
 DistCat2_1000G_hg19 <- Dist2Closest(L1CatalogGR_hg19, L1_1000G_GR_hg19)
@@ -136,22 +164,19 @@ DiffAlleleFreqKS <- function(ObservedFreq, Gshape, GSscale, n = 10^4, NrGen = 10
   ks.test(AlleleFreq, ObservedFreq)$statistic
 }
 
-# Function to calculate differences in quantiles between simulated and 
-# observed frequencies.
-DiffAlleleFreq_Quant <- function(ObservedFreq, Gshape, GSscale, n = 10^4, NrGen = 10^3,
-                                 NrRep = 10^4, NrSamples = 10^3, ProbV = seq(0.05, 0.95, 0.1)){ 
+# Function to calculate differences in quantiles of simulated allele 
+# frequencies.
+QuantSimAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
+                               NrRep = 10^4, NrSamples = 10^3, 
+                               ProbV = seq(0.05, 0.95, 0.1)){ 
   
   # Simulate allele frequencies
   AlleleFreq <- GenerateAlleleFreq(Gshape, GSscale, n = n, NrGen = NrGen,
                                    NrRep = NrRep, NrSamples = NrSamples)
   
-  # Determine simulated and observed quantiles
-  QuantSim <- quantile(AlleleFreq,   ProbV)
-  QuantObs <- quantile(ObservedFreq, ProbV)
-  
-  # Calculate Kolmogorov-Smirnov statistic for the difference
-  cat("Calculating quantile differences\n\n")
-  QuantSim - QuantObs
+  # Calculate qunatiles for simulated frequencies
+  cat("Calculating quantiles\n\n")
+  quantile(AlleleFreq, ProbV)
 }
 
 # Function to explore a grid of alpha values and fitness values
@@ -160,7 +185,8 @@ ExploreGrid <- function(ObservedFreq,
                         aValsBasic = seq(1, 101, 10),
                         proPs      = seq(0.5, 1.5, 0.1),
                         PopSize  = 10^4,
-                        blnPlot = T){
+                        MaxFreq = 0.5,
+                        blnPlot = F){
   
   # Repeat proportion (fitness) values so that each alpha gets combined with
   # the full range of fitness values
@@ -170,7 +196,8 @@ ExploreGrid <- function(ObservedFreq,
   
   # Evaluate difference according to Kolmogorov-Smirnov statistic 
   DiffKS <- sapply(1:length(aVals), function(i){
-    DiffAlleleFreqKS(ObservedFreq, aVals[i], bVals[i], n = PopSize)
+    DiffAlleleFreqKS(ObservedFreq, aVals[i], bVals[i], n = PopSize,
+                     MaxFreq = MaxFreq)
   })
   
   # get indices of minimum difference per alpha value
@@ -217,8 +244,10 @@ ExploreGrid_Quant <- function(ObservedFreq,
                               aValsBasic = seq(1, 101, 10),
                               proPs      = seq(0.5, 1.5, 0.1),
                               PopSize  = 10^4,
-                              blnPlot = T,
-                              ProbV = seq(0.05, 0.95, 0.1)){
+                              blnPlot = F,
+                              MaxFreq = 0.5,
+                              ProbV = seq(0.05, 0.95, 0.1),
+                              Epsilon = 0.1){
   
   # Repeat proportion (fitness) values so that each alpha gets combined with
   # the full range of fitness values
@@ -227,49 +256,39 @@ ExploreGrid_Quant <- function(ObservedFreq,
   bVals      <- 1/aVals * proPsRep
   
   # Evaluate difference according to Kolmogorov-Smirnov statistic 
-  DiffQuant <- sapply(1:length(aVals), function(i){
-    DiffAlleleFreq_Quant(ObservedFreq, aVals[i], bVals[i], n = PopSize,
-                         ProbV = ProbV)
+  SimQuant <- sapply(1:length(aVals), function(i){
+    QuantSimAlleleFreq(Gshape = aVals[i], GSscale = bVals[i], n = PopSize,
+                       ProbV = ProbV)
   })
-  DiffQuantMean <- rowMeans(DiffQuant)
+  ObsQuant      <- quantile(ObservedFreq, ProbV)
+  DiffQuant     <- SimQuant - ObsQuant
+  AbsDiffQuant  <- abs(DiffQuant)
+  DiffQuantMean <- colMeans(AbsDiffQuant)
+  DiffQuantMax  <- apply(AbsDiffQuant, 2, max)
   
-  # get indices of minimum difference per alpha value
-  idxMinDiffQuantMean <- sapply(aValsBasic, function (x) {
-    idxA <- which(aVals == x)
-    idxMin <- which.min(DiffQuantMean[idxA])
-    idxA[idxMin]})
-  
-  
-  if (blnPlot){
-    par(mfrow = c(2, 2))
-    # Plot difference vs alpha
-    Cols <- rainbow(length(proPs))
-    plot(aVals, DiffQuantMean, xlab = "alpha")
-    for (i in 1:length(Cols)){
-      blnProps <- proPsRep == proPs[i]
-      points(aVals[blnProps], DiffQuantMean[blnProps], col = Cols[i])
-    }
-    legend("bottomright", legend = proPs, col = Cols, pch = 1, cex = 0.5)
-    
-    # Plot difference vs selection coefficient
-    Cols <- rainbow(length(aValsBasic))
-    plot(proPsRep, DiffQuantMean, xlab = "Mean fitness")
-    for (i in 1:length(Cols)){
-      blnA <- aVals == aValsBasic[i]
-      points(proPsRep[blnA], DiffQuantMean[blnA], col = Cols[i])
-    }
-    legend("bottomright", legend = aValsBasic, col = Cols, pch = 1, cex = 0.5)
-    
-    # Plot minimum difference per alpha
-    plot(aVals[idxMinDiffQuantMean], DiffQuantMean[idxMinDiffQuantMean], xlab = "alpha")
+  # Estimate intercept via regression
+  blnE    <- DiffQuantMax < Epsilon
+  XMat    <- t(DiffQuant)[blnE, ]
+  if (sum(blnE) > 5){
+    LMFit_a <- lm(aVals[blnE]    ~ XMat)
+    LMFit_p <- lm(proPsRep[blnE] ~ XMat)
+    aSample <- XMat %*% LMFit_a$coefficients[-1]
+    pSample <- XMat %*% LMFit_p$coefficients[-1]
+  } else {
+    warning("Not enough values crossed threshold. No regression!\n")
+    LMFit_a <- NA
+    LMFit_p <- NA
+    aSample <- NA
+    pSample <- NA
     
   }
   
-  
   # Return values in a list
   list(proPsRep  = proPsRep, aVals = aVals, bVals = bVals, 
+       SimQuant = SimQuant,
        DiffQuant = DiffQuant, DiffQuantMean = DiffQuantMean,
-       idxMinDiffQuantMean = idxMinDiffQuantMean)
+        LMFit_a = LMFit_a, LMFit_p = LMFit_p, aSample = aSample,
+       pSample = pSample)
 }
 
 ###################################################
@@ -285,8 +304,8 @@ ExploreGrid_Quant <- function(ObservedFreq,
 cat("******  Exploring coarse grid    ***********\n\n")
 # Results for distribution of full-length L1
 ResultList1Full <- ExploreGrid_Quant(MRIP$pseudoallelefreq[idxFull],
-                           aValsBasic = seq(1, 101, 10),
-                           proPs = seq(0.2, 1.5, 0.1))
+                           aValsBasic = seq(59, 60, 10),
+                           proPs = seq(0.5, 1.5, 0.5))
 
 # Result for distribution of catalog elements
 blnCatFeq <- !is.na(L1Catalogue$Allele_frequency_Num)

@@ -17,7 +17,7 @@
 ##########################################
 
 # Path to ouput file
-OutPath <- "/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/SelectionParameterFit_1000G_maxF0.6_Acc_Quant.RData"
+OutPath <- "/srv/gsfs0/projects/levinson/hzudohna/L1InsertionLocation/SelectionParameterFit_1000G_maxF0.6_Acc_Quant2.RData"
 
 # Set population size
 n = 10^4
@@ -30,7 +30,7 @@ NrGen <- 1000
 
 # alpha and selection values for fine grid
 aValsBasic_fineGrid = seq(51, 501, 10)
-propS_fineGrid = seq(0.70, 1, 0.02)
+propS_fineGrid      = seq(0.70, 1, 0.02)
 
 # Parameters of the gamma distribution of selection coefficients
 Gshape = 90
@@ -49,6 +49,7 @@ PV <- seq(0, 0.40, 0.1)
 #     Load and process data              #
 #                                        #
 ##########################################
+
 cat("Loading and processing data ... ")
 
 # Read in data on transposable elements
@@ -136,26 +137,19 @@ DiffAlleleFreqKS <- function(ObservedFreq, Gshape, GSscale, n = 10^4, NrGen = 10
   ks.test(AlleleFreq, ObservedFreq)$statistic
 }
 
-# Function to calculate differences in quantiles between simulated and 
-# observed frequencies.
-DiffAlleleFreq_Quant <- function(ObservedFreq, Gshape, GSscale, n = 10^4, NrGen = 10^3,
-                             NrRep = 10^4, NrSamples = 10^3, 
-                             ProbV = seq(0.05, 0.95, 0.1),
-                             MaxFreq = 0.5){ 
+# Function to calculate differences in quantiles of simulated allele 
+# frequencies.
+QuantSimAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
+                               NrRep = 10^4, NrSamples = 10^3, 
+                               ProbV = seq(0.05, 0.95, 0.1)){ 
   
   # Simulate allele frequencies
   AlleleFreq <- GenerateAlleleFreq(Gshape, GSscale, n = n, NrGen = NrGen,
-                                   NrRep = NrRep, NrSamples = NrSamples,
-                                   MaxFreq = MaxFreq)
+                                   NrRep = NrRep, NrSamples = NrSamples)
   
-  # Determine simulated and observed quantiles
-  ObservedFreq <- ObservedFreq[ObservedFreq < MaxFreq]
-  QuantSim <- quantile(AlleleFreq,   ProbV)
-  QuantObs <- quantile(ObservedFreq, ProbV)
-  
-  # Calculate Kolmogorov-Smirnov statistic for the difference
-  cat("Calculating quantile differences\n\n")
-  QuantSim - QuantObs
+  # Calculate qunatiles for simulated frequencies
+  cat("Calculating quantiles\n\n")
+  quantile(AlleleFreq, ProbV)
 }
 
 # Function to explore a grid of alpha values and fitness values
@@ -220,13 +214,13 @@ ExploreGrid <- function(ObservedFreq,
 # Function to explore a grid of alpha values and fitness values
 # and calculate qunatile differences
 ExploreGrid_Quant <- function(ObservedFreq, 
-                        aValsBasic = seq(1, 101, 10),
-                        proPs      = seq(0.5, 1.5, 0.1),
-                        PopSize  = 10^4,
-                        blnPlot = F,
-                        MaxFreq = 0.5,
-                        ProbV = seq(0.05, 0.95, 0.1),
-                        Epsilon = 0.1){
+                              aValsBasic = seq(1, 101, 10),
+                              proPs      = seq(0.5, 1.5, 0.1),
+                              PopSize  = 10^4,
+                              blnPlot = F,
+                              MaxFreq = 0.5,
+                              ProbV = seq(0.05, 0.95, 0.1),
+                              Epsilon = 0.1){
   
   # Repeat proportion (fitness) values so that each alpha gets combined with
   # the full range of fitness values
@@ -235,59 +229,37 @@ ExploreGrid_Quant <- function(ObservedFreq,
   bVals      <- 1/aVals * proPsRep
   
   # Evaluate difference according to Kolmogorov-Smirnov statistic 
-  DiffQuant <- sapply(1:length(aVals), function(i){
-    DiffAlleleFreq_Quant(ObservedFreq, aVals[i], bVals[i], n = PopSize,
-                         ProbV = ProbV, MaxFreq = MaxFreq)
+  SimQuant <- sapply(1:length(aVals), function(i){
+    QuantSimAlleleFreq(Gshape = aVals[i], GSscale = bVals[i], n = PopSize,
+                       ProbV = ProbV)
   })
+  ObsQuant      <- quantile(ObservedFreq, ProbV)
+  DiffQuant     <- SimQuant - ObsQuant
   AbsDiffQuant  <- abs(DiffQuant)
   DiffQuantMean <- colMeans(AbsDiffQuant)
   DiffQuantMax  <- apply(AbsDiffQuant, 2, max)
-
+  
   # Estimate intercept via regression
   blnE    <- DiffQuantMax < Epsilon
   XMat    <- t(DiffQuant)[blnE, ]
-  LMFit_a <- lm(aVals[blnE]    ~ XMat)
-  LMFit_p <- lm(proPsRep[blnE] ~ XMat)
-  aSample <- XMat %*% LMFit_a$coefficients[-1]
-  pSample <- XMat %*% LMFit_p$coefficients[-1]
-  
-  # get indices of minimum difference per alpha value
-  idxMinDiffQuantMean <- sapply(aValsBasic, function (x) {
-    idxA <- which(aVals == x)
-    idxMin <- which.min(DiffQuantMean[idxA])
-    idxA[idxMin]})
-  
-  
-  if (blnPlot){
-    par(mfrow = c(2, 2))
-    # Plot difference vs alpha
-    Cols <- rainbow(length(proPs))
-    plot(aVals, DiffQuantMean, xlab = "alpha")
-    for (i in 1:length(Cols)){
-      blnProps <- proPsRep == proPs[i]
-      points(aVals[blnProps], DiffQuantMean[blnProps], col = Cols[i])
-    }
-    legend("bottomright", legend = proPs, col = Cols, pch = 1, cex = 0.5)
-    
-    # Plot difference vs selection coefficient
-    Cols <- rainbow(length(aValsBasic))
-    plot(proPsRep, DiffQuantMean, xlab = "Mean fitness")
-    for (i in 1:length(Cols)){
-      blnA <- aVals == aValsBasic[i]
-      points(proPsRep[blnA], DiffQuantMean[blnA], col = Cols[i])
-    }
-    legend("bottomright", legend = aValsBasic, col = Cols, pch = 1, cex = 0.5)
-    
-    # Plot minimum difference per alpha
-    plot(aVals[idxMinDiffQuantMean], DiffQuantMean[idxMinDiffQuantMean], xlab = "alpha")
+  if (sum(blnE) > 5){
+    LMFit_a <- lm(aVals[blnE]    ~ XMat)
+    LMFit_p <- lm(proPsRep[blnE] ~ XMat)
+    aSample <- XMat %*% LMFit_a$coefficients[-1]
+    pSample <- XMat %*% LMFit_p$coefficients[-1]
+  } else {
+    warning("Not enough values crossed threshold. No regression!\n")
+    LMFit_a <- NA
+    LMFit_p <- NA
+    aSample <- NA
+    pSample <- NA
     
   }
   
-  
   # Return values in a list
   list(proPsRep  = proPsRep, aVals = aVals, bVals = bVals, 
+       SimQuant = SimQuant,
        DiffQuant = DiffQuant, DiffQuantMean = DiffQuantMean,
-       idxMinDiffQuantMean = idxMinDiffQuantMean,
        LMFit_a = LMFit_a, LMFit_p = LMFit_p, aSample = aSample,
        pSample = pSample)
 }
