@@ -147,7 +147,6 @@ DiffAlleleFreqKS <- function(ObservedFreq, Gshape, GSscale, n = 10^4, NrGen = 10
   
   # Calculate Kolmogorov-Smirnov statistic for the difference
   cat("Calculating Kolmogorov-Smirnov test\n\n")
-  ObservedFreq[ObservedFreq > MaxFreq] <- 1
   ks.test(AlleleFreq, ObservedFreq)$statistic
 }
 
@@ -167,14 +166,49 @@ QuantSimAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
   quantile(AlleleFreq, ProbV)
 }
 
-# Function to explore a grid of alpha values and fitness values
-# Grid of parameter values
+# # Function to explore a grid of alpha values and fitness values
+# # Grid of parameter values
+# ExploreGrid <- function(ObservedFreq, 
+#                         aValsBasic = seq(1, 101, 10),
+#                         proPs      = seq(0.5, 1.5, 0.1),
+#                         PopSize  = 10^4,
+#                         MaxFreq = 0.5,
+#                         blnPlot = F){
+#   
+#   # Repeat proportion (fitness) values so that each alpha gets combined with
+#   # the full range of fitness values
+#   proPsRep   <- rep(proPs, length(aValsBasic))
+#   aVals      <- rep(aValsBasic, each = length(proPs))
+#   bVals      <- 1/aVals * proPsRep
+#   
+#   ObservedFreq[ObservedFreq > MaxFreq] <- 1
+#   
+#   # Evaluate difference according to Kolmogorov-Smirnov statistic 
+#   DiffKS <- sapply(1:length(aVals), function(i){
+#     DiffAlleleFreqKS(ObservedFreq, aVals[i], bVals[i], n = PopSize,
+#                      MaxFreq = MaxFreq)
+#   })
+#   
+#   # get indices of minimum difference per alpha value
+#   idxMinDiffKS <- sapply(aValsBasic, function (x) {
+#     idxA <- which(aVals == x)
+#     idxMin <- which.min(DiffKS[idxA])
+#     idxA[idxMin]})
+#   
+#   
+# 
+#   # Return values in a list
+#   list(proPsRep  = proPsRep, aVals = aVals, bVals = bVals, DiffKS = DiffKS,
+#        idxMinDiffKS = idxMinDiffKS)
+# }
+
 ExploreGrid <- function(ObservedFreq, 
                         aValsBasic = seq(1, 101, 10),
                         proPs      = seq(0.5, 1.5, 0.1),
                         PopSize  = 10^4,
                         MaxFreq = 0.5,
-                        blnPlot = F){
+                        blnPlot = F,
+                        SummaryType = c("none", "ks", "quant", "hist")){
   
   # Repeat proportion (fitness) values so that each alpha gets combined with
   # the full range of fitness values
@@ -182,45 +216,51 @@ ExploreGrid <- function(ObservedFreq,
   aVals      <- rep(aValsBasic, each = length(proPs))
   bVals      <- 1/aVals * proPsRep
   
-  # Evaluate difference according to Kolmogorov-Smirnov statistic 
-  DiffKS <- sapply(1:length(aVals), function(i){
-    DiffAlleleFreqKS(ObservedFreq, aVals[i], bVals[i], n = PopSize,
-                     MaxFreq = MaxFreq)
-  })
+  # Replace frequencies above maxium value by 1
+  ObservedFreq[ObservedFreq > MaxFreq] <- 1
   
-  # get indices of minimum difference per alpha value
-  idxMinDiffKS <- sapply(aValsBasic, function (x) {
-    idxA <- which(aVals == x)
-    idxMin <- which.min(DiffKS[idxA])
-    idxA[idxMin]})
+  # Determine the type of summary
+  SummaryType <- SummaryType[1]
   
+  # Loop over grid values and calculate summaries
+  GridSummary <- switch(SummaryType,
+    'none' = sapply(1:length(aVals), function(i){
+                GenerateAlleleFreq(aVals[i], bVals[i],  n = n, NrGen = NrGen,
+                         NrRep = NrRep, NrSamples = NrSamples)
+             }),
+    'ks'  = sapply(1:length(aVals), function(i){
+              # Simulate allele frequencies
+              AlleleFreq <- GenerateAlleleFreq(aVals[i], bVals[i],  n = n, NrGen = NrGen,
+                                               NrRep = NrRep, NrSamples = NrSamples)
+              AlleleFreq[AlleleFreq>MaxFreq] <- 1
+      
+              # Calculate Kolmogorov-Smirnov statistic for the difference
+              cat("Calculating Kolmogorov-Smirnov test\n\n")
+              ks.test(AlleleFreq, ObservedFreq)$statistic
+            }),
+    'quant' = sapply(1:length(aVals), function(i){
+                 # Simulate allele frequencies
+                 AlleleFreq <- GenerateAlleleFreq(Gshape, GSscale, n = n, NrGen = NrGen,
+                                       NrRep = NrRep, NrSamples = NrSamples)
+                 AlleleFreq[AlleleFreq > MaxFreq] <- 1
+      
+                # Calculate qunatiles for simulated frequencies
+                cat("Calculating quantiles\n\n")
+                quantile(AlleleFreq, ProbV)
+            }),
+    'hist' = sapply(1:length(aVals), function(i){
+                # Simulate allele frequencies
+                AlleleFreq <- GenerateAlleleFreq(Gshape, GSscale, n = n, NrGen = NrGen,
+                                       NrRep = NrRep, NrSamples = NrSamples)
+                AlleleFreq[AlleleFreq > MaxFreq] <- 1
+      
+                # Calculate qunatiles for simulated frequencies
+                cat("Calculating histogram\n\n")
+                hist(AlleleFreq, BreakV)$density
+         })
+    )
   
-  if (blnPlot){
-    par(mfrow = c(2, 2))
-    # Plot difference vs alpha
-    Cols <- rainbow(length(proPs))
-    plot(aVals, DiffKS, xlab = "alpha")
-    for (i in 1:length(Cols)){
-      blnProps <- proPsRep == proPs[i]
-      points(aVals[blnProps], DiffKS[blnProps], col = Cols[i])
-    }
-    legend("bottomright", legend = proPs, col = Cols, pch = 1, cex = 0.5)
-    
-    # Plot difference vs selection coefficient
-    Cols <- rainbow(length(aValsBasic))
-    plot(proPsRep, DiffKS, xlab = "Mean fitness")
-    for (i in 1:length(Cols)){
-      blnA <- aVals == aValsBasic[i]
-      points(proPsRep[blnA], DiffKS[blnA], col = Cols[i])
-    }
-    legend("bottomright", legend = aValsBasic, col = Cols, pch = 1, cex = 0.5)
-    
-    # Plot minimum difference per alpha
-    plot(aVals[idxMinDiffKS], DiffKS[idxMinDiffKS], xlab = "alpha")
-    
-  }
-  
-  
+
   # Return values in a list
   list(proPsRep  = proPsRep, aVals = aVals, bVals = bVals, DiffKS = DiffKS,
        idxMinDiffKS = idxMinDiffKS)
