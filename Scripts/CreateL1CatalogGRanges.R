@@ -3,6 +3,9 @@
 # Load packages
 library(rtracklayer)
 
+# Source start script
+source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
+
 # Path to L1 catalogue file (Created in script AddColumns2L1Catalog.R)
 L1CataloguePath   <- "D:/L1polymORF/Data/L1CatalogExtended.csv"
 L1CatalogGROutput <- "D:/L1polymORF/Data/L1CatalogGRanges.RData"
