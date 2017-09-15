@@ -16,6 +16,9 @@
 #                                        #
 ##########################################
 
+# Path to ouput file
+OutPath <- "D:/L1polymORF/Data/SelectionParameterFit_1000G_maxF0.6_Acc_Quant2.RData"
+
 # Set population size
 n = 10^4
 
@@ -25,13 +28,20 @@ NrRep <- 10000
 # Set the number of generations
 NrGen <- 1000
 
+# alpha and selection values for fine grid
+aValsBasic_fineGrid = seq(51, 501, 10)
+propS_fineGrid      = seq(0.70, 1, 0.02)
+
 # Parameters of the gamma distribution of selection coefficients
 Gshape = 90
 GSscale = 1/100
 
-# Plot gamma distn for comparison
-xVals <- seq(0, 2, 0.01)
-plot(xVals, dgamma(xVals, shape = Gshape, scale = GSscale))
+# Maximum frequency (because high frequency insertions are in reference but not 
+# 1000 genomes)
+MaxF <- 0.6
+
+# Probability vector for quantiles
+PV <- seq(0, 0.40, 0.1)
 
 
 ##########################################
@@ -126,41 +136,19 @@ cat("done!\n")
 #                                                 #
 ###################################################
 
-# Function to generate allele frequencies based on parameters of a distribution
-# of Selection coefficients
-GenerateAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
-                               NrRep = 10^4, NrSamples = 10^3){
-  cat("Simulating allele frequencies with Gshape =", Gshape, 
-      "and GSscale = ", GSscale, " ....")
-  # Create a vector of replicated selection coefficients
-  PCoeff  <- rgamma(NrRep, shape = Gshape, scale = GSscale)
-  
-  # Initialize vector of allele frequencies
-  AlleleFreq <- rep(1/(2*n), length(PCoeff))
-  
-  # Loop over generations and calculate new allele frequencies
-  for (i in 1:NrGen){
-    if (any(is.na(AlleleFreq))) browser()
-    SampleProbs <- AlleleFreq * PCoeff / (1 + AlleleFreq * (PCoeff - 1) )
-    AlleleFreq  <- rbinom(length(SampleProbs), 2*n, SampleProbs) / (2*n)
-    AlleleFreq  <- pmin(1 - 1/(2*n), AlleleFreq)
-    AlleleFreq  <- pmax(1/(2*n), AlleleFreq)
-  }
-  cat("done!\n")
-  sample(AlleleFreq, NrSamples, prob = AlleleFreq)
-}
-
 # Function to calculate Kolmogorov-Smirnov Statistic for the difference between
 # simulated and observed frequencies.
 DiffAlleleFreqKS <- function(ObservedFreq, Gshape, GSscale, n = 10^4, NrGen = 10^3,
-                             NrRep = 10^4, NrSamples = 10^3){ 
-   
+                             NrRep = 10^4, NrSamples = 10^3, MaxFreq = 0.5){ 
+  
   # Simulate allele frequencies
   AlleleFreq <- GenerateAlleleFreq(Gshape, GSscale, n = n, NrGen = NrGen,
-                                 NrRep = NrRep, NrSamples = NrSamples)
+                                   NrRep = NrRep, NrSamples = NrSamples)
+  AlleleFreq[AlleleFreq>MaxFreq] <- 1
   
   # Calculate Kolmogorov-Smirnov statistic for the difference
   cat("Calculating Kolmogorov-Smirnov test\n\n")
+  ObservedFreq[ObservedFreq > MaxFreq] <- 1
   ks.test(AlleleFreq, ObservedFreq)$statistic
 }
 
@@ -173,6 +161,7 @@ QuantSimAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
   # Simulate allele frequencies
   AlleleFreq <- GenerateAlleleFreq(Gshape, GSscale, n = n, NrGen = NrGen,
                                    NrRep = NrRep, NrSamples = NrSamples)
+  AlleleFreq[AlleleFreq>MaxFreq] <- 1
   
   # Calculate qunatiles for simulated frequencies
   cat("Calculating quantiles\n\n")
@@ -287,7 +276,7 @@ ExploreGrid_Quant <- function(ObservedFreq,
   list(proPsRep  = proPsRep, aVals = aVals, bVals = bVals, 
        SimQuant = SimQuant,
        DiffQuant = DiffQuant, DiffQuantMean = DiffQuantMean,
-        LMFit_a = LMFit_a, LMFit_p = LMFit_p, aSample = aSample,
+       LMFit_a = LMFit_a, LMFit_p = LMFit_p, aSample = aSample,
        pSample = pSample)
 }
 
@@ -303,49 +292,43 @@ ExploreGrid_Quant <- function(ObservedFreq,
 
 cat("******  Exploring coarse grid    ***********\n\n")
 # Results for distribution of full-length L1
-ResultList1Full <- ExploreGrid_Quant(MRIP$pseudoallelefreq[idxFull],
-                           aValsBasic = seq(59, 60, 10),
-                           proPs = seq(0.5, 1.5, 0.5))
-
-# Result for distribution of catalog elements
-blnCatFeq <- !is.na(L1Catalogue$Allele_frequency_Num)
-ResultList1Cat <- ExploreGrid(L1Catalogue$Allele_frequency_Num[blnCatFeq],
-                              aValsBasic = seq(1, 101, 10),
-                              proPs = seq(0.2, 1.5, 0.1))
-
-# Results for distribution of fragment L1
-ResultList1Fragm <- ExploreGrid(MRIP$pseudoallelefreq[blnFragm],
-                               aValsBasic = seq(1, 101, 10),
-                               proPs = seq(0.2, 1.5, 0.1))
-
-
-#######
-# Analyze finer grid
-#######
+# ResultList1Full_1000G <- ExploreGrid(FreqFull_1000G,
+#                            aValsBasic = seq(1, 101, 10),
+#                            proPs = seq(0.2, 1.5, 0.1))
+# 
+# # Result for distribution of catalog elements
+# # blnCatFeq <- !is.na(L1Catalogue$Allele_frequency_Num)
+# # ResultList1Cat <- ExploreGrid(L1Catalogue$Allele_frequency_Num[blnCatFeq],
+# #                               aValsBasic = seq(1, 101, 10),
+# #                               proPs = seq(0.2, 1.5, 0.1))
+# 
+# # Results for distribution of fragment L1
+# ResultList1Fragm_1000G <- ExploreGrid(FreqFragm_1000G,
+#                                aValsBasic = seq(1, 101, 10),
+#                                proPs = seq(0.2, 1.5, 0.1))
+# 
+# 
+# #######
+# # Analyze finer grid
+# #######
 
 cat("******  Exploring fine grid    ***********\n\n")
 # Results for distribution of full-length L1
-ResultList2Full <- ExploreGrid(MRIP$pseudoallelefreq[idxFull],
-                           aValsBasic = seq(70, 100, 2),
-                   proPs = seq(0.8, 0.9, 0.001))
-#dev.copy2pdf("D:/L1polymORF/Data/L1FullFitDistnPlot.pdf")
-
-# Result for distribution of catalog elements
-ResultList2Cat <- ExploreGrid(L1CatFreq,
-                              aValsBasic = seq(20, 70, 10),
-                              proPs = seq(0.7, 0.9, 0.005))
-ResultList2Cat <- ExploreGrid(L1_1000G_reduced$Frequency[idx1000GMatchCat],
-                              aValsBasic = seq(20, 70, 10),
-                              proPs = seq(0.7, 0.9, 0.001))
+ResultList2Full_1000G <- ExploreGrid_Quant(FreqFull_1000G,
+                                           aValsBasic = aValsBasic_fineGrid,
+                                           proPs = propS_fineGrid,
+                                           MaxFreq = MaxF,
+                                           ProbV = PV)
 
 # Results for distribution of fragment L1
-ResultList2Full <- ExploreGrid(MRIP$pseudoallelefreq[blnFragm],
-                               aValsBasic = seq(70, 100, 2),
-                               proPs = seq(0.7, 0.9, 0.001))
-#dev.copy2pdf("D:/L1polymORF/Data/L1FragmFitDistnPlot.pdf")
+ResultList2Fragm_1000G <- ExploreGrid_Quant(FreqFragm_1000G,
+                                            aValsBasic = aValsBasic_fineGrid,
+                                            proPs = propS_fineGrid,
+                                            MaxFreq = MaxF,
+                                            ProbV = PV)
 
 #########
 # Save results
 #########
 
-save.image("D:/L1polymORF/Data/SelectionParameterFit.RData")
+save.image(OutPath)

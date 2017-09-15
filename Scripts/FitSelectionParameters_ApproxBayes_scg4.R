@@ -94,46 +94,19 @@ cat("done!\n")
 #                                                 #
 ###################################################
 
-# Function to generate allele frequencies based on parameters of a distribution
-# of Selection coefficients
-GenerateAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
-                               NrRep = 10^4, NrSamples = 10^3, MaxFreq = 0.5){
-  cat("Simulating allele frequencies with Gshape =", Gshape, 
-      "and GSscale = ", GSscale, " ....")
-  # Create a vector of replicated selection coefficients
-  PCoeff  <- rgamma(NrRep, shape = Gshape, scale = GSscale)
-  
-  # Initialize vector of allele frequencies
-  AlleleFreq <- rep(1/(2*n), length(PCoeff))
-  
-  # Loop over generations and calculate new allele frequencies
-  for (i in 1:NrGen){
-    if (any(is.na(AlleleFreq))) browser()
-    SampleProbs <- AlleleFreq * PCoeff / (1 + AlleleFreq * (PCoeff - 1) )
-    AlleleFreq  <- rbinom(length(SampleProbs), 2*n, SampleProbs) / (2*n)
-#    AlleleFreq  <- pmin(1 - 1/(2*n), AlleleFreq)
-    AlleleFreq  <- pmax(1/(2*n), AlleleFreq)
-  }
-  cat("done!\n")
-  AlleleFreqProb                            <- AlleleFreq
-  AlleleFreq[AlleleFreq >= MaxFreq]         <- 1 
-  AlleleFreqProb[AlleleFreqProb >= MaxFreq] <- sum(AlleleFreqProb[AlleleFreqProb >= MaxFreq])
-  sample(AlleleFreq, NrSamples, prob = AlleleFreqProb)
-}
-
 # Function to calculate Kolmogorov-Smirnov Statistic for the difference between
 # simulated and observed frequencies.
 DiffAlleleFreqKS <- function(ObservedFreq, Gshape, GSscale, n = 10^4, NrGen = 10^3,
                              NrRep = 10^4, NrSamples = 10^3, MaxFreq = 0.5){ 
-   
+  
   # Simulate allele frequencies
   AlleleFreq <- GenerateAlleleFreq(Gshape, GSscale, n = n, NrGen = NrGen,
-                                 NrRep = NrRep, NrSamples = NrSamples,
-                                 MaxFreq = MaxFreq)
+                                   NrRep = NrRep, NrSamples = NrSamples)
+  AlleleFreq[AlleleFreq>MaxFreq] <- 1
   
   # Calculate Kolmogorov-Smirnov statistic for the difference
   cat("Calculating Kolmogorov-Smirnov test\n\n")
-  ObservedFreq <- ObservedFreq[ObservedFreq < MaxFreq]
+  ObservedFreq[ObservedFreq > MaxFreq] <- 1
   ks.test(AlleleFreq, ObservedFreq)$statistic
 }
 
@@ -146,6 +119,7 @@ QuantSimAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
   # Simulate allele frequencies
   AlleleFreq <- GenerateAlleleFreq(Gshape, GSscale, n = n, NrGen = NrGen,
                                    NrRep = NrRep, NrSamples = NrSamples)
+  AlleleFreq[AlleleFreq>MaxFreq] <- 1
   
   # Calculate qunatiles for simulated frequencies
   cat("Calculating quantiles\n\n")
@@ -299,17 +273,17 @@ cat("******  Exploring coarse grid    ***********\n\n")
 cat("******  Exploring fine grid    ***********\n\n")
 # Results for distribution of full-length L1
 ResultList2Full_1000G <- ExploreGrid_Quant(FreqFull_1000G,
-                                     aValsBasic = aValsBasic_fineGrid,
-                                     proPs = propS_fineGrid,
-                                     MaxFreq = MaxF,
-                                     ProbV = PV)
+                                           aValsBasic = aValsBasic_fineGrid,
+                                           proPs = propS_fineGrid,
+                                           MaxFreq = MaxF,
+                                           ProbV = PV)
 
 # Results for distribution of fragment L1
 ResultList2Fragm_1000G <- ExploreGrid_Quant(FreqFragm_1000G,
-                                      aValsBasic = aValsBasic_fineGrid,
-                                      proPs = propS_fineGrid,
-                                      MaxFreq = MaxF,
-                                      ProbV = PV)
+                                            aValsBasic = aValsBasic_fineGrid,
+                                            proPs = propS_fineGrid,
+                                            MaxFreq = MaxF,
+                                            ProbV = PV)
 
 #########
 # Save results

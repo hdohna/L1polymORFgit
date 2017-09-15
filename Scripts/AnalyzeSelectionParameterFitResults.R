@@ -1,5 +1,5 @@
 library(fields)
-load("D:/L1polymORF/Data/SelectionParameterFit_1000G_MaxFreq0.5.RData")
+load("D:/L1polymORF/Data/SelectionParameterFit_1000G_maxF0.6_Acc_Quant2.RData")
 
 PlotResults <- function(ResultList){
   proPs <- unique(ResultList$proPsRep)
@@ -28,10 +28,8 @@ PlotResults <- function(ResultList){
   
 }
 
-PlotResults(ResultList1Full)
-PlotResults(ResultList1Fragm)
-PlotResults(ResultList2Full)
-PlotResults(ResultList2Fragm)
+PlotResults(ResultList2Full_1000G)
+PlotResults(ResultList2Fragm_1000G)
 
 # Function to plot heatmap
 PlotHeatmap <- function(ResultList){
@@ -42,12 +40,18 @@ PlotHeatmap <- function(ResultList){
         z = DiffKSMat)
 
 }
+PlotHeatmap <- function(ResultList){
+  DiffKSMat <- matrix(ResultList$DiffQuantMean, 
+                      nrow = length(unique(ResultList$proPsRep)))
+  image.plot(x = unique(ResultList$proPsRep),
+             y = unique(ResultList$aVals),
+             z = DiffKSMat)
+  
+}
 
 par(mfrow = c(2, 2))
 PlotHeatmap(ResultList2Full_1000G)
 PlotHeatmap(ResultList2Fragm_1000G)
-heatmap(ResultList2Full_1000G$)
-imagehist(FreqFull_1000G)
-hist(FreqFragm_1000G)
-max(FreqFull_1000G)
-max(FreqFragm_1000G)
+
+ResultList2Full_1000G$DiffQuantMean
+ResultList2Full_1000G$DiffQuant[, 1:10]
