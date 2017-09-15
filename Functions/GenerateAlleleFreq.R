@@ -15,10 +15,9 @@
 #     NrRep: number if replicates
 #     NrSamples: number of alleles sampled in the end
 
-
 # Output:
 #   
-#     ...
+#     SampledFreq: simulated sampled allele frequencies
 
 ##############################################
 
