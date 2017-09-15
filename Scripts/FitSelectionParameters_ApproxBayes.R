@@ -59,7 +59,6 @@ MRIP$integrity <- SRIP$integrity[IDmatch]
 MRIP$subgroup  <- SRIP$sub_group[IDmatch]
 MRIP <- MRIP[MRIP$subgroup == "L1-Ta", ]
 
-grep("Boissinot2006", MRIP$studies)
 # Test whether full-length and fragment L1 have different frequency
 idxFull  <- which(MRIP$integrity == "full-length")
 blnFragm <- MRIP$integrity %in% c("5prime-truncated", "3prime-truncated")
@@ -156,12 +155,12 @@ DiffAlleleFreqKS <- function(ObservedFreq, Gshape, GSscale, n = 10^4, NrGen = 10
 # frequencies.
 QuantSimAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
                                NrRep = 10^4, NrSamples = 10^3, 
-                               ProbV = seq(0.05, 0.95, 0.1)){ 
+                               ProbV = seq(0.05, 0.95, 0.1), MaxFreq){ 
   
   # Simulate allele frequencies
   AlleleFreq <- GenerateAlleleFreq(Gshape, GSscale, n = n, NrGen = NrGen,
                                    NrRep = NrRep, NrSamples = NrSamples)
-  AlleleFreq[AlleleFreq>MaxFreq] <- 1
+  AlleleFreq[AlleleFreq > MaxFreq] <- 1
   
   # Calculate qunatiles for simulated frequencies
   cat("Calculating quantiles\n\n")
@@ -247,7 +246,7 @@ ExploreGrid_Quant <- function(ObservedFreq,
   # Evaluate difference according to Kolmogorov-Smirnov statistic 
   SimQuant <- sapply(1:length(aVals), function(i){
     QuantSimAlleleFreq(Gshape = aVals[i], GSscale = bVals[i], n = PopSize,
-                       ProbV = ProbV)
+                       ProbV = ProbV, MaxFreq = MaxFreq)
   })
   ObsQuant      <- quantile(ObservedFreq, ProbV)
   DiffQuant     <- SimQuant - ObsQuant
