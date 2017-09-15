@@ -55,3 +55,13 @@ PlotHeatmap(ResultList2Fragm_1000G)
 
 ResultList2Full_1000G$DiffQuantMean
 ResultList2Full_1000G$DiffQuant[, 1:10]
+
+# Generate an example frequency distribution for a reasonable set of parameters
+a    <- 100
+fitn <- 0.86
+SampleFreq1 <- GenerateAlleleFreq(Gshape = a, GSscale = 1/a * fitn,
+                                  NrGen = 10^5)
+par(mfrow = c(2, 2))
+hist(SampleFreq1, breaks = seq(0, 1, 0.02))
+hist(FreqFull_1000G, breaks = seq(0, 1, 0.02))
+hist(FreqFragm_1000G, breaks = seq(0, 1, 0.02))
