@@ -30,7 +30,9 @@ NrGen <- 1000
 
 # alpha and selection values for fine grid
 aValsBasic_fineGrid = seq(51, 501, 10)
+#aValsBasic_fineGrid = seq(51, 71, 10)
 propS_fineGrid      = seq(0.70, 1, 0.02)
+#propS_fineGrid      = seq(0.70, 0.9, 0.1)
 
 # Parameters of the gamma distribution of selection coefficients
 Gshape = 90
@@ -206,8 +208,13 @@ ExploreGrid <- function(ObservedFreq,
                         aValsBasic = seq(1, 101, 10),
                         proPs      = seq(0.5, 1.5, 0.1),
                         PopSize  = 10^4,
+                        NrSamples = 10^4,
+                        NrRep = 10^4,
+                        NrGen = 10^3,
                         MaxFreq = 0.5,
-                        blnPlot = F,
+                        ProbV = seq(0.05, 0.95, 0.1),
+                        Epsilon = 0.1,
+                        BreakV = seq(0, 1, 0.02),
                         SummaryType = c("none", "ks", "quant", "hist")){
   
   # Repeat proportion (fitness) values so that each alpha gets combined with
@@ -225,13 +232,15 @@ ExploreGrid <- function(ObservedFreq,
   # Loop over grid values and calculate summaries
   GridSummary <- switch(SummaryType,
     'none' = sapply(1:length(aVals), function(i){
-                GenerateAlleleFreq(aVals[i], bVals[i],  n = n, NrGen = NrGen,
-                         NrRep = NrRep, NrSamples = NrSamples)
+                GenerateAlleleFreq(aVals[i], bVals[i],  n = n, 
+                                   NrGen = NrGen, NrRep = NrRep,
+                                   NrSamples = NrSamples)
              }),
     'ks'  = sapply(1:length(aVals), function(i){
               # Simulate allele frequencies
-              AlleleFreq <- GenerateAlleleFreq(aVals[i], bVals[i],  n = n, NrGen = NrGen,
-                                               NrRep = NrRep, NrSamples = NrSamples)
+              AlleleFreq <- GenerateAlleleFreq(aVals[i], bVals[i],  n = n, 
+                                               NrGen = NrGen, NrRep = NrRep,
+                                               NrSamples = NrSamples)
               AlleleFreq[AlleleFreq>MaxFreq] <- 1
       
               # Calculate Kolmogorov-Smirnov statistic for the difference
@@ -240,8 +249,9 @@ ExploreGrid <- function(ObservedFreq,
             }),
     'quant' = sapply(1:length(aVals), function(i){
                  # Simulate allele frequencies
-                 AlleleFreq <- GenerateAlleleFreq(Gshape, GSscale, n = n, NrGen = NrGen,
-                                       NrRep = NrRep, NrSamples = NrSamples)
+                 AlleleFreq <- GenerateAlleleFreq(aVals[i], bVals[i],  n = n, 
+                                                  NrGen = NrGen, NrRep = NrRep,
+                                                  NrSamples = NrSamples)
                  AlleleFreq[AlleleFreq > MaxFreq] <- 1
       
                 # Calculate qunatiles for simulated frequencies
@@ -250,20 +260,51 @@ ExploreGrid <- function(ObservedFreq,
             }),
     'hist' = sapply(1:length(aVals), function(i){
                 # Simulate allele frequencies
-                AlleleFreq <- GenerateAlleleFreq(Gshape, GSscale, n = n, NrGen = NrGen,
-                                       NrRep = NrRep, NrSamples = NrSamples)
+                AlleleFreq <- GenerateAlleleFreq(aVals[i], bVals[i],  n = n, 
+                                                 NrGen = NrGen, NrRep = NrRep,
+                                                 NrSamples = NrSamples)
                 AlleleFreq[AlleleFreq > MaxFreq] <- 1
       
                 # Calculate qunatiles for simulated frequencies
                 cat("Calculating histogram\n\n")
-                hist(AlleleFreq, BreakV)$density
+                hist(AlleleFreq, BreakV, plot = F)$density
          })
     )
   
-
+  # Observed summary
+  ObsSummary <- switch(SummaryType,
+                        'none'  = 0,
+                        'ks'    = 0,
+                        'quant' = quantile(ObservedFreq, ProbV),
+                        'hist'  = hist(ObservedFreq, BreakV)$density
+  )
+  
+  # Estimate intercept via regression
+  DiffMat    <- as.matrix(GridSummary) - ObsSummary
+  AbsDiffMat <- abs(DiffMat) / mean(GridSummary)
+  DiffMean   <- colMeans(AbsDiffMat)
+  DiffMax    <- apply(AbsDiffMat, 2, max)
+  blnE       <- DiffMax < Epsilon
+  XMat       <- t(DiffMat)[blnE, ]
+  if (sum(blnE) > 5 & SummaryType != 'none'){
+    LMFit_a <- lm(aVals[blnE]    ~ XMat)
+    LMFit_p <- lm(proPsRep[blnE] ~ XMat)
+    aSample <- XMat %*% LMFit_a$coefficients[-1]
+    pSample <- XMat %*% LMFit_p$coefficients[-1]
+  } else {
+    warning("Not enough values crossed threshold. No regression!\n")
+    LMFit_a <- NA
+    LMFit_p <- NA
+    aSample <- NA
+    pSample <- NA
+    
+  }
+  
   # Return values in a list
-  list(proPsRep  = proPsRep, aVals = aVals, bVals = bVals, DiffKS = DiffKS,
-       idxMinDiffKS = idxMinDiffKS)
+  list(proPsRep  = proPsRep, aVals = aVals, bVals = bVals, 
+       GridSummary, DiffMean, DiffMax,
+       LMFit_a = LMFit_a, LMFit_p = LMFit_p, aSample = aSample,
+       pSample = pSample)
 }
 
 # Function to explore a grid of alpha values and fitness values
@@ -353,18 +394,24 @@ cat("******  Exploring coarse grid    ***********\n\n")
 
 cat("******  Exploring fine grid    ***********\n\n")
 # Results for distribution of full-length L1
-ResultList2Full_1000G <- ExploreGrid_Quant(FreqFull_1000G,
-                                           aValsBasic = aValsBasic_fineGrid,
-                                           proPs = propS_fineGrid,
-                                           MaxFreq = MaxF,
-                                           ProbV = PV)
+ResultList2Full_1000G <- ExploreGrid(FreqFull_1000G,
+                                     aValsBasic = aValsBasic_fineGrid,
+                                      proPs = propS_fineGrid,
+                                      MaxFreq = MaxF,
+                                     ProbV = PV,
+                                     NrRep = NrRep,
+                                     NrGen = NrGen,
+                                     SummaryType = c("hist"))
 
 # Results for distribution of fragment L1
-ResultList2Fragm_1000G <- ExploreGrid_Quant(FreqFragm_1000G,
-                                            aValsBasic = aValsBasic_fineGrid,
-                                            proPs = propS_fineGrid,
-                                            MaxFreq = MaxF,
-                                            ProbV = PV)
+ResultList2Full_1000G <- ExploreGrid(FreqFull_1000G,
+                                     aValsBasic = aValsBasic_fineGrid,
+                                     proPs = propS_fineGrid,
+                                     MaxFreq = MaxF,
+                                     ProbV = PV,
+                                     NrRep = NrRep,
+                                     NrGen = NrGen,
+                                     SummaryType = c("hist"))
 
 #########
 # Save results
