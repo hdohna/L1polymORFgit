@@ -9,27 +9,24 @@ PlotResults <- function(ResultList){
   plot(aVals, DiffKS, xlab = "alpha")
   for (i in 1:length(Cols)){
     blnProps <- ResultList$proPsRep == proPs[i]
-    points(ResultList$aVals[blnProps], ResultList$DiffKS[blnProps], col = Cols[i])
+    points(ResultList$aVals[blnProps], ResultList$DiffMean[blnProps], col = Cols[i])
   }
   legend("bottomright", legend = proPs, col = Cols, pch = 1, cex = 0.5)
   
   # Plot difference vs selection coefficient
   aValsBasic <- unique(ResultList$aVals)
   Cols <- rainbow(length(aValsBasic))
-  plot(ResultList$proPsRep, ResultList$DiffKS, xlab = "Mean fitness")
+  plot(ResultList$proPsRep, ResultList$DiffMean, xlab = "Mean fitness")
   for (i in 1:length(Cols)){
     blnA <- ResultList$aVals == aValsBasic[i]
-    points(ResultList$proPsRep[blnA], ResultList$DiffKS[blnA], col = Cols[i])
+    points(ResultList$proPsRep[blnA], ResultList$DiffMean[blnA], col = Cols[i])
   }
   legend("bottomright", legend = aValsBasic, col = Cols, pch = 1, cex = 0.5)
   
   # Plot minimum difference per alpha
-  plot(ResultList$aVals[idxMinDiffKS], ResultList$DiffKS[idxMinDiffKS], xlab = "alpha")
+#  plot(ResultList$aVals[idxMinDiffMean], ResultList$DiffMean[idxMinDiffMean], xlab = "alpha")
   
 }
-
-PlotResults(ResultList2Full_1000G)
-PlotResults(ResultList2Fragm_1000G)
 
 # Function to plot heatmap
 PlotHeatmap <- function(ResultList){
