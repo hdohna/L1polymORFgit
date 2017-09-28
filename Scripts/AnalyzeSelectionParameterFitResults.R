@@ -54,11 +54,22 @@ ResultList2Full_1000G$DiffQuantMean
 ResultList2Full_1000G$DiffQuant[, 1:10]
 
 # Generate an example frequency distribution for a reasonable set of parameters
-a    <- 100
-fitn <- 0.86
-SampleFreq1 <- GenerateAlleleFreq(Gshape = a, GSscale = 1/a * fitn,
+a1    <- 100
+fitn1 <- 0.86
+a2    <- 20
+fitn2 <- 0.86
+SampleFreq11 <- GenerateAlleleFreq(Gshape = a1, GSscale = 1/a1 * fitn1,
                                   NrGen = 10^5)
+SampleFreq12 <- GenerateAlleleFreq(Gshape = a1, GSscale = 1/a1 * fitn1,
+                                  NrGen = 10^3)
+SampleFreq21 <- GenerateAlleleFreq(Gshape = a2, GSscale = 1/a2 * fitn2,
+                                   NrGen = 10^5)
+SampleFreq22 <- GenerateAlleleFreq(Gshape = a2, GSscale = 1/a2 * fitn2,
+                                   NrGen = 10^3)
 par(mfrow = c(2, 2))
-hist(SampleFreq1, breaks = seq(0, 1, 0.02))
+hist(SampleFreq11, breaks = seq(0, 1, 0.02))
+hist(SampleFreq12, breaks = seq(0, 1, 0.02))
+hist(SampleFreq21, breaks = seq(0, 1, 0.02))
+hist(SampleFreq22, breaks = seq(0, 1, 0.02))
 hist(FreqFull_1000G, breaks = seq(0, 1, 0.02))
 hist(FreqFragm_1000G, breaks = seq(0, 1, 0.02))
