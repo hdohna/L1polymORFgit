@@ -84,13 +84,13 @@ ExploreSelectionParameterGrid <- function(ObservedFreq,
   # Loop over grid values and calculate summaries
   GridSummary <- switch(SummaryType,
                         'none' = sapply(1:length(aVals), function(i){
-                          GenerateAlleleFreq(aVals[i], scVals[i],  n = n, 
+                          GenerateAlleleFreq(aVals[i], scVals[i],  n = PopSize, 
                                              NrGen = NrGen, NrRep = NrRep,
                                              NrSamples = NrSamples)
                         }),
                         'ks'  = sapply(1:length(aVals), function(i){
                           # Simulate allele frequencies
-                          AlleleFreq <- GenerateAlleleFreq(aVals[i], scVals[i],  n = n, 
+                          AlleleFreq <- GenerateAlleleFreq(aVals[i], scVals[i],  n = PopSize, 
                                                            NrGen = NrGen, NrRep = NrRep,
                                                            NrSamples = NrSamples)
                           AlleleFreq[AlleleFreq>MaxFreq] <- 1
@@ -101,7 +101,7 @@ ExploreSelectionParameterGrid <- function(ObservedFreq,
                         }),
                         'quant' = sapply(1:length(aVals), function(i){
                           # Simulate allele frequencies
-                          AlleleFreq <- GenerateAlleleFreq(aVals[i], scVals[i],  n = n, 
+                          AlleleFreq <- GenerateAlleleFreq(aVals[i], scVals[i],  n = PopSize, 
                                                            NrGen = NrGen, NrRep = NrRep,
                                                            NrSamples = NrSamples)
                           AlleleFreq[AlleleFreq > MaxFreq] <- 1
@@ -112,14 +112,15 @@ ExploreSelectionParameterGrid <- function(ObservedFreq,
                         }),
                         'hist' = sapply(1:length(aVals), function(i){
                           # Simulate allele frequencies
-                          AlleleFreq <- GenerateAlleleFreq(aVals[i], scVals[i],  n = n, 
+                          AlleleFreq <- GenerateAlleleFreq(aVals[i], scVals[i],  n = PopSize, 
                                                            NrGen = NrGen, NrRep = NrRep,
                                                            NrSamples = NrSamples)
                           AlleleFreq[AlleleFreq > MaxFreq] <- 1
                           
                           # Calculate qunatiles for simulated frequencies
                           cat("Calculating histogram\n\n")
-                          hist(AlleleFreq, BreakV, plot = F)$density
+                          Dens <- hist(AlleleFreq, BreakV, plot = F)$density
+                          Dens / sum(Dens)
                         })
   )
   
@@ -128,7 +129,9 @@ ExploreSelectionParameterGrid <- function(ObservedFreq,
                        'none'  = 0,
                        'ks'    = 0,
                        'quant' = quantile(ObservedFreq, ProbV),
-                       'hist'  = hist(ObservedFreq, BreakV)$density
+                       'hist'  = {
+                         Dens <- hist(ObservedFreq, BreakV)$density
+                         Dens / sum(Dens)}
   )
   
   # Estimate intercept via regression and generate a sample of means and

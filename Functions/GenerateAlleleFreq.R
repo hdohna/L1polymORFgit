@@ -42,5 +42,10 @@ GenerateAlleleFreq <- function(Gshape, GSscale, n = 10^4, NrGen = 10^3,
     AlleleFreq  <- pmax(1/(2*n), AlleleFreq)
   }
   cat("done!\n")
-  SampledFreq <- sample(AlleleFreq, NrSamples, prob = AlleleFreq)
+#  SampledFreq <- sample(AlleleFreq, NrSamples, prob = AlleleFreq)
+  SampleMat <- sapply(1:NrSamples, function(x) {
+    runif(length(AlleleFreq)) <= AlleleFreq
+    })
+  rowSums(SampleMat) / NrSamples
 }
+

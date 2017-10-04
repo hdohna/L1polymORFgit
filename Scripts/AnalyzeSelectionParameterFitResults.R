@@ -1,6 +1,14 @@
 library(fields)
-load("D:/L1polymORF/Data/SelectionParameterFit_1000G_maxF0.6_Acc_Quant2.RData")
+#load("D:/L1polymORF/Data/SelectionParameterFit_1000G_maxF0.6_Acc_Quant2.RData")
+load("D:/L1polymORF/Data/SelectionParameterFit_1000G_maxF0.3_FineGrid.RData")
 
+##############################
+#                            #
+#     Define functions       #
+#                            #
+##############################
+
+# Plot statistic difference against parameter values
 PlotResults <- function(ResultList){
   proPs <- unique(ResultList$proPsRep)
   par(mfrow = c(2, 2))
@@ -30,28 +38,42 @@ PlotResults <- function(ResultList){
 
 # Function to plot heatmap
 PlotHeatmap <- function(ResultList){
-  DiffKSMat <- matrix(ResultList$DiffKS, 
-                      nrow = length(unique(ResultList$proPsRep)))
-  image.plot(x = unique(ResultList$proPsRep),
-        y = unique(ResultList$aVals),
-        z = DiffKSMat)
-
-}
-PlotHeatmap <- function(ResultList){
-  DiffKSMat <- matrix(ResultList$DiffQuantMean, 
-                      nrow = length(unique(ResultList$proPsRep)))
-  image.plot(x = unique(ResultList$proPsRep),
-             y = unique(ResultList$aVals),
-             z = DiffKSMat)
+  DiffMat <- matrix(ResultList$DiffMean, 
+                      nrow = length(unique(ResultList$FitMeansRep)))
+  image.plot(x = unique(ResultList$FitMeansRep),
+             y = unique(ResultList$FitVarsRep),
+             z = DiffMat)
   
 }
 
-par(mfrow = c(2, 2))
-PlotHeatmap(ResultList2Full_1000G)
-PlotHeatmap(ResultList2Fragm_1000G)
+# Function to get the best-fitting parameter values
+ParsBestFit <- function(ResultList){
+  idxMinDiff <- which.min(ResultList$DiffMean)
+  c(BestMean = ResultList$FitMeansRep[idxMinDiff],
+    BestVar  = ResultList$FitVarsRep[idxMinDiff],
+    MinDiff = ResultList$DiffMean[idxMinDiff])
+}
 
-ResultList2Full_1000G$DiffQuantMean
-ResultList2Full_1000G$DiffQuant[, 1:10]
+
+##############################
+#                            #
+#     Plot results           #
+#                            #
+##############################
+
+par(mfrow = c(2, 2))
+PlotHeatmap(ResultListFull_1000G_hist)
+PlotHeatmap(ResultListFragm_1000G_hist)
+
+##############################
+#                            #
+#     Explore parameter          #
+#                            #
+##############################
+
+# Get best-fitting mean and variance
+ParsBestFit(ResultListFull_1000G_hist)
+ParsBestFit(ResultListFragm_1000G_hist)
 
 # Generate an example frequency distribution for a reasonable set of parameters
 a1    <- 100
