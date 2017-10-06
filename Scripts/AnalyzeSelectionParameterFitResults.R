@@ -1,6 +1,7 @@
 library(fields)
 #load("D:/L1polymORF/Data/SelectionParameterFit_1000G_maxF0.6_Acc_Quant2.RData")
-load("D:/L1polymORF/Data/SelectionParameterFit_1000G_maxF0.3_FineGrid.RData")
+#load("D:/L1polymORF/Data/SelectionParameterFit_1000G_maxF0.3_FineGrid.RData")
+load("D:/L1polymORF/Data/SelectionParameterFit_Bossinot_KS_FineGrid.RData")
 
 ##############################
 #                            #
@@ -38,7 +39,7 @@ PlotResults <- function(ResultList){
 
 # Function to plot heatmap
 PlotHeatmap <- function(ResultList){
-  DiffMat <- matrix(ResultList$DiffMean, 
+  DiffMat <- matrix(ResultList$GridSummary, 
                       nrow = length(unique(ResultList$FitMeansRep)))
   image.plot(x = unique(ResultList$FitMeansRep),
              y = unique(ResultList$FitVarsRep),
@@ -51,7 +52,7 @@ ParsBestFit <- function(ResultList){
   idxMinDiff <- which.min(ResultList$DiffMean)
   c(BestMean = ResultList$FitMeansRep[idxMinDiff],
     BestVar  = ResultList$FitVarsRep[idxMinDiff],
-    MinDiff = ResultList$DiffMean[idxMinDiff])
+    MinDiff  = ResultList$DiffMean[idxMinDiff])
 }
 
 
@@ -72,26 +73,36 @@ PlotHeatmap(ResultListFragm_1000G_hist)
 ##############################
 
 # Get best-fitting mean and variance
-ParsBestFit(ResultListFull_1000G_hist)
-ParsBestFit(ResultListFragm_1000G_hist)
+BestFitPars_Full <- ParsBestFit(ResultListFull_1000G_hist)
+BestFitPars_Fragm <- ParsBestFit(ResultListFragm_1000G_hist)
 
+# Plot parameter vs deviation
+blnBestMean <- ResultListFull_1000G_hist$FitMeansRep == 
+
+# Plot the difference between observed and simulated frequency
+plot(ResultListFull_1000G_hist$GridSummary[1, ] - ResultListFull_1000G_hist$ObsSummary[1])
+plot(ResultListFull_1000G_hist$GridSummary[2, ] - ResultListFull_1000G_hist$ObsSummary[2])
+plot(ResultListFull_1000G_hist$GridSummary[3, ] - ResultListFull_1000G_hist$ObsSummary[3])
+hist(ResultListFull_1000G_hist$GridSummary)
 # Generate an example frequency distribution for a reasonable set of parameters
-a1    <- 100
-fitn1 <- 0.86
-a2    <- 20
-fitn2 <- 0.86
-SampleFreq11 <- GenerateAlleleFreq(Gshape = a1, GSscale = 1/a1 * fitn1,
-                                  NrGen = 10^5)
-SampleFreq12 <- GenerateAlleleFreq(Gshape = a1, GSscale = 1/a1 * fitn1,
-                                  NrGen = 10^3)
-SampleFreq21 <- GenerateAlleleFreq(Gshape = a2, GSscale = 1/a2 * fitn2,
-                                   NrGen = 10^5)
-SampleFreq22 <- GenerateAlleleFreq(Gshape = a2, GSscale = 1/a2 * fitn2,
-                                   NrGen = 10^3)
-par(mfrow = c(2, 2))
-hist(SampleFreq11, breaks = seq(0, 1, 0.02))
-hist(SampleFreq12, breaks = seq(0, 1, 0.02))
-hist(SampleFreq21, breaks = seq(0, 1, 0.02))
-hist(SampleFreq22, breaks = seq(0, 1, 0.02))
-hist(FreqFull_1000G, breaks = seq(0, 1, 0.02))
-hist(FreqFragm_1000G, breaks = seq(0, 1, 0.02))
+# a1    <- 100
+# fitn1 <- 0.86
+# a2    <- 20
+# fitn2 <- 0.86
+# SampleFreq11 <- GenerateAlleleFreq(Gshape = a1, GSscale = 1/a1 * fitn1,
+#                                   NrGen = 10^5)
+# SampleFreq12 <- GenerateAlleleFreq(Gshape = a1, GSscale = 1/a1 * fitn1,
+#                                   NrGen = 10^3)
+# SampleFreq21 <- GenerateAlleleFreq(Gshape = a2, GSscale = 1/a2 * fitn2,
+#                                    NrGen = 10^5)
+# SampleFreq22 <- GenerateAlleleFreq(Gshape = a2, GSscale = 1/a2 * fitn2,
+#                                    NrGen = 10^3)
+# par(mfrow = c(2, 2))
+# hist(SampleFreq11, breaks = seq(0, 1, 0.02))
+# hist(SampleFreq12, breaks = seq(0, 1, 0.02))
+# hist(SampleFreq21, breaks = seq(0, 1, 0.02))
+# hist(SampleFreq22, breaks = seq(0, 1, 0.02))
+# hist(FreqFull_1000G, breaks = seq(0, 1, 0.02))
+# hist(FreqFragm_1000G, breaks = seq(0, 1, 0.02))
+# 
+# ExploreSelectionParameterGrid

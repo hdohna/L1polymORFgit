@@ -97,7 +97,7 @@ ExploreSelectionParameterGrid <- function(ObservedFreq,
                           
                           # Calculate Kolmogorov-Smirnov statistic for the difference
                           cat("Calculating Kolmogorov-Smirnov test\n\n")
-                          ks.test(AlleleFreq, ObservedFreq)$statistic
+                          CumDistDiff(AlleleFreq, ObservedFreq)$MaxDiff
                         }),
                         'quant' = sapply(1:length(aVals), function(i){
                           # Simulate allele frequencies
@@ -143,7 +143,7 @@ ExploreSelectionParameterGrid <- function(ObservedFreq,
   blnE       <- DiffMax < Epsilon
   XMat       <- t(DiffMat)[blnE, ]
   if (sum(blnE) > 5 & SummaryType != 'none'){
-    LMFit_var  <- lm(FitVarsRep[blnE]       ~ XMat)
+    LMFit_var  <- lm(FitVarsRep[blnE]  ~ XMat)
     LMFit_mean <- lm(FitMeansRep[blnE] ~ XMat)
     VarSample <- XMat %*% LMFit_var$coefficients[-1]
     MeanSample <- XMat %*% LMFit_mean$coefficients[-1]
