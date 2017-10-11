@@ -8,6 +8,7 @@ source("D:/L1polymORFgit/Scripts/_Start_L1polymORF.R")
 # Load L1 catalog GenomicRanges
 load("D:/L1polymORF/Data/L1CatalogGRanges.RData")
 load('D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData')
+source("D:/L1polymORFgit/Scripts/_Start_L1polymORF.R")
 
 # Median frequency of fragments and full-length L1
 median(L1_1000G_reduced$Frequency[L1_1000G_reduced$InsLength <= 5900], na.rm = T)
@@ -29,6 +30,8 @@ InsLengthMid <- InsLengthGroups[-length(InsLengthGroups)] + 250
 L1_1000G_reduced$InsLengthGroup <- cut(L1_1000G_reduced$InsLength,
                                        breaks = InsLengthGroups)
 FreqMean <- aggregate(Frequency ~ InsLengthGroup, data = L1_1000G_reduced, FUN = mean)
+FreqMin <- aggregate(Frequency ~ InsLengthGroup, data = L1_1000G_reduced, FUN = min)
+FreqMax <- aggregate(Frequency ~ InsLengthGroup, data = L1_1000G_reduced, FUN = max)
 FreqSum <- aggregate(Frequency ~ InsLengthGroup, data = L1_1000G_reduced, FUN = sum)
 FreqVar  <- aggregate(Frequency ~ InsLengthGroup, data = L1_1000G_reduced, FUN = var)
 plot(InsLengthMid, FreqMean$Frequency, ylim = c(0, 0.05), 
@@ -39,3 +42,20 @@ AddErrorBars(MidX = InsLengthMid, MidY = FreqMean$Frequency,
                                  FreqMean$Frequency),
              TipWidth = 50)
 CreateDisplayPdf("D:/L1polymORF/Figures/L1InsertionLengthVsFrequency1000Genomes.pdf")
+
+# Plot quantiles of frequencies of small and large fragments against each other
+FreqSmall <- L1_1000G_reduced$Frequency[L1_1000G_reduced$InsLength <= 500] 
+FreqMed <- L1_1000G_reduced$Frequency[L1_1000G_reduced$InsLength >= 2000 &
+                                        L1_1000G_reduced$InsLength <= 5000] 
+FreqLarge <- L1_1000G_reduced$Frequency[L1_1000G_reduced$InsLength >= 6000] 
+
+# Create quantile plots
+par(mfrow = c(1,2))
+qqplot(FreqSmall, FreqMed, xlab = "Frequencies of small fragments",
+       ylab = "Frequencies of medium fragments")
+lines(c(0, 1), c(0, 1))
+qqplot(FreqLarge, FreqMed, xlab = "Frequencies of large fragments",
+       ylab = "Frequencies of medium fragments")
+lines(c(0, 1), c(0, 1))
+CreateDisplayPdf("D:/L1polymORF/Figures/L1InsertionLengthVsFrequencyQQPlots.pdf",
+                 height = 4)
