@@ -2,13 +2,13 @@
 # 'CompareErrorRatesBetwPacBioDatases.R'
 
 # Specify path for plot
-PathPlot <- "D:/L1polymORF/Figures/ErrorRateComparison.pdf"
+PathPlot <- "D:/L1polymORF/Figures/ErrorRateComparison_ErrorRegionsRemoved.pdf"
 
 # Source start script
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load the results
-load("D:/L1polymORF/Data/ErrorComparer.RData")
+load("D:/L1polymORF/Data/ErrorComparer_ErrorRegionsRemoved.RData")
 
 # Get ordering of error rates
 OrderErrorHiFi      <- order(ErrorHiFi, decreasing = T)
@@ -40,7 +40,7 @@ GRUnion_withSNP[idxGRNormalBWA[OrderErrorRefNormalBWA[1:10]]]
 
 # Plot distribution of error rates
 cat("\n***** Writing plot to", PathPlot, "  *****\n")
-CountBreaks        <- seq(0, 1, 0.05)
+CountBreaks        <- seq(0, 1, 0.01)
 HistErrorHiFi         <- hist(ErrorHiFi,       plot = F, breaks = CountBreaks)
 HistErrorHiFiBWA      <- hist(ErrorHiFiBWA,    plot = F, breaks = CountBreaks)
 HistErrorNormal       <- hist(ErrorNormal,     plot = F, breaks = CountBreaks)
@@ -50,38 +50,41 @@ HistErrorRefHiFiBWA   <- hist(unlist(ErrorRefHiFiBWA), plot = F, breaks = CountB
 HistErrorRefNormal    <- hist(unlist(ErrorRefNormal),  plot = F, breaks = CountBreaks)
 HistErrorRefNormalBWA <- hist(unlist(ErrorRefNormalBWA), plot = F, breaks = CountBreaks)
 
-OffSet <- 3*10^-3
-Cols <- rainbow(2)
+OffSet <- 10^-3
+Cols   <- rainbow(2)
+YLim   <- c(0, 80)
+LX     <- 0.07
+LY     <- 60
+Lcex   <- 0.75
 par(mfrow = c(2, 2), mar = c(3, 2, 2, 1), oma = c(2.5, 2.5, 1, 1.5))
 #pdf(file = PathPlot)
 plot(HistErrorHiFi$mids - OffSet, HistErrorHiFi$density, type = "s", col = Cols[1],
-     xlim = c(0, 1), xlab = "", ylab = "",
+     xlim = c(0, 0.2), ylim = YLim, xlab = "", ylab = "",
      main = "Betw. ZMWs, nglmr")
 lines(HistErrorNormal$mids, HistErrorNormal$density, type = "s", col =  Cols[2])
-legend(x = 0.4, y = 15, legend = c("New polymerase", "Old polymerase"),
-       col = Cols, lty = c(1, 1), bty = "n")
+legend(x = LX, y = LY, legend = c("New polymerase", "Old polymerase"),
+       col = Cols, lty = c(1, 1), bty = "n", cex = Lcex)
 plot(HistErrorRefHiFi$mids - OffSet, HistErrorRefHiFi$density, type = "s", 
-     col = Cols[1], xlim = c(0, 1), xlab = "", ylab = "",
+     col = Cols[1], xlim = c(0, 0.2), ylim = YLim, xlab = "", ylab = "",
             main = "Compared to ref., nglmr")
 lines(HistErrorRefNormal$mids + OffSet, HistErrorRefNormal$density, type = "s", 
       col =  Cols[2])
-legend(x = 0.4, y = 10, legend = c("New polymerase", "Old polymerase"),
-       col = Cols, lty = c(1, 1), bty = "n")
+legend(x = LX, y = LY, legend = c("New polymerase", "Old polymerase"),
+       col = Cols, lty = c(1, 1), bty = "n", cex = Lcex)
 plot(HistErrorHiFiBWA$mids - OffSet, HistErrorHiFiBWA$density, type = "s", 
-     col = Cols[1], xlim = c(0, 1), ylim = c(0, 20), xlab = "", ylab = "",
+     col = Cols[1], xlim = c(0, 0.2), ylim = YLim,  xlab = "", ylab = "",
      main = "Betw. ZMWs, bwa")
 lines(HistErrorNormalBWA$mids, HistErrorNormalBWA$density, type = "s", 
       col =  Cols[2])
-legend(x = 0.4, y = 13, legend = c("New polymerase", "Old polymerase"),
-       col = Cols, lty = c(1, 1), bty = "n")
+legend(x = LX, y = LY, legend = c("New polymerase", "Old polymerase"),
+       col = Cols, lty = c(1, 1), bty = "n", cex = Lcex)
 plot(HistErrorRefHiFiBWA$mids - OffSet, HistErrorRefHiFiBWA$density, 
-     type = "s",  col = Cols[1], xlim = c(0, 1), xlab = "", ylab = "",
-     ylim = c(0, 12),
-     main = "Compared to ref., bwa")
+     type = "s",  col = Cols[1], xlim = c(0, 0.2), YLim,  xlab = "", ylab = "",
+      main = "Compared to ref., bwa")
 lines(HistErrorRefNormalBWA$mids + OffSet, HistErrorRefNormalBWA$density, 
       type = "s", col =  Cols[2])
-legend(x = 0.4, y = 10, legend = c("New polymerase", "Old polymerase"),
-       col = Cols, lty = c(1, 1), bty = "n")
+legend(x = LX, y = LY, legend = c("New polymerase", "Old polymerase"),
+       col = Cols, lty = c(1, 1), bty = "n", cex = Lcex)
 mtext("Error rate", side = 1, line = 1, outer = T)
 mtext("Frequency", side = 2, line = 1, outer = T)
 CreateDisplayPdf("D:/L1polymORF/Figures/ErrorDistns.pdf",
