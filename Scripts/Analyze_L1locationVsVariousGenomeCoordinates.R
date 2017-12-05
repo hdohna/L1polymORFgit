@@ -119,14 +119,14 @@ load(L1GRanges1000GenomesPath)
 
 # Subset genomic ranges to get full-length and fragments in three different 
 # frequency classes
-blnFull           <- L1_1000G_GR_hg19@elementMetadata@listData$InsLength >= 6000
-GRL1Ins1000G_Full <- L1_1000G_GR_hg19[which(blnFull)]
+blnFull1000G       <- L1_1000G_GR_hg19@elementMetadata@listData$InsLength >= 6000
+GRL1Ins1000G_Full <- L1_1000G_GR_hg19[which(blnFull1000G)]
 FreqQuant_Full    <- quantile(GRL1Ins1000G_Full@elementMetadata@listData$Frequency)
 blnAbove75        <- GRL1Ins1000G_Full@elementMetadata@listData$Frequency >=
                      FreqQuant_Full['75%']
 GRL1Ins1000G_Full_HiF   <- GRL1Ins1000G_Full[blnAbove75]
 GRL1Ins1000G_Full_lowF  <- GRL1Ins1000G_Full[!blnAbove75]
-GRL1Ins1000G_Fragm      <- L1_1000G_GR_hg19[which(!blnFull)]
+GRL1Ins1000G_Fragm      <- L1_1000G_GR_hg19[which(!blnFull1000G)]
 
 ############################
 #                          #
@@ -563,7 +563,7 @@ EndDiff[!blnPos]
 
 ##################################
 #                                #
-#    Other tests      #
+#    Other tests             #
 #                                #
 ##################################
 
@@ -600,3 +600,9 @@ QQDistPlot(L1DistGene_1000GFragm, L1DistGene_1000GFull,
 DistVsWidth <- lm(L1DistGene_Fragm ~ width(L1FragmGR))
 summary(DistVsWidth)
 
+# Test for a correlation between distance to closest gene and frequency
+cor.test(L1DistGene_1000GFull,GRL1Ins1000G_Full@elementMetadata@listData$Frequency,
+         method = "spearman")
+cor.test(L1DistGene_1000GFull,GRL1Ins1000G_Full@elementMetadata@listData$Frequency,
+         method = "kendall")
+plot(L1DistGene_1000GFull,GRL1Ins1000G_Full@elementMetadata@listData$Frequency)
