@@ -101,7 +101,7 @@ L1GRZero          <- c(L1RefGRFullnotCat, L1CatalogGR[blnZero])
 blnInRef_hg19   <- width(L1CatalogGR_hg19) > 6000 
 L1CatalogGR_Ref_hg19 <- L1CatalogGR_hg19[blnInRef_hg19]
 
-# Get fullength L1 that are not in the catalog for hg19
+# Get ful-length L1 that are not in the catalog for hg19
 blnOverlapCatalog_hg19 <- overlapsAny(L1RefGRFull_hg19, L1CatalogGR_hg19, 
                                       minoverlap = 6000)
 L1RefGRFullnotCat_hg19 <- L1RefGRFull_hg19[!blnOverlapCatalog_hg19]
@@ -127,6 +127,32 @@ blnAbove75        <- GRL1Ins1000G_Full@elementMetadata@listData$Frequency >=
 GRL1Ins1000G_Full_HiF   <- GRL1Ins1000G_Full[blnAbove75]
 GRL1Ins1000G_Full_lowF  <- GRL1Ins1000G_Full[!blnAbove75]
 GRL1Ins1000G_Fragm      <- L1_1000G_GR_hg19[which(!blnFull1000G)]
+
+##########
+# Matching 1000G L1 to L1 catalog
+##########
+
+cat("Matching 1000G L1 to L1 catalog\n")
+
+# Calculate distance between catalog elements and 1000 Genome ranges
+DistCat2_1000G <- Dist2Closest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
+
+# Get indices of 1000 Genome and catalog elements that match
+idx1000G <- nearest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
+L1CatalogMatch1000G <- L1CatalogL1Mapped[DistCat2_1000G < 100, ]
+L1CatalogGRMatch1000G <- L1CatalogGR[DistCat2_1000G < 100]
+L1CatalogGRMatch1000G_hg19 <- L1CatalogGR_hg19[DistCat2_1000G < 100]
+L1CatalogMatch1000G$Dist2Gene <- DistCat2_1000G[DistCat2_1000G < 100]
+idx1000GMatchCat    <- idx1000G[DistCat2_1000G < 100]
+
+# Get rows of L1_1000G table that can be matched to catalog
+L1_1000G_match <- L1_1000G_reduced[idx1000GMatchCat, ]
+
+cor.test(L1_1000G_match$Frequency, L1CatalogMatch1000G$ActivityNum)
+cor.test(L1_1000G_match$Frequency, L1CatalogMatch1000G$Dist2Gene)
+LM1 <- lm(log(L1_1000G_match$Frequency) ~ L1CatalogMatch1000G$ActivityNum + 
+            L1CatalogMatch1000G$Dist2Gene)
+summary(LM1)
 
 ############################
 #                          #
@@ -293,10 +319,10 @@ Dist2ClosestGene <- function(GR){
   DistGeneObj <- distanceToNearest(GR, GRgenes, ignore.strand = T) 
   DistGeneObj@elementMetadata@listData$distance
 }
-Dist2Closest <- function(GR1, GR2){
-  DistObj <- distanceToNearest(GR1, GR2, ignore.strand = T) 
-  DistObj@elementMetadata@listData$distance
-}
+# Dist2Closest <- function(GR1, GR2){
+#   DistObj <- distanceToNearest(GR1, GR2, ignore.strand = T) 
+#   DistObj@elementMetadata@listData$distance
+# }
 
 # Auxiliary unction to create genomic ranges for both sides of a loop
 getLoopGRs <- function(FileName){
@@ -398,12 +424,47 @@ LoopDist0 <- sapply(LoopDistList, function(x) {
 # Probability of observed number of catalog intersections given the proportion
 # of fragment interesections
 apply(LoopDist0, 2, FUN = function(x){
-  1 - pbinom(x["sum0CatRef"] - 1, x["nrCatRef"], x["prop0Fragm"])
+  pbinom(x["sum0CatRef"] - 1, x["nrCatRef"], x["prop0Fragm"])
 })
 apply(DomainDist0, 2, FUN = function(x){
-  1 - pbinom(x["sum0CatRef"] - 1, x["nrCatRef"], x["prop0Fragm"])
+  pbinom(x["sum0CatRef"] - 1, x["nrCatRef"], x["prop0Fragm"])
 })
 
+# Summarize domain ranges (union or intersect)
+DomainGR_Union    <- DomainGRList[[1]]$AllLoops
+DomainGR_Intersect <- DomainGRList[[1]]$AllLoops
+for (i in 2:length(DomainGRList)){
+  DomainGR_Union <- union(DomainGR_Union, DomainGRList[[i]]$AllLoops)
+  DomainGR_Intersect <- intersect(DomainGR_Intersect, DomainGRList[[i]]$AllLoops)
+}
+
+# Summarize loop ranges (union or intersect)
+LoopGR_Union    <- LoopGRList[[1]]$AllLoops
+LoopGR_Intersect <- LoopGRList[[1]]$AllLoops
+for (i in 2:length(LoopGRList)){
+  LoopGR_Union <- union(LoopGR_Union, LoopGRList[[i]]$AllLoops)
+  LoopGR_Intersect <- intersect(LoopGR_Intersect, LoopGRList[[i]]$AllLoops)
+}
+
+# Calculate distances from fragment L1, catalog L1 in the reference genome and
+# full-length L1 that are not in the catalog
+L1DistLoopUnion_Fragm      <- Dist2Closest(L1FragmGR_hg19, LoopGR_Union)
+L1DistLoopUnion_CatRef     <- Dist2Closest(L1CatalogGR_Ref_hg19, LoopGR_Union)
+L1DistLoopUnion_FullnotCat <- Dist2Closest(L1RefGRFullnotCat_hg19, LoopGR_Union)
+L1DistLoopIntersect_Fragm  <- Dist2Closest(L1FragmGR_hg19, LoopGR_Intersect)
+L1DistLoopIntersect_CatRef <- Dist2Closest(L1CatalogGR_Ref_hg19, LoopGR_Intersect)
+L1DistLoopIntersect_FullnotCat <- Dist2Closest(L1RefGRFullnotCat_hg19, LoopGR_Intersect)
+L1DistLoopIntersect_Cat <- Dist2Closest(L1CatalogGR_hg19, LoopGR_Intersect)
+
+# Calculate distances from fragment L1, catalog L1 in the reference genome and
+# full-length L1 that are not in the catalog
+L1DistDomainUnion_Fragm      <- Dist2Closest(L1FragmGR_hg19, DomainGR_Union)
+L1DistDomainUnion_CatRef     <- Dist2Closest(L1CatalogGR_Ref_hg19, DomainGR_Union)
+L1DistDomainUnion_FullnotCat <- Dist2Closest(L1RefGRFullnotCat_hg19, DomainGR_Union)
+L1DistDomainIntersect_Fragm  <- Dist2Closest(L1FragmGR_hg19, DomainGR_Intersect)
+L1DistDomainIntersect_CatRef <- Dist2Closest(L1CatalogGR_Ref_hg19, DomainGR_Intersect)
+L1DistDomainIntersect_Cat    <- Dist2Closest(L1CatalogGR_hg19, DomainGR_Intersect)
+L1DistDomainIntersect_FullnotCat <- Dist2Closest(L1RefGRFullnotCat_hg19, DomainGR_Intersect)
 
 # # Create different genomic ranges
 # LoopsGR_GM12878Dom <- getLoopGRs("D:/L1polymORF/Data/HiCData/GSE63525_GM12878_primary+replicate_Arrowhead_domainlist.txt")
@@ -563,7 +624,7 @@ EndDiff[!blnPos]
 
 ##################################
 #                                #
-#    Other tests             #
+#    Other tests                 #
 #                                #
 ##################################
 
@@ -582,6 +643,48 @@ UpStream   <- start(GRgenes)[idxNearest] < start(L1CatalogGR)
 table(UpStream, as.vector(strand(L1CatalogGR)))
 chisq.test(UpStream, as.vector(strand(L1CatalogGR)))
 
+# Calculate the distance from catalog elements to closest genes and fit regression
+# to predict frequency
+GeneDistCat <- Dist2ClosestGene(L1CatalogGR) 
+L1CatalogL1Mapped$Allele_frequencyNum <- gsub("\\*", "",  L1CatalogL1Mapped$Allele_frequency)
+L1CatalogL1Mapped$Allele_frequencyNum <- as.numeric(L1CatalogL1Mapped$Allele_frequencyNum )
+LM <- lm(log(L1CatalogL1Mapped$Allele_frequencyNum + 10^(-3)) ~ L1CatalogL1Mapped$ActivityNum + GeneDistCat)
+summary(LM)
+cor.test(L1CatalogL1Mapped$Allele_frequencyNum, L1CatalogL1Mapped$ActivityNum)
+
+# Combine information from 1000 Genome and catalog
+blnNotMatched <- !L1CatalogL1Mapped$Accession %in% L1CatalogMatch1000G$Accession
+FreqAct1000G <- data.frame(Allele_frequencyNum = L1_1000G_match$Frequency, 
+           ActivityNum = L1CatalogMatch1000G$ActivityNum)
+FreqActCat <- L1CatalogL1Mapped[blnNotMatched, c("Allele_frequencyNum", "ActivityNum")]
+FreqActCombined <- rbind(FreqAct1000G, FreqActCat)
+DistCombined <- c(L1CatalogMatch1000G$Dist2Gene, GeneDistCat[blnNotMatched])
+LM <- lm(log(FreqActCombined$Allele_frequencyNum + 10^(-3)) ~ FreqActCombined$ActivityNum + 
+           DistCombined)
+summary(LM)
+L1CatalogGRMatch1000G_hg19
+
+# Do the same for distance to loops
+L1DistLoopIntersect_1000Gmatch <- Dist2Closest(L1CatalogGRMatch1000G_hg19, LoopGR_Intersect)
+DistCombined <- c(L1DistLoopIntersect_1000Gmatch, L1DistLoopIntersect_Cat[blnNotMatched])
+LM <- lm(log(FreqActCombined$Allele_frequencyNum + 10^(-4)) ~ FreqActCombined$ActivityNum + 
+           DistCombined)
+summary(LM)
+length(L1DistDomainIntersect_1000Gmatch)
+
+# Do the same for distance to domains
+GR1 = L1CatalogGRMatch1000G_hg19
+GR2 = DomainGR_Intersect
+DistObj <- distanceToNearest(GR1, GR2, ignore.strand = T) 
+Dists <- DistObj@elementMetadata@listData$distance
+idxDist <- DistObj@from
+
+DistCombined <- c(Dists, L1DistDomainIntersect_Cat[blnNotMatched])
+LM <- lm(log(FreqActCombined$Allele_frequencyNum[-27] + 10^(-4)) ~ FreqActCombined$ActivityNum[-27] + 
+           DistCombined)
+summary(LM)
+length(DistCombined)
+
 # Perform regression to determine whether distance to closest gene depends on
 # fragment length
 FitDistVsLength <- glm(L1DistGene_Fragm ~ width(L1FragmGR))
@@ -596,6 +699,12 @@ QQDistPlot(L1DistGene_1000GFragm, L1DistGene_1000GFull,
            xLab = "Distance from L1 fragments",
            yLab = "Distance from full-length L1")
 
+# Create quantile plots for loop intersction and union distances
+QQDistPlot(L1DistLoopIntersect_Fragm, L1DistLoopIntersect_Cat)
+QQDistPlot(L1DistLoopUnion_Fragm, L1DistLoopUnion_CatRef)
+QQDistPlot(L1DistDomainIntersect_Fragm, L1DistDomainIntersect_CatRef)
+QQDistPlot(L1DistDomainUnion_Fragm, L1DistDomainUnion_CatRef)
+
 # Test linear regression fragemnt size vs distance
 DistVsWidth <- lm(L1DistGene_Fragm ~ width(L1FragmGR))
 summary(DistVsWidth)
@@ -606,3 +715,8 @@ cor.test(L1DistGene_1000GFull,GRL1Ins1000G_Full@elementMetadata@listData$Frequen
 cor.test(L1DistGene_1000GFull,GRL1Ins1000G_Full@elementMetadata@listData$Frequency,
          method = "kendall")
 plot(L1DistGene_1000GFull,GRL1Ins1000G_Full@elementMetadata@listData$Frequency)
+
+# Test for a correlation between distance to closest gene and frequency
+L1DistLoop_1000GFull      <- Dist2Closest(GRL1Ins1000G_Full, LoopGR_Intersect)
+cor.test(L1DistLoop_1000GFull,GRL1Ins1000G_Full@elementMetadata@listData$Frequency,
+         method = "kendall")
