@@ -670,7 +670,6 @@ DistCombined <- c(L1DistLoopIntersect_1000Gmatch, L1DistLoopIntersect_Cat[blnNot
 LM <- lm(log(FreqActCombined$Allele_frequencyNum + 10^(-4)) ~ FreqActCombined$ActivityNum + 
            DistCombined)
 summary(LM)
-length(L1DistDomainIntersect_1000Gmatch)
 
 # Do the same for distance to domains
 GR1 = L1CatalogGRMatch1000G_hg19
