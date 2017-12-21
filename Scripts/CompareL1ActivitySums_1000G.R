@@ -78,6 +78,72 @@ hist(ObservedAct)
 mean(ObservedAct)
 length(ObservedAct)
 mean(L1_1000G_reduced$Frequency)
+
+##########################################
+#                                        #
+#     Get number of unique insertions    #
+#                                        #
+##########################################
+
+# The frequency columns
+#FreqCols <- (grep("FORMAT", colnames(L1_1000G)) + 1):(ncol(L1_1000G) -3)
+
+# Create a boolean matrix for frequencies above 0
+blnFreqAbove0 <- L1_1000G[,SampleColumns] > 0
+
+# Get insertions that occur in only one individual
+blnSingl   <- rowSums(blnFreqAbove0) == 1
+blnAbove20 <- rowSums(blnFreqAbove0) >= 20
+idxAbove20 <- setdiff(which(blnAbove20), idx1000GMatchCat)
+idxAll     <- setdiff(1:nrow(L1_1000G), idx1000GMatchCat)
+
+# Get number of single insertion per genome and test for correlation 
+# with activity sum
+NrSingle <- colSums(blnFreqAbove0[blnSingl, ])
+cor.test(ObservedAct, NrSingle, method = "spearman")
+cor.test(ObservedActRand, NrSingle, method = "spearman")
+plot(ObservedAct, NrSingle)
+GLM_NrSingle <- glm(NrSingle ~ ObservedAct, family = poisson)
+summary(GLM_NrSingle)
+
+# Get number of insertion per genome and test for correlation 
+# with activity sum
+NrAbove20 <- colSums(blnFreqAbove0[idxAbove20, ])
+cor.test(ObservedAct, NrAbove20, method = "spearman")
+plot(ObservedAct, NrAbove20)
+GLM_NrAbove20 <- glm(NrAbove20 ~ ObservedAct, family = poisson)
+summary(GLM_NrAbove20)
+
+# Get number of insertion per genome and test for correlation 
+# with activity sum
+NrAll <- colSums(blnFreqAbove0[idxAll, ])
+cor.test(ObservedAct, NrAll, method = "spearman")
+plot(ObservedAct, NrAll)
+GLM_NrAll <- glm(NrAll ~ ObservedAct, family = poisson)
+summary(GLM_NrAll)
+
+# Create random activity sums and calculate correlation between 
+# activity and insertion frequency
+NrSamples <- 500
+RandCor <- sapply(1:NrSamples, function(x){
+  ActRand <- sample(L1CatalogMatch1000G$ActivityNum, nrow(L1CatalogMatch1000G))
+  ObservedActRand <- sapply(SampleColumns, function(x){
+    ActRand %*% L1_1000G_match[,x]})
+  c(CorAll = cor(ObservedActRand, NrAll, method = "spearman"),
+    CorAbove20 = cor(ObservedActRand, NrAbove20, method = "spearman"),
+    CorSingle = cor(ObservedActRand, NrSingle, method = "spearman"))
+})
+sum(RandCor["CorAll", ]     >= cor(ObservedAct, NrAll, method = "spearman"))/NrSamples
+sum(RandCor["CorAbove20", ] >= cor(ObservedAct, NrAbove20, method = "spearman"))/NrSamples
+sum(RandCor["CorSingle", ]  >= cor(ObservedAct, NrSingle, method = "spearman"))/NrSamples
+
+hist(RandCor["CorAll", ], main = "", xlab = "Correlation",
+     breaks = seq(-0.1, 0.5, 0.025))
+segments(cor(ObservedAct, NrAll, method = "spearman"), y0 = 0, y1 = 1000, 
+         col = "red")
+CreateDisplayPdf('D:/L1polymORF/Figures/L1ActSumCorrelations.pdf', 
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
+
 ##########################################
 #                                        #
 #     Compare frequency and 
@@ -112,18 +178,21 @@ x <- 1
 y <- 2
 for(x in 1:(nrow(L1_1000G_match) - 1)){
   blnA  <- L1_1000G_match[x, SampleColumns] > 0
-  Pa    <- L1_1000G_match$Frequency[x]
+#  Pa    <- L1_1000G_match$Frequency[x]
+  Pa    <- mean(blnA)
   for(y in (x + 1):nrow(L1_1000G_match)){
-    Pb           <- L1_1000G_match$Frequency[y]
-    PaPb         <- (2*(Pa * (1 - Pa) + Pa^2)) * (2*(Pb * (1 - Pb) + Pb^2))
+#    Pb           <- L1_1000G_match$Frequency[y]
+#    PaPb         <- (2*(Pa * (1 - Pa) + Pa^2)) * (2*(Pb * (1 - Pb) + Pb^2))
+#    PaPb         <- Pa*Pb
     blnSameChrom <- L1_1000G_match$CHROM[x] == L1_1000G_match$CHROM[y]
     blnB         <- L1_1000G_match[y, SampleColumns] > 0
+    Pb           <- mean(blnB)
     Pab          <- mean(blnA * blnB)
     ChiSq        <- chisq.test(x = as.vector(blnA), y = as.vector(blnB))$statistic
     Cor <- cor(t(L1_1000G_match[x, SampleColumns]), 
-               t(L1_1000G_match[y, SampleColumns]), method = "spearman")
+               t(L1_1000G_match[y, SampleColumns]))
     if (Cor > 1) browser()
-    LDMat   <- rbind(LDMat, c(LD = (PaPb - Pab), 
+    LDMat   <- rbind(LDMat, c(LD = (Pab - Pa*Pb), 
                               Cor = Cor, 
                               SameChrom = blnSameChrom,
                               ActSum  = L1CatalogMatch1000G$ActivityNum[x] +
@@ -135,6 +204,7 @@ LDMat <- LDMat[!is.na(LDMat$LD),]
 max( LDMat$ActSum)
 max( LDMat$LD)
 LDMat[LDMat$LD == max(LDMat$LD), ]
+
 # Plot histogram of linkage disequilibrium values
 hist(LDMat$LD)
 boxplot(LD ~ SameChrom, data = LDMat)
@@ -147,15 +217,18 @@ cor.test(LDMat$LD, LDMat$ActSum, method = "spearman")
 cor.test(LDMat$Cor, LDMat$ActSum, method = "spearman")
 t.test(LD ~ SameChrom, data = LDMat)
 LMLD <- lm(LD ~ SameChrom + ActSum, data = LDMat)
-LMCor<- lm(Cor ~ SameChrom + ActSum, data = LDMat,
+LMCor<- lm(Cor ~ SameChrom + ActSum, data = LDMat)
+LMCorSubset <- lm(Cor ~ SameChrom + ActSum, data = LDMat,
            subset = Cor < 1)
 summary(LMLD)
 summary(LMCor)
+summary(LMCorSubset)
 
 # Plot activity vs frequency
 plot(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency)
 cor(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency)
-cor.test(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency, method = "spearman")
+cor.test(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency, 
+         method = "spearman")
 
 # Determine difference between expected and observed frequency of
 # homozygous L1
