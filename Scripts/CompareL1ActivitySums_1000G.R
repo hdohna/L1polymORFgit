@@ -217,7 +217,7 @@ cor.test(LDMat$LD, LDMat$ActSum, method = "spearman")
 cor.test(LDMat$Cor, LDMat$ActSum, method = "spearman")
 t.test(LD ~ SameChrom, data = LDMat)
 LMLD <- lm(LD ~ SameChrom + ActSum, data = LDMat)
-LMCor<- lm(Cor ~ SameChrom + ActSum, data = LDMat)
+LMCor<- lm(Cor ~ SameChrom + ActSum + SameChrom*ActSum, data = LDMat)
 LMCorSubset <- lm(Cor ~ SameChrom + ActSum, data = LDMat,
            subset = Cor < 1)
 summary(LMLD)

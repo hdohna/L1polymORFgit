@@ -1,0 +1,8 @@
+samtools view /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19masked.sorted.bam chr16:26101247-26104180 \
+-b -o /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19masked_highErrorchr16.bam
+
+samtools index /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/BZ_NA12878L1capt5-9kb_subreads_hg19masked_highErrorchr16.bam
+
+samtools view /srv/gsfs0/projects/levinson/hzudohna/PacBio/sorted_final_merged.bam chr8:90552256-90557008 \
+-b -o /srv/gsfs0/projects/levinson/hzudohna/PacBio/sorted_final_merged_highErrorchr8.bam
+samtools index /srv/gsfs0/projects/levinson/hzudohna/PacBio/sorted_final_merged_highErrorchr8.bam

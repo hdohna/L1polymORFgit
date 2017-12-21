@@ -1,0 +1,1 @@
+awk '{ for(i=1; i<9; i++) printf "%s",$i OFS; if(8) printf "%s",$8; printf ORS}' Del_chr1.vcf > Del_chr1_InfoCols

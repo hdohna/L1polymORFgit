@@ -1,6 +1,9 @@
 /srv/gsfs0/projects/levinson/hzudohna
 /srv/gsfs0/projects/levinson/bozhou/smrtanalysis_output/016437/data
 
+/export/diskarray3/home/hzudohna
+/export/diskarray1/bix-diskarray3/hzudohna/
+
 https://github.com/philres/ngmlr/releases/download/v0.2.3/ngmlr-0.2.3-beta-linux-x86_64.tar.gz
 
 /srv/gsfs0/projects/levinson/hzudohna/ngmlr-0.2.3/ngmlr -t 4 -r /srv/gsfs0/projects/levinson/hzudohna/RefSeqData/hg19masked.fa -q /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/filtered_subreads.fastq -o /srv/gsfs0/projects/levinson/hzudohna/PacBioCapture/PacBioL1captPS/PacBioHiFiSubreads_hg19masked.sam
