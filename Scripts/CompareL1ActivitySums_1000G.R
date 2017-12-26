@@ -63,6 +63,9 @@ DistCat2_1000G <- Dist2Closest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
 idx1000G <- nearest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
 L1CatalogMatch1000G <- L1CatalogL1Mapped[DistCat2_1000G < 100, ]
 idx1000GMatchCat    <- idx1000G[DistCat2_1000G < 100]
+L1CatalogGRMatched  <- L1CatalogGR[DistCat2_1000G < 100]
+sum(DistCat2_1000G < 100)
+sum(DistCat2_1000G < 10)
 
 # add a column with dummy activity sums
 L1CatalogMatch1000G$ActivityDummy <- 1
@@ -81,7 +84,44 @@ mean(L1_1000G_reduced$Frequency)
 
 ##########################################
 #                                        #
-#     Get number of unique insertions    #
+#     Get number of insertions around    #
+#        matched LINE-1s                 #
+#                                        #
+##########################################
+
+# Create large genomic ranges around each L1 
+L1CatGR_large <- resize(L1CatalogGRMatched, 10^8, fix = "center")
+OverlapL1Cat <- findOverlaps(L1CatGR_large, 
+                             L1_1000G_GRList_hg38$LiftedRanges[-idx1000GMatchCat])
+
+# Create a vector that counts for each matched L1 the difference between L1 in
+# the vicinity between individuals carrying the L1 and the ones that don't
+idxOverlap <- unique(OverlapL1Cat@from)
+L1Diff <- sapply(idxOverlap, function(i){
+  blnPresent <- L1_1000G_match[i, SampleColumns] > 0
+  idxOtherL1 <- OverlapL1Cat@to[OverlapL1Cat@from == i]
+  L1with    <- sum(L1_1000G[idxOtherL1,SampleColumns[blnPresent]])
+  L1without <- sum(L1_1000G[idxOtherL1,SampleColumns[!blnPresent]])
+  L1with / sum(blnPresent) - L1without / sum(!blnPresent)
+  
+})        
+
+# Plot the difference between L1s in samples with and without focal L1 against
+# activity of focal L1
+plot(L1CatalogMatch1000G$ActivityNum[idxOverlap], L1Diff)
+cor.test(L1CatalogMatch1000G$ActivityNum[idxOverlap], L1Diff)
+
+OverlapCount <- rep(0, nrow(L1CatalogMatch1000G))
+names(OverlapCount) <- 1:length(OverlapCount)
+OverlapCount_tmp <- table(OverlapL1Cat@from)
+OverlapCount[names(OverlapCount_tmp)] <- OverlapCount_tmp
+plot(L1CatalogMatch1000G$ActivityNum, OverlapCount)
+cor.test(L1CatalogMatch1000G$ActivityNum, OverlapCount)
+
+##########################################
+#                                        #
+#     Correlation betw. total retortrans #
+#     and other L1 insertions            #
 #                                        #
 ##########################################
 
@@ -101,7 +141,6 @@ idxAll     <- setdiff(1:nrow(L1_1000G), idx1000GMatchCat)
 # with activity sum
 NrSingle <- colSums(blnFreqAbove0[blnSingl, ])
 cor.test(ObservedAct, NrSingle, method = "spearman")
-cor.test(ObservedActRand, NrSingle, method = "spearman")
 plot(ObservedAct, NrSingle)
 GLM_NrSingle <- glm(NrSingle ~ ObservedAct, family = poisson)
 summary(GLM_NrSingle)
