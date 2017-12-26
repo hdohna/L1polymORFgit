@@ -7,6 +7,8 @@
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load packages
+library(ggplot2)
+library(grid)
 library(GenomicRanges)
 library(rtracklayer)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
@@ -182,6 +184,65 @@ segments(cor(ObservedAct, NrAll, method = "spearman"), y0 = 0, y1 = 1000,
          col = "red")
 CreateDisplayPdf('D:/L1polymORF/Figures/L1ActSumCorrelations.pdf', 
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
+
+#################################################
+#                                               #
+#  Correlation betw. retortrans per chromsome   #
+#     and other L1 insertions                   #
+#                                               #
+#################################################
+
+CorPerChr <- data.frame(Chrom = unique(L1CatalogMatch1000G$Chromosome),
+                        Cor = NA, P = NA, Slope = NA)
+PlotList <- vector(mode = "list", length = nrow(CorPerChr))
+for(i in 1:nrow(CorPerChr)){
+  ChrName <- as.character(CorPerChr$Chrom[i])
+  cat("Analyzing", ChrName, "\n")
+  Chr <- substr(ChrName, 4, nchar(ChrName))
+  ChrName <- paste("chr", Chr, sep = "")
+  idxChr <- which(L1_1000G$CHROM == Chr)
+  blnL1Cat <- L1CatalogMatch1000G$Chromosome == ChrName
+  idxMatchL1 <- intersect(idxChr, idx1000GMatchCat)
+  L1Act <- sapply(SampleColumns, function(x){
+    L1CatalogMatch1000G$ActivityNum[blnL1Cat] %*% L1_1000G_match[blnL1Cat,x]
+  })
+  OtherL1 <- colSums(L1_1000G[idxChr,SampleColumns])
+  PlotData <- data.frame(L1Act = L1Act, OtherL1 = OtherL1)
+  LM <- lm(OtherL1 ~ L1Act, data = PlotData)
+  
+  PlotList [[i]] <- ggplot(PlotData, aes(x=L1Act, y=OtherL1)) + 
+    geom_point(alpha = 0.05, size = 3) +
+    geom_abline(slope = LM$coefficients[2], intercept = LM$coefficients[1]) +
+    scale_x_continuous(name = "") + 
+    scale_y_continuous(name = "") +
+    ggtitle(ChrName)
+  
+  CT <- cor.test(L1Act, OtherL1)
+  CorPerChr$Cor[i] <- CT$estimate
+  CorPerChr$P[i] <- CT$p.value
+  CorPerChr$Slope[i] <- LM$coefficients[2]
+}
+
+multiplot(plotlist = PlotList[!is.na(CorPerChr$Cor)], cols = 4)
+
+# Create a matrix of random correlations per chromosome
+NrSamples <- 500
+table(L1CatalogMatch1000G$Chromosome)
+Chroms2Analyze <- CorPerChr$Chrom[!is.na(CorPerChr$Cor)]
+ChrName <- "chr2"
+cat("Getting random correlations for", ChrName, "\n")
+Chr <- substr(ChrName, 4, nchar(ChrName))
+idxChr <- which(L1_1000G$CHROM == Chr)
+blnL1Cat <- L1CatalogMatch1000G$Chromosome == ChrName
+idxMatchL1 <- intersect(idxChr, idx1000GMatchCat)
+OtherL1 <- colSums(L1_1000G[idxChr,SampleColumns])
+RandCor_chr2 <- sapply(1:NrSamples, function(x){
+  ActRand <- sample(L1CatalogMatch1000G$ActivityNum[blnL1Cat], sum(blnL1Cat))
+  ObservedActRand <- sapply(SampleColumns, function(x){
+    ActRand %*% L1_1000G_match[blnL1Cat,x]})
+  cor(ObservedActRand, OtherL1)
+})
+sum(RandCor_chr2 >= CorPerChr$Cor[2]) / NrSamples
 
 ##########################################
 #                                        #
