@@ -91,22 +91,40 @@ mean(L1_1000G_reduced$Frequency)
 #                                        #
 ##########################################
 
-# Create large genomic ranges around each L1 
-L1CatGR_large <- resize(L1CatalogGRMatched, 10^8, fix = "center")
-OverlapL1Cat <- findOverlaps(L1CatGR_large, 
-                             L1_1000G_GRList_hg38$LiftedRanges[-idx1000GMatchCat])
-
-# Create a vector that counts for each matched L1 the difference between L1 in
-# the vicinity between individuals carrying the L1 and the ones that don't
-idxOverlap <- unique(OverlapL1Cat@from)
-L1Diff <- sapply(idxOverlap, function(i){
-  blnPresent <- L1_1000G_match[i, SampleColumns] > 0
-  idxOtherL1 <- OverlapL1Cat@to[OverlapL1Cat@from == i]
-  L1with    <- sum(L1_1000G[idxOtherL1,SampleColumns[blnPresent]])
-  L1without <- sum(L1_1000G[idxOtherL1,SampleColumns[!blnPresent]])
-  L1with / sum(blnPresent) - L1without / sum(!blnPresent)
+# Create large genomic ranges around each L1
+RangeSeq <- seq(2 * 10^7, 5*10^7, 10^7/2)
+L1CorMat <- sapply(RangeSeq, function(Range){
+  cat("Calculating correlations for range", Range, "\n")
+  L1CatGR_large <- resize(L1CatalogGRMatched, Range, fix = "center")
+  OverlapL1Cat  <- findOverlaps(L1CatGR_large, 
+                               L1_1000G_GRList_hg38$LiftedRanges[-idx1000GMatchCat])
   
-})        
+  # Create a vector that counts for each matched L1 the difference between L1 in
+  # the vicinity between individuals carrying the L1 and the ones that don't
+  idxOverlap <- unique(OverlapL1Cat@from)
+  L1Cor <- sapply(idxOverlap, function(i){
+    FocalSum   <- L1_1000G_match[i, SampleColumns]
+    idxOtherL1 <- OverlapL1Cat@to[OverlapL1Cat@from == i]
+    L1other    <- colSums(L1_1000G[idxOtherL1, SampleColumns])
+    cor(t(FocalSum), L1other)  
+  })        
+  
+})
+ChromLengths
+dim(L1CorMat)
+plot(RangeSeq, colSums(L1CorMat))
+ChromCount <- table(L1CatalogMatch1000G$Chromosome)
+SingleL1Chroms <- names(ChromCount)[ChromCount == 1]
+idxHot <- which(L1CatalogMatch1000G$ActivityNum > 10 &
+                  L1CatalogMatch1000G$Chromosome %in% SingleL1Chroms)
+Cols <- rainbow(length(idxHot))
+plot(RangeSeq, L1CorMat[idxHot[1], ], type = "l", col = Cols[1], 
+     ylim = c(-0.1, 0.5), xlab = "Range width", ylab = "correlation")
+for (i in 2:length(idxHot)){
+  lines(RangeSeq, L1CorMat[idxHot[i], ], col = Cols[i] )
+}
+legend("topleft", col = Cols, lty = 1, 
+       legend = L1CatalogMatch1000G$Chromosome[idxHot])
 
 # Plot the difference between L1s in samples with and without focal L1 against
 # activity of focal L1
@@ -187,22 +205,24 @@ CreateDisplayPdf('D:/L1polymORF/Figures/L1ActSumCorrelations.pdf',
 
 #################################################
 #                                               #
-#  Correlation betw. retortrans per chromsome   #
+#  Correlation betw. L1 activity per chromsome  #
 #     and other L1 insertions                   #
 #                                               #
 #################################################
 
+# Create a data.frame that keeps track of correlation and P-Value
 CorPerChr <- data.frame(Chrom = unique(L1CatalogMatch1000G$Chromosome),
                         Cor = NA, P = NA, Slope = NA)
 PlotList <- vector(mode = "list", length = nrow(CorPerChr))
 for(i in 1:nrow(CorPerChr)){
   ChrName <- as.character(CorPerChr$Chrom[i])
   cat("Analyzing", ChrName, "\n")
-  Chr <- substr(ChrName, 4, nchar(ChrName))
-  ChrName <- paste("chr", Chr, sep = "")
-  idxChr <- which(L1_1000G$CHROM == Chr)
-  blnL1Cat <- L1CatalogMatch1000G$Chromosome == ChrName
+  Chr        <- substr(ChrName, 4, nchar(ChrName))
+  ChrName    <- paste("chr", Chr, sep = "")
+  idxChr     <- which(L1_1000G$CHROM == Chr)
+  blnL1Cat   <- L1CatalogMatch1000G$Chromosome == ChrName
   idxMatchL1 <- intersect(idxChr, idx1000GMatchCat)
+  idxChr     <- setdiff(idxChr, idx1000GMatchCat)
   L1Act <- sapply(SampleColumns, function(x){
     L1CatalogMatch1000G$ActivityNum[blnL1Cat] %*% L1_1000G_match[blnL1Cat,x]
   })
@@ -224,25 +244,37 @@ for(i in 1:nrow(CorPerChr)){
 }
 
 multiplot(plotlist = PlotList[!is.na(CorPerChr$Cor)], cols = 4)
+hist(CorPerChr$P)
 
 # Create a matrix of random correlations per chromosome
 NrSamples <- 500
 table(L1CatalogMatch1000G$Chromosome)
 Chroms2Analyze <- CorPerChr$Chrom[!is.na(CorPerChr$Cor)]
 ChrName <- "chr2"
-cat("Getting random correlations for", ChrName, "\n")
-Chr <- substr(ChrName, 4, nchar(ChrName))
-idxChr <- which(L1_1000G$CHROM == Chr)
-blnL1Cat <- L1CatalogMatch1000G$Chromosome == ChrName
-idxMatchL1 <- intersect(idxChr, idx1000GMatchCat)
-OtherL1 <- colSums(L1_1000G[idxChr,SampleColumns])
-RandCor_chr2 <- sapply(1:NrSamples, function(x){
-  ActRand <- sample(L1CatalogMatch1000G$ActivityNum[blnL1Cat], sum(blnL1Cat))
-  ObservedActRand <- sapply(SampleColumns, function(x){
-    ActRand %*% L1_1000G_match[blnL1Cat,x]})
-  cor(ObservedActRand, OtherL1)
+RandCorsPerChrom <- sapply(as.character(Chroms2Analyze), function(ChrName){
+  cat("Getting random correlations for", ChrName, "\n")
+  Chr <- substr(ChrName, 4, nchar(ChrName))
+  idxChr     <- which(L1_1000G$CHROM == Chr)
+  blnL1Cat   <- L1CatalogMatch1000G$Chromosome == ChrName
+  RandCor <- sapply(1:NrSamples, function(x){
+    idxMatchL1 <- sample(idxChr, sum(blnL1Cat))
+    idxOther   <- setdiff(idxChr, idxMatchL1)
+    OtherL1    <- colSums(L1_1000G[idxOther, SampleColumns])
+    Activity   <- L1CatalogMatch1000G$ActivityNum[blnL1Cat]
+    ObservedActRand <- sapply(SampleColumns, function(x){
+      Activity %*% L1_1000G[idxMatchL1, x]})
+    cor(ObservedActRand, OtherL1)
+  })
 })
 sum(RandCor_chr2 >= CorPerChr$Cor[2]) / NrSamples
+
+# Match chromosomes
+ChrMatch   <- match(Chroms2Analyze, CorPerChr$Chrom)
+blnGreater <- t(RandCorsPerChrom) >= CorPerChr$Cor[ChrMatch]
+rowSums(blnGreater) / NrSamples
+hist(rowSums(blnGreater) / NrSamples, breaks = seq(0, 1, 0.05))
+sum(rowMeans(RandCorsPerChrom, na.rm = T) >= mean(CorPerChr$Cor[ChrMatch])) / 
+  NrSamples
 
 ##########################################
 #                                        #
