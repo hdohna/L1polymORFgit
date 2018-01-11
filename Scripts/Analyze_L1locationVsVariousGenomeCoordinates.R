@@ -1,158 +1,3 @@
-# The script below analyzes the locations of LINE-1 insertions in the human
-# genome, distingusihing between fragments, full-length and functional 
-# insertions
-
-#############################################
-#                                           #
-#    Source packages and set parameters     #
-#                                           #
-#############################################
-
-# Load packages
-library(ape)
-library(seqinr)
-library(BSgenome.Hsapiens.UCSC.hg38)
-library(TxDb.Hsapiens.UCSC.hg38.knownGene)
-library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-library(ShortRead)
-library(csaw)
-
-# Source start script
-source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.r')
-
-# Path to L1 catalogue file (Created in script AddColumns2L1Catalog.R)
-L1CataloguePath <- "D:/L1polymORF/Data/L1CatalogExtended.csv"
-
-# Path to chain file for b37 to hg19 (obtained from ftp://gsapubftp-anonymous@ftp.broadinstitute.org/Liftover_Chain_Files/)
-Chain_b37tohg19 <- "D:/L1polymORF/Data/b37tohg19.chain"
-
-# Path to L1 GRanges from 1000 genome data
-L1GRanges1000GenomesPath <- "D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData"
-
-# Maximum L1 insertion length to be labeled a 'fragment'
-MaxFragLength <- 5900
-
-######################################
-#                                    #
-#    Read & process L1 catalog       #
-#                                    #
-######################################
-
-# Read piRNA data
-PiRNA_GR <- import.bed("D:/L1polymORF/Data/piR_hg19_sort.bed")
-
-# Read repeat table and subset to get only L1HS rows with fragment size below 
-# MaxFragLength
-RepeatTable      <- read.csv("D:/L1polymORF/Data/repeatsHg38_L1HS.csv")
-RepeatTable_hg19 <- read.csv("D:/L1polymORF/Data/repeatsHg19_L1HS.csv")
-
-# Create genomic ranges for L1 fragments, match them to distances to get distance
-# to consensus per fragment
-L1RefGR <- GRanges(seqnames = RepeatTable$genoName,
-                     ranges = IRanges(start = RepeatTable$genoStart,
-                                      end = RepeatTable$genoEnd),
-                     strand = RepeatTable$strand)
-L1RefGRFull  <- L1RefGR[width(L1RefGR) > 6000]
-L1FragmGR    <- L1RefGR[width(L1RefGR) < MaxFragLength]
-L1RefGR_hg19 <- GRanges(seqnames = RepeatTable_hg19$genoName,
-                   ranges = IRanges(start = RepeatTable_hg19$genoStart,
-                                    end = RepeatTable_hg19$genoEnd),
-                   strand = RepeatTable_hg19$strand)
-L1RefGRFull_hg19 <- L1RefGR_hg19[width(L1RefGR_hg19) > 6000]
-L1FragmGR_hg19   <- L1RefGR_hg19[width(L1RefGR_hg19) < MaxFragLength]
-length(L1FragmGR_hg19)
-
-# Read in table with known L1 
-L1Catalogue <- read.csv(L1CataloguePath, as.is = T)
-L1Catalogue$Allele[is.na(L1Catalogue$Allele)] <- 1
-
-# Retain only entries with mapped L1 insertions and allele 1
-blnL1Mapped       <- !is.na(L1Catalogue$start_HG38) 
-blnAllele1        <- L1Catalogue$Allele == 1 
-blnInRef1         <- (L1Catalogue$end_HG38 - L1Catalogue$start_HG38) > 6000 
-L1CatalogL1Mapped <- L1Catalogue[blnL1Mapped & blnAllele1,]
-
-# Lift catalog ranges to hg19
-L1LiftoverList <- LiftoverL1Catalog(L1CatalogL1Mapped,  
-                     ChainFilePath = "D:/L1polymORF/Data/hg38ToHg19.over.chain")
-L1CatalogGR_hg19 <- L1LiftoverList$GRCatalogue_hg19
-
-# Create genomic ranges for catalog L1
-L1CatalogGR <- GRanges(seqnames = L1CatalogL1Mapped$Chromosome,
-   ranges = IRanges(start = pmin(L1CatalogL1Mapped$start_HG38,
-                                 L1CatalogL1Mapped$end_HG38),
-                    end = pmax(L1CatalogL1Mapped$start_HG38,
-                               L1CatalogL1Mapped$end_HG38)),
-                      strand = L1CatalogL1Mapped$strand_L1toRef)
-
-# Create genomic ranges for catalog L1 in the reference
-blnInRef <- (L1CatalogL1Mapped$end_HG38 - L1CatalogL1Mapped$start_HG38) > 6000 
-L1CatalogGR_Ref     <- L1CatalogGR[blnInRef]
-L1CatalogGR_nonRef  <- L1CatalogGR[!blnInRef]
-blnZero <- L1CatalogL1Mapped$Activity == 0
-L1CatalogGR_nonZero <- L1CatalogGR[!blnZero]
-
-# Get fullength L1 that are not in the catalog
-blnOverlapCatalog <- overlapsAny(L1RefGRFull, L1CatalogGR, minoverlap = 6000)
-L1RefGRFullnotCat <- L1RefGRFull[!blnOverlapCatalog]
-L1GRZero          <- c(L1RefGRFullnotCat, L1CatalogGR[blnZero])
-
-# Create genomic ranges for catalog L1 in the reference
-blnInRef_hg19   <- width(L1CatalogGR_hg19) > 6000 
-L1CatalogGR_Ref_hg19 <- L1CatalogGR_hg19[blnInRef_hg19]
-
-# Get ful-length L1 that are not in the catalog for hg19
-blnOverlapCatalog_hg19 <- overlapsAny(L1RefGRFull_hg19, L1CatalogGR_hg19, 
-                                      minoverlap = 6000)
-L1RefGRFullnotCat_hg19 <- L1RefGRFull_hg19[!blnOverlapCatalog_hg19]
-
-#######################################
-#                                     #
-#    Read & process 1000 genome data  #
-#                                     #
-#######################################
-
-cat("Processing 1000 Genome data\n")
-
-# Load data
-load(L1GRanges1000GenomesPath)
-
-# Subset genomic ranges to get full-length and fragments in three different 
-# frequency classes
-blnFull1000G       <- L1_1000G_GR_hg19@elementMetadata@listData$InsLength >= 6000
-GRL1Ins1000G_Full <- L1_1000G_GR_hg19[which(blnFull1000G)]
-FreqQuant_Full    <- quantile(GRL1Ins1000G_Full@elementMetadata@listData$Frequency)
-blnAbove75        <- GRL1Ins1000G_Full@elementMetadata@listData$Frequency >=
-                     FreqQuant_Full['75%']
-GRL1Ins1000G_Full_HiF   <- GRL1Ins1000G_Full[blnAbove75]
-GRL1Ins1000G_Full_lowF  <- GRL1Ins1000G_Full[!blnAbove75]
-GRL1Ins1000G_Fragm      <- L1_1000G_GR_hg19[which(!blnFull1000G)]
-
-##########
-# Matching 1000G L1 to L1 catalog
-##########
-
-cat("Matching 1000G L1 to L1 catalog\n")
-
-# Calculate distance between catalog elements and 1000 Genome ranges
-DistCat2_1000G <- Dist2Closest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
-
-# Get indices of 1000 Genome and catalog elements that match
-idx1000G <- nearest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
-L1CatalogMatch1000G <- L1CatalogL1Mapped[DistCat2_1000G < 100, ]
-L1CatalogGRMatch1000G <- L1CatalogGR[DistCat2_1000G < 100]
-L1CatalogGRMatch1000G_hg19 <- L1CatalogGR_hg19[DistCat2_1000G < 100]
-L1CatalogMatch1000G$Dist2Gene <- DistCat2_1000G[DistCat2_1000G < 100]
-idx1000GMatchCat    <- idx1000G[DistCat2_1000G < 100]
-
-# Get rows of L1_1000G table that can be matched to catalog
-L1_1000G_match <- L1_1000G_reduced[idx1000GMatchCat, ]
-
-cor.test(L1_1000G_match$Frequency, L1CatalogMatch1000G$ActivityNum)
-cor.test(L1_1000G_match$Frequency, L1CatalogMatch1000G$Dist2Gene)
-LM1 <- lm(log(L1_1000G_match$Frequency) ~ L1CatalogMatch1000G$ActivityNum + 
-            L1CatalogMatch1000G$Dist2Gene)
-summary(LM1)
 
 ############################
 #                          #
@@ -477,6 +322,177 @@ L1DistDomainIntersect_FullnotCat <- Dist2Closest(L1RefGRFullnotCat_hg19, DomainG
 # DistCat   <- Dist2Closest(GRL1Ins1000G_Full_HiF, AllLoops)
 # DistCatLF   <- Dist2Closest(GRL1Ins1000G_Full_lowF, AllLoops)
 
+# The script below analyzes the locations of LINE-1 insertions in the human
+# genome, distingusihing between fragments, full-length and functional 
+# insertions
+
+#############################################
+#                                           #
+#    Source packages and set parameters     #
+#                                           #
+#############################################
+
+# Load packages
+library(ape)
+library(seqinr)
+library(BSgenome.Hsapiens.UCSC.hg38)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(ShortRead)
+library(csaw)
+
+# Source start script
+source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.r')
+
+# Path to L1 catalogue file (Created in script AddColumns2L1Catalog.R)
+L1CataloguePath <- "D:/L1polymORF/Data/L1CatalogExtended.csv"
+
+# Path to chain file for b37 to hg19 (obtained from ftp://gsapubftp-anonymous@ftp.broadinstitute.org/Liftover_Chain_Files/)
+Chain_b37tohg19 <- "D:/L1polymORF/Data/b37tohg19.chain"
+
+# Path to L1 GRanges from 1000 genome data
+L1GRanges1000GenomesPath <- "D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData"
+
+# Maximum L1 insertion length to be labeled a 'fragment'
+MaxFragLength <- 5900
+
+######################################
+#                                    #
+#    Read & process L1 catalog       #
+#                                    #
+######################################
+
+# Read piRNA data
+PiRNA_GR <- import.bed("D:/L1polymORF/Data/piR_hg19_sort.bed")
+
+# Read repeat table and subset to get only L1HS rows with fragment size below 
+# MaxFragLength
+RepeatTable      <- read.csv("D:/L1polymORF/Data/repeatsHg38_L1HS.csv")
+RepeatTable_hg19 <- read.csv("D:/L1polymORF/Data/repeatsHg19_L1HS.csv")
+
+# Create genomic ranges for L1 fragments, match them to distances to get distance
+# to consensus per fragment
+L1RefGR <- GRanges(seqnames = RepeatTable$genoName,
+                   ranges = IRanges(start = RepeatTable$genoStart,
+                                    end = RepeatTable$genoEnd),
+                   strand = RepeatTable$strand)
+L1RefGRFull  <- L1RefGR[width(L1RefGR) > 6000]
+L1FragmGR    <- L1RefGR[width(L1RefGR) < MaxFragLength]
+L1RefGR_hg19 <- GRanges(seqnames = RepeatTable_hg19$genoName,
+                        ranges = IRanges(start = RepeatTable_hg19$genoStart,
+                                         end = RepeatTable_hg19$genoEnd),
+                        strand = RepeatTable_hg19$strand)
+L1RefGRFull_hg19 <- L1RefGR_hg19[width(L1RefGR_hg19) > 6000]
+L1FragmGR_hg19   <- L1RefGR_hg19[width(L1RefGR_hg19) < MaxFragLength]
+length(L1FragmGR_hg19)
+
+# Read in table with known L1 
+L1Catalogue <- read.csv(L1CataloguePath, as.is = T)
+L1Catalogue$Allele[is.na(L1Catalogue$Allele)] <- 1
+
+# Retain only entries with mapped L1 insertions and allele 1
+blnL1Mapped       <- !is.na(L1Catalogue$start_HG38) 
+blnAllele1        <- L1Catalogue$Allele == 1 
+blnInRef1         <- (L1Catalogue$end_HG38 - L1Catalogue$start_HG38) > 6000 
+L1CatalogL1Mapped <- L1Catalogue[blnL1Mapped & blnAllele1,]
+
+# Lift catalog ranges to hg19
+L1LiftoverList <- LiftoverL1Catalog(L1CatalogL1Mapped,  
+                                    ChainFilePath = "D:/L1polymORF/Data/hg38ToHg19.over.chain")
+L1CatalogGR_hg19 <- L1LiftoverList$GRCatalogue_hg19
+
+# Create genomic ranges for catalog L1
+L1CatalogGR <- GRanges(seqnames = L1CatalogL1Mapped$Chromosome,
+                       ranges = IRanges(start = pmin(L1CatalogL1Mapped$start_HG38,
+                                                     L1CatalogL1Mapped$end_HG38),
+                                        end = pmax(L1CatalogL1Mapped$start_HG38,
+                                                   L1CatalogL1Mapped$end_HG38)),
+                       strand = L1CatalogL1Mapped$strand_L1toRef)
+
+# Create genomic ranges for catalog L1 in the reference
+blnInRef <- (L1CatalogL1Mapped$end_HG38 - L1CatalogL1Mapped$start_HG38) > 6000 
+L1CatalogGR_Ref     <- L1CatalogGR[blnInRef]
+L1CatalogGR_nonRef  <- L1CatalogGR[!blnInRef]
+blnZero <- L1CatalogL1Mapped$Activity == 0
+L1CatalogGR_nonZero <- L1CatalogGR[!blnZero]
+
+# Get fullength L1 that are not in the catalog
+blnOverlapCatalog <- overlapsAny(L1RefGRFull, L1CatalogGR, minoverlap = 6000)
+L1RefGRFullnotCat <- L1RefGRFull[!blnOverlapCatalog]
+L1GRZero          <- c(L1RefGRFullnotCat, L1CatalogGR[blnZero])
+
+# Create genomic ranges for catalog L1 in the reference
+blnInRef_hg19   <- width(L1CatalogGR_hg19) > 6000 
+L1CatalogGR_Ref_hg19 <- L1CatalogGR_hg19[blnInRef_hg19]
+
+# Get ful-length L1 that are not in the catalog for hg19
+blnOverlapCatalog_hg19 <- overlapsAny(L1RefGRFull_hg19, L1CatalogGR_hg19, 
+                                      minoverlap = 6000)
+L1RefGRFullnotCat_hg19 <- L1RefGRFull_hg19[!blnOverlapCatalog_hg19]
+
+#######################################
+#                                     #
+#    Read & process 1000 genome data  #
+#                                     #
+#######################################
+
+cat("Processing 1000 Genome data\n")
+
+# Load data
+load(L1GRanges1000GenomesPath)
+
+# Subset genomic ranges to get full-length and fragments in three different 
+# frequency classes
+blnFull1000G       <- L1_1000G_GR_hg19@elementMetadata@listData$InsLength >= 6000
+GRL1Ins1000G_Full <- L1_1000G_GR_hg19[which(blnFull1000G)]
+FreqQuant_Full    <- quantile(GRL1Ins1000G_Full@elementMetadata@listData$Frequency)
+blnAbove75        <- GRL1Ins1000G_Full@elementMetadata@listData$Frequency >=
+  FreqQuant_Full['75%']
+GRL1Ins1000G_Full_HiF   <- GRL1Ins1000G_Full[blnAbove75]
+GRL1Ins1000G_Full_lowF  <- GRL1Ins1000G_Full[!blnAbove75]
+GRL1Ins1000G_Fragm      <- L1_1000G_GR_hg19[which(!blnFull1000G)]
+
+##########
+# Matching 1000G L1 to L1 catalog
+##########
+
+cat("Matching 1000G L1 to L1 catalog\n")
+
+# Calculate distance between catalog elements and 1000 Genome ranges
+DistCat2_1000G <- Dist2Closest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
+
+# Get indices of 1000 Genome and catalog elements that match
+idx1000G <- nearest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
+L1CatalogMatch1000G <- L1CatalogL1Mapped[DistCat2_1000G < 100, ]
+L1CatalogGRMatch1000G <- L1CatalogGR[DistCat2_1000G < 100]
+L1CatalogGRMatch1000G_hg19 <- L1CatalogGR_hg19[DistCat2_1000G < 100]
+L1CatalogMatch1000G$Dist2Gene <- DistCat2_1000G[DistCat2_1000G < 100]
+idx1000GMatchCat    <- idx1000G[DistCat2_1000G < 100]
+
+# Get rows of L1_1000G table that can be matched to catalog
+L1_1000G_match <- L1_1000G_reduced[idx1000GMatchCat, ]
+
+cor.test(L1_1000G_match$Frequency, L1CatalogMatch1000G$ActivityNum)
+cor.test(L1_1000G_match$Frequency, L1CatalogMatch1000G$Dist2Gene)
+LM1 <- lm(log(L1_1000G_match$Frequency) ~ L1CatalogMatch1000G$ActivityNum + 
+            L1CatalogMatch1000G$Dist2Gene)
+summary(LM1)
+
+#######################################
+#                                     #
+#    Read & process cluster data  #
+#                                     #
+#######################################
+
+load("D:/L1polymORF/Data/BelyaevaClustersGR.RData")
+
+# Calculate distances from fragment L1, catalog L1 in the reference genome and
+# full-length L1 that are not in the catalog
+L1DistCl_Fragm_hg19      <- Dist2Closest(L1FragmGR_hg19, BelyaevaClustersGR)
+L1DistCl_CatRef_hg19     <- Dist2Closest(L1CatalogGR_Ref_hg19, BelyaevaClustersGR)
+L1DistCl_FullnotCat_hg19 <- Dist2Closest(L1RefGRFullnotCat_hg19, BelyaevaClustersGR)
+
+
 ############################
 #                          #
 #    QQ plots              #
@@ -621,6 +637,13 @@ EndDiff <- end(L1CatalogGR_Ref_hg19) - end(PiRNA_GR)[idxClosestPiRNA]
 blnPos <- as.vector(strand(L1CatalogGR_Ref_hg19)) == "+"
 StartDiff[blnPos]
 EndDiff[!blnPos]
+
+
+QQDistPlot(L1DistCl_Fragm_hg19, L1DistCl_CatRef_hg19)
+QQDistPlot(L1DistCl_Fragm_hg19, L1DistCl_FullnotCat_hg19)
+L1DistCl_Fragm_hg19      <- Dist2Closest(L1FragmGR_hg19, BelyaevaClustersGR)
+L1DistCl_CatRef_hg19     <- Dist2Closest(L1CatalogGR_Ref_hg19, BelyaevaClustersGR)
+L1DistCl_FullnotCat_hg19 <- Dist2Closest(L1RefGRFullnotCat_hg19, BelyaevaClustersGR)
 
 ##################################
 #                                #
