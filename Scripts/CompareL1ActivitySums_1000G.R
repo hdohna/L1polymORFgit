@@ -7,6 +7,8 @@
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load packages
+library(ade4)
+library(vegan)
 library(ggplot2)
 library(grid)
 library(GenomicRanges)
@@ -128,9 +130,10 @@ legend("topleft", col = Cols, lty = 1,
 
 # Plot the difference between L1s in samples with and without focal L1 against
 # activity of focal L1
-plot(L1CatalogMatch1000G$ActivityNum[idxOverlap], L1Diff)
-cor.test(L1CatalogMatch1000G$ActivityNum[idxOverlap], L1Diff)
+# plot(L1CatalogMatch1000G$ActivityNum[idxOverlap], L1Diff)
+# cor.test(L1CatalogMatch1000G$ActivityNum[idxOverlap], L1Diff)
 
+OverlapL1Cat <- findOverlaps()
 OverlapCount <- rep(0, nrow(L1CatalogMatch1000G))
 names(OverlapCount) <- 1:length(OverlapCount)
 OverlapCount_tmp <- table(OverlapL1Cat@from)
@@ -275,6 +278,22 @@ rowSums(blnGreater) / NrSamples
 hist(rowSums(blnGreater) / NrSamples, breaks = seq(0, 1, 0.05))
 sum(rowMeans(RandCorsPerChrom, na.rm = T) >= mean(CorPerChr$Cor[ChrMatch])) / 
   NrSamples
+
+# Matrix of correlation between L1 frequencies
+CM <- cor(t(L1_1000G_match[, SampleColumns]))
+
+# Matrix of distances between L1s.
+DM <- sapply(1:length(L1CatalogGRMatched), function(i){
+  distance(L1CatalogGRMatched, L1CatalogGRMatched[i])
+})
+DM[is.na(DM)] <- 10^10
+mantel(abs(CM), DM)
+
+# Matrix of activity sum
+AM <- outer(X = L1CatalogMatch1000G$ActivityNum, Y = L1CatalogMatch1000G$ActivityNum,
+      FUN = '+')
+mantel.partial(CM, AM, DM)
+mantel(CM, AM)
 
 ##########################################
 #                                        #
