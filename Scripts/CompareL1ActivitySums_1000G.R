@@ -7,6 +7,7 @@
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load packages
+library(DescTools)
 library(ade4)
 library(vegan)
 library(ggplot2)
@@ -133,13 +134,13 @@ legend("topleft", col = Cols, lty = 1,
 # plot(L1CatalogMatch1000G$ActivityNum[idxOverlap], L1Diff)
 # cor.test(L1CatalogMatch1000G$ActivityNum[idxOverlap], L1Diff)
 
-OverlapL1Cat <- findOverlaps()
-OverlapCount <- rep(0, nrow(L1CatalogMatch1000G))
-names(OverlapCount) <- 1:length(OverlapCount)
-OverlapCount_tmp <- table(OverlapL1Cat@from)
-OverlapCount[names(OverlapCount_tmp)] <- OverlapCount_tmp
-plot(L1CatalogMatch1000G$ActivityNum, OverlapCount)
-cor.test(L1CatalogMatch1000G$ActivityNum, OverlapCount)
+#OverlapL1Cat <- findOverlaps()
+# OverlapCount <- rep(0, nrow(L1CatalogMatch1000G))
+# names(OverlapCount) <- 1:length(OverlapCount)
+# OverlapCount_tmp <- table(OverlapL1Cat@from)
+# OverlapCount[names(OverlapCount_tmp)] <- OverlapCount_tmp
+# plot(L1CatalogMatch1000G$ActivityNum, OverlapCount)
+# cor.test(L1CatalogMatch1000G$ActivityNum, OverlapCount)
 
 ##########################################
 #                                        #
@@ -203,7 +204,8 @@ hist(RandCor["CorAll", ], main = "", xlab = "Correlation",
      breaks = seq(-0.1, 0.5, 0.025))
 segments(cor(ObservedAct, NrAll, method = "spearman"), y0 = 0, y1 = 1000, 
          col = "red")
-CreateDisplayPdf('D:/L1polymORF/Figures/L1ActSumCorrelations.pdf', 
+par(mfrow = c(1, 1))
+CreateDisplayPdf(Filenamepath = 'D:/L1polymORF/Figures/L1ActSumCorrelations.pdf', 
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
 
 #################################################
@@ -281,19 +283,64 @@ sum(rowMeans(RandCorsPerChrom, na.rm = T) >= mean(CorPerChr$Cor[ChrMatch])) /
 
 # Matrix of correlation between L1 frequencies
 CM <- cor(t(L1_1000G_match[, SampleColumns]))
+hist(CM)
+sum(CM == 1, na.rm = T)
+diag(CM) <- NA
+mean(CM, na.rm = T)
+
+# Calculate covariance matrix
+CVM <- cov(t(L1_1000G_match[, SampleColumns]))
+diag(CVM) <- NA
+mean(CVM, na.rm = T)
 
 # Matrix of distances between L1s.
 DM <- sapply(1:length(L1CatalogGRMatched), function(i){
   distance(L1CatalogGRMatched, L1CatalogGRMatched[i])
 })
-DM[is.na(DM)] <- 10^10
-mantel(abs(CM), DM)
+DM[is.na(DM)] <- max(DM, na.rm = T)
+diag(DM) <- NA
+mantel(1 - abs(CM), DM)
+plot(DM, CM)
 
 # Matrix of activity sum
-AM <- outer(X = L1CatalogMatch1000G$ActivityNum, Y = L1CatalogMatch1000G$ActivityNum,
+AM <- outer(X = L1CatalogMatch1000G$ActivityNum, 
+            Y = L1CatalogMatch1000G$ActivityNum,
       FUN = '+')
-mantel.partial(CM, AM, DM)
-mantel(CM, AM)
+mantel.partial(1 - CM, AM, DM)
+mantel(1 - CM, AM)
+
+#################################################
+#                                               #
+#       Difference between expected and         #
+#             observed L1 counts                #
+#                                               #
+#################################################
+
+i <- 1
+ObsFreqNull <- rep(0, 3)
+names(ObsFreqNull) <- 0:2
+NTot <- length(SampleColumns)
+FreqDiffs <- sapply(1:nrow(L1_1000G_match), function(i){
+  ni <- sum(L1_1000G_match[i, SampleColumns])
+  FreqV <- unlist(L1_1000G_match[i, SampleColumns])
+  FreqsTable <- table(FreqV)
+  ObsFreqs   <- ObsFreqNull
+  ObsFreqs[names(FreqsTable)] <- FreqsTable
+  ExpFreqs <- round(c((NTot - ni)^2, (NTot - ni)*ni, ni^2) / NTot)
+  (ObsFreqs -ExpFreqs) %*% c(0:2)
+})
+hist(FreqDiffs)
+L1_1000G_match[,2510:2516]
+plot(rowMeans(FreqDiffs))
+boxplot(t(FreqDiffs))
+
+AllCounts <- 0:2
+Slopes <- sapply(1:ncol(FreqDiffs), function(i){
+  LM <- lm(FreqDiffs[,i] ~ AllCounts)
+  LM$coefficients[2]
+})
+plot(L1CatalogMatch1000G$ActivityNum, FreqDiffs)
+cor.test(L1CatalogMatch1000G$ActivityNum, FreqDiffs, method = "spearman")
 
 ##########################################
 #                                        #
@@ -537,6 +584,7 @@ FreqMat <- sapply(SamplePerPopList, function(Samples){
   rowSums(L1_1000G_match[,Samples]) / 2 / length(Samples)
 })
 
+# Matrix of sampled L1 activity sums
 SampleMat <- sapply(1:NrSamplesPerPop, function(x){
   
   # Initialize sample vector
