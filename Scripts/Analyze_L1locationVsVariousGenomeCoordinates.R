@@ -715,6 +715,20 @@ cor.test(L1DistGene_1000GFull,GRL1Ins1000G_Full@elementMetadata@listData$Frequen
          method = "kendall")
 plot(L1DistGene_1000GFull,GRL1Ins1000G_Full@elementMetadata@listData$Frequency)
 
+DistWidth  <- 2*10^5
+DistBreaks <- seq(-0.1, max(L1DistGene_1000GFull), DistWidth)
+DistGroup  <- cut(L1DistGene_1000GFull, breaks = DistBreaks)
+FreqPerDist <- aggregate(GRL1Ins1000G_Full@elementMetadata@listData$Frequency, by = list(DistGroup),
+          FUN = mean)
+MidPoints <- sapply(as.character(FreqPerDist$Group.1), function(x){
+  SplitParts <- strsplit(x, ",")[[1]]
+  SplitParts <- gsub("\\(", "", SplitParts)
+  SplitParts <- gsub("\\]", "", SplitParts)
+  mean(as.numeric(SplitParts))
+})
+              
+plot(MidPoints, FreqPerDist$x)
+
 # Test for a correlation between distance to closest gene and frequency
 L1DistLoop_1000GFull      <- Dist2Closest(GRL1Ins1000G_Full, LoopGR_Intersect)
 cor.test(L1DistLoop_1000GFull,GRL1Ins1000G_Full@elementMetadata@listData$Frequency,
