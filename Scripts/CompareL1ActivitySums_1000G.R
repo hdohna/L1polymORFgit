@@ -216,70 +216,70 @@ CreateDisplayPdf(Filenamepath = 'D:/L1polymORF/Figures/L1ActSumCorrelations.pdf'
 #################################################
 
 # Create a data.frame that keeps track of correlation and P-Value
-CorPerChr <- data.frame(Chrom = unique(L1CatalogMatch1000G$Chromosome),
-                        Cor = NA, P = NA, Slope = NA)
-PlotList <- vector(mode = "list", length = nrow(CorPerChr))
-for(i in 1:nrow(CorPerChr)){
-  ChrName <- as.character(CorPerChr$Chrom[i])
-  cat("Analyzing", ChrName, "\n")
-  Chr        <- substr(ChrName, 4, nchar(ChrName))
-  ChrName    <- paste("chr", Chr, sep = "")
-  idxChr     <- which(L1_1000G$CHROM == Chr)
-  blnL1Cat   <- L1CatalogMatch1000G$Chromosome == ChrName
-  idxMatchL1 <- intersect(idxChr, idx1000GMatchCat)
-  idxChr     <- setdiff(idxChr, idx1000GMatchCat)
-  L1Act <- sapply(SampleColumns, function(x){
-    L1CatalogMatch1000G$ActivityNum[blnL1Cat] %*% L1_1000G_match[blnL1Cat,x]
-  })
-  OtherL1 <- colSums(L1_1000G[idxChr,SampleColumns])
-  PlotData <- data.frame(L1Act = L1Act, OtherL1 = OtherL1)
-  LM <- lm(OtherL1 ~ L1Act, data = PlotData)
-  
-  PlotList [[i]] <- ggplot(PlotData, aes(x=L1Act, y=OtherL1)) + 
-    geom_point(alpha = 0.05, size = 3) +
-    geom_abline(slope = LM$coefficients[2], intercept = LM$coefficients[1]) +
-    scale_x_continuous(name = "") + 
-    scale_y_continuous(name = "") +
-    ggtitle(ChrName)
-  
-  CT <- cor.test(L1Act, OtherL1)
-  CorPerChr$Cor[i] <- CT$estimate
-  CorPerChr$P[i] <- CT$p.value
-  CorPerChr$Slope[i] <- LM$coefficients[2]
-}
-
-multiplot(plotlist = PlotList[!is.na(CorPerChr$Cor)], cols = 4)
-hist(CorPerChr$P)
-
-# Create a matrix of random correlations per chromosome
-NrSamples <- 500
-table(L1CatalogMatch1000G$Chromosome)
-Chroms2Analyze <- CorPerChr$Chrom[!is.na(CorPerChr$Cor)]
-ChrName <- "chr2"
-RandCorsPerChrom <- sapply(as.character(Chroms2Analyze), function(ChrName){
-  cat("Getting random correlations for", ChrName, "\n")
-  Chr <- substr(ChrName, 4, nchar(ChrName))
-  idxChr     <- which(L1_1000G$CHROM == Chr)
-  blnL1Cat   <- L1CatalogMatch1000G$Chromosome == ChrName
-  RandCor <- sapply(1:NrSamples, function(x){
-    idxMatchL1 <- sample(idxChr, sum(blnL1Cat))
-    idxOther   <- setdiff(idxChr, idxMatchL1)
-    OtherL1    <- colSums(L1_1000G[idxOther, SampleColumns])
-    Activity   <- L1CatalogMatch1000G$ActivityNum[blnL1Cat]
-    ObservedActRand <- sapply(SampleColumns, function(x){
-      Activity %*% L1_1000G[idxMatchL1, x]})
-    cor(ObservedActRand, OtherL1)
-  })
-})
-sum(RandCor_chr2 >= CorPerChr$Cor[2]) / NrSamples
-
-# Match chromosomes
-ChrMatch   <- match(Chroms2Analyze, CorPerChr$Chrom)
-blnGreater <- t(RandCorsPerChrom) >= CorPerChr$Cor[ChrMatch]
-rowSums(blnGreater) / NrSamples
-hist(rowSums(blnGreater) / NrSamples, breaks = seq(0, 1, 0.05))
-sum(rowMeans(RandCorsPerChrom, na.rm = T) >= mean(CorPerChr$Cor[ChrMatch])) / 
-  NrSamples
+# CorPerChr <- data.frame(Chrom = unique(L1CatalogMatch1000G$Chromosome),
+#                         Cor = NA, P = NA, Slope = NA)
+# PlotList <- vector(mode = "list", length = nrow(CorPerChr))
+# for(i in 1:nrow(CorPerChr)){
+#   ChrName <- as.character(CorPerChr$Chrom[i])
+#   cat("Analyzing", ChrName, "\n")
+#   Chr        <- substr(ChrName, 4, nchar(ChrName))
+#   ChrName    <- paste("chr", Chr, sep = "")
+#   idxChr     <- which(L1_1000G$CHROM == Chr)
+#   blnL1Cat   <- L1CatalogMatch1000G$Chromosome == ChrName
+#   idxMatchL1 <- intersect(idxChr, idx1000GMatchCat)
+#   idxChr     <- setdiff(idxChr, idx1000GMatchCat)
+#   L1Act <- sapply(SampleColumns, function(x){
+#     L1CatalogMatch1000G$ActivityNum[blnL1Cat] %*% L1_1000G_match[blnL1Cat,x]
+#   })
+#   OtherL1 <- colSums(L1_1000G[idxChr,SampleColumns])
+#   PlotData <- data.frame(L1Act = L1Act, OtherL1 = OtherL1)
+#   LM <- lm(OtherL1 ~ L1Act, data = PlotData)
+#   
+#   PlotList [[i]] <- ggplot(PlotData, aes(x=L1Act, y=OtherL1)) + 
+#     geom_point(alpha = 0.05, size = 3) +
+#     geom_abline(slope = LM$coefficients[2], intercept = LM$coefficients[1]) +
+#     scale_x_continuous(name = "") + 
+#     scale_y_continuous(name = "") +
+#     ggtitle(ChrName)
+#   
+#   CT <- cor.test(L1Act, OtherL1)
+#   CorPerChr$Cor[i] <- CT$estimate
+#   CorPerChr$P[i] <- CT$p.value
+#   CorPerChr$Slope[i] <- LM$coefficients[2]
+# }
+# 
+# multiplot(plotlist = PlotList[!is.na(CorPerChr$Cor)], cols = 4)
+# hist(CorPerChr$P)
+# 
+# # Create a matrix of random correlations per chromosome
+# NrSamples <- 500
+# table(L1CatalogMatch1000G$Chromosome)
+# Chroms2Analyze <- CorPerChr$Chrom[!is.na(CorPerChr$Cor)]
+# ChrName <- "chr2"
+# RandCorsPerChrom <- sapply(as.character(Chroms2Analyze), function(ChrName){
+#   cat("Getting random correlations for", ChrName, "\n")
+#   Chr <- substr(ChrName, 4, nchar(ChrName))
+#   idxChr     <- which(L1_1000G$CHROM == Chr)
+#   blnL1Cat   <- L1CatalogMatch1000G$Chromosome == ChrName
+#   RandCor <- sapply(1:NrSamples, function(x){
+#     idxMatchL1 <- sample(idxChr, sum(blnL1Cat))
+#     idxOther   <- setdiff(idxChr, idxMatchL1)
+#     OtherL1    <- colSums(L1_1000G[idxOther, SampleColumns])
+#     Activity   <- L1CatalogMatch1000G$ActivityNum[blnL1Cat]
+#     ObservedActRand <- sapply(SampleColumns, function(x){
+#       Activity %*% L1_1000G[idxMatchL1, x]})
+#     cor(ObservedActRand, OtherL1)
+#   })
+# })
+# sum(RandCor_chr2 >= CorPerChr$Cor[2]) / NrSamples
+# 
+# # Match chromosomes
+# ChrMatch   <- match(Chroms2Analyze, CorPerChr$Chrom)
+# blnGreater <- t(RandCorsPerChrom) >= CorPerChr$Cor[ChrMatch]
+# rowSums(blnGreater) / NrSamples
+# hist(rowSums(blnGreater) / NrSamples, breaks = seq(0, 1, 0.05))
+# sum(rowMeans(RandCorsPerChrom, na.rm = T) >= mean(CorPerChr$Cor[ChrMatch])) / 
+#   NrSamples
 
 # Matrix of correlation between L1 frequencies
 CM <- cor(t(L1_1000G_match[, SampleColumns]))
@@ -312,33 +312,30 @@ mantel(1 - CM, AM)
 #################################################
 #                                               #
 #       Difference between expected and         #
-#             observed L1 counts                #
+#       observed L1 counts per locus            #
 #                                               #
 #################################################
 
-i <- 1
+# Create a null vector of observed frequencies per locus
 ObsFreqNull <- rep(0, 3)
 names(ObsFreqNull) <- 0:2
+
+# Total number of samples
 NTot <- length(SampleColumns)
+
+# Get weighted difference between observed and expected genotype frequency per locus
 FreqDiffs <- sapply(1:nrow(L1_1000G_match), function(i){
-  ni <- sum(L1_1000G_match[i, SampleColumns])
+  
+  ni    <- sum(L1_1000G_match[i, SampleColumns])
   FreqV <- unlist(L1_1000G_match[i, SampleColumns])
   FreqsTable <- table(FreqV)
   ObsFreqs   <- ObsFreqNull
   ObsFreqs[names(FreqsTable)] <- FreqsTable
   ExpFreqs <- round(c((NTot - ni)^2, (NTot - ni)*ni, ni^2) / NTot)
-  (ObsFreqs -ExpFreqs) %*% c(0:2)
+  (ObsFreqs - ExpFreqs) %*% c(0:2)
 })
 hist(FreqDiffs)
 L1_1000G_match[,2510:2516]
-plot(rowMeans(FreqDiffs))
-boxplot(t(FreqDiffs))
-
-AllCounts <- 0:2
-Slopes <- sapply(1:ncol(FreqDiffs), function(i){
-  LM <- lm(FreqDiffs[,i] ~ AllCounts)
-  LM$coefficients[2]
-})
 plot(L1CatalogMatch1000G$ActivityNum, FreqDiffs)
 cor.test(L1CatalogMatch1000G$ActivityNum, FreqDiffs, method = "spearman")
 
@@ -370,191 +367,191 @@ cor.test(L1_1000G_reduced$Frequency, Dist2ClosestGene, method = "kendall")
 
 # Get linkage disequilibrium, activity sum and indicator of same chromosome 
 # for pairs of LINE-1s
-cat("Calculating linkage disequilibrium\n")
-LDMat <- data.frame(LD = NA, Cor = NA, SameChrom = NA, ActSum = NA, ChiSq = NA)
-x <- 1
-y <- 2
-for(x in 1:(nrow(L1_1000G_match) - 1)){
-  blnA  <- L1_1000G_match[x, SampleColumns] > 0
-#  Pa    <- L1_1000G_match$Frequency[x]
-  Pa    <- mean(blnA)
-  for(y in (x + 1):nrow(L1_1000G_match)){
-#    Pb           <- L1_1000G_match$Frequency[y]
-#    PaPb         <- (2*(Pa * (1 - Pa) + Pa^2)) * (2*(Pb * (1 - Pb) + Pb^2))
-#    PaPb         <- Pa*Pb
-    blnSameChrom <- L1_1000G_match$CHROM[x] == L1_1000G_match$CHROM[y]
-    blnB         <- L1_1000G_match[y, SampleColumns] > 0
-    Pb           <- mean(blnB)
-    Pab          <- mean(blnA * blnB)
-    ChiSq        <- chisq.test(x = as.vector(blnA), y = as.vector(blnB))$statistic
-    Cor <- cor(t(L1_1000G_match[x, SampleColumns]), 
-               t(L1_1000G_match[y, SampleColumns]))
-    if (Cor > 1) browser()
-    LDMat   <- rbind(LDMat, c(LD = (Pab - Pa*Pb), 
-                              Cor = Cor, 
-                              SameChrom = blnSameChrom,
-                              ActSum  = L1CatalogMatch1000G$ActivityNum[x] +
-                                 L1CatalogMatch1000G$ActivityNum[y],
-                              ChiSq = ChiSq))
-  }
-}
-LDMat <- LDMat[!is.na(LDMat$LD),]
-max( LDMat$ActSum)
-max( LDMat$LD)
-LDMat[LDMat$LD == max(LDMat$LD), ]
-
-# Plot histogram of linkage disequilibrium values
-hist(LDMat$LD)
-boxplot(LD ~ SameChrom, data = LDMat)
-boxplot(ActSum ~ SameChrom, data = LDMat)
-plot(LD ~ ActSum, data = LDMat)
-plot(LDMat$ActSum, LDMat$Cor)
-plot(LDMat$LD, LDMat$Cor)
-points(LDMat$Cor[LDMat$SameChrom], LDMat$Cor[LDMat$SameChrom])
-cor.test(LDMat$LD, LDMat$ActSum, method = "spearman")
-cor.test(LDMat$Cor, LDMat$ActSum, method = "spearman")
-t.test(LD ~ SameChrom, data = LDMat)
-LMLD <- lm(LD ~ SameChrom + ActSum, data = LDMat)
-LMCor<- lm(Cor ~ SameChrom + ActSum + SameChrom*ActSum, data = LDMat)
-LMCorSubset <- lm(Cor ~ SameChrom + ActSum, data = LDMat,
-           subset = Cor < 1)
-summary(LMLD)
-summary(LMCor)
-summary(LMCorSubset)
-
-# Plot activity vs frequency
-plot(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency)
-cor(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency)
-cor.test(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency, 
-         method = "spearman")
-
-# Determine difference between expected and observed frequency of
-# homozygous L1
-L1CatalogMatch1000G$HomoDiff <- sapply(1:nrow(L1_1000G_match), function(x){
-  L1_1000G_match$Frequency[x]^2 - mean(L1_1000G_match[x, SampleColumns] == 2)
-})
-plot(L1CatalogMatch1000G$ActivityNum, L1CatalogMatch1000G$HomoDiff)
-cor(L1CatalogMatch1000G$ActivityNum, L1CatalogMatch1000G$HomoDiff)
-cor.test(L1CatalogMatch1000G$ActivityNum, L1CatalogMatch1000G$HomoDiff, method = "spearman")
-
-# Compare frequency and activity
-plot(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency)
-cor.test(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency, method = "spearman")
-
-##########################################
-#                                        #
-#     Sample L1 activity sums            #
-#     (across all samples)               #
-#                                        #
-##########################################
-
-
-# Sample individual activity sums
-cat("Sampling L1 activity sums\n")
-NrSamples <- 1000000
-SampledActSums <- sapply(1:NrSamples, function(x){
-  rbinom(nrow(L1_1000G_match), 2, L1_1000G_match$Frequency) %*% 
-    L1CatalogMatch1000G$ActivityNum
-})
-mean(SampledActSums)
-
-# Get samples of variances
-StartVals <- seq(1, NrSamples, length(ObservedAct))
-SampledVars <- sapply(StartVals[-length(StartVals)], function(x){
-  var(SampledActSums[x:(x+length(ObservedAct))])
-})
-
-# Plot variance histogram
-par(mar = c(5, 4, 4, 2) + 0.1)
-hist(SampledVars, main = "", xlab = "Variance in activity sum")
-segments(var(ObservedAct), y0 = 0, y1 = 50, col = "red")
-PVar <- mean(SampledVars <= var(ObservedAct))
-CreateDisplayPdf('D:/L1polymORF/Figures/L1VarianceOfActivitySums.pdf', 
-                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
-
-
-# Sample quantiles of activity sums
-cat("Sampling quantiles of activity sums\n")
-SamplQuantList <- SampleQuantiles(SampledActSums, length(SampleColumns), 
-                                  NrSamples = 10000, QuantV = seq(0, 1, 0.0001),
-                                  LowerQ = 0.005, UpperQ = 0.995)
-QSMat <- SamplQuantList$QMat
-idxF <- 1:ncol(QSMat)
-idxR <- ncol(QSMat):1
-mean(SampledActSums)
-QQ1  <- qqplot(SampledActSums, ObservedAct, plot.it = F)
-plot(QQ1$x, QQ1$y, xlab = "Sampled activity sums", 
-     ylab = "Observed activity sums")
-MedianMatch1 <- sapply(QQ1$x, function(z) which.min(abs(z - QSMat[1, ])))
-MedianMatch2 <- sapply(QQ1$x, function(z) which.min(abs(z + 1 - QSMat[1, ])))
-MedianMatch3 <- sapply(QQ1$x, function(z) which.min(abs(z - 1 - QSMat[1, ])))
-polygon(QSMat[1, c(idxF, idxR)], c(QSMat[2, ], QSMat[3, idxR]), 
-        col = "grey", border = NA)
-points(QQ1$x, QQ1$y)
-lines(c(0, 1000), c(0, 1000))
+# cat("Calculating linkage disequilibrium\n")
+# LDMat <- data.frame(LD = NA, Cor = NA, SameChrom = NA, ActSum = NA, ChiSq = NA)
+# x <- 1
+# y <- 2
+# for(x in 1:(nrow(L1_1000G_match) - 1)){
+#   blnA  <- L1_1000G_match[x, SampleColumns] > 0
+# #  Pa    <- L1_1000G_match$Frequency[x]
+#   Pa    <- mean(blnA)
+#   for(y in (x + 1):nrow(L1_1000G_match)){
+# #    Pb           <- L1_1000G_match$Frequency[y]
+# #    PaPb         <- (2*(Pa * (1 - Pa) + Pa^2)) * (2*(Pb * (1 - Pb) + Pb^2))
+# #    PaPb         <- Pa*Pb
+#     blnSameChrom <- L1_1000G_match$CHROM[x] == L1_1000G_match$CHROM[y]
+#     blnB         <- L1_1000G_match[y, SampleColumns] > 0
+#     Pb           <- mean(blnB)
+#     Pab          <- mean(blnA * blnB)
+#     ChiSq        <- chisq.test(x = as.vector(blnA), y = as.vector(blnB))$statistic
+#     Cor <- cor(t(L1_1000G_match[x, SampleColumns]), 
+#                t(L1_1000G_match[y, SampleColumns]))
+#     if (Cor > 1) browser()
+#     LDMat   <- rbind(LDMat, c(LD = (Pab - Pa*Pb), 
+#                               Cor = Cor, 
+#                               SameChrom = blnSameChrom,
+#                               ActSum  = L1CatalogMatch1000G$ActivityNum[x] +
+#                                  L1CatalogMatch1000G$ActivityNum[y],
+#                               ChiSq = ChiSq))
+#   }
+# }
+# LDMat <- LDMat[!is.na(LDMat$LD),]
+# max( LDMat$ActSum)
+# max( LDMat$LD)
+# LDMat[LDMat$LD == max(LDMat$LD), ]
+# 
+# # Plot histogram of linkage disequilibrium values
+# hist(LDMat$LD)
+# boxplot(LD ~ SameChrom, data = LDMat)
+# boxplot(ActSum ~ SameChrom, data = LDMat)
+# plot(LD ~ ActSum, data = LDMat)
+# plot(LDMat$ActSum, LDMat$Cor)
+# plot(LDMat$LD, LDMat$Cor)
+# points(LDMat$Cor[LDMat$SameChrom], LDMat$Cor[LDMat$SameChrom])
+# cor.test(LDMat$LD, LDMat$ActSum, method = "spearman")
+# cor.test(LDMat$Cor, LDMat$ActSum, method = "spearman")
+# t.test(LD ~ SameChrom, data = LDMat)
+# LMLD <- lm(LD ~ SameChrom + ActSum, data = LDMat)
+# LMCor<- lm(Cor ~ SameChrom + ActSum + SameChrom*ActSum, data = LDMat)
+# LMCorSubset <- lm(Cor ~ SameChrom + ActSum, data = LDMat,
+#            subset = Cor < 1)
+# summary(LMLD)
+# summary(LMCor)
+# summary(LMCorSubset)
+# 
+# # Plot activity vs frequency
+# plot(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency)
+# cor(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency)
+# cor.test(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency, 
+#          method = "spearman")
+# 
+# # Determine difference between expected and observed frequency of
+# # homozygous L1
+# L1CatalogMatch1000G$HomoDiff <- sapply(1:nrow(L1_1000G_match), function(x){
+#   L1_1000G_match$Frequency[x]^2 - mean(L1_1000G_match[x, SampleColumns] == 2)
+# })
+# plot(L1CatalogMatch1000G$ActivityNum, L1CatalogMatch1000G$HomoDiff)
+# cor(L1CatalogMatch1000G$ActivityNum, L1CatalogMatch1000G$HomoDiff)
+# cor.test(L1CatalogMatch1000G$ActivityNum, L1CatalogMatch1000G$HomoDiff, method = "spearman")
+# 
+# # Compare frequency and activity
+# plot(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency)
+# cor.test(L1CatalogMatch1000G$ActivityNum, L1_1000G_match$Frequency, method = "spearman")
+# 
+# ##########################################
+# #                                        #
+# #     Sample L1 activity sums            #
+# #     (across all samples)               #
+# #                                        #
+# ##########################################
+# 
+# 
+# # Sample individual activity sums
+# cat("Sampling L1 activity sums\n")
+# NrSamples <- 1000000
+# SampledActSums <- sapply(1:NrSamples, function(x){
+#   rbinom(nrow(L1_1000G_match), 2, L1_1000G_match$Frequency) %*% 
+#     L1CatalogMatch1000G$ActivityNum
+# })
+# mean(SampledActSums)
+# 
+# # Get samples of variances
+# StartVals <- seq(1, NrSamples, length(ObservedAct))
+# SampledVars <- sapply(StartVals[-length(StartVals)], function(x){
+#   var(SampledActSums[x:(x+length(ObservedAct))])
+# })
+# 
+# # Plot variance histogram
+# par(mar = c(5, 4, 4, 2) + 0.1)
+# hist(SampledVars, main = "", xlab = "Variance in activity sum")
+# segments(var(ObservedAct), y0 = 0, y1 = 50, col = "red")
+# PVar <- mean(SampledVars <= var(ObservedAct))
+# CreateDisplayPdf('D:/L1polymORF/Figures/L1VarianceOfActivitySums.pdf', 
+#                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
+# 
+# 
+# # Sample quantiles of activity sums
+# cat("Sampling quantiles of activity sums\n")
+# SamplQuantList <- SampleQuantiles(SampledActSums, length(SampleColumns), 
+#                                   NrSamples = 10000, QuantV = seq(0, 1, 0.0001),
+#                                   LowerQ = 0.005, UpperQ = 0.995)
+# QSMat <- SamplQuantList$QMat
+# idxF <- 1:ncol(QSMat)
+# idxR <- ncol(QSMat):1
+# mean(SampledActSums)
+# QQ1  <- qqplot(SampledActSums, ObservedAct, plot.it = F)
+# plot(QQ1$x, QQ1$y, xlab = "Sampled activity sums", 
+#      ylab = "Observed activity sums")
+# MedianMatch1 <- sapply(QQ1$x, function(z) which.min(abs(z - QSMat[1, ])))
+# MedianMatch2 <- sapply(QQ1$x, function(z) which.min(abs(z + 1 - QSMat[1, ])))
+# MedianMatch3 <- sapply(QQ1$x, function(z) which.min(abs(z - 1 - QSMat[1, ])))
+# polygon(QSMat[1, c(idxF, idxR)], c(QSMat[2, ], QSMat[3, idxR]), 
+#         col = "grey", border = NA)
+# points(QQ1$x, QQ1$y)
+# lines(c(0, 1000), c(0, 1000))
+# # blnOutside <- (QQ1$y < QSMat[2, MedianMatch1] | QQ1$y > QSMat[3, MedianMatch1]) &
+# #   (QQ1$y < QSMat[2, MedianMatch2] | QQ1$y > QSMat[3, MedianMatch2]) &
+# #   (QQ1$y < QSMat[2, MedianMatch3] | QQ1$y > QSMat[3, MedianMatch3])
+# blnOutside <- (QQ1$y < QSMat[2, MedianMatch1] | QQ1$y > QSMat[3, MedianMatch1])
+# sum(blnOutside)
+# points(QQ1$x[blnOutside],  QQ1$y[blnOutside], col = "red")
+#   
+# CreateDisplayPdf('D:/L1polymORF/Figures/L1ActivitySums.pdf', 
+#                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
+# 
+# # Plot variance histogram and quantiles
+# par(mfrow = c(1, 2), mar = c(5, 4, 4, 2) + 0.1)
+# hist(SampledVars, xlab = "Variance in activity sum",
+#      main = "A")
+# segments(var(ObservedAct), y0 = 0, y1 = 50, col = "red")
+# PVar <- mean(SampledVars <= var(ObservedAct))
+# 
+# plot(QQ1$x, QQ1$y, xlab = "Sampled activity sums", 
+#      ylab = "Observed activity sums", main = "B")
+# MedianMatch1 <- sapply(QQ1$x, function(z) which.min(abs(z - QSMat[1, ])))
+# MedianMatch2 <- sapply(QQ1$x, function(z) which.min(abs(z + 1 - QSMat[1, ])))
+# MedianMatch3 <- sapply(QQ1$x, function(z) which.min(abs(z - 1 - QSMat[1, ])))
+# polygon(QSMat[1, c(idxF, idxR)], c(QSMat[2, ], QSMat[3, idxR]), 
+#         col = "grey", border = NA)
+# points(QQ1$x, QQ1$y)
+# lines(c(0, 1000), c(0, 1000))
 # blnOutside <- (QQ1$y < QSMat[2, MedianMatch1] | QQ1$y > QSMat[3, MedianMatch1]) &
 #   (QQ1$y < QSMat[2, MedianMatch2] | QQ1$y > QSMat[3, MedianMatch2]) &
 #   (QQ1$y < QSMat[2, MedianMatch3] | QQ1$y > QSMat[3, MedianMatch3])
-blnOutside <- (QQ1$y < QSMat[2, MedianMatch1] | QQ1$y > QSMat[3, MedianMatch1])
-sum(blnOutside)
-points(QQ1$x[blnOutside],  QQ1$y[blnOutside], col = "red")
-  
-CreateDisplayPdf('D:/L1polymORF/Figures/L1ActivitySums.pdf', 
-                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
-
-# Plot variance histogram and quantiles
-par(mfrow = c(1, 2), mar = c(5, 4, 4, 2) + 0.1)
-hist(SampledVars, xlab = "Variance in activity sum",
-     main = "A")
-segments(var(ObservedAct), y0 = 0, y1 = 50, col = "red")
-PVar <- mean(SampledVars <= var(ObservedAct))
-
-plot(QQ1$x, QQ1$y, xlab = "Sampled activity sums", 
-     ylab = "Observed activity sums", main = "B")
-MedianMatch1 <- sapply(QQ1$x, function(z) which.min(abs(z - QSMat[1, ])))
-MedianMatch2 <- sapply(QQ1$x, function(z) which.min(abs(z + 1 - QSMat[1, ])))
-MedianMatch3 <- sapply(QQ1$x, function(z) which.min(abs(z - 1 - QSMat[1, ])))
-polygon(QSMat[1, c(idxF, idxR)], c(QSMat[2, ], QSMat[3, idxR]), 
-        col = "grey", border = NA)
-points(QQ1$x, QQ1$y)
-lines(c(0, 1000), c(0, 1000))
-blnOutside <- (QQ1$y < QSMat[2, MedianMatch1] | QQ1$y > QSMat[3, MedianMatch1]) &
-  (QQ1$y < QSMat[2, MedianMatch2] | QQ1$y > QSMat[3, MedianMatch2]) &
-  (QQ1$y < QSMat[2, MedianMatch3] | QQ1$y > QSMat[3, MedianMatch3])
-sum(blnOutside)
-points(QQ1$x[blnOutside],  QQ1$y[blnOutside], col = "red")
-
-CreateDisplayPdf('D:/L1polymORF/Figures/L1VarianceAndQQActivitySums.pdf', height = 4,
-                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
-
-# Compare histogram of observed activity sum with histograms of simulated sums
-BinWidth <- 25
-HistBreaks <- seq(0, 2000, BinWidth)
-Obs = ObservedAct
-ObsDens <- hist(ObservedAct, HistBreaks, plot = F)$density
-SampledDens <- sapply(StartVals[-length(StartVals)], function(x){
-  hist(SampledActSums[x:(x+length(ObservedAct))], HistBreaks, plot = F)$density
-})
-dim(SampledDens)
-SampledDensMean <- rowMeans(SampledDens)
-SampledDensQMat <- apply(SampledDens, 1, function(x) quantile(x, c(0.025, 0.5, 0.975)))
-dim(SampledDensQMat)
-
-plot(c(0, HistBreaks[-length(HistBreaks)]), c(0, ObsDens), 
-     type = "s", xlim = c(0, 600))
-polygon(c(HistBreaks[-length(HistBreaks)], 
-          HistBreaks[(length(HistBreaks) - 1):1]), 
-        c(SampledDensQMat[1,], SampledDensQMat[3,(length(HistBreaks) - 1):1]), col = "grey",
-        border = NA)
-lines(c(0, HistBreaks[-length(HistBreaks)]), c(0, SampledDensMean),
-      type = "s", col = "red")
-lines(c(0, HistBreaks[-length(HistBreaks)]), c(0, ObsDens), 
-     type = "s")
-
-plot(HistBreaks[-length(HistBreaks)], (ObsDens - SampledDensMean) / SampledDensMean,
-     xlim = c(0, 1000))
-lines(c(0, 5000), c(0, 0), col = "red", lty = 2)
-mean(ObservedAct)
+# sum(blnOutside)
+# points(QQ1$x[blnOutside],  QQ1$y[blnOutside], col = "red")
+# 
+# CreateDisplayPdf('D:/L1polymORF/Figures/L1VarianceAndQQActivitySums.pdf', height = 4,
+#                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
+# 
+# # Compare histogram of observed activity sum with histograms of simulated sums
+# BinWidth <- 25
+# HistBreaks <- seq(0, 2000, BinWidth)
+# Obs = ObservedAct
+# ObsDens <- hist(ObservedAct, HistBreaks, plot = F)$density
+# SampledDens <- sapply(StartVals[-length(StartVals)], function(x){
+#   hist(SampledActSums[x:(x+length(ObservedAct))], HistBreaks, plot = F)$density
+# })
+# dim(SampledDens)
+# SampledDensMean <- rowMeans(SampledDens)
+# SampledDensQMat <- apply(SampledDens, 1, function(x) quantile(x, c(0.025, 0.5, 0.975)))
+# dim(SampledDensQMat)
+# 
+# plot(c(0, HistBreaks[-length(HistBreaks)]), c(0, ObsDens), 
+#      type = "s", xlim = c(0, 600))
+# polygon(c(HistBreaks[-length(HistBreaks)], 
+#           HistBreaks[(length(HistBreaks) - 1):1]), 
+#         c(SampledDensQMat[1,], SampledDensQMat[3,(length(HistBreaks) - 1):1]), col = "grey",
+#         border = NA)
+# lines(c(0, HistBreaks[-length(HistBreaks)]), c(0, SampledDensMean),
+#       type = "s", col = "red")
+# lines(c(0, HistBreaks[-length(HistBreaks)]), c(0, ObsDens), 
+#      type = "s")
+# 
+# plot(HistBreaks[-length(HistBreaks)], (ObsDens - SampledDensMean) / SampledDensMean,
+#      xlim = c(0, 1000))
+# lines(c(0, 5000), c(0, 0), col = "red", lty = 2)
+# mean(ObservedAct)
 
 ##########################################
 #                                        #
@@ -564,7 +561,7 @@ mean(ObservedAct)
 ##########################################
 
 # Total number of samples
-NrSamplesPerPop <- 10000
+NrSamplesPerPop <- 100
 
 # Sample individual activity sums
 cat("Sampling L1 activity sums with population structure\n")
@@ -580,8 +577,20 @@ SamplePerPopList <-  lapply(names(NrObsPerPop), function(Pop){
 sapply(SamplePerPopList, length)
 
 # Loop over populations and calculate frequency per population
-FreqMat <- sapply(SamplePerPopList, function(Samples){
+FreqPerPop <- sapply(SamplePerPopList, function(Samples){
   rowSums(L1_1000G_match[,Samples]) / 2 / length(Samples)
+})
+
+# Get weighted difference between observed and expected genotype frequency per locus
+FreqDiffs <- sapply(1:nrow(L1_1000G_match), function(i){
+  
+  ni    <- sum(L1_1000G_match[i, SampleColumns])
+  FreqV <- unlist(L1_1000G_match[i, SampleColumns])
+  FreqsTable <- table(FreqV)
+  ObsFreqs   <- ObsFreqNull
+  ObsFreqs[names(FreqsTable)] <- FreqsTable
+  ExpFreqs <- round(c((NTot - ni)^2, (NTot - ni)*ni, ni^2) / NTot)
+  (ObsFreqs - ExpFreqs) %*% c(0:2)
 })
 
 # Matrix of sampled L1 activity sums
@@ -593,10 +602,10 @@ SampleMat <- sapply(1:NrSamplesPerPop, function(x){
   # Loop over populations and sample activity sums
   for (i in 1:length(NrObsPerPop)){
     
-    # Sample activity sums for current observation
+    # Sample activity sums for current population
     SampledActSums <- sapply(1:NrObsPerPop[i], function(x){
-      rbinom(nrow(FreqMat), 2, FreqMat[,i]) %*% 
-        L1CatalogMatch1000G$ActivityNum
+      SampledL1Genos <- rbinom(nrow(FreqPerPop), 2, FreqPerPop[,i]) 
+        SampledL1Genos %*% L1CatalogMatch1000G$ActivityNum
     })
     SampledActSums_P <- c(SampledActSums_P, SampledActSums)
   }
