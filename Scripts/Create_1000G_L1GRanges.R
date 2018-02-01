@@ -124,29 +124,29 @@ SampledActSums <- sapply(1:NrSamples, function(x){
   rbinom(nrow(L1_1000G_match), 2, L1_1000G_match$Frequency) %*% 
     L1CatalogMatch1000G$ActivityNum
 })
-cat("Sampling quantiles of activity sums\n")
-SamplQuantList <- SampleQuantiles(SampledActSums, length(SampleColumns), 
-                                  NrSamples = 10000, QuantV = seq(0, 1, 0.0001),
-                                  LowerQ = 0.005, UpperQ = 0.995)
-QSMat <- SamplQuantList$QMat
-idxF <- 1:ncol(QSMat)
-idxR <- ncol(QSMat):1
-mean(SampledActSums)
-QQ1  <- qqplot(SampledActSums, ObservedAct, plot.it = F)
-plot(QQ1$x, QQ1$y, xlab = "Sampled activity sums", 
-     ylab = "Observed activity sums")
-MedianMatch1 <- sapply(QQ1$x, function(z) which.min(abs(z - QSMat[1, ])))
-MedianMatch2 <- sapply(QQ1$x, function(z) which.min(abs(z + 1 - QSMat[1, ])))
-MedianMatch3 <- sapply(QQ1$x, function(z) which.min(abs(z - 1 - QSMat[1, ])))
-polygon(QSMat[1, c(idxF, idxR)], c(QSMat[2, ], QSMat[3, idxR]), 
-        col = "grey", border = NA)
-points(QQ1$x, QQ1$y)
-lines(c(0, 1000), c(0, 1000))
-blnOutside <- (QQ1$y < QSMat[2, MedianMatch1] | QQ1$y > QSMat[3, MedianMatch1]) &
-  (QQ1$y < QSMat[2, MedianMatch2] | QQ1$y > QSMat[3, MedianMatch2]) &
-  (QQ1$y < QSMat[2, MedianMatch3] | QQ1$y > QSMat[3, MedianMatch3])
-sum(blnOutside)
-points(QQ1$x[blnOutside],  QQ1$y[blnOutside], col = "red")
-  
-CreateDisplayPdf('D:/L1polymORF/Figures/L1ActivitySums.pdf', 
-                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
+# cat("Sampling quantiles of activity sums\n")
+# SamplQuantList <- SampleQuantiles(SampledActSums, length(SampleColumns), 
+#                                   NrSamples = 10000, QuantV = seq(0, 1, 0.0001),
+#                                   LowerQ = 0.005, UpperQ = 0.995)
+# QSMat <- SamplQuantList$QMat
+# idxF <- 1:ncol(QSMat)
+# idxR <- ncol(QSMat):1
+# mean(SampledActSums)
+# QQ1  <- qqplot(SampledActSums, ObservedAct, plot.it = F)
+# plot(QQ1$x, QQ1$y, xlab = "Sampled activity sums", 
+#      ylab = "Observed activity sums")
+# MedianMatch1 <- sapply(QQ1$x, function(z) which.min(abs(z - QSMat[1, ])))
+# MedianMatch2 <- sapply(QQ1$x, function(z) which.min(abs(z + 1 - QSMat[1, ])))
+# MedianMatch3 <- sapply(QQ1$x, function(z) which.min(abs(z - 1 - QSMat[1, ])))
+# polygon(QSMat[1, c(idxF, idxR)], c(QSMat[2, ], QSMat[3, idxR]), 
+#         col = "grey", border = NA)
+# points(QQ1$x, QQ1$y)
+# lines(c(0, 1000), c(0, 1000))
+# blnOutside <- (QQ1$y < QSMat[2, MedianMatch1] | QQ1$y > QSMat[3, MedianMatch1]) &
+#   (QQ1$y < QSMat[2, MedianMatch2] | QQ1$y > QSMat[3, MedianMatch2]) &
+#   (QQ1$y < QSMat[2, MedianMatch3] | QQ1$y > QSMat[3, MedianMatch3])
+# sum(blnOutside)
+# points(QQ1$x[blnOutside],  QQ1$y[blnOutside], col = "red")
+#   
+# CreateDisplayPdf('D:/L1polymORF/Figures/L1ActivitySums.pdf', 
+#                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
