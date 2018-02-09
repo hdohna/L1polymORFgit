@@ -71,12 +71,14 @@ idx1000GMatchCat    <- idx1000G[DistCat2_1000G < 100]
 L1CatalogGRMatched  <- L1CatalogGR[DistCat2_1000G < 100]
 sum(DistCat2_1000G < 100)
 sum(DistCat2_1000G < 10)
-
+L1_1000G$InsLength[idx1000G[DistCat2_1000G == 0]]
 # add a column with dummy activity sums
 L1CatalogMatch1000G$ActivityDummy <- 1
 
 # Get rows of L1_1000G table that can be matched to catalog
 L1_1000G_match <- L1_1000G[idx1000GMatchCat, ]
+L1_1000G_match$InsLength
+L1CatalogMatch1000G$Activity[L1_1000G_match$InsLength < 500]
 
 # Get expected and observed activity sums
 ExpectedAct <- 2 * L1CatalogMatch1000G$ActivityNum %*% L1_1000G_match$Frequency
@@ -283,10 +285,10 @@ CreateDisplayPdf(Filenamepath = 'D:/L1polymORF/Figures/L1ActSumCorrelations.pdf'
 
 # Matrix of correlation between L1 frequencies
 CM <- cor(t(L1_1000G_match[, SampleColumns]))
-hist(CM)
 sum(CM == 1, na.rm = T)
 diag(CM) <- NA
 mean(CM, na.rm = T)
+hist(CM)
 
 # Calculate covariance matrix
 CVM <- cov(t(L1_1000G_match[, SampleColumns]))
@@ -556,7 +558,7 @@ cor.test(L1_1000G_reduced$Frequency, Dist2ClosestGene, method = "kendall")
 ##########################################
 #                                        #
 #     Sample L1 activity sums            #
-#     (with population structure)         #
+#     (with population structure)        #
 #                                        #
 ##########################################
 
@@ -580,7 +582,7 @@ sapply(SamplePerPopList, length)
 FreqPerPop <- sapply(SamplePerPopList, function(Samples){
   rowSums(L1_1000G_match[,Samples]) / 2 / length(Samples)
 })
-
+hist(rowMeans(FreqPerPop))
 # Get weighted difference between observed and expected genotype frequency per locus
 FreqDiffs <- sapply(1:nrow(L1_1000G_match), function(i){
   
@@ -632,7 +634,7 @@ QSMat <- apply(SampledQMat, 2,
                       FUN = function(x) quantile(x, c(0.5, LowerQ, UpperQ)))
 idxF <- 1:ncol(QSMat)
 idxR <- ncol(QSMat):1
-mean(SampledActSums)
+# mean(SampledActSums)
 QQ1  <- qqplot(SampleMat[,1], ObservedAct, plot.it = F)
 #QQ1  <- qqplot(as.vector(sampleMat), ObservedAct, plot.it = F)
 
@@ -672,3 +674,159 @@ CreateDisplayPdf('D:/L1polymORF/Figures/L1ActivityVarianceAndQQ_PopStr.pdf',
 # Compare means
 mean(colMeans(SampleMat))
 mean(ObservedAct)
+
+##########################################
+#                                        #
+#     Calculate correlation              #
+#     (with population structure)        #
+#                                        #
+##########################################
+rbinom()
+
+#################
+# Matched L1s
+#################
+
+# Matrix of sampled L1 correlations
+NrSamplesPerPop <- 200
+SampleCors <- lapply(1:NrSamplesPerPop, function(x){
+  
+  # Initialize matrix of sampled genomes
+  SampledGenos <- matrix(nrow = length(SampleColumns), ncol = nrow(FreqPerPop))
+  LastRow <- 0
+
+  # Loop over populations and sample activity sums
+  for (i in 1:length(NrObsPerPop)){
+    
+    # Sample activity sums for current population
+    SampledL1Genos <- sapply(1:NrObsPerPop[i], function(x){
+      rbinom(nrow(FreqPerPop), 2, FreqPerPop[,i]) 
+    })
+    idxRows <- (LastRow + 1):(LastRow + NrObsPerPop[i])
+    SampledGenos[idxRows, ] <- t(SampledL1Genos)
+    LastRow <- LastRow + NrObsPerPop[i]
+  }
+  
+  # Add a random entry for matrix with zero entry
+  SampledNr <- colSums(SampledGenos)
+  blnZero   <- SampledNr == 0
+  if (any(blnZero)){
+    for(j in which(blnZero)){
+      idxRandRow <- sample(nrow(SampledGenos), sum(blnZero))
+      SampledGenos[idxRandRow, j] <- 1
+    }
+  }
+  CMSampled <- cor(SampledGenos)
+  diag(CMSampled) <- NA
+  cor(SampledGenos)
+})
+
+# Count for each correlation the number of times the sampled value is less than
+# the observed
+CountMat <- matrix(0, nrow = nrow(CM), ncol = ncol(CM))
+for(CorMat in SampleCors){
+  CountMat <- CountMat + (CorMat >= CM)
+}
+plot(AM, CountMat)
+mantel.partial(CountMat, AM, DM)
+mantel.partial(CountMat, DM, AM)
+mantel(CountMat, AM)
+mantel(CountMat, DM)
+
+#################
+# Random L1s
+#################
+
+# Determine bins for allele frequencies
+FreqBins <- seq(0, 1, 0.01)
+
+# Bin allele frequencies of of matched L1s
+FreqBinsMatched <- cut(L1_1000G_match$Frequency, breaks = FreqBins)
+FreqBinsAll     <- cut(L1_1000G$Frequency, breaks = FreqBins)
+
+# Sample random non-matched L1s from the same frequency bins as matched L1s
+# and calculate correlation matrix between sampled L1s
+NrSampleMats <- 200
+SampledCors <- lapply(1:NrSampleMats, function(x){
+  idxRand <- sapply(FreqBinsMatched, function(Bin){
+    sample(which(FreqBinsAll == Bin), 1)
+  })
+  CMSampled <- cor(t(L1_1000G[idxRand, SampleColumns]))
+  diag(CMSampled) <- NA
+  CMSampled
+})
+SampledActSums <- sapply(1:NrSampleMats, function(x){
+  idxRand <- sapply(FreqBinsMatched, function(Bin){
+    sample(which(FreqBinsAll == Bin), 1)
+  })
+  sapply(SampleColumns, function(x){
+    L1CatalogMatch1000G$ActivityNum %*% L1_1000G[idxRand,x]})
+})
+dim(SampledActSums)
+SampledVars <- apply(SampledActSums, 2, var)
+sum(var(ObservedAct) <= SampledVars) / length(SampledVars)
+sum(mean(ObservedAct) <= colMeans(SampledActSums)) / length(SampledVars)
+
+# Get mean sampled correlation
+SampledMeanCor <- sapply(SampledCors, function(x) mean(x, na.rm = T))
+sum(mean(CM, na.rm = T) <= SampledMeanCor) / length(SampledMeanCor)
+
+# 
+
+# # Loop over populations and calculate frequency per population
+# FreqPerPop_Rand <- sapply(SamplePerPopList, function(Samples){
+#   rowSums(L1_1000G_Rand[,Samples]) / 2 / length(Samples)
+# })
+# hist(rowMeans(FreqPerPop_Rand))
+# 
+# # Matrix of sampled L1 correlations
+# NrSamplesPerPop <- 200
+# SampledCors <- lapply(1:NrSamplesPerPop, function(x){
+#   
+#   # Initialize matrix of sampled genomes
+#   SampledGenos <- matrix(nrow = length(SampleColumns), ncol = nrow(FreqPerPop_Rand))
+#   LastRow <- 0
+#   
+#   # Loop over populations and sample activity sums
+#   for (i in 1:length(NrObsPerPop)){
+#     
+#     # Sample activity sums for current population
+#     SampledL1Genos <- sapply(1:NrObsPerPop[i], function(x){
+#       rbinom(nrow(FreqPerPop_Rand), 2, FreqPerPop_Rand[,i]) 
+#     })
+#     idxRows <- (LastRow + 1):(LastRow + NrObsPerPop[i])
+#     SampledGenos[idxRows, ] <- t(SampledL1Genos)
+#     LastRow <- LastRow + NrObsPerPop[i]
+#   }
+#   
+#   # Add a random entry for matrix with zero entry
+#   SampledNr <- colSums(SampledGenos)
+#   blnZero   <- SampledNr == 0
+#   if (any(blnZero)){
+#     for(j in which(blnZero)){
+#       idxRandRow <- sample(nrow(SampledGenos), sum(blnZero))
+#       SampledGenos[idxRandRow, j] <- 1
+#     }
+#   }
+#   CMSampled <- cor(SampledGenos)
+#   diag(CMSampled) <- NA
+#   cor(SampledGenos)
+# })
+# SampledMeanCor <- sapply(SampleCors, function(x) mean(x, na.rm = T))
+# CMrand <- cor(t(L1_1000G_Rand[, SampleColumns]))
+# diag(CMrand) <- NA
+# sum(SampledMeanCor <= mean(CMrand, na.rm = T))
+# 
+# # Count for each correlation the number of times the sampled value is less than
+# # the observed
+# CountMat <- matrix(0, nrow = nrow(CM), ncol = ncol(CM))
+# for(CorMat in SampleCors){
+#   CountMat <- CountMat + (CMrand >= CM)
+# }
+# plot(AM, CountMat)
+# mantel.partial(CountMat, AM, DM)
+# mantel.partial(CountMat, DM, AM)
+# mantel(CountMat, AM)
+# mantel(CountMat, DM)
+# 
+
