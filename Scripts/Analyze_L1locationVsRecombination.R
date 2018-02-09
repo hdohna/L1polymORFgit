@@ -123,6 +123,8 @@ LM <- lm(L1CatalogRef_hg19$Allele_frequency_Num[RecL1CatOverlaps@from] ~
            L1CatalogRef_hg19$ActivityNum[RecL1CatOverlaps@from] +
            RecL1Cat)
 summary(LM)
+cor.test(RecL1Cat, L1CatalogRef_hg19$ActivityNum[RecL1CatOverlaps@from])
+plot(L1CatalogRef_hg19$ActivityNum[RecL1CatOverlaps@from], RecL1Cat)
 
 # Find overlaps to fragment L1 and create a vector of recombination values
 RecL1FragmOverlaps <- findOverlaps(L1FragmGR_hg19, Rec_GR)
