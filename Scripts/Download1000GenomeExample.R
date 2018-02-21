@@ -6,7 +6,7 @@ VcfFileTable <- read.table("/srv/gsfs0/projects/levinson/hzudohna/1000Genomes/vc
 VcfFiles <- VcfFileTable[ ,ncol(VcfFileTable)]
 
 # Create an rsync command
-i <- 1
+i <- 2
 SourcePath <- paste("rsync://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/",
                     VcfFiles[i], sep = "")
 DestPath <- paste("./srv/gsfs0/projects/levinson/hzudohna/1000Genomes/",
