@@ -23,14 +23,24 @@
 
 
 CreateAndCallqsubScript <- function(file,
-   qsubHeaderLines = c('#! /bin/sh', '#', '#$ -N TEST', '#', '#$ -cwd', '#', 
-                       '#$ -l h_rt=72:00:00', '#', '#$ -j y', '#',
-                       '#$ -P large_mem', '#',
-                       '#$ -S /bin/bash', '#', ''), 
-   qsubCommandLines, scriptName = 'NoName', Args = ""){
+   qsubHeaderLines = c('#!/bin/bash', 
+                       '#SBATCH --account=MY_PI_SUNetID_or_Project_ID', 
+                       '#SBATCH --time=1-00:00:00', 
+                       '#SBATCH --job-name="My Simple Job."', 
+                       '#SBATCH --nodes=1', 
+                       '#SBATCH --ntasks=1', 
+                       '#SBATCH --cpus-per-task=1', 
+                       '#SBATCH --mem=4G', 
+                       '#SBATCH --mail-user=hb54@aub.edu.lb', 
+                       '#SBATCH --mail-type=BEGIN,END,FAIL'
+   ), 
+   qsubCommandLines, 
+   scriptName = 'NoName', 
+   Args = ""){
   
   # Replace name in header lines
-  qsubHeaderLines[grep("-N", qsubHeaderLines)] <- paste('#$ -N', scriptName)
+  qsubHeaderLines[grep("--job-name=", qsubHeaderLines)] <- 
+    paste('#SBATCH --job-name=', scriptName)
   
   # Save script
   writeLines(c(qsubHeaderLines, qsubCommandLines), file)
