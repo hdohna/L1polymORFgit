@@ -24,8 +24,8 @@
 
 CreateAndCallqsubScript <- function(file,
    qsubHeaderLines = c('#!/bin/bash', 
-                       '#SBATCH --account=MY_PI_SUNetID_or_Project_ID', 
-                       '#SBATCH --time=1-00:00:00', 
+                       '#SBATCH --account=dflev', 
+                       '#SBATCH --time=1:00:00', 
                        '#SBATCH --job-name="My Simple Job."', 
                        '#SBATCH --nodes=1', 
                        '#SBATCH --ntasks=1', 
@@ -36,7 +36,8 @@ CreateAndCallqsubScript <- function(file,
    ), 
    qsubCommandLines, 
    scriptName = 'NoName', 
-   Args = ""){
+   Args = "",
+   blnWait = F){
   
   # Replace name in header lines
   qsubHeaderLines[grep("--job-name=", qsubHeaderLines)] <- 
@@ -46,7 +47,7 @@ CreateAndCallqsubScript <- function(file,
   writeLines(c(qsubHeaderLines, qsubCommandLines), file)
   
   # Run script
-  RunCmd <- paste("qsub", file, Args)
-  system(RunCmd, wait = F)
+  RunCmd <- paste("sbatch", file, Args)
+  system(RunCmd, wait = blnWait)
   
 }
