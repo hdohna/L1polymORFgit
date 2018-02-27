@@ -9,7 +9,7 @@ library(data.table)
 NrInfoCols  <- 9
 NrSamples   <- 2504
 TotCols     <- NrInfoCols + NrSamples
-NLines2Read <- 10^3
+NLines2Read <- 3*10^3
 DataFolder <- "/srv/gsfs0/projects/levinson/hzudohna/1000Genomes/"
 FilePrefix <- "Singleton"
 
@@ -51,9 +51,11 @@ while(Nread == NLines2Read){
   NGenoMat    <- matrix(BarSplitN, nrow = 2*NrSamples)
   blnSingle   <- colSums(NGenoMat) == 1
   NewLines    <- sapply(which(blnSingle), function(x){
+    idx1        <- which(NGenoMat[,x] == 1)
+    idxSample   <- (idx1 - 1) %/% 2 + 1
     NL <- c(CurrentLines[idxNewLines[x] + 0:(NrInfoCols - 1)],
-            SampleNames[NGenoMat[,x] == 1])
-    paste(paste(NL, collapse = "\t"), "\n", sep = "") 
+            SampleNames[idxSample])
+    paste(NL, collapse = "\t") 
   })
   open(NewCon, open = "w")
   writeLines(NewLines, con = NewCon)
@@ -62,4 +64,4 @@ while(Nread == NLines2Read){
   
 }
 close(NewCon)
-cat("All singleton written out\n")
+cat("All singletons written out\n")
