@@ -31,9 +31,9 @@ Nread      <- NLines2Read
 FileSplit <- strsplit(File, "\\.")[[1]]
 OutFile <- paste(FilePrefix, FileSplit[2], FileSplit[length(FileSplit)],
                  sep = ".")
-OutPath <- paste(DataFolder, OutFile, sep = "")
-NewCon <- file(OutPath)
-TotRead <- 0
+OutPath    <- paste(DataFolder, OutFile, sep = "")
+NewCon     <- file(OutPath)
+TotRead    <- 0
 TotWritten <- 0
 
 while(Nread == NLines2Read){
@@ -53,7 +53,7 @@ while(Nread == NLines2Read){
   NewLines    <- sapply(which(blnSingle), function(x){
     NL <- c(CurrentLines[idxNewLines[x] + 0:(NrInfoCols - 1)],
             SampleNames[NGenoMat[,x] == 1])
-    paste(NL, collapse = "\t") 
+    paste(paste(NL, collapse = "\t"), "\n", sep = "") 
   })
   open(NewCon, open = "w")
   writeLines(NewLines, con = NewCon)
@@ -62,4 +62,4 @@ while(Nread == NLines2Read){
   
 }
 close(NewCon)
-
+cat("All singleton written out\n")
