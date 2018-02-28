@@ -43,8 +43,8 @@ NewCon     <- file(OutPath)
 TotRead    <- 0
 TotWritten <- 0
 k <- 1
-#while(Nread == NLines2Read){
-while(k < 4){
+while(Nread == NLines2Read){
+#while(k < 4){
   CurrentLines <- scan(File, skip = nSkip, nlines = NLines2Read,
                        sep = "\t", what = character())
   idxNewLines <- seq(1, length(CurrentLines), TotCols)
