@@ -9,9 +9,9 @@ library(data.table)
 NrInfoCols  <- 9
 NrSamples   <- 2504
 TotCols     <- NrInfoCols + NrSamples
-NLines2Read <- 10^4
+NLines2Read <- 10^5
 DataFolder <- "/srv/gsfs0/projects/levinson/hzudohna/1000Genomes/"
-FilePrefix <- "Singleton_trial"
+FilePrefix <- "Singleton"
 
 # Function to get idx of rows with one count
 getIdx1Count <- function(idx){
@@ -43,8 +43,9 @@ NewCon     <- file(OutPath)
 TotRead    <- 0
 TotWritten <- 0
 k <- 1
-while(Nread == NLines2Read){
-#while(k < 4){
+open(NewCon, open = "w")
+#while(Nread == NLines2Read){
+while(k < 4){
   CurrentLines <- scan(File, skip = nSkip, nlines = NLines2Read,
                        sep = "\t", what = character())
   idxNewLines <- seq(1, length(CurrentLines), TotCols)
@@ -70,7 +71,6 @@ while(Nread == NLines2Read){
             SampleNames[idxSample])
     paste(NL, collapse = "\t") 
   })
-  open(NewCon, open = "w")
   writeLines(NewLines, con = NewCon)
   TotWritten <- TotWritten + length(NewLines)
   cat("Total lines written:", TotWritten, "\n")
