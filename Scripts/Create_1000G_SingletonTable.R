@@ -9,9 +9,16 @@ library(data.table)
 NrInfoCols  <- 9
 NrSamples   <- 2504
 TotCols     <- NrInfoCols + NrSamples
-NLines2Read <- 3*10^3
+NLines2Read <- 10^4
 DataFolder <- "/srv/gsfs0/projects/levinson/hzudohna/1000Genomes/"
-FilePrefix <- "Singleton"
+FilePrefix <- "Singleton_trial"
+
+# Function to get idx of rows with one count
+getIdx1Count <- function(idx){
+  idx1Rows <- idx %/% NrSamples
+  setdiff(unique(idx1Rows), idx1Rows[duplicated(idx1Rows)])
+}
+
 
 # Get column names from vcf files
 cat("Adding column names to concatenated L1 table\n")
@@ -35,8 +42,9 @@ OutPath    <- paste(DataFolder, OutFile, sep = "")
 NewCon     <- file(OutPath)
 TotRead    <- 0
 TotWritten <- 0
-
-while(Nread == NLines2Read){
+k <- 1
+#while(Nread == NLines2Read){
+while(k < 4){
   CurrentLines <- scan(File, skip = nSkip, nlines = NLines2Read,
                        sep = "\t", what = character())
   idxNewLines <- seq(1, length(CurrentLines), TotCols)
@@ -46,13 +54,18 @@ while(Nread == NLines2Read){
   idxRemove   <- rep(idxNewLines, each = NrInfoCols) + 
     rep(0:(NrInfoCols - 1), length(idxNewLines))
   CurrentGeno <- CurrentLines[-idxRemove]
-  BarSplit    <- strsplit(CurrentGeno, split = "\\|")
-  BarSplitN   <- as.numeric(unlist(BarSplit))
-  NGenoMat    <- matrix(BarSplitN, nrow = 2*NrSamples)
-  blnSingle   <- colSums(NGenoMat) == 1
-  NewLines    <- sapply(which(blnSingle), function(x){
-    idx1        <- which(NGenoMat[,x] == 1)
-    idxSample   <- (idx1 - 1) %/% 2 + 1
+  # BarSplit    <- strsplit(CurrentGeno, split = "\\|")
+  # BarSplitN   <- as.numeric(unlist(BarSplit))
+  # NGenoMat    <- matrix(BarSplitN, nrow = 2*NrSamples)
+  # blnSingle   <- colSums(NGenoMat) == 1
+  idx0 <- grep("0", CurrentGeno)
+  idx1 <- grep("1", CurrentGeno)
+  idx11 <- setdiff(idx1, idx0)
+  idx1Count <- getIdx1Count(idx1)
+  idx1Count <- setdiff(idx1Count, idx11)
+  
+  NewLines    <- sapply(idx1Count, function(x){
+    idxSample   <- (x - 1) %% NrSamples + 1
     NL <- c(CurrentLines[idxNewLines[x] + 0:(NrInfoCols - 1)],
             SampleNames[idxSample])
     paste(NL, collapse = "\t") 
@@ -61,7 +74,7 @@ while(Nread == NLines2Read){
   writeLines(NewLines, con = NewCon)
   TotWritten <- TotWritten + length(NewLines)
   cat("Total lines written:", TotWritten, "\n")
-  
+  k <- k + 1
 }
 close(NewCon)
 cat("All singletons written out\n")
