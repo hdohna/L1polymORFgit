@@ -1,0 +1,99 @@
+# The following shell commands return row indices and column indices (byte)
+# for singletons
+cut -s -f3-6 TestVcf.txt | \
+# Comment here
+grep "1" -n -b -o | \
+awk -F: 'BEGIN{maxC=0};
+          {
+            prevMax=maxC;
+            maxC++; 
+            if($1 != prev1) {
+              if(maxC == 1) {
+                print prev1 - 1, prev2;
+              } 
+              prev1 = $1; 
+              prev2 = $2; 
+              maxC=0;
+           }
+        }
+        END{if(prevMax == 1) print prev1 - 1, prev2}' | \
+awk 'BEGIN{LNC = 0};
+{
+  if(NR == FNR){
+      ## Get line and column number from first file
+      LN[$1] = $1
+      CN[$1] = $2
+  } else {
+     ## 
+     if(substr($1, 1, 1) == "#"){ 
+       LNC++; 
+       next;
+      }
+     ## Return columns 1 and 2 from second file that match specified line number
+     if((FNR - LNC) in LN){
+        print $1, $2, CN[FNR - LNC];
+     }
+  }
+}' - TestVcf.txt
+
+awk '{print $1, $2}' SingeltonTest
+awk '{print $1, $2, $3, $4, $5, $6}' TestVcf.txt
+
+cut -s -f1-2 TestVcf.txt > TestInfoCols
+cut -s -f1-6 TestVcf.txt
+awk '{
+  if(NR == FNR){
+      ## Get line number from first file
+      LN[$1] = $1 + 1;
+      print LN[$1];
+  } else {
+     ## Return columns 1 and 2 from second file that match specified line number
+     if(FNR in LN){
+        print $1, $2
+     }
+  }
+}' SingeltonTest TestInfoCols
+
+
+
+
+
+cut -s -f3-6 TestVcf.txt | \
+grep "1" -n -b -o | \
+awk -F: -OFS: '{print $1, $2} END{print "-1:1"}' | \
+awk -F: 'BEGIN{maxC=0};
+          prevMax=maxC;
+          maxC++; 
+          $1 != prev1 {{if(maxC == 1) print prev1, prev2}; prev1 = $1; prev2 = $2; maxC=0}'
+          
+
+cut -s -f10-2514 ALL.chr1.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf | \
+grep "1" -n -b -o | \
+awk -F: 'BEGIN{maxC=0};
+          {
+            prevMax=maxC;
+            maxC++; 
+            if($1 != prev1) {
+              if(maxC == 1) {
+                print prev1 - 1, prev2;
+              } 
+              prev1 = $1; 
+              prev2 = $2; 
+              maxC=0;
+           }
+        }
+        END{if(prevMax == 1) print prev1 - 1, prev2}' > \
+Singleton_awk_chr1          
+cut -s -f3-6 TestVcf.txt
+
+
+cut -s -f10-2514 ALL.chr1.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf | \
+grep "1" -n -b -o | \
+awk -F : 'BEGIN{maxC=0}; maxC++; $1 != prev { print $1, $2, maxC; prev = $1; maxC=0}'| \
+awk '$3 == 1 {print $1, $2}' > Singleton_awk_chr1
+
+
+cut -s -f10-2514 ALL.chr1.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf | grep "1" -n -b -o | cut -d: -f1-2 > OneLines.chr1
+
+
+
