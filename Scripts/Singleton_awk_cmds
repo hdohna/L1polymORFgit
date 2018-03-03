@@ -1,7 +1,108 @@
-# The following shell commands return row indices and column indices (byte)
-# for singletons
+# The following shell commands return the first two columns of a mock vcf file
+# ond the column index (byte) of rows that contain singletons
+
+#####################
+#                   #
+#   Test file       #
+#                   #
+#####################
+
+# Remove the comment lines from vcf file:
 cut -s -f3-6 TestVcf.txt | \
-# Comment here
+# Get all rows and columns with a "1":
+grep "1" -n -b -o | \
+# Return the first two columns of rows that contain only a single 1
+awk 'BEGIN{maxC=0};
+        {
+          if(NR == FNR){
+            prevMax=maxC;
+            maxC++; 
+              if($1 != prev1) {
+                if(maxC == 1) {
+                  LN[prev1 - 1] = prev1 - 1;
+                  CN[prev1 - 1] = prev2;
+                } 
+                prev1 = $1; 
+                prev2 = $2; 
+                maxC=0;
+             }
+           } else {
+             if(prevMax == 1 && FNR == 1) {
+               LN[prev1 - 1] = prev1 - 1;
+               CN[prev1 - 1] = prev2;
+             }
+             ## Keep track of number of comment lines
+             if(substr($1, 1, 1) == "#"){ 
+               LNC++; 
+               next;
+             }
+             ## Return columns 1 and 2 from second file that match specified line number
+              if((FNR - LNC) in LN){
+              print $1, $2, CN[FNR - LNC];
+            }
+          }
+    }' FS=":" - FS=" " TestVcf.txt
+
+
+#####################
+#                         #
+#   1000 Genome vcf       #
+#                         #
+#####################
+
+# argumet $1: input vcf file
+# argumet $2: output file
+#
+# Remove the comment lines from input vcf file and retain columns 10-2514:
+cut -s -f10-2514 $1 | \
+#
+# Get all rows and columns with a "1":
+grep "1" -n -b -o | \
+#
+# Return the first nine columns of rows that contain only a single 1
+awk 'BEGIN{maxC=0};
+        {
+          ## Analysis of first file (produced by grep)
+          if(NR == FNR){
+            ## Update maximum count of row number
+            prevMax=maxC;
+            maxC++;
+              ## Check whether current row number differs from previous
+              if($1 != prev1) {
+                ## Store row and column if the previous maximum count is 1
+                if(maxC == 1) {
+                  LN[prev1 - 1] = prev1 - 1;
+                  CN[prev1 - 1] = prev2;
+                } 
+                prev1 = $1; 
+                prev2 = $2; 
+                maxC=0;
+             }
+           } else {
+             if(prevMax == 1 && FNR == 1) {
+               LN[prev1 - 1] = prev1 - 1;
+               CN[prev1 - 1] = prev2;
+             }
+             ## Keep track of number of comment lines
+             if(substr($1, 1, 1) == "#"){ 
+               LNC++; 
+               next;
+             }
+             ## Return columns 1 - 9 from input vcf file that match specified line number
+             if((FNR - LNC) in LN){
+               print $1, $2, $3, $4, $5, $6, $7, $8, $9, CN[FNR - LNC];
+            }
+          }
+    }' FS=":" - FS=" " $1 > $2
+
+
+###########################
+#    Older trials
+##########################
+
+cut -f1-6 TestVcf.txt
+cut -s -f3-6 TestVcf.txt | \
+# Get all rows and columns with a 1
 grep "1" -n -b -o | \
 awk -F: 'BEGIN{maxC=0};
           {
@@ -35,6 +136,10 @@ awk 'BEGIN{LNC = 0};
      }
   }
 }' - TestVcf.txt
+
+
+
+
 
 awk '{print $1, $2}' SingeltonTest
 awk '{print $1, $2, $3, $4, $5, $6}' TestVcf.txt
@@ -96,4 +201,4 @@ awk '$3 == 1 {print $1, $2}' > Singleton_awk_chr1
 cut -s -f10-2514 ALL.chr1.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf | grep "1" -n -b -o | cut -d: -f1-2 > OneLines.chr1
 
 
-
+cut -f1-6 TestVcf.txt
