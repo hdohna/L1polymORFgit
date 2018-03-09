@@ -12,7 +12,7 @@ FilePrefix     <- "Singleton"
 AllFiles <- list.files(DataFolder, pattern = ".vcf", full.names = T)
 AllFiles <- AllFiles[-grep("vcf.", AllFiles)]
 AllFiles <- AllFiles[grep("ALL.", AllFiles)]
-InFile <- AllFiles[1]
+InFile <- AllFiles[11]
 for (InFile in AllFiles){
   InFileSplit <- strsplit(InFile, "\\.")[[1]]
   OutFile     <- paste(InFileSplit[1:2], collapse = "_")
