@@ -283,7 +283,23 @@ CreateDisplayPdf(Filenamepath = 'D:/L1polymORF/Figures/L1ActSumCorrelations.pdf'
 # sum(rowMeans(RandCorsPerChrom, na.rm = T) >= mean(CorPerChr$Cor[ChrMatch])) / 
 #   NrSamples
 
+NrObsPerPop <- table(SampleInfo_1000Genome$super_pop)
+
+# Get a list of samples per population
+SamplePerPopList <-  lapply(names(NrObsPerPop), function(Pop){
+  blnPop         <- SampleInfo_1000Genome$super_pop == Pop
+  SampleInfo_1000Genome$sample[blnPop]
+})
+sapply(SamplePerPopList, length)
+
 # Matrix of correlation between L1 frequencies
+CM <- matrix(0, nrow = nrow(L1_1000G_match),
+             ncol = nrow(L1_1000G_match))
+for(Samples in SamplePerPopList){
+  NewCor <-  cor(t(L1_1000G_match[, Samples]))
+  NewCor[is.na(NewCor)] <- 0
+  CM <- CM + NewCor
+}
 CM <- cor(t(L1_1000G_match[, SampleColumns]))
 sum(CM == 1, na.rm = T)
 diag(CM) <- NA
@@ -310,6 +326,7 @@ AM <- outer(X = L1CatalogMatch1000G$ActivityNum,
       FUN = '+')
 mantel.partial(1 - CM, AM, DM)
 mantel(1 - CM, AM)
+mantel(AM, DM)
 
 #################################################
 #                                               #
@@ -569,15 +586,6 @@ NrSamplesPerPop <- 100
 cat("Sampling L1 activity sums with population structure\n")
 
 # Get the number of observed samples per population
-NrObsPerPop <- table(SampleInfo_1000Genome$super_pop)
-
-# Get a list of samples per population
-SamplePerPopList <-  lapply(names(NrObsPerPop), function(Pop){
-  blnPop         <- SampleInfo_1000Genome$super_pop == Pop
-  SampleInfo_1000Genome$sample[blnPop]
-})
-sapply(SamplePerPopList, length)
-
 # Loop over populations and calculate frequency per population
 FreqPerPop <- sapply(SamplePerPopList, function(Samples){
   rowSums(L1_1000G_match[,Samples]) / 2 / length(Samples)
@@ -771,7 +779,41 @@ sum(mean(ObservedAct) <= colMeans(SampledActSums)) / length(SampledVars)
 SampledMeanCor <- sapply(SampledCors, function(x) mean(x, na.rm = T))
 sum(mean(CM, na.rm = T) <= SampledMeanCor) / length(SampledMeanCor)
 
-# 
+# Get 99% range of each quantile
+QuantV = seq(0, 1, 0.0001) 
+LowerQ = 0.005
+UpperQ = 0.995
+NrSamples = ncol(SampledActSums)
+SampleMeans <- rep(NA, NrSamples)
+SampledQMat <- matrix(nrow = NrSamples, ncol = length(QuantV))
+for (i in 1:NrSamples){
+  SampleVals <- SampledActSums[,i]
+  SampleMeans[i]  <- mean(SampleVals)
+  SampledQMat[i,] <- quantile(SampleVals, QuantV)
+}
+QSMat <- apply(SampledQMat, 2, 
+               FUN = function(x) quantile(x, c(0.5, LowerQ, UpperQ)))
+idxF <- 1:ncol(QSMat)
+idxR <- ncol(QSMat):1
+# mean(SampledActSums)
+QQ1  <- qqplot(SampledActSums[,1], ObservedAct, plot.it = F)
+#QQ1  <- qqplot(as.vector(sampleMat), ObservedAct, plot.it = F)
+
+# Plot quantiles
+plot(QQ1$x, QQ1$y, xlab = "Sampled activity sums", 
+     ylab = "Observed activity sums", main = "B")
+MedianMatch1 <- sapply(QQ1$x, function(z) which.min(abs(z - QSMat[1, ])))
+MedianMatch2 <- sapply(QQ1$x, function(z) which.min(abs(z + 1 - QSMat[1, ])))
+MedianMatch3 <- sapply(QQ1$x, function(z) which.min(abs(z - 1 - QSMat[1, ])))
+polygon(QSMat[1, c(idxF, idxR)], c(QSMat[2, ], QSMat[3, idxR]), 
+        col = "grey", border = NA)
+points(QQ1$x, QQ1$y)
+lines(c(0, 1000), c(0, 1000))
+blnOutside <- (QQ1$y < QSMat[2, MedianMatch1] | QQ1$y > QSMat[3, MedianMatch1]) &
+  (QQ1$y < QSMat[2, MedianMatch2] | QQ1$y > QSMat[3, MedianMatch2]) &
+  (QQ1$y < QSMat[2, MedianMatch3] | QQ1$y > QSMat[3, MedianMatch3])
+sum(blnOutside)
+points(QQ1$x[blnOutside],  QQ1$y[blnOutside], col = "red")
 
 # # Loop over populations and calculate frequency per population
 # FreqPerPop_Rand <- sapply(SamplePerPopList, function(Samples){
