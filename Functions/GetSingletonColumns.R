@@ -22,12 +22,16 @@
 GetSingletonColumns <- function(SingletonFile){
   
   # Subtract first row
-  minusFirstRow <- SingletonFile$V10 - 20031
+  minusRow <- SingletonFile$V10 - 20031
+  
+  # Perform correction for chromosome 1 (it contains 11401 characters in row 5226911)
   if (SingletonFile$V1[1] == 1){
-    beyondRow  <- minusFirstRow %/% 10016 >= 5226911
-    PredictCol <- ceiling(((minusFirstRow - beyondRow*11401) %% 10016)/4)
+    beyondRow  <- minusRow %/% 10016 >= 5226911
+    nrChar     <- (minusRow - beyondRow * 11401) %% 10016
   } else {
-    PredictCol <- ceiling((minusFirstRow %% 10016)/4)
+    nrChar     <- minusRow %% 10016
   }
-  PredictCol
+  Allele     <- nrChar %% 4
+  PredictCol <- ceiling(nrChar/4)
+  data.frame(Col = PredictCol, Allele = Allele)
 }
