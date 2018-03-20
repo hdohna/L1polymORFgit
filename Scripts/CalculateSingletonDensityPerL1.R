@@ -31,16 +31,28 @@ load(L1GRPath)
 
 # Specify chromosome
 Chr <- 9
+cat("********   Analyzing chromosome,", Chr, "    **********\n")
 
-# Load singleton file
-SingletonPath <- paste("D:/L1polymORF/Data/Singleton_SNP_chr", Chr, sep = "")
+# Read singleton file
+cat("Reading singleton file ...")
+SingletonPath <- paste(DataPath, "Singleton_SNP_chr", Chr, sep = "")
 Singletons    <- read.table(SingletonPath)
-Singletons$Col <- ceiling((Singletons$V10 %% 10016)/4)
+SCols         <- GetSingletonColumns(Singletons)
+SingletonGR   <- makeGRangesFromDataFrame(Singletons, seqnames.field = "V1",
+                                          start.field = "V2",
+                                          end.field = "V2")
+cat("Done!\n")
 
-# Subset L1_1000G
-idxChr <- which(L1_1000G$CHROM == Chr)
-NrHomoZygWith   <- rowSums(L1_1000G[idxChr, SampleColumns] == 2)
-idx5 <- which(NrHomoZygWith >= 5)
-i <- idx5[1]
-idxColHWith    <- which(L1_1000G[idxChr[i], SampleColumns] == 2)
-idxColHWithout <- which(L1_1000G[idxChr[i], SampleColumns] == 0)
+# Read LINE-1 vcf file
+cat("Reading LINE-1 vcf file ...")
+Line1VcfPath <- paste(DataPath, "LINE1chr", Chr, ".vcf", sep = "")
+Line1Vcf     <- read.table(Line1VcfPath)
+cat("Done!\n")
+
+# Subset LINE-1 vcf file
+blnSampleCols <- colnames(L1_1000G) %in% SampleColumns
+NrWith <- apply(Line1Vcf[,blnSampleCols], 1, function(x) length(grep("1", x)))
+hist(NrWith, breaks = seq(0, 3000, 5), xlim = c(0, 300))
+idx5   <- which(NrWith >= 5)
+idxColHomoWith    <- which(L1_1000G[idxChr[i], SampleColumns] == 2)
+idxColHHomoWithout <- which(L1_1000G[idxChr[i], SampleColumns] == 0)
