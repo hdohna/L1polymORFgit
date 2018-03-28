@@ -54,6 +54,9 @@ blnAllele1        <- L1Catalogue$Allele == 1
 blnInRef1         <- (L1Catalogue$end_HG38 - L1Catalogue$start_HG38) > 6000 
 L1CatalogL1Mapped <- L1Catalogue[blnL1Mapped & blnAllele1,]
 
+# Get strand from 1000 genome data
+Strand1000G <- sapply(as.character(L1_1000G[,8]), GetStrandFrom1000GVcf)
+
 # Create genomic ranges for catalog L1
 L1CatalogGR <- GRanges(seqnames = L1CatalogL1Mapped$Chromosome,
                        ranges = IRanges(start = pmin(L1CatalogL1Mapped$start_HG38,
@@ -66,12 +69,20 @@ DistCat2_1000G <- Dist2Closest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
 
 # Get indices of 1000 Genome and catalog elements that match
 idx1000G <- nearest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
+L1_1000G_GRList_hg38$idxUniqueMapped
 L1CatalogMatch1000G <- L1CatalogL1Mapped[DistCat2_1000G < 100, ]
-idx1000GMatchCat    <- idx1000G[DistCat2_1000G < 100]
+idx1000GMatchCat    <- L1_1000G_GRList_hg38$idxUniqueMapped[idx1000G[DistCat2_1000G < 100]]
 L1CatalogGRMatched  <- L1CatalogGR[DistCat2_1000G < 100]
 sum(DistCat2_1000G < 100)
 sum(DistCat2_1000G < 10)
-L1_1000G$InsLength[idx1000G[DistCat2_1000G == 0]]
+L1_1000G$InsLength[idx1000GMatchCat]
+L1_1000G$InsLength[idx1000GMatchCat]
+
+blnSameStrand <- L1CatalogMatch1000G$strand_L1toRef == Strand1000G[idx1000GMatchCat]
+boxplot(L1_1000G$InsLength[idx1000GMatchCat] ~ blnSameStrand)
+t.test(L1_1000G$InsLength[idx1000GMatchCat] ~ blnSameStrand)
+table(L1CatalogMatch1000G$strand_L1toRef, Strand1000G[idx1000GMatchCat])
+
 # add a column with dummy activity sums
 L1CatalogMatch1000G$ActivityDummy <- 1
 
@@ -372,7 +383,7 @@ GRgenes_hg19 <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
 DistGeneObj <- distanceToNearest(L1_1000G_GR_hg19, GRgenes_hg19, ignore.strand = T) 
 Dist2ClosestGene <- DistGeneObj@elementMetadata@listData$distance
 
-LMF <- lm(L1_1000G_reduced$Frequency ~ Dist2ClosestGene + L1_1000G_reduced$InsLength+
+LMF <- lm(L1_1000G_reduced$Frequency ~ Dist2ClosestGene + L1_1000G_reduced$InsLength +
             Dist2ClosestGene : L1_1000G_reduced$InsLength)
 summary(LMF)
 cor.test(L1_1000G_reduced$Frequency, Dist2ClosestGene, method = "kendall")
@@ -689,7 +700,6 @@ mean(ObservedAct)
 #     (with population structure)        #
 #                                        #
 ##########################################
-rbinom()
 
 #################
 # Matched L1s
