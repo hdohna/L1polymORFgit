@@ -1,0 +1,57 @@
+# The following shell commands return for each LINE1 the distance to a neighbroing variant
+
+#####################
+#                   #
+#   Test file       #
+#                   #
+#####################
+
+
+# Get lines from here
+grep "here" -n -o TestVcf.txt | \
+# Return the first two columns of rows that contain only a single 1
+awk 'BEGIN{LastPos1 = -1; LastPos2 = -1; Dir = "-";};
+{
+      ## Store line numbers from first file (produced by grep)
+      if(NR == FNR){
+         Diff = $1 - prev;
+         LN[$1] = $1;
+      } else {
+        if ($4 == "1|0" || $4 == "1|1"){
+          LastPos1 = $3
+        }
+        if ($4 == "0|1" || $4 == "1|1"){
+          LastPos2 = $3
+        }
+        if(FNR == LN[FNR]){
+           if($4 == "0|0"){
+              RefDist1 = $3 - LastPos1;
+              RefDist2 = $3 - LastPos2;
+              L1Dist1  = -1;
+              L1Dist2  = -1;
+           }
+           if($4 == "0|1"){
+              RefDist1 = $3 - LastPos1;
+              RefDist2 = -1;
+              L1Dist1  = -1;
+              L1Dist2  = $3 - LastPos2;
+           }
+           if($4 == "1|0"){
+              RefDist1 = -1;
+              RefDist2 = $3 - LastPos2;
+              L1Dist1  = $3 - LastPos1;
+              L1Dist2  = -1;
+           }
+           if($4 == "1|1"){
+              RefDist1 = -1;
+              RefDist2 = -1;
+              L1Dist1  = $3 - LastPos1;
+              L1Dist2  = $3 - LastPos2;
+           }
+           print $3, Dir1, RefDist1, RefDist2, L1Dist1, L1Dist2;
+           Dir1 = "+";
+           Dir2 = "+";
+        }
+      }
+    }' FS=":" - FS=" " TestVcf.txt
+
