@@ -1,4 +1,4 @@
-# The following shell commands return for each LINE1 the distance to a neighbroing variant
+# The following shell commands return for each LINE1 the distance to a neighboring variant
 
 #####################
 #                   #
@@ -7,51 +7,96 @@
 #####################
 
 
-# Get lines from here
+# Get lines that contain "here" (to be replaced by LINE1 indicators)
 grep "here" -n -o TestVcf.txt | \
-# Return the first two columns of rows that contain only a single 1
-awk 'BEGIN{LastPos1 = -1; LastPos2 = -1; Dir = "-";};
+# Return for each LINE1 the distance to the last 
+awk 'BEGIN{
+   LastPos1 = -1; 
+   LastPos2 = -1; 
+   Dir1 = "-"; 
+   Dir2 = "-";
+   print "POS", "Dir1", "Dir2", "RefDist1", "RefDist2", "L1Dist1", "L1Dist2";
+};
 {
       ## Store line numbers from first file (produced by grep)
       if(NR == FNR){
          Diff = $1 - prev;
          LN[$1] = $1;
       } else {
-        if ($4 == "1|0" || $4 == "1|1"){
-          LastPos1 = $3
-        }
-        if ($4 == "0|1" || $4 == "1|1"){
-          LastPos2 = $3
-        }
+        ## Record difference to last variant for LINE1s
         if(FNR == LN[FNR]){
-           if($4 == "0|0"){
+           Line1Allele = $5;
+           if($5 == "0|0"){
               RefDist1 = $3 - LastPos1;
               RefDist2 = $3 - LastPos2;
               L1Dist1  = -1;
               L1Dist2  = -1;
            }
-           if($4 == "0|1"){
+           if($5 == "0|1"){
               RefDist1 = $3 - LastPos1;
               RefDist2 = -1;
               L1Dist1  = -1;
               L1Dist2  = $3 - LastPos2;
+
            }
-           if($4 == "1|0"){
+           if($5 == "1|0"){
               RefDist1 = -1;
               RefDist2 = $3 - LastPos2;
               L1Dist1  = $3 - LastPos1;
               L1Dist2  = -1;
            }
-           if($4 == "1|1"){
+           if($5 == "1|1"){
               RefDist1 = -1;
               RefDist2 = -1;
               L1Dist1  = $3 - LastPos1;
               L1Dist2  = $3 - LastPos2;
            }
-           print $3, Dir1, RefDist1, RefDist2, L1Dist1, L1Dist2;
+           print $3, Dir1, Dir2, RefDist1, RefDist2, L1Dist1, L1Dist2;
            Dir1 = "+";
            Dir2 = "+";
+           RefDist1 = -1;
+           RefDist2 = -1;
+           L1Dist1  = -1;
+           L1Dist2  = -1;
+           LastPos1 = $3;
+           LastPos2 = $3;
+
+        }
+        if(Dir1 == "+" && ($5 == "1|0" || $5 == "1|1")){
+           if(Line1Allele == "0|0" || Line1Allele == "0|1"){
+              RefDist1 = $3 - LastPos1;
+           }
+           if(Line1Allele == "1|0" || Line1Allele == "1|1"){
+              L1Dist1  = $3 - LastPos1;
+           }
+           print $3, Dir1, Dir2, RefDist1, RefDist2, L1Dist1, L1Dist2;
+           Dir1 = "-";
+           RefDist1 = -1;
+           RefDist2 = -1;
+           L1Dist1  = -1;
+           L1Dist2  = -1;
+        }
+        if(Dir2 == "+" && ($5 == "0|1" || $5 == "1|1")){
+           if(Line1Allele == "0|0" || Line1Allele == "1|0"){
+              RefDist2 = $3 - LastPos2;
+           }
+           if(Line1Allele == "0|1" || Line1Allele == "1|1"){
+              L1Dist2  = $3 - LastPos2;
+           }
+           print $3, Dir1, Dir2, RefDist1, RefDist2, L1Dist1, L1Dist2;
+           Dir2 = "-";
+           RefDist1 = -1;
+           RefDist2 = -1;
+           L1Dist1  = -1;
+           L1Dist2  = -1;
+        }
+        ## Position of last variant on allele 1
+        if ($5 == "1|0" || $5 == "1|1"){
+          LastPos1 = $3
+        }
+        ## Position of last variant on allele 2
+        if ($5 == "0|1" || $5 == "1|1"){
+          LastPos2 = $3
         }
       }
     }' FS=":" - FS=" " TestVcf.txt
-
