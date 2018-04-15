@@ -8,6 +8,7 @@ source('/home/hzudohna/L1polymORFgit/Scripts/_Start_L1polymORF_scg4.R')
 NrInfoCols <- 9
 DataFolder <- "/srv/gsfs0/projects/levinson/hzudohna/1000Genomes/"
 FilePrefix <- "LINE1"
+OutFileAllL1  <- paste(DataFolder, "L1all.vcf", sep = "")
 OutFile    <- paste(DataFolder, "L1_1000G_withGenoNum", sep = "")
 
 # function to get the genotype
@@ -20,6 +21,9 @@ GetGenotype <- function(SampleColumn){
 
 # Get file names, loop over files and do the filtering
 AllFiles <- list.files(DataFolder, pattern = FilePrefix, full.names = T)
+AllFiles <- AllFiles[-grep("chL", AllFiles)]
+AllFiles <- AllFiles[-grep("all", AllFiles)]
+AllFiles
 
 # Loop over file names, read file and append to existing
 cat("Reading vcf files by chromosome\n")
@@ -35,8 +39,15 @@ cat("Adding column names to concatenated L1 table\n")
 VcfFiles <- list.files(DataFolder, pattern = "genotypes.vcf", full.names = T)
 VcfFiles <- VcfFiles[-grep("vcf.", VcfFiles)]
 MEI1000GLines <- readLines(VcfFiles[1], n = 300)
-StartChar <- substr(MEI1000GLines, 1, 2)
-ColNames  <- MEI1000GLines[max(which(StartChar == "##")) + 1]
+StartChar <- substr(MEI1000GLines, 1, 1)
+StartLines <- MEI1000GLines[StartChar == "#"]
+FileLines  <- apply(L1Table, 1, function(x) paste(x, collapse = "\t"))
+
+# Write out concatenated L1 file
+writeLines(c(StartLines, FileLines), OutFileAllL1)
+
+# Add column names
+ColNames  <- MEI1000GLines[max(which(StartChar == "#"))]
 ColNames  <- strsplit(ColNames, "\t")[[1]]
 ColNames  <- gsub("#", "", ColNames)
 colnames(L1Table) <- ColNames
