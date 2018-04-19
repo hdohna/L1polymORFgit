@@ -1,3 +1,7 @@
+# Get singletons
+vcftools --vcf ALL.chr1.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf \
+--singletons --out chr1
+
 # Calculate Fst according to superpopulations
 vcftools --vcf L1all.vcf \
 --weir-fst-pop 1000G_SuperPop_EUR --weir-fst-pop 1000G_SuperPop_EAS \
