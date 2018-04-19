@@ -1,0 +1,28 @@
+vcftools --vcf L1all.vcf \
+--weir-fst-pop 1000G_Pop_GBR \
+--weir-fst-pop 1000G_Pop_FIN \
+--weir-fst-pop 1000G_Pop_CHS \
+--weir-fst-pop 1000G_Pop_PUR \
+--weir-fst-pop 1000G_Pop_CDX \
+--weir-fst-pop 1000G_Pop_CLM \
+--weir-fst-pop 1000G_Pop_IBS \
+--weir-fst-pop 1000G_Pop_PEL \
+--weir-fst-pop 1000G_Pop_PJL \
+--weir-fst-pop 1000G_Pop_KHV \
+--weir-fst-pop 1000G_Pop_ACB \
+--weir-fst-pop 1000G_Pop_GWD \
+--weir-fst-pop 1000G_Pop_ESN \
+--weir-fst-pop 1000G_Pop_BEB \
+--weir-fst-pop 1000G_Pop_MSL \
+--weir-fst-pop 1000G_Pop_STU \
+--weir-fst-pop 1000G_Pop_ITU \
+--weir-fst-pop 1000G_Pop_CEU \
+--weir-fst-pop 1000G_Pop_YRI \
+--weir-fst-pop 1000G_Pop_CHB \
+--weir-fst-pop 1000G_Pop_JPT \
+--weir-fst-pop 1000G_Pop_LWK \
+--weir-fst-pop 1000G_Pop_ASW \
+--weir-fst-pop 1000G_Pop_MXL \
+--weir-fst-pop 1000G_Pop_TSI \
+--weir-fst-pop 1000G_Pop_GIH \
+--out L1all.weir.fst.Pops

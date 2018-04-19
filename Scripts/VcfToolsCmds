@@ -1,0 +1,34 @@
+# Calculate Fst according to superpopulations
+vcftools --vcf L1all.vcf \
+--weir-fst-pop 1000G_SuperPop_EUR --weir-fst-pop 1000G_SuperPop_EAS \
+--weir-fst-pop 1000G_SuperPop_AMR --weir-fst-pop 1000G_SuperPop_SAS \
+--weir-fst-pop 1000G_SuperPop_AFR --out L1all.weir.fst
+
+# Calculate LD
+vcftools --vcf L1all.vcf \
+--hap-r2 \
+--out L1all.r2
+
+# Calculate Fst according to populations
+vcftools --vcf L1all.vcf \
+--weir-fst-pop 1000G_Pop_GBR --weir-fst-pop 1000G_Pop_FIN \
+--weir-fst-pop 1000G_Pop_CDX --weir-fst-pop 1000G_Pop_CLM \
+
+--weir-fst-pop 1000G_Pop_IBS --weir-fst-pop 1000G_Pop_PEL \
+--weir-fst-pop 1000G_Pop_PJL --weir-fst-pop 1000G_Pop_KHV \
+--weir-fst-pop 1000G_Pop_ACB --weir-fst-pop 1000G_Pop_GWD \
+--weir-fst-pop 1000G_Pop_ESN --weir-fst-pop 1000G_Pop_BEB \
+--weir-fst-pop 1000G_Pop_MSL --weir-fst-pop 1000G_Pop_STU \
+--weir-fst-pop 1000G_Pop_ITU --weir-fst-pop 1000G_Pop_CEU \
+--weir-fst-pop 1000G_Pop_GBR --weir-fst-pop 1000G_Pop_FIN \
+--weir-fst-pop 1000G_Pop_CDX --weir-fst-pop 1000G_Pop_CLM \
+
+
+--weir-fst-pop 1000G_SuperPop_AFR --out L1all.weir.fst
+
+"" "" "" "" ""
+ [6] "" "" "" "" ""
+[11] "" "" "" "" ""
+[16] "" "" "" "" "1000G_Pop_CHB"
+[21] "1000G_Pop_JPT" "1000G_Pop_LWK" "1000G_Pop_ASW" "1000G_Pop_MXL" "1000G_Pop_TSI"
+[26] "1000G_Pop_GIH"
