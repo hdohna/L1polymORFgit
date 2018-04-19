@@ -1,0 +1,7 @@
+vcftools --vcf L1all.vcf \
+--weir-fst-pop 1000G_SuperPop_EUR \
+--weir-fst-pop 1000G_SuperPop_EAS \
+--weir-fst-pop 1000G_SuperPop_AMR \
+--weir-fst-pop 1000G_SuperPop_SAS \
+--weir-fst-pop 1000G_SuperPop_AFR \
+--out L1all.weir.fst.SuperPops
