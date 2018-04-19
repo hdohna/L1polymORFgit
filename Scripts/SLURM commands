@@ -1,0 +1,13 @@
+## Interactive slurm
+srun --pty --time=1-00:00:00 --account=default --partition=interactive --nodes=1 --mem=10gb bash -l
+
+## Job header
+#!/bin/bash -l
+# NOTE the -l flag!
+#SBATCH -J test
+# Request 5 hours run time
+#SBATCH -t 5:0:0
+#SBATCH --account=dflev
+#SBATCH --mem=6000
+#SBATCH -p batch
+echo "slurm testing"
