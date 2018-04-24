@@ -1,0 +1,4 @@
+wget https://s3.amazonaws.com/files.pacb.com/software/smrtanalysis/2.3.0/smrtanalysis_2.3.0.140936.run
+SMRT_ROOT=/home/hzudohna/smrtanalysis
+SMRT_USER=hzudohna
+SMRT_GROUP=hzudohna
