@@ -100,3 +100,104 @@ awk 'BEGIN{
         }
       }
     }' FS=":" - FS=" " TestVcf.txt
+    
+#####################
+#                   #
+#   Real file       #
+#                   #
+#####################
+
+
+# Get lines that contain "here" (to be replaced by LINE1 indicators)
+grep "INS:ME:LINE1" -n -o $2 | \
+
+# Return for each LINE1 the distance to the last 
+awk 'BEGIN{
+   LastPos1 = -1; 
+   LastPos2 = -1; 
+   Dir1 = "-"; 
+   Dir2 = "-";
+   print "CHROM", "POS", "ID", "Dir1", "Dir2", "RefDist1", "RefDist2", "L1Dist1", "L1Dist2";
+};
+{
+      ## Store line numbers from first file (produced by grep)
+      if(NR == FNR){
+         LN[$1] = $1;
+      } else {
+        ## Record difference to last variant for LINE1s
+        if(FNR == LN[FNR]){
+           Line1Allele = $Col;
+           if($Col == "0|0"){
+              RefDist1 = $2 - LastPos1;
+              RefDist2 = $2 - LastPos2;
+              L1Dist1  = -1;
+              L1Dist2  = -1;
+           }
+           if($Col == "0|1"){
+              RefDist1 = $2 - LastPos1;
+              RefDist2 = -1;
+              L1Dist1  = -1;
+              L1Dist2  = $2 - LastPos2;
+
+           }
+           if($Col == "1|0"){
+              RefDist1 = -1;
+              RefDist2 = $2 - LastPos2;
+              L1Dist1  = $2 - LastPos1;
+              L1Dist2  = -1;
+           }
+           if($Col == "1|1"){
+              RefDist1 = -1;
+              RefDist2 = -1;
+              L1Dist1  = $2 - LastPos1;
+              L1Dist2  = $2 - LastPos2;
+           }
+           print $1, $2, $3, Dir1, Dir2, RefDist1, RefDist2, L1Dist1, L1Dist2;
+           Dir1 = "+";
+           Dir2 = "+";
+           RefDist1 = -1;
+           RefDist2 = -1;
+           L1Dist1  = -1;
+           L1Dist2  = -1;
+           LastPos1 = $2;
+           LastPos2 = $2;
+
+        }
+        if(Dir1 == "+" && ($Col == "1|0" || $Col == "1|1")){
+           if(Line1Allele == "0|0" || Line1Allele == "0|1"){
+              RefDist1 = $2 - LastPos1;
+           }
+           if(Line1Allele == "1|0" || Line1Allele == "1|1"){
+              L1Dist1  = $2 - LastPos1;
+           }
+           print $1, $2, $3, Dir1, Dir2, RefDist1, RefDist2, L1Dist1, L1Dist2;
+           Dir1 = "-";
+           RefDist1 = -1;
+           RefDist2 = -1;
+           L1Dist1  = -1;
+           L1Dist2  = -1;
+        }
+        if(Dir2 == "+" && ($Col == "0|1" || $Col == "1|1")){
+           if(Line1Allele == "0|0" || Line1Allele == "1|0"){
+              RefDist2 = $2 - LastPos2;
+           }
+           if(Line1Allele == "0|1" || Line1Allele == "1|1"){
+              L1Dist2  = $2 - LastPos2;
+           }
+           print $1, $2, $3, Dir1, Dir2, RefDist1, RefDist2, L1Dist1, L1Dist2;
+           Dir2 = "-";
+           RefDist1 = -1;
+           RefDist2 = -1;
+           L1Dist1  = -1;
+           L1Dist2  = -1;
+        }
+        ## Position of last variant on allele 1
+        if ($Col == "1|0" || $Col == "1|1"){
+          LastPos1 = $2
+        }
+        ## Position of last variant on allele 2
+        if ($Col == "0|1" || $Col == "1|1"){
+          LastPos2 = $2
+        }
+      }
+    }' FS=":" - FS=" " $2 > $3
