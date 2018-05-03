@@ -28,7 +28,7 @@ L1GRPath        <- 'D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData'
 L1RefRangePath  <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
 ChrLPath        <- 'D:/L1polymORF/Data/ChromLengthsHg19.Rdata'
 HiCFolderPath   <- 'D:/L1polymORF/Data/HiCData/'
-OutputPath      <- 'D:/L1polymORF/Data/SingletonAnalysis.RData'
+InputPath       <- 'D:/L1polymORF/Data/SingletonAnalysis.RData'
 
 # Number of info columns in vcf file
 NrInfoCols   <- 9
@@ -45,138 +45,13 @@ MinNrCarrier <- 3
 # Load previously generated objects
 load(L1GRPath)
 load(ChrLPath)
+load(InputPath)
 
 # Read information about 1000 genome samples
 SampleInfo  <- read.table(G1000SamplePath, header = T)
 SampleMatch <- match(SampleColumns, SampleInfo$sample)
 Pops        <- SampleInfo$super_pop[SampleMatch]
 NrS         <- length(SampleColumns)
-
-##########
-# Loop over chromosomes and estimate coefficients
-##########
-
-# Initialize data.frame for coefficients associated with L1
-L1SingletonCoeffs <- data.frame()
-NrS <- length(SampleColumns)
-idxSCols  <- 1:NrS 
-
-# Specify chromosome
-for (Chr in c(1:22, "X")) {
-  cat("********   Analyzing chromosome,", Chr, "    **********\n")
-  
-  # Get chromosome length
-  ChrL <- ChromLengthsHg19[Chr]
-  
-  # Read singleton file
-  cat("Reading singleton file ...")
-  SingletonPath  <- paste(DataPath, "Singleton_SNP_chr", Chr, sep = "")
-  Singletons     <- read.table(SingletonPath)
-  SCols          <- GetSingletonColumns(Singletons)
-  SCols_rev      <- SCols[nrow(SCols):1,]
-  Singletons_rev <- Singletons[nrow(Singletons):1, ]
-  cat("Done!\n")
-  
-  # Read LINE-1 vcf file
-  cat("Reading LINE-1 vcf file ...")
-  Line1VcfPath <- paste(DataPath, "LINE1chr", Chr, ".vcf", sep = "")
-  Line1Vcf     <- read.table(Line1VcfPath, as.is = T)
-  cat("Done!\n")
-  
-  # Subset LINE-1 vcf file
-  blnSampleCols <- colnames(L1_1000G) %in% SampleColumns
-  idxSampleCols <- which(blnSampleCols)
-  
-  # Get for each L1 the number of carriers
-  NrCarriers  <- apply(Line1Vcf[,blnSampleCols], 1, function(x) length(grep("1", x)))
-  idxEnough   <- which(NrCarriers >= MinNrCarrier)
-  
-  # Initialize objects
-  blnSingl1 <- SCols$Allele == 1
-  blnSingl3 <- SCols$Allele == 3
-  
-  # Loop over L1 with enough carriers and estimate effect of L1 on singleton
-  # densities
-  i <- idxEnough[1]
-  L1Coeffs <- sapply (idxEnough, function(i) {
-    cat("Processing L1", which(idxEnough == i), "out of", length(idxEnough), "\n")
-    
-    # Indicators for singletons that are before and after current L1
-    blnBeforeL1 <- Singletons_rev$V2 < Line1Vcf$V2[i]
-    blnAfterL1  <- Singletons$V2     > Line1Vcf$V2[i]
-    
-    # Index for L1 carriers on first abd second allele
-    idxCarrier1 <- grep("1\\|", Line1Vcf[i,blnSampleCols])
-    idxCarrier3 <- grep("\\|1", Line1Vcf[i,blnSampleCols])
-    
-    # Match singleton entries for all samples
-    idxA1 <- which(blnSingl1 & blnAfterL1)
-    idxB1 <- which(blnSingl1 & blnBeforeL1)
-    idxA3 <- which(blnSingl3 & blnAfterL1)
-    idxB3 <- which(blnSingl3 & blnBeforeL1)
-    SampleMatch1After  <- match(idxSCols, SCols$Col[idxA1])
-    SampleMatch1Before <- match(idxSCols, SCols_rev$Col[idxB1])
-    SampleMatch3After  <- match(idxSCols, SCols$Col[idxA3])
-    SampleMatch3Before <- match(idxSCols, SCols_rev$Col[idxB3])
-    
-    # Determine distance from L1 to singleton
-    DistBefore1 <- Line1Vcf$V2[i] - Singletons_rev$V2[idxB1[SampleMatch1Before]]
-    DistAfter1  <- Singletons$V2[idxA1[SampleMatch1After]] - Line1Vcf$V2[i]
-    DistBefore3 <- Line1Vcf$V2[i] - Singletons_rev$V2[idxB3[SampleMatch3Before]]
-    DistAfter3  <- Singletons$V2[idxA3[SampleMatch3After]] - Line1Vcf$V2[i]
-    
-    # Create indicator for L1 presence
-    L1_1 <- rep(0, NrS)
-    L1_1[idxCarrier1] <- 1
-    L1_3 <- rep(0, NrS)
-    L1_3[idxCarrier3] <- 1
-    
-    # Create an Allele column
-    Alleles <- rep(c(rep(1, NrS ), rep(3, NrS )), 2)
-    
-    # Create censoring column
-    CensorBefore <- rep(1, length(SampleColumns))
-    CensorAfter  <- rep(1, length(SampleColumns))
-    
-    # Replace NA distances by distance to end
-    DistBefore  <- c(DistBefore1, DistBefore3)
-    blnNABefore <- is.na(DistBefore)
-    CensorBefore[blnNABefore] <- 0
-    DistBefore[blnNABefore]   <- Line1Vcf$V2[i]
-    
-    DistAfter  <- c(DistAfter1, DistAfter3)
-    blnNAAfter <- is.na(DistAfter)
-    CensorAfter[blnNAAfter] <- 0
-    DistAfter[blnNAAfter]   <- ChrL - Line1Vcf$V2[i]
-    
-    SurvObj <- Surv(time =  c(DistBefore, DistAfter),
-                    event = c(CensorBefore, CensorAfter))
-    L1         <- c(L1_1, L1_3, L1_1, L1_3)
-    Direction  <- c(rep("Before", length(DistBefore)), 
-                    rep("After",  length(DistAfter)))
-    SampleIDs  <- paste(rep(idxSCols, 4), Alleles, sep = "_")
-    
-    CPH <- coxph(SurvObj ~ L1 + strata(Direction) + cluster(SampleIDs) + rep(Pops, 4))
-    SU <- summary(CPH)
-    Coeffs <- SU$coefficients["L1",]
-    names(Coeffs) <- colnames(SU$coefficients)
-    Coeffs
-  }) 
-  
-  # Create a data frame with L1 coefficients
-  L1Coeffs <- data.frame(t(L1Coeffs))
-  L1Coeffs$Chrom <- Chr
-  L1Coeffs$Pos   <- Line1Vcf$V2[idxEnough]
-  
-  CHrPos_all   <- paste(L1_1000G$CHROM, L1_1000G$POS)
-  CHrPos_match <- match(paste(Chr, Line1Vcf$V2[idxEnough]), CHrPos_all)
-  L1Coeffs$InsLength <- L1_1000G_reduced$InsLength[CHrPos_match]
-  L1Coeffs$Freq      <- L1_1000G_reduced$Frequency[CHrPos_match]
-  
-  L1SingletonCoeffs <- rbind(L1SingletonCoeffs, L1Coeffs)
-#  plot(L1Coeffs$InsLength, L1Coeffs$coef, main = paste("chr", Chr))
-  
-}
 
 ##########################################
 #                                        #
@@ -186,12 +61,15 @@ for (Chr in c(1:22, "X")) {
 
 # Indicator for full-length
 L1SingletonCoeffs$blnFull <- L1SingletonCoeffs$InsLength >= 6000
-
+sum(L1SingletonCoeffs$InsLength <= 100)
 # Indicator for significant effect
-L1SingletonCoeffs$blnSig <- L1SingletonCoeffs$Pr...z.. < 0.05
+L1SingletonCoeffs$blnSig <- p.adjust(L1SingletonCoeffs$Pr...z..) < 0.1
+
+hist(L1SingletonCoeffs$Pr...z..[L1SingletonCoeffs$coef < 0], 
+     breaks = seq(0, 1, 0.01))
 
 # Indicator for  selection
-L1SingletonCoeffs$blnSelect <- L1SingletonCoeffs$Pr...z.. < 0.05 &
+L1SingletonCoeffs$blnSelect <- L1SingletonCoeffs$blnSig &
   L1SingletonCoeffs$coef < 0
 
 # Bin for insertion length
@@ -235,21 +113,29 @@ L1SingletonCoeffs$Dist2Gene <- Dist2Closest(L1SingletonCoeffs_GR,
 # Regress against length
 #######
 
-LM_All_Interact_binom <- glm(1*blnSelect ~ InsLength + blnFull + InsLength*blnFull, 
-                             data = L1SingletonCoeffs, 
-                             subset =robust.se > 0 & (!is.na(blnSelect)),
-                             weights = 1/L1SingletonCoeffs$robust.se, family  = binomial)
+# Subset L1 coefficients
+sum(is.na(L1SingletonCoeffs$InsLength))
+L1SingletonCoeffs_subset <- subset(L1SingletonCoeffs, 
+                                   subset = robust.se > 0 & (!is.na(blnSelect)))
+LM_All_Interact_binom <- glm(1L*blnSelect ~ InsLength + blnFull, 
+                             data = L1SingletonCoeffs_subset, 
+                             weights = 1/robust.se,
+                             family = quasibinomial)
 summary(LM_All_Interact_binom)
-table(1*L1SingletonCoeffs$blnSelect)
+mean(1/L1SingletonCoeffs_subset$robust.se)
 
-PropSmoothed_InsL <- supsmu(L1SingletonCoeffs$InsLength,
-                            1*L1SingletonCoeffs$blnSelect,
-                            wt = 1/L1SingletonCoeffs$robust.se)
+# Smooth proportions of 
+PropSmoothed_InsL <- supsmu(L1SingletonCoeffs_subset$InsLength,
+                            1*L1SingletonCoeffs_subset$blnSelect,
+                            wt = 1/L1SingletonCoeffs_subset$robust.se)
 plot(PropSmoothed_InsL$x, PropSmoothed_InsL$y, xlab = "Insertion length [bp]",
      ylab = "Proportion of L1 with selection signal", type = "l",
      ylim = c(0, 0.2), col = "red")
 lines(PropSmoothed_InsL$x[PropSmoothed_InsL$x>=6000], 
       PropSmoothed_InsL$y[PropSmoothed_InsL$x>=6000])
+InsLorder <- order(L1SingletonCoeffs_subset$InsLength)
+lines(L1SingletonCoeffs_subset$InsLength[InsLorder], 
+      LM_All_Interact_binom$fitted.values[InsLorder], col = "green")
 legend("topright", legend = c("Full-length L1", "Fragment L1"), col = c("black", "red"), 
        lty = c(1, 1))
 CreateDisplayPdf('D:/L1polymORF/Figures/PropSelectVsInsLength.pdf', 
@@ -280,7 +166,7 @@ sum(L1SingletonCoeffs$robust.se == 0)
 LM_All_Interact_binom <- glm(1*blnSelect ~ Dist2Gene + blnFull + blnFull*Dist2Gene, 
                              data = L1SingletonCoeffs, 
                              subset =robust.se > 0 & (!is.na(blnSelect)),
-                             weights = 1/L1SingletonCoeffs$robust.se, family  = binomial)
+                             weights = 1/L1SingletonCoeffs$robust.se, family  = quasibinomial)
 summary(LM_All_Interact_binom)
 
 
@@ -329,6 +215,7 @@ for (i in 2:length(LoopGRList)){
 # Determine distance to loops and domains
 L1SingletonCoeffs$Dist2Loop <- Dist2Closest(L1SingletonCoeffs_GR, 
                                             LoopGR_Intersect)
+L1SingletonCoeffs$FullDist2Loop <- L1SingletonCoeffs$Dist2Loop * L1SingletonCoeffs$blnFull
 L1SingletonCoeffs$Dist2Domain <- Dist2Closest(L1SingletonCoeffs_GR, 
                                               DomainGR_Intersect)
 L1SingletonCoeffs$Dist2LoopBins <- cut(L1SingletonCoeffs$Dist2Loop,
@@ -339,33 +226,118 @@ max(L1SingletonCoeffs$Dist2Loop)
 # Regress against distance to loops
 #######
 
-# Regress coefficient against distance to loops 
-LM_Full <- lm(coef ~ Dist2Loop, data = L1SingletonCoeffs, 
+# Polynomial regression coefficient against distance to loops for full L1
+LM_Full1Mpp <- lm(coef ~ Dist2Loop + blnFull*Dist2Loop, data = L1SingletonCoeffs, 
+               subset = robust.se > 0 & Dist2Loop <= 10^6,
+               weights = 1/L1SingletonCoeffs$robust.se)
+summary(LM_Full1Mpp)
+LM_Full1 <- lm(coef ~ Dist2Loop, data = L1SingletonCoeffs, 
+               subset = L1SingletonCoeffs$InsLength >= 6000 & L1SingletonCoeffs$robust.se > 0,
+               weights = 1/L1SingletonCoeffs$robust.se)
+LM_Full2 <- lm(coef ~ poly(Dist2Loop, 2), data = L1SingletonCoeffs, 
+               subset = L1SingletonCoeffs$InsLength >= 6000 & L1SingletonCoeffs$robust.se > 0,
+               weights = 1/L1SingletonCoeffs$robust.se)
+LM_Full3 <- lm(coef ~ poly(Dist2Loop, 3), data = L1SingletonCoeffs, 
               subset = L1SingletonCoeffs$InsLength >= 6000 & L1SingletonCoeffs$robust.se > 0,
               weights = 1/L1SingletonCoeffs$robust.se)
-summary(LM_Full)
+AIC(LM_Full1)
+AIC(LM_Full2)
+AIC(LM_Full3)
+LM_Full3$model
+xVals <- L1SingletonCoeffs$Dist2Loop[L1SingletonCoeffs$InsLength >= 6000 & 
+                                  L1SingletonCoeffs$robust.se > 0]
+xValOrder <- order(xVals)
+YVals <- LM_Full3$fitted.values[xValOrder]
+xValsOrder <- xVals[xValOrder]
+blnFull <- L1SingletonCoeffs$InsLength >= 6000
+plot(L1SingletonCoeffs$Dist2Loop[blnFull], L1SingletonCoeffs$coef[blnFull],
+     xlim = c(0, 10^6))
+lines(xValsOrder, YVals)
 
-LM_Fragm <- lm(coef ~ Dist2Loop, data = L1SingletonCoeffs, 
+# Polynomial regression coefficient against distance to loops for fragment L1
+LM_Fragm1 <- lm(coef ~ Dist2Loop, data = L1SingletonCoeffs, 
+               subset = L1SingletonCoeffs$InsLength < 6000 & L1SingletonCoeffs$robust.se > 0,
+               weights = 1/L1SingletonCoeffs$robust.se)
+LM_Fragm2 <- lm(coef ~ poly(Dist2Loop, 2), data = L1SingletonCoeffs, 
+               subset = L1SingletonCoeffs$InsLength < 6000 & L1SingletonCoeffs$robust.se > 0,
+               weights = 1/L1SingletonCoeffs$robust.se)
+LM_Fragm3 <- lm(coef ~ poly(Dist2Loop, 3), data = L1SingletonCoeffs, 
+               subset = L1SingletonCoeffs$InsLength < 6000 & L1SingletonCoeffs$robust.se > 0,
+               weights = 1/L1SingletonCoeffs$robust.se)
+AIC(LM_Fragm1)
+AIC(LM_Fragm2)
+AIC(LM_Fragm3)
+
+
+LM_Fragm <- lm(coef ~ poly(Dist2Loop, 3), data = L1SingletonCoeffs, 
                subset = L1SingletonCoeffs$InsLength < 5900 & L1SingletonCoeffs$robust.se > 0,
                weights = 1/L1SingletonCoeffs$robust.se)
 summary(LM_Fragm)
-
+LM_Fragm$
 LM_All <- lm(coef ~ Dist2Loop, data = L1SingletonCoeffs, 
                subset = L1SingletonCoeffs$robust.se > 0,
                weights = 1/L1SingletonCoeffs$robust.se)
 summary(LM_All)
 
-LM_All_Interact <- lm(coef ~ Dist2Loop + blnFull + blnFull*Dist2Loop, data = L1SingletonCoeffs, 
+LM_All_Interact <- lm(coef ~ 
+                        blnFull*poly(Dist2Loop, 3), data = L1SingletonCoeffs, 
              subset = L1SingletonCoeffs$robust.se > 0,
              weights = 1/L1SingletonCoeffs$robust.se)
 summary(LM_All_Interact)
 
-LM_All_Interact_binom <- glm(1*blnSelect ~ Dist2Loop + blnFull + blnFull*Dist2Loop, 
-                             data = L1SingletonCoeffs, 
-                      subset =robust.se > 0 & (!is.na(blnSelect)),
-                      weights = 1/L1SingletonCoeffs$robust.se, family  = binomial)
+# Plot smoothed coefficients
+CoefSmoothed_Full <- supsmu(L1SingletonCoeffs$Dist2Loop[L1SingletonCoeffs$blnFull],
+                            1*L1SingletonCoeffs$coef[L1SingletonCoeffs$blnFull],
+                            wt = 1/L1SingletonCoeffs$robust.se[L1SingletonCoeffs$blnFull])
+CoefSmoothed_Fragm <- supsmu(L1SingletonCoeffs$Dist2Loop[!L1SingletonCoeffs$blnFull],
+                             1*L1SingletonCoeffs$coef[!L1SingletonCoeffs$blnFull],
+                             wt = 1/L1SingletonCoeffs$robust.se[!L1SingletonCoeffs$blnFull])
+plot(L1SingletonCoeffs$Dist2Loop[L1SingletonCoeffs$blnFull],
+     L1SingletonCoeffs$coef[L1SingletonCoeffs$blnFull], 
+     xlab = "Distance to closest loop [bp]",
+     ylab = "Coefficient", ylim = c(-1, 2))
+points(L1SingletonCoeffs$Dist2Loop[L1SingletonCoeffs$blnFull],
+     L1SingletonCoeffs$coef[L1SingletonCoeffs$blnFull], col = "red")
+lines(CoefSmoothed_Fragm$x, CoefSmoothed_Fragm$y)
+lines(CoefSmoothed_Full$x, CoefSmoothed_Full$y, col = "red")
+
+
+
+Wts <- mean(L1SingletonCoeffs$robust.se[!is.na(blnSelect)])/
+  L1SingletonCoeffs$robust.se
+Wts[Wts == Inf] <- NA
+mean(Wts, na.rm = T)
+
+LM_All_Interact_binom <- glm(1*blnSelect ~ blnFull + blnFull*Dist2Loop, 
+                             data = L1SingletonCoeffs_subset, 
+                      subset = robust.se > 0 & (!is.na(blnSelect)),
+                      weights = 1/robust.se, 
+                      family  = quasibinomial)
+LM_All_Interact_binom <- glm(1*blnSelect ~ 
+                               blnFull*poly(Dist2Loop, 3), 
+                             data = L1SingletonCoeffs_subset, 
+                             subset = robust.se > 0 & (!is.na(blnSelect)),
+                             weights = 1/robust.se/mean(1/robust.se), 
+                             family  = quasibinomial)
 summary(LM_All_Interact_binom)
-table(1*L1SingletonCoeffs$blnSelect)
+
+mean(L1SingletonCoeffs)
+
+LM_Full_binom <- glm(1*blnSelect ~ poly(Dist2Loop, 3), 
+                    data = L1SingletonCoeffs, 
+                    subset = robust.se > 0 & (!is.na(blnSelect)) & blnFull,
+                    weights = 1/L1SingletonCoeffs$robust.se, 
+                    family  = binomial)
+sum(L1SingletonCoeffs$blnFull, na.rm = T)
+summary(LM_All_binom)
+
+LM_All_binom <- glm(1*blnSelect ~ Dist2Loop, 
+                             data = L1SingletonCoeffs, 
+                             subset = robust.se > 0 & (!is.na(blnSelect)),
+                             weights = 1/L1SingletonCoeffs$robust.se, 
+                             family  = quasibinomial)
+summary(LM_All_binom)
+
 
 # Proportion of selected L1 per distance class
 MeanSelectPerDist <- aggregate(L1SingletonCoeffs[,c("Dist2Loop", "blnSelect")],
@@ -410,6 +382,97 @@ LM_Fragm <- lm(coef ~ Dist2Loop + Dist2Gene, data = L1SingletonCoeffs,
                weights = 1/L1SingletonCoeffs$robust.se)
 summary(LM_Fragm)
 
+
+# Polynomial regression coefficient against distance to loops for full L1
+LM_Full1 <- glm(blnSelect ~ Dist2Loop, data = L1SingletonCoeffs, 
+               subset = L1SingletonCoeffs$InsLength >= 6000 & L1SingletonCoeffs$robust.se > 0,
+               weights = 1/L1SingletonCoeffs$robust.se,
+               family = quasibinomial)
+LM_Full2 <- glm(blnSelect ~ poly(Dist2Loop, 2), data = L1SingletonCoeffs, 
+               subset = L1SingletonCoeffs$InsLength >= 6000 & L1SingletonCoeffs$robust.se > 0,
+               weights = 1/L1SingletonCoeffs$robust.se,
+               family = quasibinomial)
+LM_Full3 <- glm(blnSelect ~ poly(Dist2Loop, 3), data = L1SingletonCoeffs, 
+               subset = L1SingletonCoeffs$InsLength >= 6000 & L1SingletonCoeffs$robust.se > 0,
+               weights = 1/L1SingletonCoeffs$robust.se,
+               family = quasibinomial)
+LM_Full1$
+LM_Full2$aic
+LM_Full3$aic
+summary(LM_Full2)
+
+
+# Polynomial regression coefficient against distance to loops for fragment L1
+LM_Fragm1 <- glm(blnSelect ~ Dist2Loop, data = L1SingletonCoeffs, 
+                subset = L1SingletonCoeffs$InsLength < 6000 & L1SingletonCoeffs$robust.se > 0,
+                weights = 1/L1SingletonCoeffs$robust.se,
+                family = quasibinomial)
+LM_Fragm2 <- glm(blnSelect ~ poly(Dist2Loop, 2), data = L1SingletonCoeffs, 
+                subset = L1SingletonCoeffs$InsLength < 6000 & L1SingletonCoeffs$robust.se > 0,
+                weights = 1/L1SingletonCoeffs$robust.se,
+                family = quasibinomial)
+LM_Fragm3 <- glm(blnSelect ~ poly(Dist2Loop, 3), data = L1SingletonCoeffs, 
+                subset = L1SingletonCoeffs$InsLength < 6000 & L1SingletonCoeffs$robust.se > 0,
+                weights = 1/L1SingletonCoeffs$robust.se,
+                family = quasibinomial)
+summary(LM_Fragm1)
+summary(LM_Fragm2)
+summary(LM_Fragm3)
+
+
+##########################
+#                        #
+#    Compare distances   #
+#                        #
+##########################
+
+Distances  <- L1SingletonCoeffs$Dist2Loop
+blnSelect  <- L1SingletonCoeffs$blnSelect
+blnFull    <- L1SingletonCoeffs$blnFull
+SampleSize = 10000
+#AnalyzeDistanceInteraction <- function(Distances, blnSelect, 
+#   blnFull, SampleSize = 10000){
+blnNA           <- is.na(Distances) | is.na(blnSelect) | is.na(blnFull)
+Distances       <- Distances[!blnNA]
+blnSelect       <- blnSelect[!blnNA]
+blnFull         <- blnFull[!blnNA]
+
+blnSelectFull   <- blnSelect[blnFull]
+blnSelectFragm  <- blnSelect[!blnFull]
+Distances_Full  <- Distances[blnFull]
+Distances_Fragm <- Distances[!blnFull]
+
+MeanDiffFull <- mean(Distances_Full[blnSelectFull]) - 
+  mean(Distances_Full[!blnSelectFull])
+MeanDiffFragm <- mean(Distances_Fragm[blnSelectFragm]) - 
+  mean(Distances_Fragm[!blnSelectFragm])
+MeanDiffBoth  <- MeanDiffFull - MeanDiffFragm
+NrFull        <- sum(blnFull)
+NrFragm       <- sum(!blnFull)
+NrSelectFull  <- sum(blnSelectFull)
+NrSelectFragm <- sum(blnSelectFragm)
+
+
+SampledDiffMat <- sapply(1:SampleSize, function(x) {
+  SampleSelectFull   <- sample(1:NrFull,  size = NrSelect)
+  SampleSelectFragm  <- sample(1:NrFragm, size = NrSelectFragm)
+  MeanDiffFull <- mean(Distances_Full[SampleSelectFull]) - 
+    mean(Distances_Full[-SampleSelectFull])
+  MeanDiffFragm <- mean(Distances_Fragm[SampleSelectFragm]) - 
+    mean(Distances_Fragm[-SampleSelectFragm])
+  MeanDiffBoth = MeanDiffFull - MeanDiffFragm
+  c(MeanDiffFull = MeanDiffFull, MeanDiffFragm = MeanDiffFragm,
+    MeanDiffBoth = MeanDiffBoth)
+  
+})
+
+2*sum(SampledDiffMat["MeanDiffFull", ]  <= MeanDiffFull) / SampleSize
+2*sum(SampledDiffMat["MeanDiffFragm", ] >= MeanDiffFragm) / SampleSize
+2*sum(SampledDiffMat["MeanDiffBoth", ]  <= MeanDiffBoth) / SampleSize
+
+fisher.test(rbind(c(NrSelectFull, NrFull - NrSelectFull),
+                  c(NrSelectFragm, NrFragm - NrSelectFragm)))
+
 ##########################
 #                        #
 #    Save image          #
@@ -417,4 +480,4 @@ summary(LM_Fragm)
 ##########################
 
 
-save.image(OutputPath)
+# save.image(OutputPath)
