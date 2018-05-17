@@ -487,37 +487,63 @@ L1DistDomainIntersect_FullnotCat <- Dist2Closest(L1RefGRFullnotCat_hg19, DomainG
 #  Auxilliary function to create qq plot to compare distance distributions
 ##########
 
+
+QQDistPlotInner <- function(QQ1, QSMat, idxF, idxR, QQ2 = NULL, QQ3 = NULL,
+                            XLim = NULL, YLim = NULL,
+                            xLab = "", 
+                            yLab = "", 
+                            Title = "",
+                            Xaxt = "s", Yaxt = "s"){
+  plot(QQ1$x, QQ1$y, xlab = xLab, ylab = yLab, main = Title, 
+       xlim = XLim, ylim = YLim, xaxt = Xaxt, yaxt = Yaxt)
+  polygon(QSMat[1,c(idxF, idxR)], c(QSMat[2, ], QSMat[3, idxR]), 
+          col = "grey", border = NA)
+  points(QQ1$x, QQ1$y)
+  lines(c(0, 10^10), c(0, 10^10))
+  if (!is.null(QQ2)){
+    points(QQ2$x, QQ2$y, pch = 2)
+  }
+  if (!is.null(QQ3)){
+    points(QQ3$x, QQ3$y, pch = 3)
+  }
+  
+}
 QQDistPlot <- function(FragmDist, Dist1, Dist2 = NULL, Dist3 = NULL, 
                        xLab = "", 
                        yLab = "", 
                        NrSamples = 10000,
                        QuantV = seq(0, 1, 0.01),
                        Title = "", blnAxLab = T,
-                       XLim = NULL, YLim = NULL){
-  QSampled <- SampleQuantiles(FragmDist, length(Dist1),
+                       XLim = NULL, YLim = NULL,
+                       Plot = T){
+  QSampled <- SampleQuantiles(c(FragmDist, Dist1), length(Dist1),
                               QuantV = QuantV, NrSamples = NrSamples)
   QSMat <- QSampled$QMat
   idxF <- 1:ncol(QSMat)
   idxR <- ncol(QSMat):1
   QQ1  <- qqplot(FragmDist, Dist1, plot.it = F)
   AllDist <- c(Dist1, Dist2, Dist3)
-  if (is.null(XLim)) XLim <-  c(min(FragmDist), max(FragmDist))
-  if (is.null(YLim)) YLim <-  c(min(AllDist), max(AllDist))
-  plot(QQ1$x, QQ1$y, xlab = xLab, ylab = yLab, main = Title, 
-       xlim = XLim, ylim = YLim)
-  polygon(QSMat[1,c(idxF, idxR)], c(QSMat[2, ], QSMat[3, idxR]), 
-          col = "grey", border = NA)
-  points(QQ1$x, QQ1$y)
   if (!is.null(Dist2)){
     QQ2 <- qqplot(FragmDist, Dist2, plot.it = F)
-    points(QQ2$x, QQ2$y, pch = 2)
+  } else {
+    QQ2 <- NULL
   }
   if (!is.null(Dist3)){
     QQ3 <- qqplot(FragmDist, Dist3, plot.it = F)
-    points(QQ3$x, QQ3$y, pch = 3)
+  } else {
+    QQ3 <- NULL
   }
-  lines(c(0, 10^10), c(0, 10^10))
-  mean(QSampled$SampleMeans <= mean(Dist1))
+  if (Plot){
+    if (is.null(XLim)) XLim <-  c(min(FragmDist), max(FragmDist))
+    if (is.null(YLim)) YLim <-  c(min(AllDist), max(AllDist))
+    QQDistPlotInner(QQ1 = QQ1, QSMat = QSMat, idxF = idxF, idxR = idxR, 
+                    QQ2 = QQ2, QQ3 = QQ3, 
+                    xLab = xLab, yLab = yLab, Title = Title,
+                    XLim = XLim, YLim = YLim)
+  }
+  list(Pvalue = mean(QSampled$SampleMeans <= mean(Dist1)),
+       QQ1 = QQ1, QSMat = QSMat, idxF = idxF, idxR = idxR,
+       QQ2 = QQ2, QQ3 = QQ3)
 }
 
 # QQplot for different cell lines
@@ -699,10 +725,16 @@ QQDistPlot(L1DistGene_1000GFragm, L1DistGene_1000GFull,
            yLab = "Distance from full-length L1")
 
 # Create quantile plots for loop intersction and union distances
-QQDistPlot(L1DistLoopIntersect_Fragm, L1DistLoopIntersect_Cat)
+QQDistPlot(L1DistLoopIntersect_Fragm, L1DistLoopIntersect_CatRef, L1DistLoopIntersect_FullnotCat)
 QQDistPlot(L1DistLoopUnion_Fragm, L1DistLoopUnion_CatRef)
 QQDistPlot(L1DistDomainIntersect_Fragm, L1DistDomainIntersect_CatRef)
 QQDistPlot(L1DistDomainUnion_Fragm, L1DistDomainUnion_CatRef)
+
+sum(L1DistLoopIntersect_Cat == 0)/length(L1DistLoopIntersect_Cat)
+sum(L1DistLoopIntersect_Fragm == 0)/length(L1DistLoopIntersect_Fragm)
+
+sum(L1DistDomainIntersect_CatRef == 0)/length(L1DistDomainIntersect_CatRef)
+sum(L1DistDomainIntersect_Fragm == 0)/length(L1DistDomainIntersect_Fragm)
 
 # Test linear regression fragemnt size vs distance
 DistVsWidth <- lm(L1DistGene_Fragm ~ width(L1FragmGR))
@@ -733,3 +765,51 @@ plot(MidPoints, FreqPerDist$x)
 L1DistLoop_1000GFull      <- Dist2Closest(GRL1Ins1000G_Full, LoopGR_Intersect)
 cor.test(L1DistLoop_1000GFull,GRL1Ins1000G_Full@elementMetadata@listData$Frequency,
          method = "kendall")
+
+##############################
+#                            #
+#   Plot for the manuscript  #
+#                            #
+##############################
+
+# Calculate quantiles for distance to genes and loops
+qqGD <- QQDistPlot(L1DistGene_Fragm, L1DistGene_CatRef, 
+                   L1DistGene_FullnotCat, Plot = F)
+qqGD2 <- QQDistPlot(L1DistGene_FullnotCat, L1DistGene_CatRef)
+qqGD2$Pvalue
+qqLD <- QQDistPlot(L1DistLoopIntersect_Fragm, L1DistLoopIntersect_CatRef, 
+                   L1DistLoopIntersect_FullnotCat, Plot = F)
+qqLD2 <- QQDistPlot(L1DistLoopIntersect_FullnotCat, L1DistLoopIntersect_CatRef)
+qqLD2$Pvalue
+qqDD <- QQDistPlot(L1DistDomainIntersect_Fragm, L1DistDomainIntersect_CatRef, 
+                   L1DistDomainIntersect_FullnotCat)
+
+par(mfrow = c(1, 2), mar = c(2, 2, 2, 0.5), oma = c(2.5, 2.5, 1, 1))
+YI <- 1
+QQDistPlotInner(QQ1 = qqGD$QQ1, QSMat = qqGD$QSMat, 
+                idxF = qqGD$idxF, idxR = qqGD$idxR, QQ2 = qqGD$QQ2, 
+                            XLim = NULL, YLim = c(0, 2*10^6),
+                            Title = "A",
+                            Xaxt = "n", Yaxt = "n")
+axis(1, at = seq(0, 4*10^6, 10^6), 0:4)
+axis(2, at = seq(0, 2*10^6, 0.5*10^6), seq(0, 2, 0.5))
+
+QQDistPlotInner(QQ1 = qqLD$QQ1, QSMat = qqLD$QSMat, 
+                idxF = qqLD$idxF, idxR = qqLD$idxR, QQ2 = qqLD$QQ2, 
+                XLim = c(0, 8*10^6), YLim = c(0, 8*10^6),
+                Title = "B",
+                Xaxt = "n", Yaxt = "n")
+axis(1, at = seq(0, 8*10^6, 2*10^6), seq(0, 8, 2))
+axis(2, at = seq(0, 8*10^6, 2*10^6), seq(0, 8, 2))
+
+legend("bottomright", legend = c("potentially TC", "not TC"), pch = c(1,2),
+       y.intersp = YI, bty = "n")
+
+mtext("Distance from fragment L1 [Mb]", side = 1, line = 1, outer = T)
+mtext("Distance from full-length L1 [Mb]", side = 2, line = 1, outer = T)
+CreateDisplayPdf('D:/L1polymORF/Figures/L1GeneLoopDistQQ_Catalog.pdf', 
+      PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+      height = 5)
+
+qqGD <- QQDistPlot(L1DistGene_FullnotCat, L1DistGene_CatRef)
+qqGD$Pvalue

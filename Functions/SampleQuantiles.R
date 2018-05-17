@@ -31,7 +31,7 @@ SampleQuantiles <- function(Vals, SubsetSize, NrSamples = 1000,
   SampleMeans <- rep(NA, NrSamples)
   SampledQMat <- matrix(nrow = NrSamples, ncol = length(QuantV))
   for (i in 1:NrSamples){
-    SampleVals <- sample(Vals, SubsetSize)
+    SampleVals      <- sample(Vals, SubsetSize)
     SampleMeans[i]  <- mean(SampleVals)
     SampledQMat[i,] <- quantile(SampleVals, QuantV)
   }
