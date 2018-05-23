@@ -8,6 +8,7 @@
 # Source start script
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
+
 # Load packages
 library(survival)
 library(GenomicRanges)
@@ -595,6 +596,9 @@ pSelect <- mean(L1SingletonCoeffs$blnSelect[L1SingletonCoeffs$blnFull],
 #                                            #
 ##############################################
 
+# Mean distance to closest gene
+Meandist2Gene <- mean(L1SingletonCoeffs$Dist2Gene)
+
 # Specify the number of samples and initialize matrices for sampled
 # quantities
 NrSamples <- 1000
@@ -603,6 +607,7 @@ LengthBins       <- LengthBins[!is.na(LengthBins)]
 SampledDist2Gene <- matrix(nrow = length(LengthBins), ncol = NrSamples)
 SampledDist2Loop <- matrix(nrow = length(LengthBins), ncol = NrSamples)
 
+# Loop to sample distance to genes and to loops
 for (i in 1:NrSamples){
   SampledBins <- sample(L1SingletonCoeffs$InsLBins, size = nrow(L1SingletonCoeffs))
   MeanPerL <- aggregate(L1SingletonCoeffs[,c("coef", "InsLength", "Dist2Gene",
@@ -630,42 +635,85 @@ QMat <- function(SampleMat, LowerQ = 0.025, UpperQ = 0.975,
   QMat
 }
 
-# Calculate 
-MeanDistPerL <- aggregate(L1SingletonCoeffs[,c("coef", "InsLength", "Dist2Gene",
-                                               "Dist2Loop")],
+# Calculate mean distance to genes or loops per LINE-1 length class
+MeanDistPerL <- aggregate(L1SingletonCoeffs[,c("coef", "InsLength", 
+                                               "Dist2Gene", "Dist2Loop")],
                            by = list(L1SingletonCoeffs$InsLBins), 
                            FUN = function(x) mean(x, na.rm = T))
+StErrDistPerL <- aggregate(L1SingletonCoeffs[,c("coef", "InsLength", 
+                                               "Dist2Gene", "Dist2Loop")],
+                          by = list(L1SingletonCoeffs$InsLBins), 
+                          FUN = function(x) sqrt(var(x, na.rm = T) / length(x)))
+
+# Aggregate distances by insertion length and selection signal
+MeanDistPerLSelect <- aggregate(L1SingletonCoeffs[,c("coef", "InsLength", "Dist2Gene",
+                                               "Dist2Loop")],
+    by = list(L1SingletonCoeffs$InsLBins, L1SingletonCoeffs$blnSelect), 
+    FUN = function(x) mean(x, na.rm = T))
+StErrDistPerLSelect  <- aggregate(L1SingletonCoeffs[,c("coef", "InsLength", 
+                                                "Dist2Gene", "Dist2Loop")],
+    by = list(L1SingletonCoeffs$InsLBins, L1SingletonCoeffs$blnSelect), 
+    FUN = function(x) sqrt(var(x, na.rm = T) / length(x)))
+
+# Deviation for non-selected L1 between length-specific distance and mean distance
+# to genes
+DevDist2GeneSelect <- MeanDistPerLSelect$Dist2Gene[!MeanDistPerLSelect$Group.2] - 
+  mean(L1SingletonCoeffs$Dist2Gene)
+
+# Match length group between selected and non-selected L1
+GroupMatch  <- match(MeanDistPerLSelect$Group.1[MeanDistPerLSelect$Group.2],
+                    MeanDistPerLSelect$Group.1[!MeanDistPerLSelect$Group.2])
+
+# Match length group between selected L1 and overall mean
+GroupGroupMatch <- match(MeanDistPerLSelect$Group.1[MeanDistPerLSelect$Group.2], 
+                         MeanDistPerL$Group.1)
+
+# Distance difference between selected and non-selected L1
+SelectdistDiff <- MeanDistPerLSelect$Dist2Gene[MeanDistPerLSelect$Group.2] -
+  MeanDistPerLSelect$Dist2Gene[GroupMatch]
+
+# Plot mean distance to loop against insertion length
 plot(MeanDistPerL$InsLength,  MeanDistPerL$Dist2Loop,
      ylim = c(2*10^6, 3.8*10^6))
 QMat_Dist2Loop <- QMat(SampledDist2Loop, xVals  = 
                          MeanDistPerL$InsLength)
 points(MeanDistPerL$InsLength,  MeanDistPerL$Dist2Loop)
 
+# Plot mean distance to gene against insertion length
 plot(MeanDistPerL$InsLength, MeanDistPerL$Dist2Gene,
-     ylim = c(8*10^4, 2.5*10^5))
+     ylim = c(0, 5*10^5), xlab = "L1 insertion length [bp]",
+     ylab = "Mean distance to closest gene [Mb]",
+     yaxt = "n")
+axis(2, at = 0:5*10^5, 0:5/10)
 QMat_Dist2Gene <- QMat(SampledDist2Gene, xVals  = 
                          MeanDistPerL$InsLength)
 points(MeanDistPerL$InsLength, MeanDistPerL$Dist2Gene)
+points(MeanDistPerLSelect$InsLength[MeanDistPerLSelect$Group.2], 
+       MeanDistPerLSelect$Dist2Gene[MeanDistPerLSelect$Group.2],
+       pch = 16)
+lines(c(0, 10^5), rep(Meandist2Gene, 2), lty = 2) 
+AddErrorBars(MidX = MeanDistPerL$InsLength, MidY = MeanDistPerL$Dist2Gene,
+             ErrorRange = StErrDistPerL$Dist2Gene, TipWidth = 100)
+AddErrorBars(MidX = MeanDistPerLSelect$InsLength[MeanDistPerLSelect$Group.2], 
+  MidY = MeanDistPerLSelect$Dist2Gene[MeanDistPerLSelect$Group.2],
+  ErrorRange = StErrDistPerLSelect$Dist2Gene[StErrDistPerLSelect$Group.2], 
+  TipWidth = 100)
+legend("topleft", bty = "n", legend = c("selected L1", "all L1"),
+       pch = c(16, 1), cex = 0.75, y.intersp = 0.5)
+CreateDisplayPdf('D:/L1polymORF/Figures/Dist2GeneVsInsLength.pdf',
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+                 height = 5, width = 5)
+
+                 
+# Deviation of distance to gene
 DevDist2Gene <- MeanDistPerL$Dist2Gene - mean(L1SingletonCoeffs$Dist2Gene)
+Dist2GRange  <- QMat_Dist2Gene[3,] - QMat_Dist2Gene[2,]
+plot(DevDist2Gene[GroupGroupMatch], SelectdistDiff, 
+     xlab = "Deviation from mean distance among non-selected L1",
+     ylab = "Distance difference between selected and non-selected L1")
 
-# Aggregate distances b
-MeanDistPerLSelect <- aggregate(L1SingletonCoeffs[,c("coef", "InsLength", "Dist2Gene",
-                                               "Dist2Loop")],
-                          by = list(L1SingletonCoeffs$InsLBins, L1SingletonCoeffs$blnSelect), 
-                          FUN = function(x) mean(x, na.rm = T))
 
-DevDist2GeneSelect <- MeanDistPerLSelect$Dist2Gene[!MeanDistPerLSelect$Group.2] - 
-  mean(L1SingletonCoeffs$Dist2Gene)
-GroupMatch  <- match(MeanDistPerLSelect$Group.1[MeanDistPerLSelect$Group.2],
-                    MeanDistPerLSelect$Group.1[!MeanDistPerLSelect$Group.2])
-SelectdistDiff <- MeanDistPerLSelect$Dist2Gene[MeanDistPerLSelect$Group.2] -
-  MeanDistPerLSelect$Dist2Gene[GroupMatch]
-GroupGroupMatch <- match(MeanDistPerLSelect$Group.1[GroupMatch], MeanDistPerL$Group.1)
-plot(DevDist2Gene[GroupMatch], SelectdistDiff)
-cor.test(DevDist2Gene[GroupGroupMatch], SelectdistDiff)
-
-summary(aov(LMDistByInsL_select))
-residuals(LMDistByInsL_select)
+cor.test(DevDist2Gene[GroupGroupMatch] / Dist2GRange[GroupGroupMatch], SelectdistDiff)
 
 
 table(L1SingletonCoeffs$Chrom, L1SingletonCoeffs$blnSelect, L1SingletonCoeffs$blnFull)
