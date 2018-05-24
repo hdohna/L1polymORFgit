@@ -79,11 +79,11 @@ makeHistoTable <- function(FileName, L1GR_full = L1CatGR_hg19,
   HistoLines <- readLines(FileName)
   NameSplt   <- strsplit(FileName, "/")[[1]]
   HistName   <- NameSplt[length(NameSplt)]
-  HistName  <- strsplit(HistName, "per")[[1]][1]
-  blnChr <- substr(HistoLines, 1, 3) == "chr"
+  HistName   <- strsplit(HistName, "per")[[1]][1]
+  blnChr     <- substr(HistoLines, 1, 3) == "chr"
   HistoTable <- read.delim(text = HistoLines[blnChr], header = F,
                            col.names = c("chromosome", "start", "end", HistName))
-  HistoGR <- makeGRangesFromDataFrame(HistoTable)
+  HistoGR    <- makeGRangesFromDataFrame(HistoTable)
 
   # Aggregate histone values per full-length L1   
   OverlapsFull  <- findOverlaps(HistoGR, L1GR_full)
