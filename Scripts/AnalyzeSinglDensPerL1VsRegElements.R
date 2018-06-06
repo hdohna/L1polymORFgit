@@ -14,6 +14,7 @@ library(GenomicRanges)
 library(rtracklayer)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(KernSmooth)
+library(glmnet)
 
 ##########################################
 #                                        #
@@ -84,6 +85,7 @@ NT <- table(RegTable$name)
 blnAllCellTypes <- RegTable$CellType == 
                      "Gm12878,H1hesc,Hepg2,Hmec,Hsmm,Huvec,K562,Nhek,Nhlf"
 RegTableAll <- RegTable[blnAllCellTypes,]
+RegTable <- RegTable[blnAllCellTypes,]
 sort(table(RegTable$CellType))
 
 # Create genomic ranges for L1 fragments, match them to distances to get distance
@@ -125,6 +127,10 @@ cat("done!\n")
 #        Add columns                     #
 #                                        #
 ##########################################
+
+# Turn factors into numeric values
+L1SingletonCoeffs$L1Start <- as.numeric(as.character(L1SingletonCoeffs$L1Start))
+L1SingletonCoeffs$L1End <- as.numeric(as.character(L1SingletonCoeffs$L1End))
 
 # Indicator for full-length
 L1SingletonCoeffs$blnFull <- L1SingletonCoeffs$InsLength >= 6000
@@ -227,8 +233,9 @@ plot(MeanCoeffPerL$InsLength, MeanCoeffPerL$blnSelect)
 # Subset L1 coefficients
 sum(is.na(L1SingletonCoeffs$InsLength))
 L1SingletonCoeffs_subset <- subset(L1SingletonCoeffs, 
-                                   subset = robust.se > 0 & (!is.na(blnSelect)))
-LM_All_Interact_binom <- glm(1L*blnSelect ~ InsLength + blnFull, 
+                                   subset = robust.se > 0 & (!is.na(blnSelect))&
+                                     L1SingletonCoeffs$L1End >= 6000)
+LM_All_Interact_binom <- glm(1L*blnSelect ~ L1Start + blnFull, 
                              data = L1SingletonCoeffs_subset, 
                              weights = 1/robust.se,
                              family = quasibinomial)
@@ -236,20 +243,84 @@ summary(LM_All_Interact_binom)
 mean(1/L1SingletonCoeffs_subset$robust.se)
 
 # Smooth proportions of 
-PropSmoothed_InsL <- supsmu(L1SingletonCoeffs_subset$InsLength,
+PropSmoothed_InsL <- supsmu(L1SingletonCoeffs_subset$L1Start,
                             1*L1SingletonCoeffs_subset$blnSelect,
                             wt = 1/L1SingletonCoeffs_subset$robust.se)
 plot(PropSmoothed_InsL$x, PropSmoothed_InsL$y, xlab = "L1 insertion length [bp]",
      ylab = "Proportion of L1 with positive selection signal", type = "l",
      ylim = c(0, 0.11))
-lines(PropSmoothed_InsL$x[PropSmoothed_InsL$x >=6000], 
-      PropSmoothed_InsL$y[PropSmoothed_InsL$x>=6000])
-InsLorder <- order(L1SingletonCoeffs_subset$InsLength)
-lines(L1SingletonCoeffs_subset$InsLength[InsLorder], 
+rect(13, 0, 21, 1, border = "red")
+InsLorder <- order(L1SingletonCoeffs_subset$L1Start)
+lines(L1SingletonCoeffs_subset$L1Start[InsLorder], 
       LM_All_Interact_binom$fitted.values[InsLorder], lty = 2)
+rect(13, 0, 21, 1, col = "red")
 CreateDisplayPdf('D:/L1polymORF/Figures/PropSelectVsInsLength.pdf', 
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 5, width = 5)
+
+#######
+# Regress against individual L1 positions
+#######
+
+L1SingletonCoeffs_subsetPenalized <- 
+  subset(L1SingletonCoeffs, subset = robust.se > 0 & (!is.na(blnSelect)) &
+           (!is.na(L1SingletonCoeffs$L1Start)) & (!is.na(L1SingletonCoeffs$L1End))&
+           L1SingletonCoeffs$L1End >= 6000)
+sum(L1SingletonCoeffs$L1End >= 6000, na.rm = T)
+
+# Create an indicator matrix for the presence of a L1 position inside an L1
+L1End <- max(L1SingletonCoeffs$L1End, na.rm = T)
+StWeights <- 1/L1SingletonCoeffs_subsetPenalized$robust.se / 
+             mean(1/L1SingletonCoeffs_subsetPenalized$robust.se)
+L1PosMat <- sapply(1:L1End, function(x){
+  (L1SingletonCoeffs_subsetPenalized$L1Start >= x) & (L1SingletonCoeffs_subsetPenalized$L1End >= x)
+})
+dim(L1PosMat)
+
+# Add an indicator for full-length at the end
+# L1PosMat <- cbind(L1PosMat, (L1SingletonCoeffs_subsetPenalized$L1Start >= 10) &
+#                     (L1SingletonCoeffs_subsetPenalized$L1End >= 6000))
+L1PosMat <- 1*L1PosMat
+L1PosMat[1:4, 1:5]
+which(is.na(L1PosMat), arr.ind = T)
+
+# Perform lasso and ridge regression
+cat("Performing regularized regression ....")
+GLM_Lasso <- glmnet(x = L1PosMat, y = 1*L1SingletonCoeffs_subsetPenalized$blnSelect,
+                    alpha = 0.99, family = "binomial", weights = StWeights)
+CV_Lasso  <- cv.glmnet(x = L1PosMat, y = L1SingletonCoeffs_subsetPenalized$blnSelect,
+                      alpha = 0.99)
+GLM_Ridge <- glmnet(x = L1PosMat, y = 1*L1SingletonCoeffs_subsetPenalized$blnSelect,
+                    alpha = 0, family = "binomial", weights = StWeights)
+
+Coef_Lasso  <- coef(GLM_Lasso, CV_Lasso$lambda.1se)
+Coef_LassoV <- as.vector(Coef_Lasso)
+plot(Coef_LassoV)
+sum(Coef_LassoV > 0)
+
+
+Coef_Ridge <- coef(GLM_Ridge,
+   s = cv.glmnet(x = L1PosMat, y = L1SingletonCoeffs_subsetPenalized$blnSelect,
+                    alpha = 0)$lambda.1se)
+Predict_Ridge <- predict(GLM_Ridge, newx = L1PosMat,
+                   s = cv.glmnet(x = L1PosMat, y = L1SingletonCoeffs_subsetPenalized$blnSelect,
+                                 alpha = 0)$lambda.1se)
+plot(L1SingletonCoeffs_subsetPenalized$L1Start, exp(Predict_Ridge)/(1+exp(Predict_Ridge)))
+lines(L1SingletonCoeffs_subset$L1Start[InsLorder], 
+      LM_All_Interact_binom$fitted.values[InsLorder], lty = 2)
+lines(PropSmoothed_InsL$x, PropSmoothed_InsL$y)
+
+Coef_RidgeV <- as.vector(Coef_Ridge)
+sum(Coef_RidgeV > 0)
+sum(Coef_RidgeV > 0)
+plot(Coef_RidgeV, ylim = c(-0.002, 0.004), type = "l",
+     xlab = "Position of L1 present", ylab = "Effect on selection")
+lines(c(0, 10^4), c(0, 0), lty = 2, col = "red")
+
+cat("done!\n")
+which.max(Coef_RidgeV)
+which.min(Coef_RidgeV)
+min(Coef_RidgeV)
 
 ##########################
 #                        #
