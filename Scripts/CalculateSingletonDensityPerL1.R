@@ -172,6 +172,9 @@ for (Chr in c(1:22, "X")) {
   CHrPos_match <- match(paste(Chr, Line1Vcf$V2[idxEnough]), CHrPos_all)
   L1Coeffs$InsLength <- L1_1000G_reduced$InsLength[CHrPos_match]
   L1Coeffs$Freq      <- L1_1000G_reduced$Frequency[CHrPos_match]
+  L1Coeffs$L1Start   <- L1_1000G_reduced$L1Start[CHrPos_match]
+  L1Coeffs$L1End     <- L1_1000G_reduced$L1End[CHrPos_match]
+  L1Coeffs$L1Strand  <- L1_1000G_reduced$L1Strand[CHrPos_match]
   
   L1SingletonCoeffs <- rbind(L1SingletonCoeffs, L1Coeffs)
 #  plot(L1Coeffs$InsLength, L1Coeffs$coef, main = paste("chr", Chr))

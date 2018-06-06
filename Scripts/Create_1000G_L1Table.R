@@ -9,7 +9,7 @@ NrInfoCols <- 9
 DataFolder <- "/srv/gsfs0/projects/levinson/hzudohna/1000Genomes/"
 FilePrefix <- "LINE1"
 OutFileAllL1  <- paste(DataFolder, "L1all.vcf", sep = "")
-OutFile    <- paste(DataFolder, "L1_1000G_withGenoNum", sep = "")
+OutFile       <- paste(DataFolder, "L1_1000G_withGenoNum", sep = "")
 
 # function to get the genotype
 GetGenotype <- function(SampleColumn){

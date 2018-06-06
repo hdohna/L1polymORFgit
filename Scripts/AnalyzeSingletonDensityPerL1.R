@@ -43,6 +43,8 @@ MinNrCarrier <- 3
 #                                        #
 ##########################################
 
+cat("Loading and processing data ...")
+
 # Load previously generated objects
 load(L1GRPath)
 load(ChrLPath)
@@ -129,17 +131,26 @@ HistoTableFiles <- list.files("D:/L1polymORF/Data/",
 ##########
 
 # Read in table with regulatory elements
-RegTable      <- read.table("D:/L1polymORF/Data/ChromHMM", header = T)
-idxEnhancer   <- grep("Enhancer", RegTable$name)
-idxTxnTable   <- grep("Txn", RegTable$name)
-unique(EnhancerTable$name)
+RegTable       <- read.table("D:/L1polymORF/Data/ChromHMM", header = T)
+# RegTable      <- read.table("D:/L1polymORF/Data/EncodeBroadHMM/wgEncodeBroadHmmH1hescHMM.txt",
+#                              col.names = c("bin", "chrom", "ChromStart",
+#                                            "ChromEnd", "name", "score", "strand",  
+#                                            "thickStart", "thickEnd", "itemRgb"))
+
+
+idxEnhancer    <- grep("Enhancer", RegTable$name)
+idxTxnTable    <- grep("Txn", RegTable$name)
+idxHeteroTable <- grep("Heterochrom", RegTable$name)
+
+NT <- table(RegTable$name)
 
 # Create genomic ranges for L1 fragments, match them to distances to get distance
 # to consensus per fragment
 RegGR <- makeGRangesFromDataFrame(RegTable, start.field = "ChromStart", 
                                   end.field = "ChromEnd")
-EnhancerGR <- RegGR[idxEnhancer]
-TxnGR      <- RegGR[idxTxnTable]
+EnhancerGR  <- RegGR[idxEnhancer]
+TxnGR       <- RegGR[idxTxnTable]
+RegNonHetGR <- RegGR[-idxHeteroTable]
 
 ##########
 #  Process ChromHMM
@@ -216,7 +227,7 @@ L1SingletonCoeffs_GR <- makeGRangesFromDataFrame(L1SingletonCoeffs,
                                                  seqnames.field = "chromosome",
                                                  start.field = "Pos",
                                                  end.field = "Pos")
-
+cat("done!\n")
 
 ##########################################
 #                                        #
@@ -247,14 +258,13 @@ L1SingletonCoeffs$Dist2Gene <- Dist2Closest(L1SingletonCoeffs_GR,
 # Caclulate logarithm of distance to genes
 L1SingletonCoeffs$LogDist2Gene <- log(L1SingletonCoeffs$Dist2Gene + 0.1)
 
-
 # Caclulate distance to closest enhancer
 L1SingletonCoeffs$Dist2Enhancer <- Dist2Closest(L1SingletonCoeffs_GR, EnhancerGR)
 L1SingletonCoeffs$Dist2EnhancerOrGene <- 
   pmin(L1SingletonCoeffs$Dist2Gene, L1SingletonCoeffs$Dist2Enhancer)
 
 table(L1SingletonCoeffs$Dist2Gene < L1SingletonCoeffs$Dist2Enhancer,
-      L1SingletonCoeffs$blnSelect ,L1SingletonCoeffs$blnFull)
+      L1SingletonCoeffs$blnSelect , L1SingletonCoeffs$blnFull)
 
 # Calculate distance to closest enhancer
 L1SingletonCoeffs$Dist2Txn <- Dist2Closest(L1SingletonCoeffs_GR, TxnGR)
@@ -265,6 +275,18 @@ L1SingletonCoeffs$Dist2Tfb <- Dist2Closest(L1SingletonCoeffs_GR, TfbGR)
 L1SingletonCoeffs$Dist2TfbTn <- pmin(L1SingletonCoeffs$Dist2Txn,
                                      L1SingletonCoeffs$Dist2Tfb)
 
+# Distance to closest regulatory element
+L1SingletonCoeffs$Dist2Reg <- Dist2Closest(L1SingletonCoeffs_GR, RegGR)
+RegOverlap <- findOverlaps(L1SingletonCoeffs_GR, RegGR)
+table(RegTable$name[RegOverlap@to])
+
+# Distance to closest regulatory element
+L1SingletonCoeffs$Dist2RegNonHet <- Dist2Closest(L1SingletonCoeffs_GR, RegNonHetGR)
+
+# Closest regulatory element
+idxNearestReg <- nearest(L1SingletonCoeffs_GR, RegNonHetGR)
+RegNames <- RegTable$name[-idxHeteroTable]
+L1SingletonCoeffs$ClosestReg <- RegNames[idxNearestReg]
 
 # Determine distance to loops and domains
 L1SingletonCoeffs$Dist2Loop <- Dist2Closest(L1SingletonCoeffs_GR, 
@@ -403,8 +425,10 @@ SelectDistP <- function(L1Subset, NrSample = 10^4){
       Dist2EnhancerOrGene = mean(L1Subset$Dist2EnhancerOrGene[idx]),
       Dist2Tfb = mean(L1Subset$Dist2Tfb[idx]),
       Dist2Txn = mean(L1Subset$Dist2Txn[idx]),
-      Dist2TfbTn = mean(L1Subset$Dist2TfbTn[idx])
-      
+      Dist2TfbTn = mean(L1Subset$Dist2TfbTn[idx]),
+      Dist2Reg = mean(L1Subset$Dist2Reg[idx]),
+      Dist2RegNonHet = mean(L1Subset$Dist2RegNonHet[idx]),
+      LogDist2RegNonHet = mean(log(L1Subset$Dist2RegNonHet[idx] + 1))
     )
   })
   blnSel <- L1Subset$blnSelect
@@ -414,17 +438,66 @@ SelectDistP <- function(L1Subset, NrSample = 10^4){
                        Dist2EnhancerOrGene = mean(L1Subset$Dist2EnhancerOrGene[blnSel]),
                        Dist2Tfb = mean(L1Subset$Dist2Tfb[blnSel]),
                        Dist2Txn = mean(L1Subset$Dist2Txn[blnSel]),
-                       Dist2TfbTn = mean(L1Subset$Dist2TfbTn[blnSel])
+                       Dist2TfbTn = mean(L1Subset$Dist2TfbTn[blnSel]),
+                       Dist2Reg = mean(L1Subset$Dist2Reg[blnSel]),
+                       Dist2RegNonHet = mean(L1Subset$Dist2RegNonHet[blnSel]),
+                       LogDist2RegNonHet = mean(log(L1Subset$Dist2RegNonHet[blnSel] + 0.1))
+                       
   )
   rowSums(SampledMeandistMat <= MeanSelectDists) / NrSample
   
 }
 
+
+table(L1SingletonCoeffs$Dist2Reg > 0, L1SingletonCoeffs$blnSelect)
+table(L1SingletonCoeffs$ClosestReg[which(L1SingletonCoeffs$blnFull &
+                                     L1SingletonCoeffs$blnSelect)])
+table(L1SingletonCoeffs$ClosestReg[which(!L1SingletonCoeffs$blnFull &
+                                           L1SingletonCoeffs$blnSelect)]) /
+table(L1SingletonCoeffs$ClosestReg[which(!L1SingletonCoeffs$blnSelect)]) * 
+  sum(!L1SingletonCoeffs$blnSelect) / sum(L1SingletonCoeffs$blnSelect) 
+table(L1SingletonCoeffs$ClosestReg)
+table(RegTable$name)
+
 # Create a subset of coeffici
-SelectDistP(L1SingletonCoeffs)
+SDP_all <- SelectDistP(L1SingletonCoeffs)
+p.adjust(SDP_all[c(1, 3, 4, 5, 6, 8)])
 SelectDistP(L1SingletonCoeffs[which(!L1SingletonCoeffs$blnFull),])
 SelectDistP(L1SingletonCoeffs[which(L1SingletonCoeffs$blnFull),])
 
+# Plot distance to closest regulatory feature for each combination of the 
+# classification slected-non-selected, fragment-full
+L1SingletonCoeffs$blnFull[is.na(L1SingletonCoeffs$blnFull)] <- FALSE
+L1SingletonCoeffs$SelectFull <- paste(L1SingletonCoeffs$blnFull, L1SingletonCoeffs$blnSelect)
+boxplot(log10(Dist2RegNonHet) ~ SelectFull, data  = L1SingletonCoeffs)
+
+# Calculate mean and standard deviation and plot
+MeanDistBySelectFull <- aggregate(log10(L1SingletonCoeffs$Dist2RegNonHet + 1), 
+          by = list(L1SingletonCoeffs$blnSelect, 
+                    L1SingletonCoeffs$blnFull),
+          FUN = mean)
+StErrDistBySelectFull <- aggregate(log10(L1SingletonCoeffs$Dist2RegNonHet + 1), 
+           by = list(L1SingletonCoeffs$blnSelect, L1SingletonCoeffs$blnFull),
+           FUN = function(x) sqrt(var(x, na.rm = T) / length(x)))
+
+bp <- barplot(MeanDistBySelectFull$x, ylim = c(0, 4.2), yaxt = "n",
+              ylab = "Distance to regulatory element [bp]")
+Exps <- paste("c(", paste(paste("expression(10^", 0:4, ")"), collapse = ", "), ")")
+axis(2, at = 0:4, eval(parse(text = Exps)))
+axis(1, at = bp[,1], LETTERS[1:4])
+AddErrorBars(MidX = bp[,1], MidY = MeanDistBySelectFull$x, TipWidth = 0.1,
+             ErrorRange = StErrDistBySelectFull$x)
+segments(x0 = bp[c(3, 3, 4),1], y0 = c(3.8, 4, 4),
+         x1 = bp[c(3, 4, 4),1], y1 = c(4, 4, 3.8))
+text(x = mean(bp[c(3, 4),1]), y = 4.15, "*", cex = 1.5)
+CreateDisplayPdf('D:/L1polymORF/Figures/Dist2RegVsGroup.pdf',
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+                 height = 5, width = 5)
+
+MeanDist2TbBySelectFull <- aggregate(L1SingletonCoeffs$Dist2Tfb, 
+                                  by = list(L1SingletonCoeffs$blnSelect, 
+                                            L1SingletonCoeffs$blnFull),
+                                  FUN = mean)
 
 
 

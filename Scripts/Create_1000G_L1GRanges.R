@@ -27,11 +27,26 @@ colnames(L1_1000G)[1:10]
 SampleColumns <- colnames(L1_1000G)[(NrInfoCols + 1):(ncol(L1_1000G) - 1)]
 SampleColumns[length(SampleColumns)]
 
-# Create genomic ranges of of L1 table
+# Add additional information to L1_1000G
 L1_1000G$chromosome <- paste("chr", L1_1000G$CHROM, sep = "")
 L1_1000G$Frequency  <- rowSums(L1_1000G[,SampleColumns]) / 2 / length(SampleColumns)
-L1_1000G$InsLength
-L1_1000G_reduced <- L1_1000G[,c("chromosome", "POS", "Frequency", "InsLength")]
+L1InfoCols <- data.frame(t(sapply(1:nrow(L1_1000G), function(i){
+  x <- as.character(L1_1000G$INFO[i])
+  InfoSplit   <- strsplit(x, ";")[[1]]
+  L1Info      <- grep("MEINFO=", InfoSplit, value = T)
+  if(length(L1Info) > 0){
+    L1InfoSplit <- strsplit(L1Info, ",")[[1]]
+  } else {
+    L1InfoSplit <- rep(NA, 4)
+  }
+  c(L1Start = L1InfoSplit[2], L1End = L1InfoSplit[3], L1Strand = L1InfoSplit[4])
+})))
+L1_1000G <- cbind(L1_1000G, L1InfoCols)
+L1_1000G_reduced <- L1_1000G[,
+     c("chromosome", "POS", "Frequency", "InsLength", "L1Start", "L1End", 
+       "L1Strand")]
+
+# Create genomic ranges of of L1 table
 L1_1000G_GR_hg19 <- makeGRangesFromDataFrame(L1_1000G_reduced, 
                                        keep.extra.columns = T,
                                        start.field="POS",
