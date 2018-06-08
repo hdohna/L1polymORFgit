@@ -57,10 +57,19 @@ SampleMatch <- match(SampleColumns, SampleInfo$sample)
 Pops        <- SampleInfo$super_pop[SampleMatch]
 NrS         <- length(SampleColumns)
 
-# Read in table with Info about 1000 genome samples 
-SampleInfo_1000Genome <- read.table(G1000SamplePath, as.is = T, header = T)
-table(SampleInfo_1000Genome$super_pop)
+# Table for each L1 how often it occurs in each population
+UniquePops <- unique(SampleInfo$super_pop)
+PopFreq <- sapply(UniquePops, function(x){
+  blnPop <- Pops == x
+  rowSums(L1_1000G[,SampleColumns[blnPop]])
+})
+colnames(PopFreq) <- UniquePops
 
+# Match coefficients to 1000 genome data
+ChromPosCoeff     <- paste(L1SingletonCoeffs$chromosome, L1SingletonCoeffs$Pos)
+ChromPos1000G     <- paste(L1_1000G_reduced$chromosome, L1_1000G_reduced$POS)
+MatchCoeff1000G   <- match(ChromPosCoeff, ChromPos1000G)
+L1SingletonCoeffs <- cbind(L1SingletonCoeffs, PopFreq[MatchCoeff1000G,])
 
 ##########
 #  Process ChromHMM
@@ -74,24 +83,26 @@ table(SampleInfo_1000Genome$super_pop)
 #                                            "thickStart", "thickEnd", "itemRgb"))
 RegTable      <- read.table("D:/L1polymORF/Data/EncodeBroadHMM/ChromHMMcombined.txt",
                             header = T)
-idxEnhancer    <- grep("Enhancer", RegTable$name)
-idxTxn         <- grep("Txn", RegTable$name)
-idxProm        <- grep("Promoter", RegTable$name)
-idxHetero      <- grep("Heterochrom", RegTable$name)
-idxRepr        <- union(grep("Insulator", RegTable$name),
+blnAllCellTypes <- RegTable$CellType == 
+  "Gm12878,H1hesc,Hepg2,Hmec,Hsmm,Huvec,K562,Nhek,Nhlf"
+RegTableAll <- RegTable[blnAllCellTypes,]
+#RegTable <- RegTable[blnAllCellTypes,]
+
+idxEnhancer <- grep("Enhancer", RegTable$name)
+idxTxn      <- grep("Txn", RegTable$name)
+idxProm     <- grep("Promoter", RegTable$name)
+idxHetero   <- grep("Heterochrom", RegTable$name)
+idxRepr     <- union(grep("Insulator", RegTable$name),
                         grep("Repressed", RegTable$name))
 
+# Counting different regulatory elements
 NT <- table(RegTable$name)
-blnAllCellTypes <- RegTable$CellType == 
-                     "Gm12878,H1hesc,Hepg2,Hmec,Hsmm,Huvec,K562,Nhek,Nhlf"
-RegTableAll <- RegTable[blnAllCellTypes,]
-RegTable <- RegTable[blnAllCellTypes,]
-sort(table(RegTable$CellType))
+sort(NT)
 
 # Create genomic ranges for L1 fragments, match them to distances to get distance
 # to consensus per fragment
-RegGR    <- makeGRangesFromDataFrame(RegTable)
-RegGRAll <- makeGRangesFromDataFrame(RegTableAll)
+RegGR       <- makeGRangesFromDataFrame(RegTable)
+RegGRAll    <- makeGRangesFromDataFrame(RegTableAll)
 EnhancerGR  <- RegGR[idxEnhancer]
 TxnGR       <- RegGR[idxTxn]
 PromGR      <- RegGR[idxProm]
@@ -105,6 +116,7 @@ sum(DistTxn2Gene == 0)/length(TxnGR)
 DistProm2Gene <- Dist2Closest(PromGR, 
                              genes(TxDb.Hsapiens.UCSC.hg19.knownGene))
 sum(DistProm2Gene == 0)/length(PromGR)
+
 
 ##########
 #  Process transcription factor binding site data
@@ -120,6 +132,15 @@ table(TfbdTable$name)
 SplitExpIDList <- lapply(as.character(TfbdTable$expIDs), function(x) as.numeric(strsplit(x, ",")[[1]]))
 UniqueExpIDs   <- sort(unique(unlist(SplitExpIDList)))
 
+##########
+#  Process vista enhancer data
+##########
+
+VistaEnhancerTable <- read.table("D:/L1polymORF/Data/VistaEnhancers.txt", header = T)
+VistaEnhancerGR    <- makeGRangesFromDataFrame(VistaEnhancerTable,
+                                               start.field = "chromStart",
+                                               end.field = "chromEnd")
+
 cat("done!\n")
 
 ##########################################
@@ -133,20 +154,36 @@ L1SingletonCoeffs$L1Start <- as.numeric(as.character(L1SingletonCoeffs$L1Start))
 L1SingletonCoeffs$L1End <- as.numeric(as.character(L1SingletonCoeffs$L1End))
 
 # Indicator for full-length
-L1SingletonCoeffs$blnFull <- L1SingletonCoeffs$InsLength >= 6000
+L1SingletonCoeffs$blnFull <- L1SingletonCoeffs$L1Start <= 3 &
+  L1SingletonCoeffs$L1End >= 6000
 sum(L1SingletonCoeffs$InsLength <= 100)
 
 # Indicator for significant effect
 L1SingletonCoeffs$blnSig <- p.adjust(L1SingletonCoeffs$Pr...z..) < 0.05
+hist(L1SingletonCoeffs$Pr...z.., breaks = seq(0, 1, 0.005))
 
-# Indicator for  selection
+# Indicator for positive selection
 L1SingletonCoeffs$blnSelect <- L1SingletonCoeffs$blnSig &
   L1SingletonCoeffs$coef < 0
-L1SingletonCoeffs$blnSelect[is.na(L1SingletonCoeffs$blnSelect)] <- FALSE
+#L1SingletonCoeffs$blnSelect[is.na(L1SingletonCoeffs$blnSelect)] <- FALSE
   
 table(L1SingletonCoeffs$blnSelect, L1SingletonCoeffs$blnFull)
 fisher.test(L1SingletonCoeffs$blnSelect, L1SingletonCoeffs$blnFull)
 nrow(L1SingletonCoeffs)
+
+plot(L1SingletonCoeffs$Freq, L1SingletonCoeffs$coef)
+cor.test(L1SingletonCoeffs$Freq[L1SingletonCoeffs$blnSelect],
+     L1SingletonCoeffs$coef[L1SingletonCoeffs$blnSelect],
+     method = "spearman")
+
+# Indicator for negative selection
+L1SingletonCoeffs$blnNotSelect <- L1SingletonCoeffs$blnSig &
+  L1SingletonCoeffs$coef > 0
+
+# Indicator fo selection (+1 = positive, -1 = negative, 0 = neutral)
+L1SingletonCoeffs$SelectInd <- 0
+L1SingletonCoeffs$SelectInd[L1SingletonCoeffs$blnSelect]     <- 1
+L1SingletonCoeffs$SelectInd[L1SingletonCoeffs$blnNotSelect]  <- -1
 
 # Bin for insertion length
 L1SingletonCoeffs$InsLBins <- cut(L1SingletonCoeffs$InsLength, 
@@ -201,6 +238,13 @@ L1SingletonCoeffs$ClosestTfb[L1SingletonCoeffs$blnSelect]
 TfbRatio <- table(L1SingletonCoeffs$ClosestTfb[L1SingletonCoeffs$blnSelect])/ table(TfbdTable$name)
 sort(TfbRatio)
 
+# Caclulate distance to closest vista enhancer
+L1SingletonCoeffs$Dist2VistaEnhancer <- Dist2Closest(L1SingletonCoeffs_GR, 
+                                                     VistaEnhancerGR)
+
+L1SingletonCoeffs$Dist2VistaOrGene <- pmin(L1SingletonCoeffs$Dist2VistaEnhancer,
+                                           L1SingletonCoeffs$Dist2Gene)
+
 ##########################################
 #                                        #
 #        Plot coefficients               #
@@ -218,6 +262,11 @@ MeanCoeffPerL <- aggregate(L1SingletonCoeffs[,c("coef", "InsLength", "blnSelect"
                            FUN = function(x) mean(x, na.rm = T))
 plot(MeanCoeffPerL$InsLength, MeanCoeffPerL$coef)
 plot(MeanCoeffPerL$InsLength, MeanCoeffPerL$blnSelect)
+plot(L1SingletonCoeffs$Freq, L1SingletonCoeffs$coef)
+cor.test(L1SingletonCoeffs$Freq, L1SingletonCoeffs$coef)
+cor.test(L1SingletonCoeffs$Freq, L1SingletonCoeffs$SelectInd, method = "spearman")
+cor.test(L1SingletonCoeffs$Freq, L1SingletonCoeffs$coef)
+
 
 ##########################################
 #                                        #
@@ -227,36 +276,98 @@ plot(MeanCoeffPerL$InsLength, MeanCoeffPerL$blnSelect)
 
 
 #######
-# Regress against length
+# Regress against L1 start
 #######
 
+max(L1SingletonCoeffs$L1End, na.rm = T)
 # Subset L1 coefficients
 sum(is.na(L1SingletonCoeffs$InsLength))
 L1SingletonCoeffs_subset <- subset(L1SingletonCoeffs, 
                                    subset = robust.se > 0 & (!is.na(blnSelect))&
-                                     L1SingletonCoeffs$L1End >= 6000)
+                                     L1SingletonCoeffs$L1End >= 5900)
 LM_All_Interact_binom <- glm(1L*blnSelect ~ L1Start + blnFull, 
                              data = L1SingletonCoeffs_subset, 
                              weights = 1/robust.se,
                              family = quasibinomial)
 summary(LM_All_Interact_binom)
-mean(1/L1SingletonCoeffs_subset$robust.se)
+LM_All_Interact_binom <- glm(1L*blnNotSelect ~ L1Start + blnFull, 
+                             data = L1SingletonCoeffs_subset, 
+                             weights = 1/robust.se,
+                             family = quasibinomial)
+summary(LM_All_Interact_binom)
+
 
 # Smooth proportions of 
-PropSmoothed_InsL <- supsmu(L1SingletonCoeffs_subset$L1Start,
-                            1*L1SingletonCoeffs_subset$blnSelect,
-                            wt = 1/L1SingletonCoeffs_subset$robust.se)
-plot(PropSmoothed_InsL$x, PropSmoothed_InsL$y, xlab = "L1 insertion length [bp]",
+blnNotFull <- !L1SingletonCoeffs_subset$blnFull
+PropSmoothed_InsL <- supsmu(L1SingletonCoeffs_subset$L1Start[blnNotFull],
+                            1*L1SingletonCoeffs_subset$blnSelect[blnNotFull],
+                            wt = 1/L1SingletonCoeffs_subset$robust.se[blnNotFull])
+PropNSSmoothed_InsL <- supsmu(L1SingletonCoeffs_subset$L1Start[blnNotFull],
+                            1*L1SingletonCoeffs_subset$blnNotSelect[blnNotFull],
+                            wt = 1/L1SingletonCoeffs_subset$robust.se[blnNotFull])
+plot(PropNSSmoothed_InsL$x, PropNSSmoothed_InsL$y, xlab = "L1 insertion length [bp]",
      ylab = "Proportion of L1 with positive selection signal", type = "l",
-     ylim = c(0, 0.11))
+     col = "red")
+lines(PropSmoothed_InsL$x, PropSmoothed_InsL$y)
 rect(13, 0, 21, 1, border = "red")
+lines(PropSmoothed_InsL$x, PropSmoothed_InsL$y)
 InsLorder <- order(L1SingletonCoeffs_subset$L1Start)
 lines(L1SingletonCoeffs_subset$L1Start[InsLorder], 
-      LM_All_Interact_binom$fitted.values[InsLorder], lty = 2)
+      LM_All_Interact_binom$fitted.values[InsLorder], col = "red")
 rect(13, 0, 21, 1, col = "red")
-CreateDisplayPdf('D:/L1polymORF/Figures/PropSelectVsInsLength.pdf', 
-                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
-                 height = 5, width = 5)
+# CreateDisplayPdf('D:/L1polymORF/Figures/PropSelectVsInsLength.pdf', 
+#                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+#                  height = 5, width = 5)
+
+
+
+
+#######
+# Regress against frequency
+#######
+
+
+LM_SelectFreq_binom <- glm(blnSig ~ Freq + blnSelect:Freq, 
+                           data = L1SingletonCoeffs, 
+                           weights = 1/robust.se,
+                           family = quasibinomial, subset = Freq < 0.02)
+LM_NotSelectFreq_binom <- glm(1L*blnNotSelect ~ Freq, 
+                              data = L1SingletonCoeffs_subset, 
+                              weights = 1/robust.se,
+                              family = quasibinomial)
+summary(LM_SelectFreq_binom)
+summary(LM_NotSelectFreq_binom)
+aggregate(Freq ~ SelectInd, data = L1SingletonCoeffs, FUN = mean)
+
+# Plot coefficients against
+plot(L1SingletonCoeffs$Freq * 2*length(SampleColumns), 
+     L1SingletonCoeffs$coef,
+     xlim = c(0, 100))
+points(L1SingletonCoeffs$Freq[L1SingletonCoeffs$blnSig] * 2*length(SampleColumns), 
+       L1SingletonCoeffs$coef[L1SingletonCoeffs$blnSig], 
+       col = "red", pch = 16)
+
+
+
+# Plot p-values against frequency
+plot(L1SingletonCoeffs$Freq * 2*length(SampleColumns), 
+     log(L1SingletonCoeffs$Pr...z..),
+     xlim = c(0, 100))
+points(L1SingletonCoeffs$Freq[L1SingletonCoeffs$blnSig] * 2*length(SampleColumns), 
+       log(L1SingletonCoeffs$Pr...z..[L1SingletonCoeffs$blnSig]), 
+       col = "red", pch = 16)
+
+
+LM_Dist2Gene <- lm(log(Dist2Gene + 1) ~ as.factor(SelectInd), data = L1SingletonCoeffs)
+summary(aov(LM_Dist2Gene))
+
+LM_Freq <- lm(log(Freq) ~ as.factor(SelectInd), data = L1SingletonCoeffs)
+summary(aov(LM_Freq))
+LM_Freq_Sig <- lm(log(Freq) ~ as.factor(SelectInd), data = L1SingletonCoeffs,
+                  subset = blnSig)
+summary(aov(LM_Freq_Sig))
+
+boxplot(log(Freq) ~ as.factor(SelectInd), data = L1SingletonCoeffs)
 
 #######
 # Regress against individual L1 positions
@@ -265,8 +376,9 @@ CreateDisplayPdf('D:/L1polymORF/Figures/PropSelectVsInsLength.pdf',
 L1SingletonCoeffs_subsetPenalized <- 
   subset(L1SingletonCoeffs, subset = robust.se > 0 & (!is.na(blnSelect)) &
            (!is.na(L1SingletonCoeffs$L1Start)) & (!is.na(L1SingletonCoeffs$L1End))&
-           L1SingletonCoeffs$L1End >= 6000)
-sum(L1SingletonCoeffs$L1End >= 6000, na.rm = T)
+           L1SingletonCoeffs$L1End >= 5900)
+sum(L1SingletonCoeffs$L1End >= 5900, na.rm = T)
+hist(L1SingletonCoeffs$L1End, seq(0, 6020, 10), xlim = c(5500, 6020))
 
 # Create an indicator matrix for the presence of a L1 position inside an L1
 L1End <- max(L1SingletonCoeffs$L1End, na.rm = T)
@@ -278,8 +390,7 @@ L1PosMat <- sapply(1:L1End, function(x){
 dim(L1PosMat)
 
 # Add an indicator for full-length at the end
-# L1PosMat <- cbind(L1PosMat, (L1SingletonCoeffs_subsetPenalized$L1Start >= 10) &
-#                     (L1SingletonCoeffs_subsetPenalized$L1End >= 6000))
+L1PosMat <- cbind(L1PosMat, 1*L1SingletonCoeffs_subsetPenalized$blnFull)
 L1PosMat <- 1*L1PosMat
 L1PosMat[1:4, 1:5]
 which(is.na(L1PosMat), arr.ind = T)
@@ -288,27 +399,60 @@ which(is.na(L1PosMat), arr.ind = T)
 cat("Performing regularized regression ....")
 GLM_Lasso <- glmnet(x = L1PosMat, y = 1*L1SingletonCoeffs_subsetPenalized$blnSelect,
                     alpha = 0.99, family = "binomial", weights = StWeights)
-CV_Lasso  <- cv.glmnet(x = L1PosMat, y = L1SingletonCoeffs_subsetPenalized$blnSelect,
-                      alpha = 0.99)
-GLM_Ridge <- glmnet(x = L1PosMat, y = 1*L1SingletonCoeffs_subsetPenalized$blnSelect,
-                    alpha = 0, family = "binomial", weights = StWeights)
+# GLM_Ridge <- glmnet(x = L1PosMat, y = 1*L1SingletonCoeffs_subsetPenalized$blnSelect,
+#                     alpha = 0, family = "binomial", weights = StWeights)
+# CV_Ridge <- cv.glmnet(x = L1PosMat, y = L1SingletonCoeffs_subsetPenalized$blnSelect,
+#                alpha = 0, weights = StWeights)
 
-Coef_Lasso  <- coef(GLM_Lasso, CV_Lasso$lambda.1se)
-Coef_LassoV <- as.vector(Coef_Lasso)
-plot(Coef_LassoV)
-sum(Coef_LassoV > 0)
+# Coef_Lasso  <- coef(GLM_Lasso, CV_Lasso$lambda.1se)
+# Coef_LassoV <- as.vector(Coef_Lasso)
+# plot(Coef_LassoV)
+# sum(Coef_LassoV > 0)
+# Coef_Ridge <- coef(GLM_Ridge,
+#    s = cv.glmnet(x = L1PosMat, y = L1SingletonCoeffs_subsetPenalized$blnSelect,
+#                     alpha = 0)$lambda.1se)
+# Predict_Ridge <- predict(GLM_Ridge, newx = L1PosMat,
+#                    s = cv.glmnet(x = L1PosMat, y = L1SingletonCoeffs_subsetPenalized$blnSelect,
+#                                  alpha = 0)$lambda.1se)
+Predict_Lasso <- predict(GLM_Lasso, newx = L1PosMat,
+                         s = cv.glmnet(x = L1PosMat, y = L1SingletonCoeffs_subsetPenalized$blnSelect,
+                                       alpha = 0.99)$lambda.1se)
 
-
-Coef_Ridge <- coef(GLM_Ridge,
-   s = cv.glmnet(x = L1PosMat, y = L1SingletonCoeffs_subsetPenalized$blnSelect,
-                    alpha = 0)$lambda.1se)
-Predict_Ridge <- predict(GLM_Ridge, newx = L1PosMat,
-                   s = cv.glmnet(x = L1PosMat, y = L1SingletonCoeffs_subsetPenalized$blnSelect,
-                                 alpha = 0)$lambda.1se)
-plot(L1SingletonCoeffs_subsetPenalized$L1Start, exp(Predict_Ridge)/(1+exp(Predict_Ridge)))
+# Plot observed and predicted proportion of L1 
+PropSelFull <- mean(L1SingletonCoeffs$blnSelect[L1SingletonCoeffs$blnFull], na.rm = T)
+par(mfrow = c(1, 2), mar =  c(2, 2, 2, 1), oma = c(3, 3, 1, 0.1))
+XLimLong  <- 6000
+XLimShort <- 50
+Cols <- rainbow(3)
+plot(PropSmoothed_InsL$x, PropSmoothed_InsL$y, xlab = "",
+     ylab = "", type = "l", xlim = c(0, XLimLong),
+     ylim = c(0, 0.13), col = Cols[1], main = "A")
+StartOrder <- order(L1SingletonCoeffs_subsetPenalized$L1Start)
+#PredictP   <- exp(Predict_Ridge)/(1+exp(Predict_Ridge))
+PredictP   <- exp(Predict_Lasso)/(1+exp(Predict_Lasso))
 lines(L1SingletonCoeffs_subset$L1Start[InsLorder], 
-      LM_All_Interact_binom$fitted.values[InsLorder], lty = 2)
-lines(PropSmoothed_InsL$x, PropSmoothed_InsL$y)
+      LM_All_Interact_binom$fitted.values[InsLorder],
+      col = Cols[3])
+lines(L1SingletonCoeffs_subsetPenalized$L1Start[StartOrder], PredictP[StartOrder],
+      col = Cols[2])
+arrows(XLimLong / 4, PropSelFull, 0, PropSelFull, length = 0.1)
+
+plot(PropSmoothed_InsL$x, PropSmoothed_InsL$y, xlab = "",
+      type = "l", xlim = c(0, XLimShort),
+     ylim = c(0, 0.13), col = Cols[1], main = "B")
+arrows(XLimShort / 4, PropSelFull, 0, PropSelFull, length = 0.1)
+lines(L1SingletonCoeffs_subset$L1Start[InsLorder], 
+      LM_All_Interact_binom$fitted.values[InsLorder],
+      col = Cols[3])
+lines(L1SingletonCoeffs_subsetPenalized$L1Start[StartOrder], PredictP[StartOrder],
+      col = Cols[2])
+
+mtext(text = "L1 insertion start [bp]", side = 1, outer = T, line = 1)
+mtext(text = "Proportion of L1 with positive selection", side = 2, 
+      outer = T, line = 1)
+CreateDisplayPdf('D:/L1polymORF/Figures/PropSelectVsL1Start.pdf', 
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+                 height = 4, width = 5)
 
 Coef_RidgeV <- as.vector(Coef_Ridge)
 sum(Coef_RidgeV > 0)
@@ -318,9 +462,13 @@ plot(Coef_RidgeV, ylim = c(-0.002, 0.004), type = "l",
 lines(c(0, 10^4), c(0, 0), lty = 2, col = "red")
 
 cat("done!\n")
-which.max(Coef_RidgeV)
-which.min(Coef_RidgeV)
-min(Coef_RidgeV)
+
+
+# Check proportion selected among
+L1SingletonCoeffs_with5P <- L1SingletonCoeffs[L1SingletonCoeffs$L1Start <= 10,]
+table(L1SingletonCoeffs_with5P$blnFull, L1SingletonCoeffs_with5P$blnSelect)
+fisher.test(L1SingletonCoeffs_with5P$blnFull, L1SingletonCoeffs_with5P$blnSelect)
+sum(L1SingletonCoeffs_with5P$blnFull & L1SingletonCoeffs_with5P$blnSelect, na.rm = T)
 
 ##########################
 #                        #
@@ -329,6 +477,7 @@ min(Coef_RidgeV)
 ##########################
 
 # Function to calculate p-values for distances to select features
+L1Subset <- L1SingletonCoeffs
 SelectDistP <- function(L1Subset, NrSample = 10^4){
   
   # Sample distances to various features of selected L1
@@ -343,7 +492,8 @@ SelectDistP <- function(L1Subset, NrSample = 10^4){
       Dist2Prom = mean(L1Subset$Dist2Prom[idx]),
       Dist2Repr = mean(L1Subset$Dist2Repr[idx]),
       LogDist2Repr = mean(log(L1Subset$Dist2Repr[idx] + 0.1)),
-      Dist2Tfb = mean(L1Subset$Dist2Tfb[idx])
+      Dist2Tfb = mean(L1Subset$Dist2Tfb[idx]),
+      Dist2VistaOrGene = mean(L1Subset$Dist2VistaOrGene[idx])
     )
   })
   blnSel <- L1Subset$blnSelect
@@ -354,7 +504,8 @@ SelectDistP <- function(L1Subset, NrSample = 10^4){
     Dist2Prom = mean(L1Subset$Dist2Prom[blnSel]),
     Dist2Repr = mean(L1Subset$Dist2Repr[blnSel]),
     LogDist2Repr = mean(log(L1Subset$Dist2Repr[blnSel] + 0.1)),
-    Dist2Tfb = mean(L1Subset$Dist2Tfb[blnSel])
+    Dist2Tfb = mean(L1Subset$Dist2Tfb[blnSel]),
+    Dist2VistaOrGene = mean(L1Subset$Dist2VistaOrGene[blnSel])
   )
   rowSums(SampledMeandistMat <= MeanSelectDists) / NrSample
   
@@ -393,8 +544,9 @@ FullDistP <- function(L1Subset, NrSample = 10^4){
 
 
 # Create a subset of coeffici
-SDP_All   <- SelectDistP(L1SingletonCoeffs)
-SDP_Fragm <- SelectDistP(L1SingletonCoeffs[which(!L1SingletonCoeffs$blnFull),])
+SDP_All   <- SelectDistP(L1SingletonCoeffs[!is.na(L1SingletonCoeffs$blnSelect),])
+SDP_Fragm <- SelectDistP(L1SingletonCoeffs[which((!L1SingletonCoeffs$blnFull) &
+                                                   !is.na(L1SingletonCoeffs$blnSelect)),])
 SDP_Full  <- SelectDistP(L1SingletonCoeffs[which(L1SingletonCoeffs$blnFull),])
 p.adjust(c(SDP_All, SDP_Full))
 p.adjust(SDP_All)
@@ -457,7 +609,7 @@ FisherTestClose(L1SingletonCoeffs$blnSelect, L1SingletonCoeffs$Dist2EnhancerOrGe
 FisherTestClose(L1SingletonCoeffs$blnSelect, L1SingletonCoeffs$Dist2Tfb, CutOff = 2000)
 
 # Test for enrichment of different Tfbs
-DistCutoff <- 2000
+DistCutoff <- 1000
 L1SingletonCoeffs_GRextended <- GRanges(seqnames = seqnames(L1SingletonCoeffs_GR),
    IRanges(start = start(L1SingletonCoeffs_GR) - DistCutoff,
            end = end(L1SingletonCoeffs_GR) + DistCutoff))
@@ -476,3 +628,85 @@ TfbEnrichP <- lapply(TfbNames, function(x){
 names(TfbEnrichP) <- TfbNames
 TfbEnrichP <- unlist(TfbEnrichP)
 min(p.adjust(TfbEnrichP))
+
+###################################
+#                                 #
+#    Calculate population frequency        #
+#                                     #
+###################################
+
+
+L1SingletonCoeffs$AFR
+FreqPerPop <- aggregate.data.frame(
+   L1SingletonCoeffs[,c("EUR", "EAS", "AMR", "SAS", "AFR")], 
+   by = list(L1SingletonCoeffs$SelectInd), FUN = mean)
+
+PSel_pos <- as.vector(FreqPerPop[1,-1] / FreqPerPop[2,-1])
+PSel_neg <- as.vector(FreqPerPop[3,-1] / FreqPerPop[2,-1])
+plot(t(PSel_pos), t(PSel_neg))
+cor.test(t(PSel_pos), t(PSel_neg))$p.value
+aggregate(Freq ~ SelectInd, data = L1SingletonCoeffs, FUN = mean)
+
+CorPerPop <- sapply(as.character(UniquePops), function(x) {
+  CT <- cor.test(L1SingletonCoeffs$SelectInd, L1SingletonCoeffs[,x],
+           method = "spearman")
+  c(Cor = CT$estimate, P = CT$p.value)
+})
+colnames(CorPerPop) <- UniquePops
+CorPerPop
+CT <- cor.test(L1SingletonCoeffs$coef, L1SingletonCoeffs[,"AFR"])
+cor.test(L1SingletonCoeffs$coef, L1SingletonCoeffs[,"AFR"])
+
+SelectPerChrom <- table(L1SingletonCoeffs$SelectInd, L1SingletonCoeffs$Chrom)
+plot(SelectPerChrom[1,]/SelectPerChrom[2,],
+     SelectPerChrom[3,]/SelectPerChrom[2,])
+
+fisher.test(L1SingletonCoeffs$blnSig, L1SingletonCoeffs$Dist2Gene == 0)
+
+###################################
+#                                 #
+#    Explore gene ontology        #
+#                                 #
+###################################
+
+# Load the annotation package org.Hs.eg.db
+library(org.Hs.eg.db)
+
+# Create extended ranges of L1 insertions
+DistCutoff <- 1000
+L1SingletonCoeffs_GRextended <- 
+  GRanges(seqnames = seqnames(L1SingletonCoeffs_GR),
+          IRanges(start = start(L1SingletonCoeffs_GR) - DistCutoff,
+                  end = end(L1SingletonCoeffs_GR) + DistCutoff))
+# Get genomic ranges of genes
+GeneGR <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
+GeneGR_SelectPos  <- subsetByOverlaps(GeneGR, 
+                       L1SingletonCoeffs_GRextended[which(L1SingletonCoeffs$blnSelect)])
+GeneGR_SelectNeg  <- subsetByOverlaps(GeneGR, 
+                                      L1SingletonCoeffs_GRextended[which(L1SingletonCoeffs$blnNotSelect)])
+GeneGR_SelectAll  <- subsetByOverlaps(GeneGR, 
+                                      L1SingletonCoeffs_GRextended[which(L1SingletonCoeffs$blnSig)])
+GeneGR_NotSelect  <- subsetByOverlaps(GeneGR, 
+                                      L1SingletonCoeffs_GRextended[which(!L1SingletonCoeffs$blnSig)])
+GeneGR_All  <- subsetByOverlaps(GeneGR, 
+                                      L1SingletonCoeffs_GRextended[which(!L1SingletonCoeffs$blnSig)])
+
+# Write out gene ids for different genelists
+writeLines(GeneGR_SelectPos@elementMetadata@listData$gene_id, 
+           con = "D:/L1polymORF/Data/L1IntersectGeneIDs_SelectPos")
+writeLines(GeneGR_SelectNeg@elementMetadata@listData$gene_id, 
+           con = "D:/L1polymORF/Data/L1IntersectGeneIDs_SelectNeg")
+writeLines(GeneGR_SelectAll@elementMetadata@listData$gene_id, 
+           con = "D:/L1polymORF/Data/L1IntersectGeneIDs_SelectAll")
+writeLines(GeneGR_NotSelect@elementMetadata@listData$gene_id, 
+           con = "D:/L1polymORF/Data/L1IntersectGeneIDs_NotSelect")
+writeLines(GeneGR_All@elementMetadata@listData$gene_id, 
+           con = "D:/L1polymORF/Data/L1IntersectGeneIDs_All")
+
+
+# Get the gene symbol and name associated with the gene IDs in
+# SelectGenesGR
+GeneGROL@elementMetadata@listData$gene_id
+cols <- c("SYMBOL", "GENENAME")
+select(org.Hs.eg.db, keys = GeneGROL@elementMetadata@listData$gene_id,
+       columns=cols, keytype="ENTREZID")
