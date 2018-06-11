@@ -326,7 +326,7 @@ rect(13, 0, 21, 1, col = "red")
 # Subset L1 coefficients
 blnSubset <- L1SingletonCoeffs$robust.se > 0 & 
   (!is.na(L1SingletonCoeffs$blnSelect)) &
-  L1SingletonCoeffs$Freq <= 3/2504 &
+  L1SingletonCoeffs$Freq <= 5/2504/2 &
   L1SingletonCoeffs$L1End >= 5900
 L1SingletonCoeffs_subsetLowFreq <- 
   L1SingletonCoeffs[blnSubset, ]
@@ -336,6 +336,18 @@ LM_All_Interact_binom_lowFreq <- glm(1L*blnSig ~ L1Start + blnFull,
                              family = quasibinomial)
 summary(LM_All_Interact_binom_lowFreq)
 
+blnNotFull <- !L1SingletonCoeffs_subset$blnFull
+PropSmoothed_InsL_lowF <- supsmu(L1SingletonCoeffs_subsetLowFreq$L1Start[blnNotFull],
+                            1*L1SingletonCoeffs_subsetLowFreq$blnSelect[blnNotFull],
+                            wt = 1/L1SingletonCoeffs_subsetLowFreq$robust.se[blnNotFull])
+PropNSSmoothed_InsL_lowF <- supsmu(L1SingletonCoeffs_subsetLowFreq$L1Start[blnNotFull],
+                              1*L1SingletonCoeffs_subsetLowFreq$blnNotSelect[blnNotFull],
+                              wt = 1/L1SingletonCoeffs_subsetLowFreq$robust.se[blnNotFull])
+plot(PropSmoothed_InsL_lowF$x, PropSmoothed_InsL_lowF$y, xlab = "L1 start [bp]",
+     ylab = "Proportion of L1 with positive selection signal", type = "l")
+segments(x0 = L1SingletonCoeffs_subsetLowFreq$L1Start[L1SingletonCoeffs_subsetLowFreq$blnSelect],
+         y0 = 0, y1 =1, col = "red")
+sum(L1SingletonCoeffs_subsetLowFreq$blnSelect, na.rm = T)
 
 #######
 # Regress against frequency
@@ -490,6 +502,42 @@ sum(L1SingletonCoeffs_with5P$blnFull & L1SingletonCoeffs_with5P$blnSelect, na.rm
 #       Plot frequency quantiles        #
 #                                        #
 ##########################################
+
+# Define vector of quantiles 
+QV <- seq(0.1, 0.9, 0.1)
+
+# Define bins of insertion length
+StartBins <- cut(L1SingletonCoeffs$InsLength, breaks = seq(0, 6000, 500))
+
+# Loop through insertion length bins and plot frequency quantile per bills
+xVals <- sapply(unique(StartBins), function(x) {
+  blnSubset <- StartBins == x
+  mean(L1SingletonCoeffs$L1Start[blnSubset],na.rm = T)
+})
+xOrder <- order(xVals)
+QuantMat <- sapply(unique(InsLBins), function(x) {
+  blnSubset <- InsLBins == x
+  quantile(L1SingletonCoeffs$Freq[which(blnSubset)], 
+           probs = QV)
+})
+
+# Plot quantile vectors (logarithm)
+Cols <- rainbow(length(QV))
+plot(xVals[xOrder], log(QuantMat[1, xOrder]), type = "l", col  = Cols[1],
+     ylim = -c(8, 1), xlab = "L1 start")
+for (i in 2:nrow(QuantMat)){
+  lines(xVals[xOrder], log(QuantMat[i, xOrder]), col  = Cols[i])
+  
+}
+
+# Plot quantile vectors (untransformed)
+Cols <- rainbow(length(QV))
+plot(xVals[xOrder], QuantMat[1, xOrder], type = "l", col  = Cols[1],
+     ylim = c(0, 0.05))
+for (i in 2:nrow(QuantMat)){
+  lines(xVals[xOrder], QuantMat[i, xOrder], col  = Cols[i])
+  
+}
 
 ##########################
 #                        #
