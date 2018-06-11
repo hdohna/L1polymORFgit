@@ -274,7 +274,6 @@ cor.test(L1SingletonCoeffs$Freq, L1SingletonCoeffs$coef)
 #                                        #
 ##########################################
 
-
 #######
 # Regress against L1 start
 #######
@@ -285,7 +284,7 @@ sum(is.na(L1SingletonCoeffs$InsLength))
 L1SingletonCoeffs_subset <- subset(L1SingletonCoeffs, 
                                    subset = robust.se > 0 & (!is.na(blnSelect))&
                                      L1SingletonCoeffs$L1End >= 5900)
-LM_All_Interact_binom <- glm(1L*blnSelect ~ L1Start + blnFull, 
+LM_All_Interact_binom <- glm(blnNotSelect ~ L1Start + blnFull  + Freq, 
                              data = L1SingletonCoeffs_subset, 
                              weights = 1/robust.se,
                              family = quasibinomial)
@@ -320,6 +319,22 @@ rect(13, 0, 21, 1, col = "red")
 #                  height = 5, width = 5)
 
 
+#######
+# Regress against L1 start among rare L1
+#######
+
+# Subset L1 coefficients
+blnSubset <- L1SingletonCoeffs$robust.se > 0 & 
+  (!is.na(L1SingletonCoeffs$blnSelect)) &
+  L1SingletonCoeffs$Freq <= 3/2504 &
+  L1SingletonCoeffs$L1End >= 5900
+L1SingletonCoeffs_subsetLowFreq <- 
+  L1SingletonCoeffs[blnSubset, ]
+LM_All_Interact_binom_lowFreq <- glm(1L*blnSig ~ L1Start + blnFull, 
+                             data = L1SingletonCoeffs_subsetLowFreq, 
+                             weights = 1/robust.se,
+                             family = quasibinomial)
+summary(LM_All_Interact_binom_lowFreq)
 
 
 #######
@@ -454,12 +469,12 @@ CreateDisplayPdf('D:/L1polymORF/Figures/PropSelectVsL1Start.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 4, width = 5)
 
-Coef_RidgeV <- as.vector(Coef_Ridge)
-sum(Coef_RidgeV > 0)
-sum(Coef_RidgeV > 0)
-plot(Coef_RidgeV, ylim = c(-0.002, 0.004), type = "l",
-     xlab = "Position of L1 present", ylab = "Effect on selection")
-lines(c(0, 10^4), c(0, 0), lty = 2, col = "red")
+# Coef_RidgeV <- as.vector(Coef_Ridge)
+# sum(Coef_RidgeV > 0)
+# sum(Coef_RidgeV > 0)
+# plot(Coef_RidgeV, ylim = c(-0.002, 0.004), type = "l",
+#      xlab = "Position of L1 present", ylab = "Effect on selection")
+# lines(c(0, 10^4), c(0, 0), lty = 2, col = "red")
 
 cat("done!\n")
 
@@ -469,6 +484,12 @@ L1SingletonCoeffs_with5P <- L1SingletonCoeffs[L1SingletonCoeffs$L1Start <= 10,]
 table(L1SingletonCoeffs_with5P$blnFull, L1SingletonCoeffs_with5P$blnSelect)
 fisher.test(L1SingletonCoeffs_with5P$blnFull, L1SingletonCoeffs_with5P$blnSelect)
 sum(L1SingletonCoeffs_with5P$blnFull & L1SingletonCoeffs_with5P$blnSelect, na.rm = T)
+
+##########################################
+#                                        #
+#       Plot frequency quantiles        #
+#                                        #
+##########################################
 
 ##########################
 #                        #
