@@ -30,13 +30,12 @@ L1GRPath        <- 'D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData'
 L1RefRangePath  <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
 ChrLPath        <- 'D:/L1polymORF/Data/ChromLengthsHg19.Rdata'
 HiCFolderPath   <- 'D:/L1polymORF/Data/HiCData/'
-InputPath       <- 'D:/L1polymORF/Data/SingletonAnalysis.RData'
+InputPath       <- 'D:/L1polymORF/Data/SingletonAnalysis_unphased.RData'
+InputPath_SampledL1  <- 'D:/L1polymORF/Data/SingletonAnalysis_SampledL1_Freq3.RData'
 
 # Number of info columns in vcf file
 NrInfoCols   <- 9
 
-# Minimum number of carriers for a LINE-1 to be analyzed
-MinNrCarrier <- 3
 
 ##########################################
 #                                        #
@@ -50,6 +49,15 @@ cat("Loading and processing data ...")
 load(L1GRPath)
 load(ChrLPath)
 load(InputPath)
+load(InputPath_SampledL1)
+
+# Make genomic ranges for L1SingletonCoeffs
+L1SingletonCoeffs$chromosome <- paste("chr", L1SingletonCoeffs$Chrom, sep = "")
+L1SingletonCoeffs_GR <- makeGRangesFromDataFrame(L1SingletonCoeffs, 
+                                                 seqnames.field = "chromosome",
+                                                 start.field = "Pos",
+                                                 end.field = "Pos")
+
 
 # Read information about 1000 genome samples
 SampleInfo  <- read.table(G1000SamplePath, header = T)
@@ -179,6 +187,8 @@ cor.test(L1SingletonCoeffs$Freq[L1SingletonCoeffs$blnSelect],
 # Indicator for negative selection
 L1SingletonCoeffs$blnNotSelect <- L1SingletonCoeffs$blnSig &
   L1SingletonCoeffs$coef > 0
+sum(L1SingletonCoeffs$blnNotSelect)
+sum(L1SingletonCoeffs$blnSelect)
 
 # Indicator fo selection (+1 = positive, -1 = negative, 0 = neutral)
 L1SingletonCoeffs$SelectInd <- 0
@@ -247,13 +257,29 @@ L1SingletonCoeffs$Dist2VistaOrGene <- pmin(L1SingletonCoeffs$Dist2VistaEnhancer,
 
 ##########################################
 #                                        #
+#     Compare p-values sampled and observed L1             #
+#                                        #
+##########################################
+
+# Get sampled frequency
+SFreq <- mean(L1SingletonCoeffs_3$Freq)
+
+mean(L1SingletonCoeffs$Pr...z..[L1SingletonCoeffs$Freq == SFreq], na.rm = T)
+mean(L1SingletonCoeffs_3$Pr...z.., na.rm = T)
+par(mfrow = c(1, 1))
+hist(L1SingletonCoeffs_3$Pr...z.., breaks = seq(0, 1, 0.01))
+
+any(!is.na(L1SingletonCoeffs_3$Pr...z..))
+
+##########################################
+#                                        #
 #        Plot coefficients               #
 #                                        #
 ##########################################
 
 # Plot coefficients vs insertion length
 par(mfrow = c(1, 1))
-plot(L1SingletonCoeffs$InsLength, L1SingletonCoeffs$coef, 
+plot(L1SingletonCoeffs$L1Start, L1SingletonCoeffs$coef, 
      xlab = "Insertion length", ylab = "Singleton coefficient")
 with(L1SingletonCoeffs, points(InsLength[blnSelect], coef[blnSelect], 
        col = "red"))
@@ -742,13 +768,14 @@ fisher.test(L1SingletonCoeffs$blnSig, L1SingletonCoeffs$Dist2Gene == 0)
 library(org.Hs.eg.db)
 
 # Create extended ranges of L1 insertions
-DistCutoff <- 1000
+DistCutoff <- 0
 L1SingletonCoeffs_GRextended <- 
   GRanges(seqnames = seqnames(L1SingletonCoeffs_GR),
           IRanges(start = start(L1SingletonCoeffs_GR) - DistCutoff,
                   end = end(L1SingletonCoeffs_GR) + DistCutoff))
 # Get genomic ranges of genes
 GeneGR <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
+ExonGR <- exons(TxDb.Hsapiens.UCSC.hg19.knownGene)
 GeneGR_SelectPos  <- subsetByOverlaps(GeneGR, 
                        L1SingletonCoeffs_GRextended[which(L1SingletonCoeffs$blnSelect)])
 GeneGR_SelectNeg  <- subsetByOverlaps(GeneGR, 
@@ -759,6 +786,16 @@ GeneGR_NotSelect  <- subsetByOverlaps(GeneGR,
                                       L1SingletonCoeffs_GRextended[which(!L1SingletonCoeffs$blnSig)])
 GeneGR_All  <- subsetByOverlaps(GeneGR, 
                                       L1SingletonCoeffs_GRextended[which(!L1SingletonCoeffs$blnSig)])
+ExonGR_SelectPos  <- subsetByOverlaps(ExonGR, 
+                                      L1SingletonCoeffs_GRextended[which(L1SingletonCoeffs$blnSelect)])
+ExonGR_SelectNeg  <- subsetByOverlaps(ExonGR, 
+                                      L1SingletonCoeffs_GRextended[which(L1SingletonCoeffs$blnNotSelect)])
+ExonGR_SelectAll  <- subsetByOverlaps(ExonGR, 
+                                      L1SingletonCoeffs_GRextended[which(L1SingletonCoeffs$blnSig)])
+ExonGR_NotSelect  <- subsetByOverlaps(ExonGR, 
+                                      L1SingletonCoeffs_GRextended[which(!L1SingletonCoeffs$blnSig)])
+ExonGR_All  <- subsetByOverlaps(ExonGR, 
+                                L1SingletonCoeffs_GRextended[which(!L1SingletonCoeffs$blnSig)])
 
 # Write out gene ids for different genelists
 writeLines(GeneGR_SelectPos@elementMetadata@listData$gene_id, 
@@ -775,7 +812,14 @@ writeLines(GeneGR_All@elementMetadata@listData$gene_id,
 
 # Get the gene symbol and name associated with the gene IDs in
 # SelectGenesGR
-GeneGROL@elementMetadata@listData$gene_id
+GeneGR_SelectPos@elementMetadata@listData$gene_id
 cols <- c("SYMBOL", "GENENAME")
-select(org.Hs.eg.db, keys = GeneGROL@elementMetadata@listData$gene_id,
+select(org.Hs.eg.db, keys = GeneGR_SelectPos@elementMetadata@listData$gene_id,
+       columns=cols, keytype="ENTREZID")
+select(org.Hs.eg.db, keys = GeneGR_SelectAll@elementMetadata@listData$gene_id,
+       columns=cols, keytype="ENTREZID")
+
+ExonGR_SelectAll@elementMetadata@listData$exon_id
+cols <- c("SYMBOL", "GENENAME")
+select(org.Hs.eg.db, keys = ExonGR_SelectAll@elementMetadata@listData$exon_id,
        columns=cols, keytype="ENTREZID")
