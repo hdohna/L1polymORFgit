@@ -137,12 +137,12 @@ for (Chr in c(1:22, "X")) {
   # Create a data frame with L1 coefficients
   L1Coeffs           <- data.frame(t(L1Coeffs))
   L1Coeffs$Chrom     <- Chr
-  L1Coeffs$Pos       <- L1_1000G$POS[i]
-  L1Coeffs$InsLength <- L1_1000G_reduced$InsLength[i]
-  L1Coeffs$Freq      <- L1_1000G_reduced$Frequency[i]
-  L1Coeffs$L1Start   <- L1_1000G_reduced$L1Start[i]
-  L1Coeffs$L1End     <- L1_1000G_reduced$L1End[i]
-  L1Coeffs$L1Strand  <- L1_1000G_reduced$L1Strand[i]
+  L1Coeffs$Pos       <- L1_1000G$POS[idxEnough]
+  L1Coeffs$InsLength <- L1_1000G_reduced$InsLength[idxEnough]
+  L1Coeffs$Freq      <- L1_1000G_reduced$Frequency[idxEnough]
+  L1Coeffs$L1Start   <- L1_1000G_reduced$L1Start[idxEnough]
+  L1Coeffs$L1End     <- L1_1000G_reduced$L1End[idxEnough]
+  L1Coeffs$L1Strand  <- L1_1000G_reduced$L1Strand[idxEnough]
   
   L1SingletonCoeffs <- rbind(L1SingletonCoeffs, L1Coeffs)
 }
