@@ -176,13 +176,7 @@ L1SingletonCoeffs$blnSelect <- L1SingletonCoeffs$blnSig &
 #L1SingletonCoeffs$blnSelect[is.na(L1SingletonCoeffs$blnSelect)] <- FALSE
   
 table(L1SingletonCoeffs$blnSelect, L1SingletonCoeffs$blnFull)
-fisher.test(L1SingletonCoeffs$blnSelect, L1SingletonCoeffs$blnFull)
-nrow(L1SingletonCoeffs)
-
-plot(L1SingletonCoeffs$Freq, L1SingletonCoeffs$coef)
-cor.test(L1SingletonCoeffs$Freq[L1SingletonCoeffs$blnSelect],
-     L1SingletonCoeffs$coef[L1SingletonCoeffs$blnSelect],
-     method = "spearman")
+sum(L1SingletonCoeffs$blnSig)
 
 # Indicator for negative selection
 L1SingletonCoeffs$blnNotSelect <- L1SingletonCoeffs$blnSig &
@@ -255,11 +249,11 @@ L1SingletonCoeffs$Dist2VistaEnhancer <- Dist2Closest(L1SingletonCoeffs_GR,
 L1SingletonCoeffs$Dist2VistaOrGene <- pmin(L1SingletonCoeffs$Dist2VistaEnhancer,
                                            L1SingletonCoeffs$Dist2Gene)
 
-##########################################
-#                                        #
-#     Compare p-values sampled and observed L1             #
-#                                        #
-##########################################
+########################################################
+#                                                      #
+#     Compare p-values sampled and observed L1         #
+#                                                      #
+########################################################
 
 # Get sampled frequency
 SFreq <- mean(L1SingletonCoeffs_3$Freq)
@@ -307,12 +301,17 @@ cor.test(L1SingletonCoeffs$Freq, L1SingletonCoeffs$coef)
 max(L1SingletonCoeffs$L1End, na.rm = T)
 # Subset L1 coefficients
 sum(is.na(L1SingletonCoeffs$InsLength))
+L1SingletonCoeffs$se.coef.
 L1SingletonCoeffs_subset <- subset(L1SingletonCoeffs, 
-                                   subset = robust.se > 0 & (!is.na(blnSelect))&
-                                     L1SingletonCoeffs$L1End >= 5900)
-LM_All_Interact_binom <- glm(blnNotSelect ~ L1Start + blnFull  + Freq, 
+                                   subset = se.coef. > 0 & (!is.na(blnSelect))&
+                                     L1End >= 5900)
+LM_All <- glm(coef ~ L1Start +  Freq:L1Start + Freq,
                              data = L1SingletonCoeffs_subset, 
-                             weights = 1/robust.se,
+                             weights = 1/se.coef.)
+summary(LM_All)
+LM_All_Interact_binom <- glm(blnNotSelect ~ L1Start + blnFull, 
+                             data = L1SingletonCoeffs_subset, 
+                             weights = 1/se.coef.,
                              family = quasibinomial)
 summary(LM_All_Interact_binom)
 LM_All_Interact_binom <- glm(1L*blnNotSelect ~ L1Start + blnFull, 
@@ -325,11 +324,11 @@ summary(LM_All_Interact_binom)
 # Smooth proportions of 
 blnNotFull <- !L1SingletonCoeffs_subset$blnFull
 PropSmoothed_InsL <- supsmu(L1SingletonCoeffs_subset$L1Start[blnNotFull],
-                            1*L1SingletonCoeffs_subset$blnSelect[blnNotFull],
-                            wt = 1/L1SingletonCoeffs_subset$robust.se[blnNotFull])
+                            1*L1SingletonCoeffs_subset$blnSig[blnNotFull],
+                            wt = 1/L1SingletonCoeffs_subset$se.coef.[blnNotFull])
 PropNSSmoothed_InsL <- supsmu(L1SingletonCoeffs_subset$L1Start[blnNotFull],
-                            1*L1SingletonCoeffs_subset$blnNotSelect[blnNotFull],
-                            wt = 1/L1SingletonCoeffs_subset$robust.se[blnNotFull])
+                            1*L1SingletonCoeffs_subset$blnSig[blnNotFull],
+                            wt = 1/L1SingletonCoeffs_subset$se.coef.[blnNotFull])
 plot(PropNSSmoothed_InsL$x, PropNSSmoothed_InsL$y, xlab = "L1 insertion length [bp]",
      ylab = "Proportion of L1 with positive selection signal", type = "l",
      col = "red")
@@ -450,8 +449,8 @@ which(is.na(L1PosMat), arr.ind = T)
 
 # Perform lasso and ridge regression
 cat("Performing regularized regression ....")
-GLM_Lasso <- glmnet(x = L1PosMat, y = 1*L1SingletonCoeffs_subsetPenalized$blnSelect,
-                    alpha = 0.99, family = "binomial", weights = StWeights)
+# GLM_Lasso <- glmnet(x = L1PosMat, y = 1*L1SingletonCoeffs_subsetPenalized$blnSelect,
+#                     alpha = 0.99, family = "binomial", weights = StWeights)
 # GLM_Ridge <- glmnet(x = L1PosMat, y = 1*L1SingletonCoeffs_subsetPenalized$blnSelect,
 #                     alpha = 0, family = "binomial", weights = StWeights)
 # CV_Ridge <- cv.glmnet(x = L1PosMat, y = L1SingletonCoeffs_subsetPenalized$blnSelect,
@@ -467,45 +466,45 @@ GLM_Lasso <- glmnet(x = L1PosMat, y = 1*L1SingletonCoeffs_subsetPenalized$blnSel
 # Predict_Ridge <- predict(GLM_Ridge, newx = L1PosMat,
 #                    s = cv.glmnet(x = L1PosMat, y = L1SingletonCoeffs_subsetPenalized$blnSelect,
 #                                  alpha = 0)$lambda.1se)
-Predict_Lasso <- predict(GLM_Lasso, newx = L1PosMat,
-                         s = cv.glmnet(x = L1PosMat, y = L1SingletonCoeffs_subsetPenalized$blnSelect,
-                                       alpha = 0.99)$lambda.1se)
-
-# Plot observed and predicted proportion of L1 
-PropSelFull <- mean(L1SingletonCoeffs$blnSelect[L1SingletonCoeffs$blnFull], na.rm = T)
-par(mfrow = c(1, 2), mar =  c(2, 2, 2, 1), oma = c(3, 3, 1, 0.1))
-XLimLong  <- 6000
-XLimShort <- 50
-Cols <- rainbow(3)
-plot(PropSmoothed_InsL$x, PropSmoothed_InsL$y, xlab = "",
-     ylab = "", type = "l", xlim = c(0, XLimLong),
-     ylim = c(0, 0.13), col = Cols[1], main = "A")
-StartOrder <- order(L1SingletonCoeffs_subsetPenalized$L1Start)
-#PredictP   <- exp(Predict_Ridge)/(1+exp(Predict_Ridge))
-PredictP   <- exp(Predict_Lasso)/(1+exp(Predict_Lasso))
-lines(L1SingletonCoeffs_subset$L1Start[InsLorder], 
-      LM_All_Interact_binom$fitted.values[InsLorder],
-      col = Cols[3])
-lines(L1SingletonCoeffs_subsetPenalized$L1Start[StartOrder], PredictP[StartOrder],
-      col = Cols[2])
-arrows(XLimLong / 4, PropSelFull, 0, PropSelFull, length = 0.1)
-
-plot(PropSmoothed_InsL$x, PropSmoothed_InsL$y, xlab = "",
-      type = "l", xlim = c(0, XLimShort),
-     ylim = c(0, 0.13), col = Cols[1], main = "B")
-arrows(XLimShort / 4, PropSelFull, 0, PropSelFull, length = 0.1)
-lines(L1SingletonCoeffs_subset$L1Start[InsLorder], 
-      LM_All_Interact_binom$fitted.values[InsLorder],
-      col = Cols[3])
-lines(L1SingletonCoeffs_subsetPenalized$L1Start[StartOrder], PredictP[StartOrder],
-      col = Cols[2])
-
-mtext(text = "L1 insertion start [bp]", side = 1, outer = T, line = 1)
-mtext(text = "Proportion of L1 with positive selection", side = 2, 
-      outer = T, line = 1)
-CreateDisplayPdf('D:/L1polymORF/Figures/PropSelectVsL1Start.pdf', 
-                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
-                 height = 4, width = 5)
+# Predict_Lasso <- predict(GLM_Lasso, newx = L1PosMat,
+#                          s = cv.glmnet(x = L1PosMat, y = L1SingletonCoeffs_subsetPenalized$blnSelect,
+#                                        alpha = 0.99)$lambda.1se)
+# 
+# # Plot observed and predicted proportion of L1 
+# PropSelFull <- mean(L1SingletonCoeffs$blnSelect[L1SingletonCoeffs$blnFull], na.rm = T)
+# par(mfrow = c(1, 2), mar =  c(2, 2, 2, 1), oma = c(3, 3, 1, 0.1))
+# XLimLong  <- 6000
+# XLimShort <- 50
+# Cols <- rainbow(3)
+# plot(PropSmoothed_InsL$x, PropSmoothed_InsL$y, xlab = "",
+#      ylab = "", type = "l", xlim = c(0, XLimLong),
+#      ylim = c(0, 0.13), col = Cols[1], main = "A")
+# StartOrder <- order(L1SingletonCoeffs_subsetPenalized$L1Start)
+# #PredictP   <- exp(Predict_Ridge)/(1+exp(Predict_Ridge))
+# PredictP   <- exp(Predict_Lasso)/(1+exp(Predict_Lasso))
+# lines(L1SingletonCoeffs_subset$L1Start[InsLorder], 
+#       LM_All_Interact_binom$fitted.values[InsLorder],
+#       col = Cols[3])
+# lines(L1SingletonCoeffs_subsetPenalized$L1Start[StartOrder], PredictP[StartOrder],
+#       col = Cols[2])
+# arrows(XLimLong / 4, PropSelFull, 0, PropSelFull, length = 0.1)
+# 
+# plot(PropSmoothed_InsL$x, PropSmoothed_InsL$y, xlab = "",
+#       type = "l", xlim = c(0, XLimShort),
+#      ylim = c(0, 0.13), col = Cols[1], main = "B")
+# arrows(XLimShort / 4, PropSelFull, 0, PropSelFull, length = 0.1)
+# lines(L1SingletonCoeffs_subset$L1Start[InsLorder], 
+#       LM_All_Interact_binom$fitted.values[InsLorder],
+#       col = Cols[3])
+# lines(L1SingletonCoeffs_subsetPenalized$L1Start[StartOrder], PredictP[StartOrder],
+#       col = Cols[2])
+# 
+# mtext(text = "L1 insertion start [bp]", side = 1, outer = T, line = 1)
+# mtext(text = "Proportion of L1 with positive selection", side = 2, 
+#       outer = T, line = 1)
+# CreateDisplayPdf('D:/L1polymORF/Figures/PropSelectVsL1Start.pdf', 
+#                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+#                  height = 4, width = 5)
 
 # Coef_RidgeV <- as.vector(Coef_Ridge)
 # sum(Coef_RidgeV > 0)
@@ -525,7 +524,7 @@ sum(L1SingletonCoeffs_with5P$blnFull & L1SingletonCoeffs_with5P$blnSelect, na.rm
 
 ##########################################
 #                                        #
-#       Plot frequency quantiles        #
+#       Plot frequency quantiles         #
 #                                        #
 ##########################################
 
@@ -724,11 +723,11 @@ names(TfbEnrichP) <- TfbNames
 TfbEnrichP <- unlist(TfbEnrichP)
 min(p.adjust(TfbEnrichP))
 
-###################################
-#                                 #
+############################################
+#                                          #
 #    Calculate population frequency        #
-#                                     #
-###################################
+#                                          #
+############################################
 
 
 L1SingletonCoeffs$AFR
@@ -823,3 +822,40 @@ ExonGR_SelectAll@elementMetadata@listData$exon_id
 cols <- c("SYMBOL", "GENENAME")
 select(org.Hs.eg.db, keys = ExonGR_SelectAll@elementMetadata@listData$exon_id,
        columns=cols, keytype="ENTREZID")
+
+##########################################
+#                                        #
+#   Analyze intersection with genes      #
+#                                        #
+##########################################
+
+# Create boolean variable for overlap with genes
+L1SingletonCoeffs$blnGeneOL <- L1SingletonCoeffs$Dist2Gene == 0
+
+#######
+# Regress against L1 start
+#######
+
+# Subset L1 coefficients
+L1SingletonCoeffs_subset <- subset(L1SingletonCoeffs, 
+                                   subset = se.coef. > 0 & (!is.na(blnGeneOL))&
+                                   L1SingletonCoeffs$L1End >= 5900)
+LM_All_Interact_binom <- glm(blnGeneOL ~ L1Start + blnFull, 
+                             data = L1SingletonCoeffs_subset, 
+                             weights = se.coef.,
+                             family = quasibinomial)
+summary(LM_All_Interact_binom)
+
+# Smooth proportions of L1 overlapping with
+PropOLSmoothed_InsL <- supsmu(L1SingletonCoeffs_subset$L1Start,
+                            1*L1SingletonCoeffs_subset$blnGeneOL,
+                            wt = 1/L1SingletonCoeffs_subset$se.coef.)
+plot(PropOLSmoothed_InsL$x, PropOLSmoothed_InsL$y, xlab = "L1 insertion start [bp]",
+     ylab = "Proportion of L1 with positive selection signal", type = "l",
+     col = "red")
+# CreateDisplayPdf('D:/L1polymORF/Figures/PropSelectVsInsLength.pdf', 
+#                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+#                  height = 5, width = 5)
+
+# Get proportion intersecting with genes
+mean(L1SingletonCoeffs_subset$blnGeneOL)
