@@ -157,5 +157,6 @@ for (Chr in c(1:22, "X")) {
 #                        #
 ##########################
 
-
+cat("*********  Saving results ... ")
 save.image(OutputPath)
+cat("done!  *********")
