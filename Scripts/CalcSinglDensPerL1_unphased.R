@@ -36,7 +36,7 @@ OutputPath      <- 'D:/L1polymORF/Data/SingletonAnalysis_unphased.RData'
 NrInfoCols   <- 9
 
 # Minimum number of carriers for a LINE-1 to be analyzed
-MinNrCarrier <- 5
+MinNrCarrier <- 3
 
 ##########################################
 #                                        #
@@ -73,11 +73,16 @@ for (Chr in c(1:22, "X")) {
   
   # Read singleton file
   cat("Reading singleton file ...")
-  SingletonPath  <- paste(DataPath, "Singleton_SNP_chr", Chr, sep = "")
-  Singletons     <- read.table(SingletonPath)
-  SCols          <- GetSingletonColumns(Singletons)
-  SCols_rev      <- SCols[nrow(SCols):1,]
+  # SingletonPath  <- paste(DataPath, "Singleton_SNP_chr", Chr, sep = "")
+  # Singletons     <- read.table(SingletonPath)
+  # SCols          <- GetSingletonColumns(Singletons)
+  # SCols_rev      <- SCols[nrow(SCols):1,]
+  # Singletons_rev <- Singletons[nrow(Singletons):1, ]
+
+  SingletonPath  <- paste("D:/L1polymORF/Data/chr", Chr, ".singletons", sep = "")
+  Singletons     <- read.table(SingletonPath, header = T)
   Singletons_rev <- Singletons[nrow(Singletons):1, ]
+  
   cat("Done!\n")
   
   # Subset LINE-1 vcf file
@@ -90,13 +95,12 @@ for (Chr in c(1:22, "X")) {
   
   # Loop over L1 with enough carriers and estimate effect of L1 on singleton
   # densities
-  i <- 966
   L1Coeffs <- sapply (idxEnough, function(i) {
     cat("Processing L1", which(idxEnough == i), "out of", length(idxEnough), "\n")
     
     # Indicators for singletons that are before and after current L1
-    blnBeforeL1 <- Singletons_rev$V2 < L1_1000G$POS[i]
-    blnAfterL1  <- Singletons$V2     > L1_1000G$POS[i]
+    blnBeforeL1 <- Singletons_rev$POS < L1_1000G$POS[i]
+    blnAfterL1  <- Singletons$POS     > L1_1000G$POS[i]
     
     # Index for L1 carriers on first and second allele
     idxCarrier  <- which(L1_1000G[i,blnSampleCols] > 0)
@@ -104,12 +108,12 @@ for (Chr in c(1:22, "X")) {
     # Match singleton entries for all samples
     idxA <- which(blnAfterL1)
     idxB <- which(blnBeforeL1)
-    SampleMatchAfter  <- match(idxSCols, SCols$Col[blnAfterL1])
-    SampleMatchBefore <- match(idxSCols, SCols_rev$Col[blnBeforeL1])
+    SampleMatchAfter  <- match(SampleColumns, Singletons$INDV[blnAfterL1])
+    SampleMatchBefore <- match(SampleColumns, Singletons_rev$INDV[blnBeforeL1])
 
     # Determine distance from L1 to singleton
-    DistBefore <- L1_1000G$POS[i] - Singletons_rev$V2[idxB[SampleMatchBefore]]
-    DistAfter  <- Singletons$V2[idxA[SampleMatchAfter]] - L1_1000G$POS[i]
+    DistBefore <- L1_1000G$POS[i] - Singletons_rev$POS[idxB[SampleMatchBefore]]
+    DistAfter  <- Singletons$POS[idxA[SampleMatchAfter]] - L1_1000G$POS[i]
 
     # Create censoring column
     Censor <- rep(1, length(SampleColumns))
