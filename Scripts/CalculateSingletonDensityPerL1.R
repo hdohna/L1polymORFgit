@@ -58,8 +58,8 @@ NrS         <- length(SampleColumns)
 
 # Initialize data.frame for coefficients associated with L1
 L1SingletonCoeffs <- data.frame()
-NrS <- length(SampleColumns)
-idxSCols  <- 1:NrS 
+NrS      <- length(SampleColumns)
+idxSCols <- 1:NrS 
 
 # Specify chromosome
 for (Chr in c(1:22, "X")) {
