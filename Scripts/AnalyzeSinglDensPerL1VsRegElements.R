@@ -316,7 +316,7 @@ LM_All_Interact_binom <- glm(blnNotSelect ~ L1Start + blnFull,
 summary(LM_All_Interact_binom)
 LM_All_Interact_binom <- glm(1L*blnNotSelect ~ L1Start + blnFull, 
                              data = L1SingletonCoeffs_subset, 
-                             weights = 1/robust.se,
+                             weights = 1/se.coef.,
                              family = quasibinomial)
 summary(LM_All_Interact_binom)
 
@@ -349,7 +349,7 @@ rect(13, 0, 21, 1, col = "red")
 #######
 
 # Subset L1 coefficients
-blnSubset <- L1SingletonCoeffs$robust.se > 0 & 
+blnSubset <- L1SingletonCoeffs$se.coef. > 0 & 
   (!is.na(L1SingletonCoeffs$blnSelect)) &
   L1SingletonCoeffs$Freq <= 5/2504/2 &
   L1SingletonCoeffs$L1End >= 5900
@@ -357,17 +357,17 @@ L1SingletonCoeffs_subsetLowFreq <-
   L1SingletonCoeffs[blnSubset, ]
 LM_All_Interact_binom_lowFreq <- glm(1L*blnSig ~ L1Start + blnFull, 
                              data = L1SingletonCoeffs_subsetLowFreq, 
-                             weights = 1/robust.se,
+                             weights = 1/se.coef.,
                              family = quasibinomial)
 summary(LM_All_Interact_binom_lowFreq)
 
 blnNotFull <- !L1SingletonCoeffs_subset$blnFull
 PropSmoothed_InsL_lowF <- supsmu(L1SingletonCoeffs_subsetLowFreq$L1Start[blnNotFull],
                             1*L1SingletonCoeffs_subsetLowFreq$blnSelect[blnNotFull],
-                            wt = 1/L1SingletonCoeffs_subsetLowFreq$robust.se[blnNotFull])
+                            wt = 1/L1SingletonCoeffs_subsetLowFreq$se.coef.[blnNotFull])
 PropNSSmoothed_InsL_lowF <- supsmu(L1SingletonCoeffs_subsetLowFreq$L1Start[blnNotFull],
                               1*L1SingletonCoeffs_subsetLowFreq$blnNotSelect[blnNotFull],
-                              wt = 1/L1SingletonCoeffs_subsetLowFreq$robust.se[blnNotFull])
+                              wt = 1/L1SingletonCoeffs_subsetLowFreq$se.coef.[blnNotFull])
 plot(PropSmoothed_InsL_lowF$x, PropSmoothed_InsL_lowF$y, xlab = "L1 start [bp]",
      ylab = "Proportion of L1 with positive selection signal", type = "l")
 segments(x0 = L1SingletonCoeffs_subsetLowFreq$L1Start[L1SingletonCoeffs_subsetLowFreq$blnSelect],
@@ -381,11 +381,11 @@ sum(L1SingletonCoeffs_subsetLowFreq$blnSelect, na.rm = T)
 
 LM_SelectFreq_binom <- glm(blnSig ~ Freq + blnSelect:Freq, 
                            data = L1SingletonCoeffs, 
-                           weights = 1/robust.se,
+                           weights = 1/se.coef.,
                            family = quasibinomial, subset = Freq < 0.02)
 LM_NotSelectFreq_binom <- glm(1L*blnNotSelect ~ Freq, 
                               data = L1SingletonCoeffs_subset, 
-                              weights = 1/robust.se,
+                              weights = 1/se.coef.,
                               family = quasibinomial)
 summary(LM_SelectFreq_binom)
 summary(LM_NotSelectFreq_binom)
@@ -426,7 +426,7 @@ boxplot(log(Freq) ~ as.factor(SelectInd), data = L1SingletonCoeffs)
 #######
 
 L1SingletonCoeffs_subsetPenalized <- 
-  subset(L1SingletonCoeffs, subset = robust.se > 0 & (!is.na(blnSelect)) &
+  subset(L1SingletonCoeffs, subset = se.coef. > 0 & (!is.na(blnSelect)) &
            (!is.na(L1SingletonCoeffs$L1Start)) & (!is.na(L1SingletonCoeffs$L1End))&
            L1SingletonCoeffs$L1End >= 5900)
 sum(L1SingletonCoeffs$L1End >= 5900, na.rm = T)
@@ -434,8 +434,8 @@ hist(L1SingletonCoeffs$L1End, seq(0, 6020, 10), xlim = c(5500, 6020))
 
 # Create an indicator matrix for the presence of a L1 position inside an L1
 L1End <- max(L1SingletonCoeffs$L1End, na.rm = T)
-StWeights <- 1/L1SingletonCoeffs_subsetPenalized$robust.se / 
-             mean(1/L1SingletonCoeffs_subsetPenalized$robust.se)
+StWeights <- 1/L1SingletonCoeffs_subsetPenalized$se.coef. / 
+             mean(1/L1SingletonCoeffs_subsetPenalized$se.coef.)
 L1PosMat <- sapply(1:L1End, function(x){
   (L1SingletonCoeffs_subsetPenalized$L1Start >= x) & (L1SingletonCoeffs_subsetPenalized$L1End >= x)
 })
