@@ -95,13 +95,13 @@ makeHistoTable <- function(FileName, L1GR_full = L1CatGR_hg19,
   HistAgg_Full$chromosome <- as.vector(seqnames(L1GR_full))[HistAgg_Full$idxGR]
   HistAgg_Full$L1State    <- "full"
   
-  # Aggregate histone values per full-length L1   
+  # Aggregate histone values per fragment L1   
   OverlapsFragm  <- findOverlaps(HistoGR, L1RefGR_fragm)
   HistAgg_Fragm  <- aggregate(
     HistoTable[OverlapsFragm@from,HistName] ~ OverlapsFragm@to, FUN = mean)
-  colnames(HistAgg_Fragm) <- c("idxGR", HistName)
-  HistAgg_Fragm$start <- start(L1GR_fragm)[HistAgg_Fragm$idxGR]
-  HistAgg_Fragm$end   <- end(L1RefGR_fragm)[HistAgg_Fragm$idxGR]
+  colnames(HistAgg_Fragm)  <- c("idxGR", HistName)
+  HistAgg_Fragm$start      <- start(L1GR_fragm)[HistAgg_Fragm$idxGR]
+  HistAgg_Fragm$end        <- end(L1RefGR_fragm)[HistAgg_Fragm$idxGR]
   HistAgg_Fragm$chromosome <- as.vector(seqnames(L1RefGR_fragm))[HistAgg_Fragm$idxGR]
   HistAgg_Fragm$L1State    <- "fragm"
   

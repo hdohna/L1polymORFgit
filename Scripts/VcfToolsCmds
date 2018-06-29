@@ -13,6 +13,12 @@ vcftools --vcf L1all.vcf \
 --hap-r2 \
 --out L1all.r2
 
+# Subset windows around L1s
+vcftools --vcf ALL.chr1.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf \
+--bed /srv/gsfs0/projects/levinson/hzudohna/1000Genomes/L1WindowSubset.bed \
+--out /srv/gsfs0/projects/levinson/hzudohna/1000Genomes/chr1.L1Windowsubset.vcf
+
+
 # Calculate Fst according to populations
 vcftools --vcf L1all.vcf \
 --weir-fst-pop 1000G_Pop_GBR --weir-fst-pop 1000G_Pop_FIN \

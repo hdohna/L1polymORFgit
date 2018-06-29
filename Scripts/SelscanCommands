@@ -1,0 +1,9 @@
+./selscan/bin/linux/selscan --ihs \
+--vcf /labs/dflev/hzudohna/1000Genomes/ALL.chr10.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf \
+--map /labs/dflev/hzudohna/1000Genomes/Chr10ExampleMap \
+--out /labs/dflev/hzudohna/1000Genomes/Chr10ExampleSelScan 
+
+./selscan/bin/linux/selscan --ihs \
+--vcf /srv/gsfs0/projects/levinson/hzudohna/1000Genomes/chr10.L1Windowsubset.vcf \
+--map /labs/dflev/hzudohna/1000Genomes/Chr10ExampleMap \
+--out /labs/dflev/hzudohna/1000Genomes/Chr10ExampleSelScan 

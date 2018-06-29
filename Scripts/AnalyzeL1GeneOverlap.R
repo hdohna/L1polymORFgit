@@ -18,6 +18,7 @@ library(org.Hs.eg.db)
 library(UniProt.ws)
 library(gee)
 library(Homo.sapiens)
+library(BSgenome.Hsapiens.UCSC.hg19)
 
 ##########################################
 #                                        #
@@ -39,6 +40,8 @@ DNAseDataPath   <- 'D:/L1polymORF/Data/DNAseInfo.RData'
 GeneExpPath     <- 'D:/L1polymORF/Data/gtexGene.txt'
 GExpTissuePath  <- 'D:/L1polymORF/Data/gtexTissue.txt'
 InputPath       <- 'D:/L1polymORF/Data/SingletonAnalysis_unphased.RData'
+L1RefPath       <- 'D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
+CpGPath         <- 'D:/L1polymORF/Data/CpG_hg19.txt'
 
 # Number of info columns in vcf file
 NrInfoCols   <- 9
@@ -92,7 +95,15 @@ L1SingletonCoeffs <- cbind(L1SingletonCoeffs, PopFreq[MatchCoeff1000G,])
 
 # Define more genomic ranges
 GeneGR <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
-PromGR <- promoters(TxDb.Hsapiens.UCSC.hg19.knownGene)
+ExonGR <- exons(TxDb.Hsapiens.UCSC.hg19.knownGene)
+PromGR <- promoters(TxDb.Hsapiens.UCSC.hg19.knownGene, upstream = 10000)
+CDSGR  <- cds(TxDb.Hsapiens.UCSC.hg19.knownGene)
+IntronGRList   <- intronsByTranscript(TxDb.Hsapiens.UCSC.hg19.knownGene,
+                                      use.names = T)
+FiveUTRGRList  <- fiveUTRsByTranscript(TxDb.Hsapiens.UCSC.hg19.knownGene,
+                                       use.names = T)
+ThreeUTRGRList <- threeUTRsByTranscript(TxDb.Hsapiens.UCSC.hg19.knownGene,
+                                        use.names = T)
 sum(width(GeneGR)/10^6) / sum(ChromLengthsHg19/10^6)
 
 # Read UniProt data
@@ -126,6 +137,17 @@ colnames(GExpByTissue) <- GexpTissue$name
 # idxHetero   <- grep("Heterochrom", RegTable$name)
 # RegGR       <- makeGRangesFromDataFrame(RegTable)
 # HeteroGR    <- RegGR[idxHetero]
+
+# Read in table with L1HS from the referemce genome
+L1RefTab <- read.csv(L1RefPath)
+L1RefGR <- makeGRangesFromDataFrame(L1RefTab, seqnames.field = "genoName",
+                                    start.field = "genoStart",
+                                    end.field = "genoEnd")
+
+# Read in CpG data and turn it into GRanges
+CpGtable <- read.delim(CpGPath, header = T)
+CpGGR    <- makeGRangesFromDataFrame(CpGtable, start.field = "chromStart",
+                                     end.field = "chromEnd")
 cat("done!\n")
 
 ##########################################
@@ -164,9 +186,15 @@ L1SingletonCoeffs$SelectInd[L1SingletonCoeffs$blnNotSelect]  <- -1
 
 # Caclulate distance to genes
 L1SingletonCoeffs$Dist2Gene <- Dist2Closest(L1SingletonCoeffs_GR, GeneGR)
+L1SingletonCoeffs$blnOLGene <- L1SingletonCoeffs$Dist2Gene == 0
 
 # Caclulate logarithm of distance to genes
 L1SingletonCoeffs$LogDist2Gene <- log(L1SingletonCoeffs$Dist2Gene + 0.1)
+
+# Standardize SE ratio to one
+L1SingletonCoeffs$SE_RatioSt <- 1/L1SingletonCoeffs$se.coef./
+  mean(1/L1SingletonCoeffs$se.coef.)
+
 
 # Standardize selection coefficients
 CoeffAggMean <- aggregate(coef ~ Freq, data = L1SingletonCoeffs, FUN = mean)
@@ -242,7 +270,12 @@ t.test(coef ~ blnOLGene, data = L1SingletonCoeffs)
 
 # Determine whether indicator of negative selection depends on insertion length
 # or frequency
-LML1NegSelVsL1Start <- glm(blnNotSelect ~ L1Start + Freq, 
+
+LML1NegSelVsL1StartFreq <- glm(blnNotSelect ~ Freq + L1Start, 
+                           data = L1SinglCoeff_nonzeroSE, 
+                           weights = 1/se.coef., family = "quasibinomial")
+summary(LML1NegSelVsL1StartFreq)
+LML1NegSelVsL1Start <- glm(blnNotSelect ~ L1Start, 
                            data = L1SinglCoeff_nonzeroSE, 
                       weights = 1/se.coef., family = "quasibinomial")
 summary(LML1NegSelVsL1Start)
@@ -250,7 +283,6 @@ summary(LML1NegSelVsL1Start)
 LML1NegSelVsFreq <- glm(blnNotSelect ~ Freq, data = L1SinglCoeff_nonzeroSE, 
                    weights = 1/se.coef., family = "quasibinomial")
 summary(LML1NegSelVsFreq)
-
 
 # Determine whether L1s with negative selection signal are more likely
 # to be in vs out of genes
@@ -275,13 +307,26 @@ fisher.test(L1SingletonCoeffs$Dist2Gene == 0, L1SingletonCoeffs$blnSelect)
 # Indicator variable for intersection with genes
 L1_1000G$blnOLGene  <- overlapsAny(L1_1000G_GR_hg19, GeneGR)
 L1_1000G$blnOLProm  <- overlapsAny(L1_1000G_GR_hg19, PromGR)
+L1_1000G$blnOLExon  <- overlapsAny(L1_1000G_GR_hg19, ExonGR)
+L1_1000G$blnOLCpG   <- overlapsAny(L1_1000G_GR_hg19, CpGGR)
+L1_1000G$Dist2CpG   <- Dist2Closest(L1_1000G_GR_hg19, CpGGR)
 L1_1000G$L1StartNum <- as.numeric(as.character(L1_1000G$L1Start))
 L1_1000G$L1EndNum   <- as.numeric(as.character(L1_1000G$L1End))
 L1_1000G$blnFull    <- L1_1000G$L1StartNum <= 1 & L1_1000G$L1EndNum >= 6000
 hist(L1_1000G$L1StartNum, breaks = 0:6100)
+hist(L1_1000G$L1StartNum)
+hist(L1_1000G$L1EndNum, breaks = 0:6100)
+hist(L1_1000G$InsLength, breaks = 0:6100)
+hist(L1_1000G$InsLength)
+hist(width(L1RefGR), breaks = 0:6500)
+max(width(L1_1000G_GR_hg19))
 sum(L1_1000G$L1StartNum == 2, na.rm = T)
 sum(L1_1000G$blnOLProm)
 mean(L1_1000G$blnOLGene)
+table(L1_1000G$blnOLCpG, L1_1000G$blnFull)
+t.test(L1_1000G$Dist2CpG ~ L1_1000G$blnFull)
+wilcox.test(L1_1000G$Dist2CpG ~ L1_1000G$blnFull)
+
 
 # Create transparent point color
 PCol  <- rgb(0,0,0, alpha = 0.1)
@@ -301,9 +346,16 @@ LogRegGeneOLVsL1Start_noFreq <- glm(blnOLGene ~ L1StartNum,
 summary(LogRegGeneOLVsL1Start_noFreq)
 
 # Regress indicator for promoter overlap against L1 start abd frequency
-LogRegPromOLVsL1Start <- glm(blnOLProm ~ L1StartNum  + Frequency, 
+LogRegPromOLVsL1Start <- glm(blnOLProm ~ L1StartNum + Frequency, 
                              family = "binomial", data = L1_1000G)
 summary(LogRegPromOLVsL1Start)
+sum(L1_1000G$blnOLProm)
+
+# Regress combined indicators 
+LogRegCombinedOLVsL1Start <- glm((blnOLGene | blnOLProm) ~ L1StartNum*blnOLGene + 
+                                   Frequency*blnOLGene, 
+                             family = "binomial", data = L1_1000G)
+summary(LogRegCombinedOLVsL1Start)
 
 # Proportion of L1 overlapping with genes per L1 start
 L1_1000G$L1StartBins <- cut(L1_1000G$L1StartNum, breaks = seq(1, 6021, 20))
@@ -360,6 +412,26 @@ mean(L1_1000G$blnOLGene[blnLowFreq & blnLowStart], na.rm = T)
 mean(L1_1000G$blnOLGene[blnLowFreq], na.rm = T)
 mean(L1_1000G$blnOLGene[blnLowStart], na.rm = T)
 
+# Regress indicator for exon overlap against L1 start abd frequency
+LogRegExonOLVsL1Start <- glm(blnOLExon ~ L1StartNum  + Frequency, 
+                             family = "binomial", data = L1_1000G)
+summary(LogRegExonOLVsL1Start)
+
+# Regress indicator for exon overlap against L1 start and frequency
+# among all L1s in genes
+LogRegExonOLVsL1StartFreq <- glm(blnOLExon ~ L1StartNum  + Frequency, 
+                             family = "binomial", data = L1_1000G,
+                             subset = blnOLGene)
+summary(LogRegExonOLVsL1StartFreq)
+LogRegExonOLVsL1Start <- glm(blnOLExon ~ L1StartNum, 
+                             family = "binomial", data = L1_1000G,
+                             subset = blnOLGene)
+summary(LogRegExonOLVsL1Start)
+LogRegExonOLVsL1Start <- glm(blnOLExon ~ L1StartNum, 
+                             family = "binomial", data = L1_1000G,
+                             subset = blnOLGene)
+summary(LogRegExonOLVsL1Start)
+
 ##########################################
 #                                        #
 #   Regress strand alignedness           #
@@ -408,6 +480,7 @@ blnLowFreq <- L1_1000G$Frequency <= FreqCutOff
 GeneGR_All      <- subsetByOverlaps(GeneGR, L1_1000G_GR_hg19)
 GeneGR_LowFreq  <- subsetByOverlaps(GeneGR, L1_1000G_GR_hg19[blnLowFreq])
 GeneGR_HiFreq   <- subsetByOverlaps(GeneGR, L1_1000G_GR_hg19[!blnLowFreq])
+GeneGR_Ref      <- subsetByOverlaps(GeneGR, L1RefGR)
 PromGR_All      <- subsetByOverlaps(PromGR, L1_1000G_GR_hg19)
 
 PromIDs <- select(Homo.sapiens, 
@@ -417,7 +490,8 @@ Prom_ENTREZID <- PromIDs$ENTREZID[!is.na(PromIDs$ENTREZID)]
 Prom_ENTREZID <- unique(as.character(Prom_ENTREZID))
 
 # Check whether gene size determines overlap
-GeneOLCount <- countOverlaps(GeneGR, L1_1000G_GR_hg19)
+GeneOLCount     <- countOverlaps(GeneGR, L1_1000G_GR_hg19)
+GeneOLCount_ref <- countOverlaps(GeneGR, L1RefGR)
 GeneOLNegSelectCount <- countOverlaps(GeneGR, 
                           L1SingletonCoeffs_GR[L1SingletonCoeffs$blnNotSelect])
 GeneOLPosSelectCount <- countOverlaps(GeneGR, 
@@ -433,6 +507,8 @@ max(1*GeneOLCount)
 # Write out gene ids for different genelists
 writeLines(GeneGR_All@elementMetadata@listData$gene_id, 
            con = "D:/L1polymORF/Data/L1IntersectGeneIDs_All")
+writeLines(GeneGR_Ref@elementMetadata@listData$gene_id, 
+           con = "D:/L1polymORF/Data/L1IntersectGeneIDs_Ref")
 writeLines(GeneGR_LowFreq@elementMetadata@listData$gene_id, 
            con = "D:/L1polymORF/Data/L1IntersectGeneIDs_LowFreq")
 writeLines(GeneGR_HiFreq@elementMetadata@listData$gene_id, 
@@ -487,6 +563,7 @@ GeneTable <- data.frame(UniProtID = GeneLookup1$UNIPROT[idxUniProt],
                         GeneLength = log10(width(GeneGR)[idxUniProt]),
                         GeneLength_untrans = width(GeneGR)[idxUniProt],
                         L1Count = GeneOLCount[idxUniProt],
+                        L1Count_ref = GeneOLCount_ref[idxUniProt],
                         L1NegSelectCount = GeneOLNegSelectCount[idxUniProt],
                         L1PosSelectCount = GeneOLPosSelectCount[idxUniProt],
                         idxGeneGR = idxUniProt)
@@ -545,7 +622,27 @@ cbind(Sum_GLM_OLCount$coefficients[Padj < 0.05, 'Estimate'], Padj[Padj < 0.05])
 write.csv(cbind(Sum_GLM_OLCount$coefficients, Padj),
           "D:/L1polymORF/Data/AnnoTermPValues.csv")
 
-# Test whether glycoproteins are significantly entiched among negatively 
+# Perform poisson regression to determine whether enrichment terms affect L1 
+# reference insertion
+GLM_OLCount_ref <- glm(L1Count_ref ~ GeneLength + Membrane + Glycoprotein + CellJunction +
+                     Kinase + ImmGlob + Fibronect + Galactose + Pleckstrin + Cytokin +
+                     PDZ + Concanavalin + Ligand + MAM + PTP + PDEase + HostReceptor, 
+                   data = GeneTable,
+                   family = "poisson")
+Sum_GLM_OLCount_ref <- summary(GLM_OLCount_ref)
+Padj_ref <- p.adjust(Sum_GLM_OLCount_ref$coefficients[,'Pr(>|z|)'])
+cbind(Sum_GLM_OLCount_ref$coefficients[Padj_ref < 0.05, 'Estimate'], 
+      Padj_ref[Padj_ref < 0.05])
+
+# Test whether insertions into glycoproteins are enriched among L1 insertions
+# with negative selection when compared to all genic L1
+L1_1000G$blnNegSel <- overlapsAny(L1_1000G_GR_hg19, 
+                                  L1SingletonCoeffs_GR[L1SingletonCoeffs$blnNotSelect])
+table(L1_1000G$blnNegSel, L1_1000G$blnOLProm)
+fisher.test(L1_1000G$blnOLGlyco[L1_1000G$blnOLGene], 
+            L1_1000G$blnNegSel[L1_1000G$blnOLGene])
+
+# Test whether glycoproteins are significantly enriched among negatively 
 # selected L1
 fisher.test(GeneTable$Glycoprotein, GeneTable$L1NegSelectCount)
 
@@ -608,6 +705,12 @@ summary(GLM_OLCount2)
 
 ###################################################
 #                                                 #
+#   Analyze multiple L1 per gene      #
+#                                                 #
+###################################################
+
+###################################################
+#                                                 #
 #   Regress L1 overlap against gene expression    #
 #                                                 #
 ###################################################
@@ -650,9 +753,11 @@ mean(GeneTable$GeneLength[GeneTable$Glycoprotein & (GeneTable$L1Count > 0)])
 L1_1000G$blnOLGlyco <- overlapsAny(L1_1000G_GR_hg19, GeneGR[idxGlyco])
 L1SingletonCoeffs$blnOLGlyco <- overlapsAny(L1SingletonCoeffs_GR, 
                                             GeneGR[idxGlyco])
+
 # Test whether selected
 wilcox.test(Freq ~ blnNotSelect, data = L1SingletonCoeffs)
 t.test(Freq ~ blnNotSelect, data = L1SingletonCoeffs)
+
 LML1NegSelVsFreq <- glm(blnNotSelect ~ Freq, data = L1SingletonCoeffs, 
                         weights = 1/se.coef., family = "quasibinomial",
                         subset = blnOLGlyco)
@@ -713,17 +818,17 @@ select(org.Hs.eg.db,
 ###################################################
 
 # Function to create genomic ranges for a particular chromosome number
-CreateGR <- function(i){
+CreateGR <- function(i, RangeWidth){
   CL <- ChromLengthsHg19[i]
   GRStarts <- seq(1, CL, RangeWidth)
   GREnds  <- c(GRStarts[-1] - 1, CL)
   GRanges(seqnames = names(CL), IRanges(start = GRStarts, end = GREnds))
 }
 
-# Create genomic ranges for 
-SummaryGR <- CreateGR(1)
+# Create genomic ranges for DNAse and other summaries
+SummaryGR <- CreateGR(1, RangeWidth)
 for (i in 2:length(ChromLengthsHg19)){
-  NewGR <- CreateGR(i)
+  NewGR <- CreateGR(i, RangeWidth)
   SummaryGR <- c(SummaryGR, NewGR)
 }
 warnings()
@@ -770,7 +875,12 @@ DNAseBySummaryGR <- aggregate.data.frame(ScoreByStem[DNAseSummaryOL@from, ],
 DNAseSummary <- as.data.frame(matrix(0, nrow = length(SummaryGR), ncol = 2))
 DNAseSummary[DNAseBySummaryGR$Group.1, ] <- DNAseBySummaryGR[,2:3]
 colnames(DNAseSummary) <- colnames(DNAseBySummaryGR)[2:3]
+
+# Add other variables to summary
 DNAseSummary$L1Count   <- countOverlaps(SummaryGR, L1_1000G_GR_hg19)
+SummaryViews <- BSgenomeViews(BSgenome.Hsapiens.UCSC.hg19, SummaryGR)
+GCFreq <- letterFrequency(SummaryViews, letters = "GC")
+DNAseSummary$GC <- GCFreq
 DNAseSummary$L1Count_fragm   <- countOverlaps(SummaryGR, 
                                    L1_1000G_GR_hg19[which(L1_1000G$InsLength < 5900)])
 DNAseSummary$L1Count_full   <- countOverlaps(SummaryGR, 
@@ -788,7 +898,7 @@ hist(DNAseSummary$L1Count_fragm)
 # summary(GLM_L1_DNAse_sum)
 
 # Regress LINE-1 count against DNAse scores
-GLM_L1_DNAse_both <- glm(L1Count ~ NotStemScores + StemScores, 
+GLM_L1_DNAse_both <- glm(L1Count ~ NotStemScores + StemScores + GC, 
                          data = DNAseSummary, family = poisson)
 SUM_GLM_L1_DNAse_both <- summary(GLM_L1_DNAse_both)
 SUM_GLM_L1_DNAse_both$coefficients[,'Pr(>|z|)']
@@ -801,13 +911,15 @@ ChrV <- as.vector(seqnames(SummaryGR))
 ChrV[ChrV == "chrX"] <- "chr23"
 ChrV[ChrV == "chrY"] <- "chr24"
 DNAseSummary$ChrNum <- as.numeric(substr(ChrV, 4, nchar(ChrV)))
-GLM_L1_DNAse_gee <- gee(L1Count ~ NotStemScores + StemScores, 
+GLM_L1_DNAse_gee <- gee(L1Count ~ NotStemScores + StemScores + GC, 
                          data = DNAseSummary, family = "poisson",
                          corstr =  "exchangeable", Mv = 1, 
                         id = ChrNum)
 SUM_GLM_L1_DNAse_gee <- summary(GLM_L1_DNAse_gee)
+coef(SUM_GLM_L1_DNAse_gee)[,'Estimate']
 se <- SUM_GLM_L1_DNAse_gee$coefficients[, "Robust S.E."]
-1- pnorm(abs(coef(SUM_GLM_L1_DNAse_gee)[,'Estimate']) / se)
+Ps <- 1 - pnorm(abs(coef(SUM_GLM_L1_DNAse_gee)[,'Estimate']) / se)
+format(Ps, digits = 22)
 cbind(coef(SUM_GLM_L1_DNAse_gee)[,'Estimate'] - se * qnorm(0.9995),
       coef(SUM_GLM_L1_DNAse_gee)[,'Estimate'] + se * qnorm(0.9995))
 
@@ -816,7 +928,9 @@ GLM_L1_DNAse_stem <- glm(L1Count ~ StemScores, data = DNAseSummary,
 summary(GLM_L1_DNAse_stem)
 GLM_L1_DNAse_NotStem <- glm(L1Count ~ NotStemScores, data = DNAseSummary,
                     family = "poisson")
-summary(GLM_L1_DNAse_NotStem)
+GLM_L1_DNAse_GC <- glm(L1Count ~ GC, data = DNAseSummary,
+                            family = "poisson")
+summary(GLM_L1_DNAse_GC)
 GLM_L1_DNAse_fragm <- glm(L1Count_fragm ~ StemScores + NotStemScores, data = DNAseSummary,
                     family = "poisson")
 summary(GLM_L1_DNAse_fragm)
@@ -830,6 +944,8 @@ plot(DNAseSummary$StemScores, DNAseSummary$L1Count, col = PCol)
 plot(DNAseSummary$NotStemScores, DNAseSummary$L1Count, col = PCol)
 
 cor(DNAseSummary$StemScores, DNAseSummary$NotStemScores)
+cor(DNAseSummary$StemScores, DNAseSummary$GC)
+cor(DNAseSummary$NotStemScores, DNAseSummary$GC)
 
 
 # Determine proportion of L1 overlapping with heterochromatin
