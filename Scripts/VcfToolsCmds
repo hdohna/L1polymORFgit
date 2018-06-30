@@ -14,9 +14,10 @@ vcftools --vcf L1all.vcf \
 --out L1all.r2
 
 # Subset windows around L1s
-vcftools --vcf ALL.chr1.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf \
---bed /srv/gsfs0/projects/levinson/hzudohna/1000Genomes/L1WindowSubset.bed \
---out /srv/gsfs0/projects/levinson/hzudohna/1000Genomes/chr1.L1Windowsubset.vcf
+vcftools --vcf /labs/dflev/hzudohna/1000Genomes/ALL.chr1.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf \
+--bed /labs/dflev/hzudohna/1000Genomes/L1WindowSubset.bed \
+--recode \
+--out /labs/dflev/hzudohna/1000Genomes/chr1.L1Windowsubset.vcf
 
 
 # Calculate Fst according to populations

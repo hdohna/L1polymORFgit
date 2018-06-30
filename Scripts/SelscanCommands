@@ -7,3 +7,12 @@
 --vcf /srv/gsfs0/projects/levinson/hzudohna/1000Genomes/chr10.L1Windowsubset.vcf \
 --map /labs/dflev/hzudohna/1000Genomes/Chr10ExampleMap \
 --out /labs/dflev/hzudohna/1000Genomes/Chr10ExampleSelScan 
+
+./selscan/bin/linux/selscan --ihs \
+--vcf /srv/gsfs0/projects/levinson/hzudohna/1000Genomes/chr10_L1WindowsubsetNoMulti.vcf \
+--out /srv/gsfs0/projects/levinson/hzudohna/1000Genomes//chr10_L1WindowsubsetSelscan
+
+./selscan/bin/linux/selscan --ihs --vcf \
+/labs/dflev/hzudohna/1000Genomes//chr10_L1WindowsubsetNoMulti.vcf \
+--map /labs/dflev/hzudohna/1000Genomes//chr10_L1WindowsubsetMap \
+--out /labs/dflev/hzudohna/1000Genomes//chr10_L1WindowsubsetSelscan
