@@ -15,9 +15,9 @@ source('/home/hzudohna/L1polymORFgit/Scripts/_Start_L1polymORF_scg4.R')
 WindowWidth  <- 10^5
 MinNrCarrier <- 5
 NrInfoCol    <- 9
-MaxNrTrials  <- 10
+MaxNrTrials  <- 20
 SleepTime    <- 10
-ThinDist     <- 0
+ThinDist     <- 1
 DataFolder   <- "/labs/dflev/hzudohna/1000Genomes/"
 FilePattern  <- "genotypes.vcf"
 BedPath      <- "/labs/dflev/hzudohna/1000Genomes/L1WindowSubset.bed"
@@ -77,7 +77,7 @@ AllFiles <- AllFiles[-grep("vcf.", AllFiles)]
 AllFiles
 
 # Loop over file names, read file and append to existing
-cat("Create L1 subset file per chromosome\n")
+cat("\n*********    Subsetting vcf file around each L1  ************\n")
 VcfFile <- AllFiles[1]
 
 for (VcfFile in AllFiles[-1]){
@@ -94,9 +94,12 @@ for (VcfFile in AllFiles[-1]){
                            scriptName = ScriptName) 
 }
 
-# Check whether queue is done (not implemented yet)
+# Check whether queue is done (requires that no other batch jobs are running)
 QueueFinished <- CheckQueue(MaxNrTrials = MaxNrTrials,
                             SleepTime   = SleepTime)
+if (!QueueFinished){
+  stop("Subsetting vcf around L1 did not finish within alotted time!")
+}
 
 ########################################
 #                                      #
@@ -104,12 +107,14 @@ QueueFinished <- CheckQueue(MaxNrTrials = MaxNrTrials,
 #                                      #
 ########################################
 
+cat("\n*********  Removing multi-allelic variants  ************\n")
+
 # Get file names, loop over files and do the filtering
 SubsetFiles <- list.files(DataFolder, pattern = "_L1Windowsubset", full.names = T)
 
 # Loop over file names, read file and append to existing
 cat("Remove multi \n")
-InFile <- SubsetFiles[1]
+InFile      <- SubsetFiles[1]
 ScriptNames <- c()
 
 for (InFile in SubsetFiles){
@@ -124,17 +129,25 @@ for (InFile in SubsetFiles){
                            scriptName = ScriptName) 
 }
 
+# Check whether queue is done 
+QueueFinished <- CheckQueue(MaxNrTrials = MaxNrTrials,
+                            SleepTime   = SleepTime)
+if (!QueueFinished){
+  stop("Removing multi-allelic variants did not finish within alotted time!")
+}
+
 ########################################
 #                                      #
 #    Create map files                  #
 #                                      #
 ########################################
 
+cat("\n*********  Creating map files  ************\n")
+
 # Get file names, loop over files and do the filtering
 SubsetFiles <- list.files(DataFolder, pattern = "NoMulti", full.names = T)
 
 # Loop over file names, read file and append to existing
-cat("Creating map files \n")
 InFile <- SubsetFiles[1]
 ScriptNames <- c()
 
@@ -152,12 +165,20 @@ for (InFile in SubsetFiles){
                            scriptName = ScriptName) 
 }
 
+# Check whether queue is done 
+QueueFinished <- CheckQueue(MaxNrTrials = MaxNrTrials,
+                            SleepTime   = SleepTime)
+if (!QueueFinished){
+  stop("Removing multi-allelic variants did not finish within alotted time!")
+}
 
 ########################################
 #                                      #
 #    Run selscan                       #
 #                                      #
 ########################################
+
+cat("\n*********  Running selscan  ************\n")
 
 # Get file names, loop over files and do the filtering
 MapFiles <- list.files(DataFolder, pattern = "L1WindowsubsetMap", full.names = T)
@@ -179,4 +200,11 @@ for (InFile in SubsetFiles){
   CreateAndCallSlurmScript(file = ScriptName,
                            SlurmCommandLines = SelscanCmd, 
                            scriptName = ScriptName) 
+}
+
+# Check whether queue is done 
+QueueFinished <- CheckQueue(MaxNrTrials = MaxNrTrials,
+                            SleepTime   = SleepTime)
+if (!QueueFinished){
+  stop("Removing multi-allelic variants did not finish within alotted time!")
 }

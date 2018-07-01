@@ -25,7 +25,7 @@ CheckQueue <- function(MaxNrTrials = 10,
   
   QueueFinished <- F
   NrTrials      <- 0
-  while((!QueueFinished) & NrTrials <= MaxNrTrials) {
+  while((!QueueFinished) & NrTrials < MaxNrTrials) {
     NrTrials <- NrTrials + 1
     cat("Checking queue, trial", NrTrials, "out of", MaxNrTrials, "\n")
     QueueStatus   <- system('squeue -u hzudohna',  intern = T)
