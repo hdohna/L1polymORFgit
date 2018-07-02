@@ -1,5 +1,5 @@
-# The script below subsets creates a bed file to subset variants around L1s 
-# from the 1000 Genome data
+# The script below runs selscan on 1000 Genome data
+# It uses pre-processed files that were created by the script `SelscanPreprocessing_1000G`
 # Data were downloaded from ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/
 
 # Source start script
@@ -67,108 +67,6 @@ MapFile <- paste(DataFolder, "SelscanMap", sep = "")
 write.table(MapTable, file = MapFile,
             row.names = F, col.names = F, quote = F, sep = " ")
 
-########################################
-#                                      #
-#      Subset vcf around L1            #
-#                                      #
-########################################
-
-# Get file names, loop over files and do the filtering
-AllFiles <- list.files(DataFolder, pattern = FilePattern, full.names = T)
-AllFiles <- AllFiles[-grep("vcf.", AllFiles)]
-AllFiles
-
-# Loop over file names, read file and append to existing
-cat("\n*********    Subsetting vcf file around each L1  ************\n")
-VcfFile <- AllFiles[1]
-
-for (VcfFile in AllFiles[-1]){
-  cat("Processing", VcfFile, "\n")
-  Chrom <- strsplit(VcfFile, "\\.")[[1]][2]
-  OutFile <- paste(DataFolder, Chrom, "_L1Windowsubset", sep = "")
-  VcfCmd <- c("module load vcftools", 
-              paste("vcftools --vcf", VcfFile, "--bed", BedPath, "--recode",
-                    "--thin", ThinDist,
-              "--out", OutFile))
-  ScriptName <- paste("L1Window", Chrom, sep = "_")
-  CreateAndCallSlurmScript(file = ScriptName,
-                           SlurmCommandLines = VcfCmd, 
-                           scriptName = ScriptName) 
-}
-
-# Check whether queue is done (requires that no other batch jobs are running)
-QueueFinished <- CheckQueue(MaxNrTrials = MaxNrTrials,
-                            SleepTime   = SleepTime)
-if (!QueueFinished){
-  stop("Subsetting vcf around L1 did not finish within alotted time!")
-}
-
-########################################
-#                                      #
-#     Remove multi-allelic variants    #
-#                                      #
-########################################
-
-cat("\n*********  Removing multi-allelic variants  ************\n")
-
-# Get file names, loop over files and do the filtering
-SubsetFiles <- list.files(DataFolder, pattern = "_L1Windowsubset", 
-                          full.names = T)
-
-# Loop over file names, read file and append to existing
-InFile  <- SubsetFiles[1]
-
-for (InFile in SubsetFiles){
-  cat("Processing", InFile, "\n")
-  Chrom   <- strsplit(strsplit(InFile, "\\_")[[1]][1], "\\//")[[1]][2]
-  OutFile <- gsub(".recode", "NoMulti", InFile)
-  GrepCmd <- paste('grep -e MULTI_ALLELIC -e \'2|\' -e \'|2\' -v', InFile, ">",
-                   OutFile)
-  ScriptName <- paste("grepScript", Chrom, sep = "_")
-  CreateAndCallSlurmScript(file = ScriptName,
-                           SlurmCommandLines = GrepCmd, 
-                           scriptName = ScriptName) 
-}
-
-# Check whether queue is done 
-QueueFinished <- CheckQueue(MaxNrTrials = MaxNrTrials,
-                            SleepTime   = SleepTime)
-if (!QueueFinished){
-  stop("Removing multi-allelic variants did not finish within alotted time!")
-}
-
-########################################
-#                                      #
-#    Create map files                  #
-#                                      #
-########################################
-
-cat("\n*********  Creating map files  ************\n")
-
-# Get file names, loop over files and do the filtering
-SubsetFiles <- list.files(DataFolder, pattern = "NoMulti", full.names = T)
-
-# Loop over file names, read file and append to existing
-InFile <- SubsetFiles[1]
-for (InFile in SubsetFiles){
-  cat("Processing", InFile, "\n")
-  Chrom <- strsplit(strsplit(InFile, "\\_")[[1]][1], "\\//")[[1]][2]
-  OutFile <- gsub("NoMulti", "Map", InFile)
-  OutFile <- gsub(".vcf", "", OutFile)
-  MapCmd  <- paste("cut -s -f1-3", InFile, "| awk '{if(NR > 1){print $1, $3, $2, $2}}' >", 
-                  OutFile)
-  ScriptName <- paste("Map", Chrom, sep = "_")
-  CreateAndCallSlurmScript(file = ScriptName,
-                           SlurmCommandLines = MapCmd, 
-                           scriptName = ScriptName) 
-}
-
-# Check whether queue is done 
-QueueFinished <- CheckQueue(MaxNrTrials = MaxNrTrials,
-                            SleepTime   = SleepTime)
-if (!QueueFinished){
-  stop("Removing multi-allelic variants did not finish within alotted time!")
-}
 
 ########################################
 #                                      #
@@ -178,13 +76,16 @@ if (!QueueFinished){
 
 cat("\n*********  Running selscan  ************\n")
 
-idxL1 <- which(blnEnough)[5]
+# Get file names, loop over files and do the filtering
+SubsetFiles <- list.files(DataFolder, pattern = "NoMulti", full.names = T)
+
 # Set up vectors of start and end indices
 Starts <- seq(1, sum(blnEnough), NrJobsPerBatch)
 Ends   <- c(Starts[-1] - 1, sum(blnEnough))
 
 # Loop over file names, read file and append to existing
-for (j in 1:length(Starts)){
+for (j in 1:5){
+  cat("\n******   Submitting jobs", Starts[j], "to", Ends[j], "   *********\n")
   for (idxL1 in which(blnEnough)[Starts[j]:Ends[j]]){
     # Collect chromosome, position, uper and lower bund, and ID for current L1
     Chrom <- paste("chr",  L1_1000G$CHROM[idxL1], sep = "")
@@ -212,52 +113,20 @@ for (j in 1:length(Starts)){
     Cmds <- c(SubsetCmd, SelscanCmd)
     ScriptName <- paste("L1selscan", Chrom, ID, sep = "_")
     CreateAndCallSlurmScript(file = ScriptName,
+                             SlurmHeaderLines = c('#!/bin/bash', 
+                                                  '#SBATCH --account=dflev', 
+                                                  '#SBATCH --time=1:00:00', 
+                                                  '#SBATCH --job-name="Selscan"', 
+                                                  '#SBATCH --nodes=1', 
+                                                  '#SBATCH --ntasks=1', 
+                                                  '#SBATCH --cpus-per-task=1', 
+                                                  '#SBATCH --mem=50G' 
+                             ),
                              SlurmCommandLines = Cmds, 
                              scriptName = ScriptName) 
   }
-  Sys.sleep(WaitBetwJobs)
-}
-
-# Check whether queue is done 
-QueueFinished <- CheckQueue(MaxNrTrials = MaxNrTrials,
-                            SleepTime   = SleepTime)
-if (!QueueFinished){
-  stop("Selscan did not finish within alotted time!")
-}
-
-########################################
-#                                      #
-#    Run selscan                       #
-#                                      #
-########################################
-
-cat("\n*********  Running selscan  ************\n")
-
-# Loop over file names, read file and append to existing
-idxL1 <- which(blnEnough)[2]
-
-for (j in 1:length(Starts)){
-  for (idxL1 in which(blnEnough)[Starts[j]:Ends[j]]){
-    Chrom         <- paste("chr",  L1_1000G$CHROM[idxL1], sep = "")
-    MapPattern    <- paste(Chrom, "_L1WindowsubsetMap", sep = "")
-    MapFile       <- grep(MapPattern, MapFiles, value = T)
-    InFilePattern <- paste(Chrom, "_L1WindowsubsetNoMulti.vcf", sep = "")
-    InFile        <- grep(InFilePattern, SubsetFiles, value = T)
-   OutFile       <- gsub("NoMulti", "Selscan", InFile)
-  OutFile       <- gsub(".vcf", "", OutFile)
-  SelscanCmd    <- paste("./selscan/bin/linux/selscan --ehh",
-                         L1_1000G$ID[idxL1], "--vcf",
-                         InFile, "--map", MapFile, "--out", OutFile)
-  ScriptName <- paste("Selscan", Chrom, sep = "_")
-  CreateAndCallSlurmScript(file = ScriptName,
-                           SlurmCommandLines = SelscanCmd, 
-                           scriptName = ScriptName) 
-  }
-  Sys.sleep(WaitBetwJobs)
-}
-# Check whether queue is done 
-QueueFinished <- CheckQueue(MaxNrTrials = MaxNrTrials,
-                            SleepTime   = SleepTime)
-if (!QueueFinished){
-  stop("Selscan did not finish within alotted time!")
+  # Check whether queue is done 
+  QueueFinished <- CheckQueue(MaxNrTrials = MaxNrTrials,
+                              SleepTime   = SleepTime)
+  
 }
