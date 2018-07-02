@@ -192,3 +192,9 @@ awk 'BEGIN{i = -1; j = -1; prev = 0;};
       }
     }' FS=":" - FS=" " TestVcf.txt
 
+## Subset a range
+
+# Remove the comment lines from vcf file:
+cut -s -f 1- TestVcf.txt | \
+# Return the first two columns of rows that contain only a single 1
+awk '{if($3 >= 3 && $3 <= 5){print $0 > "out1"; print $2, $3 > "out2"}}';
