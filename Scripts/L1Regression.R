@@ -44,6 +44,7 @@ GExpTissuePath  <- 'D:/L1polymORF/Data/gtexTissue.txt'
 InputPath       <- 'D:/L1polymORF/Data/SingletonAnalysis_unphased.RData'
 L1RefPath       <- 'D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
 CpGPath         <- 'D:/L1polymORF/Data/CpG_hg19.txt'
+RecombDataPath  <- "D:/L1polymORF/Data/hg19RecombRate.txt"
 
 # Number of info columns in vcf file
 NrInfoCols   <- 9
