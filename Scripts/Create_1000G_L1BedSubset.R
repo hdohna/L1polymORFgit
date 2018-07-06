@@ -9,9 +9,9 @@ source('/home/hzudohna/L1polymORFgit/Scripts/_Start_L1polymORF_scg4.R')
 WindowWidth  <- 10^5
 MinNrCarrier <- 5
 NrInfoCol    <- 9
-DataFolder  <- "/srv/gsfs0/projects/levinson/hzudohna/1000Genomes/"
+DataFolder  <- "/labs/dflev/hzudohna/1000Genomes/"
 FilePattern <- "genotypes.vcf"
-BedPath <- "/srv/gsfs0/projects/levinson/hzudohna/1000Genomes/L1WindowSubset.bed"
+BedPath <- "/labs/dflev/hzudohna/1000Genomes/L1WindowSubset.bed"
 
 # Read in 1000 genome L1 table
 L1_1000G <- read.delim("/srv/gsfs0/projects/levinson/hzudohna/1000Genomes/L1_1000G_withGenoNum",
@@ -49,15 +49,51 @@ AllFiles
 cat("Create L1 subset file per chromosome\n")
 VcfFile <- AllFiles[1]
 
-for (VcfFile in AllFiles[-1]){
+for (VcfFile in AllFiles){
   cat("Processing", VcfFile, "\n")
   Chrom <- strsplit(VcfFile, "\\.")[[1]][2]
-  OutFile <- paste(DataFolder, Chrom, ".L1Windowsubset.vcf", sep = "")
+  OutFile <- paste(DataFolder, Chrom, "_L1Windowsubset", sep = "")
   VcfCmd <- c("module load vcftools", 
-              paste("vcftools --vcf", VcfFile, "--bed", BedPath,
+              paste("vcftools --vcf", VcfFile, "--bed", BedPath, "--recode",
               "--out", OutFile))
   ScriptName <- paste("L1Window", Chrom, sep = "_")
   CreateAndCallSlurmScript(file = ScriptName,
                            SlurmCommandLines = VcfCmd, 
+                           scriptName = ScriptName) 
+}
+
+# Get file names, loop over files and do the filtering
+SubsetFiles <- list.files(DataFolder, pattern = "_L1Windowsubset", full.names = T)
+
+# Loop over file names, read file and append to existing
+cat("Remove multi \n")
+InFile <- SubsetFiles[1]
+
+for (InFile in SubsetFiles){
+  cat("Processing", InFile, "\n")
+  Chrom <- strsplit(strsplit(InFile, "\\_")[[1]][1], "\\//")[[1]][2]
+  OutFile <- gsub(".recode", "NoMulti", InFile)
+  GrepCmd <- paste('grep MULTI_ALLELIC -v', InFile, ">", OutFile)
+  ScriptName <- paste("grepScript", Chrom, sep = "_")
+  CreateAndCallSlurmScript(file = ScriptName,
+                           SlurmCommandLines = GrepCmd, 
+                           scriptName = ScriptName) 
+}
+
+# Get file names, loop over files and do the filtering
+SubsetFiles <- list.files(DataFolder, pattern = "NoMulti", full.names = T)
+
+# Loop over file names, read file and append to existing
+cat("Remove multi \n")
+InFile <- SubsetFiles[1]
+
+for (InFile in SubsetFiles){
+  cat("Processing", InFile, "\n")
+  Chrom <- strsplit(strsplit(InFile, "\\_")[[1]][1], "\\//")[[1]][2]
+  OutFile <- gsub(".recode", "NoMulti")
+  GrepCmd <- paste('grep MULTI_ALLELIC -v', InFile, ">", OutFile)
+  ScriptName <- paste("grepScript", Chrom, sep = "_")
+  CreateAndCallSlurmScript(file = ScriptName,
+                           SlurmCommandLines = GrepCmd, 
                            scriptName = ScriptName) 
 }
