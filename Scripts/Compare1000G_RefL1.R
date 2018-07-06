@@ -5,9 +5,22 @@
 library(GenomicRanges)
 library(rtracklayer)
 
+# Specify data folder
+DataFolder <- "/labs/dflev/hzudohna/1000Genomes/"
+
+# Get names of all files with indel info, loop over files and concatenate them
+AllFiles <- list.files(DataFolder, pattern = "IndelInfo_chr", full.names = T)
+AllFiles <- list.files(DataFolder, pattern = "LINE1_Info_chr", full.names = T)
+AllFiles <- AllFiles[-grep("_chrMT", AllFiles)]
+
 # Read in info from 1000 genome deletions and turn them into genomic ranges
-DelInfo <- read.delim("/srv/gsfs0/projects/levinson/hzudohna/1000Genomes/Del_chr1_InfoCols",
-                      header = F, sep = " ", skip = 1)
+DelInfo <- read.delim(AllFiles[1], header = F)
+for (InfoFile in AllFiles[-1]){
+  cat("Processing", InfoFile, "\n")
+  NewData <- read.delim(InfoFile, header = F)
+  DelInfo <- rbind(DelInfo, NewData)
+}
+dim(DelInfo)
 
 DelInfo_GR <- GRanges(seqnames = paste("chr", DelInfo$V1, sep = ""),
         ranges = IRanges(start = DelInfo$V2, end = DelInfo$V2))
