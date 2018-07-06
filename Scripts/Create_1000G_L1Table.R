@@ -43,8 +43,12 @@ StartChar <- substr(MEI1000GLines, 1, 1)
 StartLines <- MEI1000GLines[StartChar == "#"]
 FileLines  <- apply(L1Table, 1, function(x) paste(x, collapse = "\t"))
 
+# Add column names
+ColNames  <- MEI1000GLines[max(which(StartChar == "#"))]
+ColNames  <- gsub("#", "", ColNames)
+
 # Write out concatenated L1 file
-writeLines(c(StartLines, FileLines), OutFileAllL1)
+writeLines(c(ColNames, FileLines), OutFileAllL1)
 
 # Add column names
 ColNames  <- MEI1000GLines[max(which(StartChar == "#"))]
