@@ -27,7 +27,6 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 #     Set parameters                     #
 #                                        #
 ##########################################
-
 # Specify file paths
 DataPath        <- 'D:/L1polymORF/Data/'
 G1000SamplePath <- 'D:/L1polymORF/Data/1000GenomeSampleInfo.txt'
@@ -45,6 +44,7 @@ InputPath       <- 'D:/L1polymORF/Data/SingletonAnalysis_unphased.RData'
 L1RefPath       <- 'D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
 CpGPath         <- 'D:/L1polymORF/Data/CpG_hg19.txt'
 RecombDataPath  <- "D:/L1polymORF/Data/hg19RecombRate.txt"
+ChromHHPath     <- "D:/L1polymORF/Data/EncodeBroadHMM/ChromHMMcombined.txt"
 
 # Number of info columns in vcf file
 NrInfoCols   <- 9
@@ -135,8 +135,7 @@ GexpTissue   <- read.delim(GExpTissuePath, header = F,
 colnames(GExpByTissue) <- GexpTissue$name
 
 # Read in table with regulatory elements
-RegTable      <- read.table("D:/L1polymORF/Data/EncodeBroadHMM/ChromHMMcombined.txt",
-                            header = T)
+RegTable      <- read.table(ChromHHPath, header = T)
 blnAllCellTypes <- RegTable$CellType == 
   "Gm12878,H1hesc,Hepg2,Hmec,Hsmm,Huvec,K562,Nhek,Nhlf"
 
@@ -167,7 +166,7 @@ CpGGR    <- makeGRangesFromDataFrame(CpGtable, start.field = "chromStart",
                                      end.field = "chromEnd")
 
 # Read in file and create GRanges
-RecData <- read.delim("D:/L1polymORF/Data/hg19RecombRate.txt")
+RecData <- read.delim(RecombDataPath)
 Rec_GR  <- makeGRangesFromDataFrame(RecData)
 
 # Add columns to 1000 genome data
