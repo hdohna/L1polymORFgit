@@ -44,4 +44,4 @@ iHHScores     <- as.data.frame(t(iHHScores), stringsAsFactors = F)
 iHHScores$iHH <- as.numeric(iHHScores$iHH)
 
 # Save image 
-save(ResultPath)
+save.image(file = ResultPath)
