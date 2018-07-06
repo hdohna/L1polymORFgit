@@ -42,6 +42,7 @@ GExpTissuePath  <- 'D:/L1polymORF/Data/gtexTissue.txt'
 InputPath       <- 'D:/L1polymORF/Data/SingletonAnalysis_unphased.RData'
 L1RefPath       <- 'D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
 CpGPath         <- 'D:/L1polymORF/Data/CpG_hg19.txt'
+ParalogPath     <- "D:/L1polymORF/Data/Paralogs_hg19.RData"
 
 # Number of info columns in vcf file
 NrInfoCols   <- 9
@@ -52,6 +53,7 @@ FDR <- 0.1
 # Specify range width for DNAse analysis
 RangeWidth <- 10^6
 
+
 ##########################################
 #                                        #
 #     Load and process data              #
@@ -60,11 +62,16 @@ RangeWidth <- 10^6
 
 cat("Loading and processing data ...")
 
+# Create genomic range for MHC
+MHC_GR <- GRanges(seqnames = "chr6",
+                  IRanges(start = 28477797, end = 33448354))
+
 # Load previously generated objects
 load(L1GRPath)
 load(ChrLPath)
 load(L1RefRangePath)
 load(InputPath)
+load(ParalogPath)
 
 # Make genomic ranges for L1SingletonCoeffs
 L1SingletonCoeffs$chromosome <- paste("chr", L1SingletonCoeffs$Chrom, sep = "")
@@ -156,6 +163,8 @@ cat("done!\n")
 #                                        #
 ##########################################
 
+cat("Add columns to L1SingletonCoeffs ...")
+
 # Turn factors into numeric values
 L1SingletonCoeffs$L1Start <- as.numeric(as.character(L1SingletonCoeffs$L1Start))
 L1SingletonCoeffs$L1End <- as.numeric(as.character(L1SingletonCoeffs$L1End))
@@ -210,12 +219,15 @@ L1SingletonCoeffs$MeanCof <- CoeffAggMerge$Mean[FreqMatch]
 L1SingletonCoeffs$StDevCof <- CoeffAggMerge$StDev[FreqMatch]
 L1SingletonCoeffs$CoefSt <- (L1SingletonCoeffs$coef - L1SingletonCoeffs$MeanCof) / 
   L1SingletonCoeffs$StDevCof
+cat("done!\n")
 
 ##########################################
 #                                        #
 #     Regress coefficients               #
 #                                        #
 ##########################################
+
+cat("Regress coefficients ...")
 
 # Form a subset of coefficients with nonzero standard error
 L1SinglCoeff_nonzeroSE <- subset(L1SingletonCoeffs, subset = se.coef. > 0)
@@ -262,11 +274,15 @@ summary(LML1PVsFreq)
 # Check whether coefficients differ by L1 inside or outside genes
 t.test(coef ~ blnOLGene, data = L1SingletonCoeffs)
 
+cat("done!\n")
+
 ##########################################
 #                                        #
 #     Regress selection indicator        #
 #                                        #
 ##########################################
+
+cat("Regressing selection indicator ...")
 
 # Determine whether indicator of negative selection depends on insertion length
 # or frequency
@@ -294,11 +310,15 @@ chisq.test(L1SingletonCoeffs$Dist2Gene == 0, L1SingletonCoeffs$blnNotSelect)
 # to be in vs out of genes
 fisher.test(L1SingletonCoeffs$Dist2Gene == 0, L1SingletonCoeffs$blnSelect)
 
+cat("done!\n")
+
 ##########################################
 #                                        #
 #   Regress intersection with genes      #
 #                                        #
 ##########################################
+
+cat("Regressing intersection with genes ...")
 
 #######
 # Regress against L1 start
@@ -383,7 +403,13 @@ lines(L1_1000G_subset$L1StartNum[InsLorder],
 CreateDisplayPdf('D:/L1polymORF/Figures/PropInGeneVsInsLength.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 5, width = 5)
-
+jpeg(file = "D:/L1polymORF/Figures/PropInGeneVsInsLength.jpeg")
+plot(L1OLVsL1StartSmoothed$x, L1OLVsL1StartSmoothed$y, type = "l", 
+     xlab = "L1 5' start",
+     ylab = "Proportion of L1s in genes")
+lines(L1_1000G_subset$L1StartNum[InsLorder], 
+      LogRegGeneOLVsL1Start_noFreq$fitted.values[InsLorder], lty = 2)
+dev.off()
 
 plot(L1OLVsL1StartSmoothed$x, L1OLVsL1StartSmoothed$y, type = "l", xlab = "L1 start",
      ylab = "Proportion of L1s in genes", xlim = c(0, 30),
@@ -432,11 +458,15 @@ LogRegExonOLVsL1Start <- glm(blnOLExon ~ L1StartNum,
                              subset = blnOLGene)
 summary(LogRegExonOLVsL1Start)
 
+cat("done!\n")
+
 ##########################################
 #                                        #
 #   Regress strand alignedness           #
 #                                        #
 ##########################################
+
+cat("Regressing alignedness ...")
 
 # Overlap map between genes and L1
 L1_Gene_OL <- findOverlaps(L1_1000G_GR_hg19, GeneGR)
@@ -529,12 +559,15 @@ SampledGeneGR <- GeneGR[idxSampledGenes]
 writeLines(SampledGeneGR@elementMetadata@listData$gene_id, 
            con = "D:/L1polymORF/Data/SampledGeneIDs")
 
+cat("done!\n")
+
 ###################################################
 #                                                 #
 #   Analyze enrichment of annotation terms        #
 #                                                 #
 ###################################################
 
+cat("Analyzing enrichment of annotation terms ...")
 # Map genomic ranges of gene expression data to gene ranges
 GeneGexpOL       <- findOverlaps(GExpGR, GeneGR)
 GExpByGeneTissue <- aggregate.data.frame(
@@ -566,8 +599,10 @@ GeneTable <- data.frame(UniProtID = GeneLookup1$UNIPROT[idxUniProt],
                         L1Count_ref = GeneOLCount_ref[idxUniProt],
                         L1NegSelectCount = GeneOLNegSelectCount[idxUniProt],
                         L1PosSelectCount = GeneOLPosSelectCount[idxUniProt],
+                        NrMappedGene = NrMappedGene[idxUniProt],
+                        NrMappedRange = NrMappedRange[idxUniProt],
                         idxGeneGR = idxUniProt)
-
+GeneTable$blnMHC <- overlapsAny(GeneGR[idxUniProt], MHC_GR)
 # Create a uniprot object for humans
 IDMatch   <- match(GeneTable$UniProtID, UniProtData$Entry)
 GeneTable <- GeneTable[!is.na(IDMatch), ]
@@ -613,7 +648,8 @@ GeneTable$PDEase <- 1:nrow(GeneTable) %in%
 # insertion
 GLM_OLCount <- glm(L1Count ~ GeneLength + Membrane + Glycoprotein + CellJunction +
                    Kinase + ImmGlob + Fibronect + Galactose + Pleckstrin + Cytokin +
-                   PDZ + Concanavalin + Ligand + MAM + PTP + PDEase + HostReceptor, 
+                   PDZ + Concanavalin + Ligand + MAM + PTP + PDEase + HostReceptor +
+                     NrMappedGene + NrMappedRange, 
                    data = GeneTable,
                    family = "poisson")
 Sum_GLM_OLCount <- summary(GLM_OLCount)
@@ -639,8 +675,6 @@ cbind(Sum_GLM_OLCount_ref$coefficients[Padj_ref < 0.05, 'Estimate'],
 L1_1000G$blnNegSel <- overlapsAny(L1_1000G_GR_hg19, 
                                   L1SingletonCoeffs_GR[L1SingletonCoeffs$blnNotSelect])
 table(L1_1000G$blnNegSel, L1_1000G$blnOLProm)
-fisher.test(L1_1000G$blnOLGlyco[L1_1000G$blnOLGene], 
-            L1_1000G$blnNegSel[L1_1000G$blnOLGene])
 
 # Test whether glycoproteins are significantly enriched among negatively 
 # selected L1
@@ -663,11 +697,23 @@ plot(log10(width(GeneGR)),  GeneOLCount, col = PCol, pch = 16,
 
 axis(1, at = 2:7, paste("10^", c(2:7), sep = ""))
 GeneLOrder <- order(GeneTable$GeneLength)
-lines(GeneTable$GeneLength_untrans[GeneLOrder], 
+lines(GeneTable$GeneLength[GeneLOrder], 
       GLM_OLCount_L$fitted.values[GeneLOrder], col = "red")
 CreateDisplayPdf('D:/L1polymORF/Figures/NrInsVsGeneLength.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 5, width = 5)
+jpeg(file = "D:/L1polymORF/Figures/NrInsVsGeneLength.jpeg")
+plot(log10(width(GeneGR)),  GeneOLCount, col = PCol, pch = 16,
+     xaxt = "n",
+     xlab = "Gene length [bp]", 
+     ylab = "Number of L1 insertions per gene")
+
+axis(1, at = 2:7, paste("10^", c(2:7), sep = ""))
+GeneLOrder <- order(GeneTable$GeneLength)
+lines(GeneTable$GeneLength[GeneLOrder], 
+      GLM_OLCount_L$fitted.values[GeneLOrder], col = "red")
+dev.off()
+
 plot(width(GeneGR),  GeneOLCount, col = PCol, pch = 16,
      xlab = "Gene length [bp]", 
      ylab = "Number of L1 insertions per gene", xlim = c(0, 3*10^6))
@@ -702,6 +748,7 @@ GLM_OLCount2 <- glm(L1Count ~ GeneLength_untrans, data = GeneTable,
                     family = "poisson", subset = GeneLength <= 6)
 summary(GLM_OLCount1)
 summary(GLM_OLCount2)
+cat("done!\n")
 
 ###################################################
 #                                                 #
@@ -753,6 +800,10 @@ mean(GeneTable$GeneLength[GeneTable$Glycoprotein & (GeneTable$L1Count > 0)])
 L1_1000G$blnOLGlyco <- overlapsAny(L1_1000G_GR_hg19, GeneGR[idxGlyco])
 L1SingletonCoeffs$blnOLGlyco <- overlapsAny(L1SingletonCoeffs_GR, 
                                             GeneGR[idxGlyco])
+
+# Test whether glycoproteins are overrepresented among negatively selected genes
+fisher.test(L1_1000G$blnOLGlyco[L1_1000G$blnOLGene], 
+            L1_1000G$blnNegSel[L1_1000G$blnOLGene])
 
 # Test whether selected
 wilcox.test(Freq ~ blnNotSelect, data = L1SingletonCoeffs)
@@ -807,9 +858,11 @@ summary(LogRegGlycoOLVsFreqOnly)
 # Get entrez IDs of glycoproteins 
 GeneGR[idxGlyco]
 keytypes(org.Hs.eg.db)
-select(org.Hs.eg.db,
+GycoProtL1 <- select(org.Hs.eg.db,
        keys = GeneGR@elementMetadata@listData$gene_id[idxGlycoL1],
        columns = c("SYMBOL", "GENENAME"), keytype = "ENTREZID")
+write.csv(GycoProtL1, file = "D:/L1polymORF/Data/GlycoProtsWithL1.csv")
+
 
 ###################################################
 #                                                 #
