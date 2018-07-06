@@ -15,10 +15,10 @@ source('/home/hzudohna/L1polymORFgit/Scripts/_Start_L1polymORF_scg4.R')
 WindowWidth  <- 10^5
 MinNrCarrier <- 5
 NrInfoCol    <- 9
-MaxNrTrials  <- 20
-SleepTime    <- 30
+MaxNrTrials  <- 30
+SleepTime    <- 10
 ThinDist     <- 1
-NrJobsPerBatch <- 50
+NrJobsPerBatch <- 200
 WaitBetwJobs <- 100
 DataFolder   <- "/labs/dflev/hzudohna/1000Genomes/"
 FilePattern  <- "genotypes.vcf"
@@ -36,37 +36,9 @@ L1_1000G <- read.delim("/srv/gsfs0/projects/levinson/hzudohna/1000Genomes/L1_100
                        header = T, sep = " ")
 
 # Subset L1 file to retain only entries with enough carriers
-blnL1 <- L1_1000G[,(NrInfoCol + 1):ncol(L1_1000G)] > 0
+blnL1     <- L1_1000G[,(NrInfoCol + 1):ncol(L1_1000G)] > 0
 blnEnough <- rowSums(blnL1, na.rm = T) >= MinNrCarrier
 sum(blnEnough)
-
-# Create a bed file with windows around each L1
-L1WindowsBed <- data.frame(chrom  = L1_1000G$CHROM[blnEnough],
-                           chromStart = L1_1000G$POS[blnEnough] - WindowWidth,
-                           chromEnd   = L1_1000G$POS[blnEnough] + WindowWidth
-                           )
-
-# Get index of overlapping rows
-NR    <- nrow(L1WindowsBed)
-idxOL <- which((L1WindowsBed$chromStart[-1] <= L1WindowsBed$chromEnd[-NR]) &
-  (L1WindowsBed$chrom[-1] == L1WindowsBed$chrom[-NR]))
-
-# Remove overlapping rows
-L1WindowsBed$chromEnd[idxOL] <- L1WindowsBed$chromEnd[idxOL + 1]
-L1WindowsBed <- L1WindowsBed[-(idxOL + 1), ]
-
-# Write out bed file
-write.table(L1WindowsBed, BedPath, quote = F, row.names = F)
-
-# Create a map table
-MapTable <- cbind(L1_1000G[blnEnough, c("CHROM", "ID")], GenPos = 0.01, 
-                  L1_1000G[blnEnough, c("POS")])
-
-# Write out an example map file
-MapFile <- paste(DataFolder, "SelscanMap", sep = "")
-write.table(MapTable, file = MapFile,
-            row.names = F, col.names = F, quote = F, sep = " ")
-
 
 ########################################
 #                                      #
@@ -84,9 +56,9 @@ Starts <- seq(1, sum(blnEnough), NrJobsPerBatch)
 Ends   <- c(Starts[-1] - 1, sum(blnEnough))
 
 # Loop over file names, read file and append to existing
-for (j in 1:5){
-  cat("\n******   Submitting jobs", Starts[j], "to", Ends[j], "   *********\n")
-  for (idxL1 in which(blnEnough)[Starts[j]:Ends[j]]){
+# for (j in 3){
+#   cat("\n******   Submitting jobs", Starts[j], "to", Ends[j], "   *********\n")
+  for (idxL1 in which(blnEnough)[501:sum(blnEnough)]){
     # Collect chromosome, position, uper and lower bund, and ID for current L1
     Chrom <- paste("chr",  L1_1000G$CHROM[idxL1], sep = "")
     ID    <- L1_1000G$ID[idxL1]
@@ -120,13 +92,13 @@ for (j in 1:5){
                                                   '#SBATCH --nodes=1', 
                                                   '#SBATCH --ntasks=1', 
                                                   '#SBATCH --cpus-per-task=1', 
-                                                  '#SBATCH --mem=50G' 
+                                                  '#SBATCH --mem=100G' 
                              ),
                              SlurmCommandLines = Cmds, 
                              scriptName = ScriptName) 
   }
-  # Check whether queue is done 
-  QueueFinished <- CheckQueue(MaxNrTrials = MaxNrTrials,
-                              SleepTime   = SleepTime)
-  
-}
+#   # Check whether queue is done 
+#   QueueFinished <- CheckQueue(MaxNrTrials = MaxNrTrials,
+#                               SleepTime   = SleepTime)
+#   
+# }

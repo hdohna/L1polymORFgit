@@ -12,7 +12,11 @@
 --vcf /srv/gsfs0/projects/levinson/hzudohna/1000Genomes/chr10_L1WindowsubsetNoMulti.vcf \
 --out /srv/gsfs0/projects/levinson/hzudohna/1000Genomes//chr10_L1WindowsubsetSelscan
 
-./selscan/bin/linux/selscan --ihs --vcf \
+./selscan/bin/linux/selscan --ehh esv3622439 --vcf \
 /labs/dflev/hzudohna/1000Genomes//chr10_L1WindowsubsetNoMulti.vcf \
 --map /labs/dflev/hzudohna/1000Genomes//chr10_L1WindowsubsetMap \
 --out /labs/dflev/hzudohna/1000Genomes//chr10_L1WindowsubsetSelscan
+
+
+cut -s -f 1- /labs/dflev/hzudohna/1000Genomes//chr11_L1WindowsubsetNoMulti.vcf | awk '{if($2 >= 132940572&& $2 <= 133140572){print $0 > "/labs/dflev/hzudohna/1000Genomes/chr11_esv3628145_Var.vcf"; print $1, $3, $2, $2 > "/labs/dflev/hzudohna/1000Genomes/chr11_esv3628145_map"}}'
+| ./selscan/bin/linux/selscan --ehh esv3628145 --vcf /labs/dflev/hzudohna/1000Genomes/chr11_esv3628145_Var.vcf --map /labs/dflev/hzudohna/1000Genomes/chr11_esv3628145_map --out /labs/dflev/hzudohna/1000Genomes//chr11_L1WindowsubsetSelscan

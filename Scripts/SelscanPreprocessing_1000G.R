@@ -81,7 +81,7 @@ AllFiles
 cat("\n*********    Subsetting vcf file around each L1  ************\n")
 VcfFile <- AllFiles[1]
 
-for (VcfFile in AllFiles[-1]){
+for (VcfFile in AllFiles){
   cat("Processing", VcfFile, "\n")
   Chrom <- strsplit(VcfFile, "\\.")[[1]][2]
   OutFile <- paste(DataFolder, Chrom, "_L1Windowsubset", sep = "")
@@ -91,6 +91,15 @@ for (VcfFile in AllFiles[-1]){
               "--out", OutFile))
   ScriptName <- paste("L1Window", Chrom, sep = "_")
   CreateAndCallSlurmScript(file = ScriptName,
+                           SlurmHeaderLines = c('#!/bin/bash', 
+                                                '#SBATCH --account=dflev', 
+                                                '#SBATCH --time=1:00:00', 
+                                                '#SBATCH --job-name="Selscan"', 
+                                                '#SBATCH --nodes=1', 
+                                                '#SBATCH --ntasks=1', 
+                                                '#SBATCH --cpus-per-task=1', 
+                                                '#SBATCH --mem=100G' 
+                           ),
                            SlurmCommandLines = VcfCmd, 
                            scriptName = ScriptName) 
 }
@@ -111,7 +120,7 @@ if (!QueueFinished){
 cat("\n*********  Removing multi-allelic variants  ************\n")
 
 # Get file names, loop over files and do the filtering
-SubsetFiles <- list.files(DataFolder, pattern = "_L1Windowsubset", 
+SubsetFiles <- list.files(DataFolder, pattern = "_L1Windowsubset.recode.vcf", 
                           full.names = T)
 
 # Loop over file names, read file and append to existing
@@ -125,6 +134,15 @@ for (InFile in SubsetFiles){
                    OutFile)
   ScriptName <- paste("grepScript", Chrom, sep = "_")
   CreateAndCallSlurmScript(file = ScriptName,
+                           SlurmHeaderLines = c('#!/bin/bash', 
+                                                '#SBATCH --account=dflev', 
+                                                '#SBATCH --time=1:00:00', 
+                                                '#SBATCH --job-name="Selscan"', 
+                                                '#SBATCH --nodes=1', 
+                                                '#SBATCH --ntasks=1', 
+                                                '#SBATCH --cpus-per-task=1', 
+                                                '#SBATCH --mem=100G' 
+                           ),
                            SlurmCommandLines = GrepCmd, 
                            scriptName = ScriptName) 
 }
