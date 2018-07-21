@@ -16,6 +16,7 @@ idxCancer  <- grep("cancer", DNAseInfo$Karyotype)
 StemIDs    <- as.character(DNAseInfo$ID[union(idxStem1, idxStem2)])
 CancerIDs  <- as.character(DNAseInfo$ID[idxCancer])
 NotStemIDs <- as.character(setdiff(DNAseInfo$ID, union(CancerIDs, StemIDs)))
+StemCellNames <- DNAseInfo$cell.1[union(idxStem1, idxStem2)]
 
 # Read DNAse hypersensitivity data
 DNAseData  <- read.delim('D:/L1polymORF/Data/EncodeDNAse/wgEncodeRegDnaseClusteredV3.txt', 
