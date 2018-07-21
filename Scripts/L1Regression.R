@@ -21,30 +21,33 @@ library(UniProt.ws)
 library(gee)
 library(Homo.sapiens)
 library(BSgenome.Hsapiens.UCSC.hg19)
+library(coin)
 
 ##########################################
 #                                        #
 #     Set parameters                     #
 #                                        #
 ##########################################
+
 # Specify file paths
-DataPath        <- 'D:/L1polymORF/Data/'
-G1000SamplePath <- 'D:/L1polymORF/Data/1000GenomeSampleInfo.txt'
-GapPath         <- 'D:/L1polymORF/Data/Gap_hg19.txt'
-L1GRPath        <- 'D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData'
-L1RefRangePath  <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
-ChrLPath        <- 'D:/L1polymORF/Data/ChromLengthsHg19.Rdata'
-#UniProtPath     <- 'D:/L1polymORF/Data/UniProtKeywordsGO.txt'
-UniProtPath     <- 'D:/L1polymORF/Data/UniProtKeywordsInterPro.txt'
-InterProPath    <- 'D:/L1polymORF/Data/InterPro.txt'
-DNAseDataPath   <- 'D:/L1polymORF/Data/DNAseInfo.RData'
-GeneExpPath     <- 'D:/L1polymORF/Data/gtexGene.txt'
-GExpTissuePath  <- 'D:/L1polymORF/Data/gtexTissue.txt'
-InputPath       <- 'D:/L1polymORF/Data/SingletonAnalysis_unphased.RData'
-L1RefPath       <- 'D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
-CpGPath         <- 'D:/L1polymORF/Data/CpG_hg19.txt'
-RecombDataPath  <- "D:/L1polymORF/Data/hg19RecombRate.txt"
-ChromHHPath     <- "D:/L1polymORF/Data/EncodeBroadHMM/ChromHMMcombined.txt"
+DataPath           <- 'D:/L1polymORF/Data/'
+G1000SamplePath    <- 'D:/L1polymORF/Data/1000GenomeSampleInfo.txt'
+GapPath            <- 'D:/L1polymORF/Data/Gap_hg19.txt'
+L1GRPath           <- 'D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData'
+L1RefRangePath     <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
+ChrLPath           <- 'D:/L1polymORF/Data/ChromLengthsHg19.Rdata'
+GRangesSummaryPath <- 'D:/L1polymORF/Data/GRangesSummaries_1Mb.RData'
+
+# Vector of predictor variables
+# PredVars <- c("StemScores", "NotStemScores", "L1Count", "L1Count_Full",
+#                "L1StartNum", "InsLength", "blnFull", "GC", "TargetFreq", 
+#                "TeloFreq", "CpGCount", "length",  "cpgNum", "gcNum", 
+#                "perCpg", "perGc", "obsExp", "decodeAvg", "decodeFemale", 
+#                "decodeMale", "marshfieldAvg", "marshfieldMale", "genethonAvg",
+#                "genethonFemale", "genethonMale", "phastCons", "EnhancerCount", 
+#                "TxnCount", "PromCount", "ReprCount", "GeneCount") 
+PredVars <- c("StemScores", "NotStemScores", "GC", "TargetFreq", 
+                "TeloFreq", "CpGCount", "decodeAvg", "phastCons") 
 
 # Number of info columns in vcf file
 NrInfoCols   <- 9
@@ -67,261 +70,17 @@ cat("Loading and processing data ...")
 load(L1GRPath)
 load(ChrLPath)
 load(L1RefRangePath)
-load(InputPath)
+load(GRangesSummaryPath)
 
-# Make genomic ranges for L1SingletonCoeffs
-L1SingletonCoeffs$chromosome <- paste("chr", L1SingletonCoeffs$Chrom, sep = "")
-L1SingletonCoeffs_GR <- makeGRangesFromDataFrame(L1SingletonCoeffs, 
-                                                 seqnames.field = "chromosome",
-                                                 start.field = "Pos",
-                                                 end.field = "Pos")
-
-# Read information about 1000 genome samples
-SampleInfo  <- read.table(G1000SamplePath, header = T)
-SampleMatch <- match(SampleColumns, SampleInfo$sample)
-Pops        <- SampleInfo$super_pop[SampleMatch]
-NrS         <- length(SampleColumns)
-
-# Table for each L1 how often it occurs in each population
-UniquePops <- unique(SampleInfo$super_pop)
-PopFreq <- sapply(UniquePops, function(x){
-  blnPop <- Pops == x
-  rowSums(L1_1000G[,SampleColumns[blnPop]])
-})
-colnames(PopFreq) <- UniquePops
-
-# Match coefficients to 1000 genome data
-ChromPosCoeff     <- paste(L1SingletonCoeffs$chromosome, L1SingletonCoeffs$Pos)
-ChromPos1000G     <- paste(L1_1000G_reduced$chromosome, L1_1000G_reduced$POS)
-MatchCoeff1000G   <- match(ChromPosCoeff, ChromPos1000G)
-L1SingletonCoeffs <- cbind(L1SingletonCoeffs, PopFreq[MatchCoeff1000G,])
-
-# Define more genomic ranges
-GeneGR <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
-ExonGR <- exons(TxDb.Hsapiens.UCSC.hg19.knownGene)
-PromGR <- promoters(TxDb.Hsapiens.UCSC.hg19.knownGene, upstream = 10000)
-CDSGR  <- cds(TxDb.Hsapiens.UCSC.hg19.knownGene)
-IntronGRList   <- intronsByTranscript(TxDb.Hsapiens.UCSC.hg19.knownGene,
-                                      use.names = T)
-FiveUTRGRList  <- fiveUTRsByTranscript(TxDb.Hsapiens.UCSC.hg19.knownGene,
-                                       use.names = T)
-ThreeUTRGRList <- threeUTRsByTranscript(TxDb.Hsapiens.UCSC.hg19.knownGene,
-                                        use.names = T)
-sum(width(GeneGR)/10^6) / sum(ChromLengthsHg19/10^6)
-
-# Read UniProt data
-UniProtData  <- read.delim(UniProtPath)
-UniProtData  <- UniProtData[,1:5]
-InterProData <- read.delim(InterProPath)
-
-# Read DNAse hypersensitivity data (generated in script CombineEncodeInfo_DNAse)
-load(DNAseDataPath)
-
-# Get gene expression data
-GExpData <- read.delim(GeneExpPath, header = F, 
-              col.names = c("chrom", "start", "end", "name",
-                  "score", "strand", "geneId", "geneType", "expCount", 
-                  "expScores"))
-GExpGR <- makeGRangesFromDataFrame(GExpData)
-GExpByTissue <- t(sapply(as.character(GExpData$expScores), function(x){
-  strsplit(x, ",")[[1]]
-}))
-GExpByTissue <- as.data.frame(GExpByTissue)
-for (i in 1:ncol(GExpByTissue)){
-  GExpByTissue[[i]] <- as.numeric(GExpByTissue[[i]])
-}
-GexpTissue   <- read.delim(GExpTissuePath, header = F, 
-     col.names = c("id", "name", "description", "organ", "color"))
-colnames(GExpByTissue) <- GexpTissue$name
-
-# Read in table with regulatory elements
-RegTable      <- read.table(ChromHHPath, header = T)
-blnAllCellTypes <- RegTable$CellType == 
-  "Gm12878,H1hesc,Hepg2,Hmec,Hsmm,Huvec,K562,Nhek,Nhlf"
-
-# Get indices of different regulatory elements
-idxEnhancer <- grep("Enhancer", RegTable$name)
-idxTxn      <- grep("Txn", RegTable$name)
-idxProm     <- grep("Promoter", RegTable$name)
-idxHetero   <- grep("Heterochrom", RegTable$name)
-idxRepr     <- union(grep("Insulator", RegTable$name),
-                     grep("Repressed", RegTable$name))
-
-# Create genomic ranges for L1 fragments, match them to distances to get distance
-# to consensus per fragment
-EnhancerGR  <- makeGRangesFromDataFrame(RegTable[idxEnhancer,])
-TxnGR       <- makeGRangesFromDataFrame(RegTable[idxTxn,])
-PromGR      <- makeGRangesFromDataFrame(RegTable[idxProm, ])
-ReprGR      <- makeGRangesFromDataFrame(RegTable[idxRepr, ])
-
-# Read in table with L1HS from the referemce genome
-L1RefTab <- read.csv(L1RefPath)
-L1RefGR <- makeGRangesFromDataFrame(L1RefTab, seqnames.field = "genoName",
-                                    start.field = "genoStart",
-                                    end.field = "genoEnd")
-
-# Read in CpG data and turn it into GRanges
-CpGtable <- read.delim(CpGPath, header = T)
-CpGGR    <- makeGRangesFromDataFrame(CpGtable, start.field = "chromStart",
-                                     end.field = "chromEnd")
-
-# Read in file and create GRanges
-RecData <- read.delim(RecombDataPath)
-Rec_GR  <- makeGRangesFromDataFrame(RecData)
-
-# Add columns to 1000 genome data
-L1_1000G$blnOLGene  <- overlapsAny(L1_1000G_GR_hg19, GeneGR)
-L1_1000G$blnOLProm  <- overlapsAny(L1_1000G_GR_hg19, PromGR)
-L1_1000G$blnOLExon  <- overlapsAny(L1_1000G_GR_hg19, ExonGR)
-L1_1000G$blnOLCpG   <- overlapsAny(L1_1000G_GR_hg19, CpGGR)
-L1_1000G$Dist2CpG   <- Dist2Closest(L1_1000G_GR_hg19, CpGGR)
-L1_1000G$L1StartNum <- as.numeric(as.character(L1_1000G$L1Start))
-L1_1000G$L1EndNum   <- as.numeric(as.character(L1_1000G$L1End))
-L1_1000G$blnFull    <- L1_1000G$L1StartNum <= 1 & L1_1000G$L1EndNum >= 6000
-
-cat("done!\n")
-
-
-###################################################
-#                                                 #
-#     Summarize data per genomic range            #
-#                                                 #
-###################################################
-
-cat("Summarizing data per genomic range ...")
-# Summarize DNAse hypesensitivity data per RangeWidth
-DNAse2Summarize  <- cbind(DNAseData[,c("chrom", "start", "end")], 
-                          ScoreByStem)
-DNAseSummaryList <- AggregateDataPerGRanges(
-  Data2Summarize = DNAse2Summarize,
-  Cols2Summarize = colnames(ScoreByStem),
-  SeqNameCol = "chrom",
-  StartCol = "start",
-  EndCol = "end",
-  RangeWidth = RangeWidth, 
-  ChromLengths = ChromLengthsHg19,
-  blnAddGRInfo = T,
-  blnReturnDFOnly = F,
-  NoValue = 0
-)
-
-# Create summary genomic ranges and data per summary range
-SummaryGR        <- DNAseSummaryList$SummaryGR
-DataPerSummaryGR <- DNAseSummaryList$SummarizedData
-rm(list = "DNAseSummaryList")
-gc()
-
-###################
-# Add more variables to summary
-###################
-
-# Add overlap counts
-DataPerSummaryGR$L1Count <- countOverlaps(SummaryGR, L1_1000G_GR_hg19)
-DataPerSummaryGR$L1Count_Full <- countOverlaps(SummaryGR, 
-                                  L1_1000G_GR_hg19[which(L1_1000G$blnFull)])
-
-# Add other L1 info to summary
-L1Data2Summarize <- L1_1000G[ ,c("CHROM", "POS", "L1StartNum", "InsLength",
-                                 "blnFull")]
-L1Data2Summarize$CHROM <- paste("chr", L1Data2Summarize$CHROM, sep = "")
-L1SummaryDf <- AggregateDataPerGRanges(
-  Data2Summarize = L1Data2Summarize,
-  SummaryGR = SummaryGR,
-  Cols2Summarize = c("L1StartNum", "InsLength", "blnFull"),
-  SeqNameCol = "CHROM",
-  StartCol = "POS",
-  EndCol = "POS",
-  RangeWidth = RangeWidth, 
-  ChromLengths = ChromLengthsHg19,
-  blnAddGRInfo = T)
-
-# Merge existing data with new ones
-DataPerSummaryGR <- merge(DataPerSummaryGR, L1SummaryDf, sort = F)
-rm(list = "L1SummaryDf")
-gc()
-
-
-# Add GC to summary
-cat("calculating GC content ...")
-SummaryViews <- BSgenomeViews(BSgenome.Hsapiens.UCSC.hg19, SummaryGR)
-GCFreq       <- letterFrequency(SummaryViews, letters = "GC")
-DataPerSummaryGR$GC <- GCFreq
 cat("done\n")
-
-# Add target site frequency to summary
-cat("calculating target site frequency ...")
-SeqWindows <- getSeq(BSgenome.Hsapiens.UCSC.hg19, SummaryGR)
-TTTTAAFreq   <- vcountPattern("TTTTAA", SeqWindows)
-TTAAAAFreq   <- vcountPattern("TTAAAA", SeqWindows)
-DataPerSummaryGR$TargetFreq <- TTTTAAFreq + TTAAAAFreq
-cat("done\n")
-
-# Add CpG data
-DataPerSummaryGR$CpGCount <- countOverlaps(SummaryGR, CpGGR)
-CpGSummaryDF <- AggregateDataPerGRanges(
-  Data2Summarize = CpGtable,
-  Cols2Summarize = c("length", "cpgNum", "gcNum", "perCpg", "perGc", "obsExp"),
-  SeqNameCol     = "chrom",
-  StartCol       = "chromStart",
-  EndCol         = "chromEnd",
-  RangeWidth     = RangeWidth, 
-  ChromLengths = ChromLengthsHg19,
-  blnAddGRInfo = T)
-CpGSummaryDF[is.na(CpGSummaryDF$length),c("length", "cpgNum", "gcNum")] <- 0
-
-# Merge existing data with new ones
-DataPerSummaryGR <- merge(DataPerSummaryGR, CpGSummaryDF, sort = F)
-rm(list = "CpGSummaryDF")
-gc()
-
-# Add recombination data
-RecSummaryDF <- AggregateDataPerGRanges(
-  Data2Summarize = RecData,
-  Cols2Summarize = c("decodeAvg",  "decodeFemale", "decodeMale", 
-                     "marshfieldAvg", "marshfieldMale", "genethonAvg",
-                     "genethonFemale", "genethonMale"),
-  SeqNameCol     = "chrom",
-  StartCol       = "chromStart",
-  EndCol         = "chromEnd",
-  RangeWidth     = RangeWidth, 
-  ChromLengths = ChromLengthsHg19,
-  blnAddGRInfo = T)
-
-# Merge existing data with new ones
-DataPerSummaryGR <- merge(DataPerSummaryGR, RecSummaryDF, sort = F)
-rm(list = "CpGSummaryDF")
-gc()
-
-# Add various counts (better: calculate sum of width)
-CoverGR <- GeneGR
-CalcGRCoverage <- function(SummaryGR, CoverGR){
-  WidthDF <- data.frame(Chrom = as.vector(seqnames(CoverGR)),
-    Start = start(CoverGR), End = end(CoverGR), Width = width(CoverGR))
-  AggWidth <- AggregateDataPerGRanges(
-    SummaryGR = SummaryGR,
-    Data2Summarize = WidthDF,
-    Cols2Summarize = c("Width"),
-    SeqNameCol     = "Chrom",
-    StartCol       = "Start",
-    EndCol         = "End",
-    ChromLengths = ChromLengthsHg19,
-    SummaryFun = sum,
-    blnAddGRInfo = T)
-  AggWidth$Width
-}
-DataPerSummaryGR$EnhancerCount <- CalcGRCoverage(SummaryGR, EnhancerGR)
-DataPerSummaryGR$TxnCount      <- CalcGRCoverage(SummaryGR, TxnGR)
-DataPerSummaryGR$PromCount     <- CalcGRCoverage(SummaryGR, PromGR)
-DataPerSummaryGR$ReprCount     <- CalcGRCoverage(SummaryGR, ReprGR)
-DataPerSummaryGR$GeneCount     <- CalcGRCoverage(SummaryGR, GeneGR)
-
-cat("done!\n")
 
 ########################################################
 #                                                      #
 #   Regress L1 count against data per genomic range    #
 #                                                      #
 ########################################################
+
+cat("Regress L1 counts ...")
 
 # Create transparent point color
 PCol  <- rgb(0,0,0, alpha = 0.1)
@@ -333,21 +92,33 @@ plot(DataPerSummaryGR$L1Count - DataPerSummaryGR$L1Count_Full,
 cor.test(DataPerSummaryGR$L1Count - DataPerSummaryGR$L1Count_Full,
      DataPerSummaryGR$L1Count_Full)
 
-# Regress LINE-1 count against summaries
+# Regress LINE-1 count of 1000 genome against summaries
+Form <- as.formula(paste("L1Count ~ ", paste(PredVars, collapse = "+")))
+GLM_1000G <- glm(Form, data = DataPerSummaryGR, family = poisson)
+summary(GLM_1000G)
+
+# Regress LINE-1 count of reference genome against summaries
+Form <- as.formula(paste("L1Count_ref ~ ", paste(PredVars, collapse = "+")))
+GLM_Ref <- glm(Form, data = DataPerSummaryGR, family = poisson)
+summary(GLM_Ref)
+
+# Regress LINE-1 count of reference genome against summaries
 GLM_L1_All <- glm(L1Count ~ NotStemScores + StemScores + GC +
                            CpGCount + EnhancerCount + TxnCount + 
                            + ReprCount + GeneCount + decodeAvg +
-                    TargetFreq,
+                           TargetFreq,
                          data = DataPerSummaryGR, family = poisson)
 SUM_GLM_L1_All <- summary(GLM_L1_All)
 SUM_GLM_L1_All$coefficients[,'Pr(>|z|)']
-exp(SUM_GLM_L1_DNAse_both$coefficients[,'Estimate'])
-plot(DataPerSummaryGR$NotStemScores, DNAseSummary$L1Count, col = PCol)
-plot(DataPerSummaryGR$NotStemScores, DNAseSummary$L1Count, col = PCol)
+p.adjust(SUM_GLM_L1_All$coefficients[,'Pr(>|z|)'])
+plot(DataPerSummaryGR$NotStemScores, DataPerSummaryGR$L1Count, col = PCol)
+plot(DataPerSummaryGR$StemScores, DataPerSummaryGR$L1Count, col = PCol)
 
+# Regress full-length L1 against summary variables
 GLM_L1_Full <- glm(L1Count_Full ~ NotStemScores + StemScores + GC +
-                    CpGCount + EnhancerCount + TxnCount + 
-                    + ReprCount + GeneCount +  decodeAvg,
+                     CpGCount + EnhancerCount + TxnCount + 
+                     + ReprCount + GeneCount + decodeAvg +
+                     TargetFreq,
                   data = DataPerSummaryGR, family = poisson)
 SUM_GLM_L1_Full <- summary(GLM_L1_Full)
 SUM_GLM_L1_Full
@@ -355,51 +126,188 @@ cbind(SUM_GLM_L1_Full$coefficients[,c('Estimate', 'Pr(>|z|)')],
       SUM_GLM_L1_All$coefficients[,c('Estimate','Pr(>|z|)')])
 plot(SUM_GLM_L1_Full$coefficients[,'Estimate'], SUM_GLM_L1_All$coefficients[,'Estimate'])
 
-# # Regress LINE-1 count against DNAse scores
-# GLM_L1_DNAse_gee <- gee(L1Count ~ NotStemScores + StemScores + GC, 
-#                          data = DataPerSummaryGR, family = "poisson",
-#                          corstr =  "exchangeable", Mv = 1, 
-#                         id = ChrNum)
-# SUM_GLM_L1_DNAse_gee <- summary(GLM_L1_DNAse_gee)
-# coef(SUM_GLM_L1_DNAse_gee)[,'Estimate']
-# se <- SUM_GLM_L1_DNAse_gee$coefficients[, "Robust S.E."]
-# Ps <- 1 - pnorm(abs(coef(SUM_GLM_L1_DNAse_gee)[,'Estimate']) / se)
-# format(Ps, digits = 22)
-# cbind(coef(SUM_GLM_L1_DNAse_gee)[,'Estimate'] - se * qnorm(0.9995),
-#       coef(SUM_GLM_L1_DNAse_gee)[,'Estimate'] + se * qnorm(0.9995))
-# 
-# GLM_L1_DNAse_stem <- glm(L1Count ~ StemScores, data = DataPerSummaryGR,
-#                     family = "poisson")
-# summary(GLM_L1_DNAse_stem)
-# GLM_L1_DNAse_NotStem <- glm(L1Count ~ NotStemScores, data = DataPerSummaryGR,
-#                     family = "poisson")
-# GLM_L1_DNAse_GC <- glm(L1Count ~ GC, data = DNAseSummary,
-#                             family = "poisson")
-# summary(GLM_L1_DNAse_GC)
-# GLM_L1_DNAse_fragm <- glm(L1Count_fragm ~ StemScores + NotStemScores, data = DNAseSummary,
-#                     family = "poisson")
-# summary(GLM_L1_DNAse_fragm)
-# GLM_L1_DNAse_full <- glm(L1Count_full ~ StemScores + NotStemScores, data = DNAseSummary,
-#                           family = "poisson")
-# summary(GLM_L1_DNAse_full)
-# max(DNAseSummary$L1Count_full)
-# 
-# plot(DNAseSummary$StemScores, DNAseSummary$NotStemScores, col = PCol)
-# plot(DNAseSummary$StemScores, DNAseSummary$L1Count, col = PCol)
-# plot(DNAseSummary$NotStemScores, DNAseSummary$L1Count, col = PCol)
-# 
-# cor(DNAseSummary$StemScores, DNAseSummary$NotStemScores)
-# cor(DNAseSummary$StemScores, DNAseSummary$GC)
-# cor(DNAseSummary$NotStemScores, DNAseSummary$GC)
-# 
-# 
-# # Determine proportion of L1 overlapping with heterochromatin
-# # blnOLHetero <- overlapsAny(L1_1000G_GR_hg19, HeteroGR)
-# # mean(blnOLHetero)
-# # sum(width(HeteroGR)/10^6) / sum(ChromLengthsHg19/10^6)
-# # 
-# # fisher.test(blnOLHetero, L1_1000G$InsLength >= 6000)
-# 
+# Regress reference LINE-1 count against summaries
+GLM_L1_Ref <- glm(L1Count_ref ~ NotStemScores + StemScores + GC +
+                    CpGCount +  GeneCount + decodeAvg +
+                    TxnCount + 
+                    + ReprCount +TargetFreq + phastCons,
+                  data = DataPerSummaryGR, family = poisson)
+summary(GLM_L1_Ref)
+SUM_GLM_L1_Ref <- summary(GLM_L1_Ref)
+SUM_GLM_L1_Ref$coefficients[,'Pr(>|z|)']
+p.adjust(SUM_GLM_L1_Ref$coefficients[,'Pr(>|z|)'])
+
+# Compare coefficients for reference and non-reference L1
+RefNonRefCoeff <- cbind(SUM_GLM_L1_Ref$coefficients[,'Estimate'], 
+                        SUM_GLM_L1_All$coefficients[,'Estimate'])
+RefNonRefCoeff <- RefNonRefCoeff / rowMeans(abs(RefNonRefCoeff))
+
+plot(RefNonRefCoeff[-1, 1], RefNonRefCoeff[-1, 2])
+
+# Check whether there are coefficients that are significant but opposite 
+# directions for reference and non-reference L1
+blnSigNonRef <- p.adjust(SUM_GLM_L1_All$coefficients[,'Pr(>|z|)']) < 0.1
+blnSigNRef   <- p.adjust(SUM_GLM_L1_Ref$coefficients[,'Pr(>|z|)']) < 0.1
+blnSigDiff <- blnSigNonRef & blnSigNRef & 
+  (sign(SUM_GLM_L1_Ref$coefficients[,'Estimate']) != 
+   sign(SUM_GLM_L1_All$coefficients[,'Estimate']) )
+SUM_GLM_L1_Ref$coefficients[blnSigDiff,'Estimate']
+SUM_GLM_L1_All$coefficients[blnSigDiff,'Estimate']
+
+
+# Check GC content alone
+glm(L1Count_ref ~ GC, data = DataPerSummaryGR, family = poisson)
+glm(L1Count ~ GC, data = DataPerSummaryGR, family = poisson)
+L1GRanges
+
+cat("done\n")
+
+########################################################
+#                                                      #
+#      Correlate L1 density with L1 frequency          #
+#                                                      #
+########################################################
+
+cat("Correlate L1 density with L1 frequency ...")
+
+# Get L1 frequency per summary range
+OL <- findOverlaps(SummaryGR, L1_1000G_GR_hg19)
+MeanFreq <- aggregate(L1_1000G$Frequency[OL@to], by = list(OL@from), FUN = mean)
+DataPerSummaryGR$MeanFreq <- NA
+DataPerSummaryGR$MeanFreq[MeanFreq$Group.1] <- MeanFreq$x
+
+# Get predicted L1 frequency
+L1Predict <- predict(GLM_L1_All, newdata = DataPerSummaryGR)
+
+# Test for correlation
+cor.test(DataPerSummaryGR$MeanFreq, exp(L1Predict))
+cor.test(DataPerSummaryGR$MeanFreq, L1Predict, method = "spearman")
+spearman_test(DataPerSummaryGR$MeanFreq ~ L1Predict)
+spearman_test(DataPerSummaryGR$MeanFreq ~ DataPerSummaryGR$L1Count)
+
+plot(DataPerSummaryGR$MeanFreq, DataPerSummaryGR$L1Count, col = PCol, pch = 16)
+plot(DataPerSummaryGR$L1Count, DataPerSummaryGR$MeanFreq, col = PCol, pch = 16)
+MeanFreqPerCount <- aggregate(MeanFreq ~ L1Count, data = DataPerSummaryGR,
+                              FUN = mean)
+plot(MeanFreqPerCount$L1Count, MeanFreqPerCount$MeanFreq)
+VarFreqPerCount <- aggregate(MeanFreq ~ L1Count, data = DataPerSummaryGR,
+                              FUN = var)
+boxplot(MeanFreq ~ L1Count, data = DataPerSummaryGR)
+
+cat("done\n")
+
+#################################################################
+#                                                               #
+#   Different regression for high medium and low frequency L1   #
+#                                                               #
+#################################################################
+
+cat("Regress L1 counts for different L1 density classes...")
+
+# Regress low frequency LINE-1 count against summaries
+GLM_L1_low <- glm(L1Count_low ~ NotStemScores + StemScores + GC +
+                    CpGCount + EnhancerCount + TxnCount + 
+                    + ReprCount + GeneCount + decodeAvg +
+                    TargetFreq,
+                  data = DataPerSummaryGR, family = poisson)
+SUM_GLM_L1_low <- summary(GLM_L1_low)
+
+# Regress medium frequency LINE-1 count against summaries
+GLM_L1_med <- glm(L1Count_med ~ NotStemScores + StemScores + GC +
+                    CpGCount + EnhancerCount + TxnCount + 
+                    + ReprCount + GeneCount + decodeAvg +
+                    TargetFreq,
+                  data = DataPerSummaryGR, family = poisson)
+SUM_GLM_L1_med <- summary(GLM_L1_med)
+
+# Regress medium frequency LINE-1 count against summaries
+GLM_L1_high <- glm(L1Count_high ~ NotStemScores + StemScores + GC +
+                    CpGCount + EnhancerCount + TxnCount + 
+                    + ReprCount + GeneCount + decodeAvg +
+                    TargetFreq,
+                  data = DataPerSummaryGR, family = poisson)
+SUM_GLM_L1_high <- summary(GLM_L1_high)
+
+
+# Put regression coefficients for low, medium and high density L1 into a matrix
+CoeffMat <- cbind(SUM_GLM_L1_low$coefficients[,c('Estimate')], 
+      SUM_GLM_L1_med$coefficients[,c('Estimate')],
+      SUM_GLM_L1_high$coefficients[,c('Estimate')])
+CoeffMat <- CoeffMat - rowMeans(CoeffMat)
+CoeffMat <- CoeffMat / sqrt(apply(CoeffMat, 1, var))
+colnames(CoeffMat) <- c("LowFreq", "MedFreq", "HighFreq")
+
+# Plot lines for all coefficients (except intercept)
+Cols <- rainbow(nrow(CoeffMat) - 1)
+plot(c(1, 3), c(min(CoeffMat), max(CoeffMat)), type = "n")
+for (i in 2:nrow(CoeffMat)){
+  lines(CoeffMat[i,], col = Cols[i - 1])
+}
+L1FreqClass <- 1:3
+FreqChange <- sapply(2:nrow(CoeffMat), function(i){
+  LM <- lm(CoeffMat[i,] ~ L1FreqClass)
+  summary(LM)$coefficients[2,c('Estimate', 'Pr(>|t|)')]
+})
+colnames(FreqChange) <- rownames(CoeffMat)[-1]
+
+cat("done\n")
+
+#################################################################
+#                                                               #
+#              GEE regression                 #
+#                                                               #
+#################################################################
+
+# cat("Performing GEE regression ...")
+
+# Regress LINE-1 count against DNAse scores
+GLM_L1_DNAse_gee <- gee(L1Count ~ NotStemScores + StemScores + GC +
+                          CpGCount + EnhancerCount + TxnCount + 
+                          + ReprCount + GeneCount + decodeAvg +
+                          TargetFreq,
+                         data = DataPerSummaryGR, family = "poisson",
+                         corstr =  "exchangeable", Mv = 1,
+                        id = ChrNum)
+SUM_GLM_L1_DNAse_gee <- summary(GLM_L1_DNAse_gee)
+coef(SUM_GLM_L1_DNAse_gee)[,'Estimate']
+se <- SUM_GLM_L1_DNAse_gee$coefficients[, "Robust S.E."]
+Ps <- 1 - pnorm(abs(coef(SUM_GLM_L1_DNAse_gee)[,'Estimate']) / se)
+format(Ps, digits = 22)
+cbind(coef(SUM_GLM_L1_DNAse_gee)[,'Estimate'] - se * qnorm(0.9995),
+      coef(SUM_GLM_L1_DNAse_gee)[,'Estimate'] + se * qnorm(0.9995))
+
+GLM_L1_DNAse_stem <- glm(L1Count ~ StemScores, data = DataPerSummaryGR,
+                    family = "poisson")
+summary(GLM_L1_DNAse_stem)
+GLM_L1_DNAse_NotStem <- glm(L1Count ~ NotStemScores, data = DataPerSummaryGR,
+                    family = "poisson")
+GLM_L1_DNAse_GC <- glm(L1Count ~ GC, data = DNAseSummary,
+                            family = "poisson")
+summary(GLM_L1_DNAse_GC)
+GLM_L1_DNAse_fragm <- glm(L1Count_fragm ~ StemScores + NotStemScores, data = DNAseSummary,
+                    family = "poisson")
+summary(GLM_L1_DNAse_fragm)
+GLM_L1_DNAse_full <- glm(L1Count_full ~ StemScores + NotStemScores, data = DNAseSummary,
+                          family = "poisson")
+summary(GLM_L1_DNAse_full)
+max(DNAseSummary$L1Count_full)
+
+plot(DNAseSummary$StemScores, DNAseSummary$NotStemScores, col = PCol)
+plot(DNAseSummary$StemScores, DNAseSummary$L1Count, col = PCol)
+plot(DNAseSummary$NotStemScores, DNAseSummary$L1Count, col = PCol)
+
+cor(DNAseSummary$StemScores, DNAseSummary$NotStemScores)
+cor(DNAseSummary$StemScores, DNAseSummary$GC)
+cor(DNAseSummary$NotStemScores, DNAseSummary$GC)
+
+
+# Determine proportion of L1 overlapping with heterochromatin
+# blnOLHetero <- overlapsAny(L1_1000G_GR_hg19, HeteroGR)
+# mean(blnOLHetero)
+# sum(width(HeteroGR)/10^6) / sum(ChromLengthsHg19/10^6)
+#
+# fisher.test(blnOLHetero, L1_1000G$InsLength >= 6000)
+
 # ##############################################
 # #                                            #
 # #   Analyze difference between               #
