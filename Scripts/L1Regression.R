@@ -72,6 +72,11 @@ load(ChrLPath)
 load(L1RefRangePath)
 load(GRangesSummaryPath)
 
+# Create genomic range for MHC
+MHC_GR <- GRanges(seqnames = "chr6",
+                  IRanges(start = 28477797, end = 33448354))
+
+
 cat("done\n")
 
 ########################################################
