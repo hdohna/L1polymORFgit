@@ -40,17 +40,20 @@ L1InfoCols <- data.frame(t(sapply(1:nrow(L1_1000G), function(i){
     L1InfoSplit <- rep(NA, 4)
   }
   c(L1Start = L1InfoSplit[2], L1End = L1InfoSplit[3], L1Strand = L1InfoSplit[4])
-})))
+})), stringsAsFactors = F)
 L1_1000G <- cbind(L1_1000G, L1InfoCols)
 L1_1000G_reduced <- L1_1000G[,
      c("chromosome", "POS", "Frequency", "InsLength", "L1Start", "L1End", 
        "L1Strand")]
+L1_1000G_reduced$L1Strand <- as.character(L1_1000G_reduced$L1Strand)
+L1_1000G_reduced$L1Strand[is.na(L1_1000G_reduced$L1Strand)] <- "*"
 
 # Create genomic ranges of of L1 table
 L1_1000G_GR_hg19 <- makeGRangesFromDataFrame(L1_1000G_reduced, 
                                        keep.extra.columns = T,
-                                       start.field="POS",
-                                       end.field ="POS")
+                                       start.field = "POS",
+                                       end.field = "POS",
+                                       strand.field = "L1Strand")
 # Create a subset for NA12878 
 L1_1000G_GR_hg19_NA12878 <- L1_1000G_GR_hg19[L1_1000G$NA12878 > 0]
 
