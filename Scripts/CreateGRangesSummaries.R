@@ -332,7 +332,7 @@ DataPerSummaryGR$L1Count_med  <- countOverlaps(SummaryGR, L1_1000G_GR_hg19_med)
 DataPerSummaryGR$L1Count_high <- countOverlaps(SummaryGR, L1_1000G_GR_hg19_high)
 
 # Add overlap counts for references L1
-DataPerSummaryGR$L1Count_ref  <- countOverlaps(SummaryGR, L1GRanges)
+DataPerSummaryGR$L1Count_ref  <- countOverlaps(SummaryGR, L1RefGR)
 
 cat("done!\n")
 
