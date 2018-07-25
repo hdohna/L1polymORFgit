@@ -65,7 +65,7 @@ idxSCols          <- 1:NrS
 Chr <- 1
 # Specify chromosome
 for (Chr in c(1:22, "X")) {
-  cat("********   Analyzing chromosome,", Chr, "    **********\n")
+  cat("********   Analyzing chromosome", Chr, "    **********\n")
   
   # Get chromosome length and index of L1s for current chromosome
   ChrL   <- ChromLengthsHg19[Chr]

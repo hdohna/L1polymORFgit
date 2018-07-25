@@ -26,3 +26,9 @@ blnNoMatch <- SCols$Col != match(Chr1SinglVcf$INDV[PosMatch], SampleColumns)
 sum(blnNoMatch)
 nrow(SCols)
 table(SCols$Col[blnNoMatch])
+
+# Check out columns that have zero or two as alleles
+table(SCols$Allele)
+table(SCols$Col[SCols$Allele %in% c(0, 2)])
+which(SCols$Allele %in% c(0, 2))
+plot(SCols$Allele)
