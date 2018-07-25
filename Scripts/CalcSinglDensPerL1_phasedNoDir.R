@@ -75,6 +75,8 @@ for (Chr in c(1:22, "X")) {
   SingletonPath  <- paste(DataPath, "Singleton_SNP_chr", Chr, sep = "")
   Singletons     <- read.table(SingletonPath)
   SCols          <- GetSingletonColumns(Singletons)
+  SCols$Allele[SCols$Allele == 0] <- 1
+  SCols$Allele[SCols$Allele == 2] <- 3
   SCols_rev      <- SCols[nrow(SCols):1,]
   Singletons_rev <- Singletons[nrow(Singletons):1, ]
   cat("Done!\n")
