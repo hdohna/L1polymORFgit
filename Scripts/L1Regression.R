@@ -23,6 +23,7 @@ library(Homo.sapiens)
 library(BSgenome.Hsapiens.UCSC.hg19)
 library(coin)
 
+
 ##########################################
 #                                        #
 #     Set parameters                     #
@@ -37,6 +38,7 @@ L1GRPath           <- 'D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData'
 L1RefRangePath     <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
 ChrLPath           <- 'D:/L1polymORF/Data/ChromLengthsHg19.Rdata'
 GRangesSummaryPath <- 'D:/L1polymORF/Data/GRangesSummaries_1Mb.RData'
+RegrOutputPath     <- "D:/L1polymORF/Data/L1RegressionResults.RData"
 
 # Vector of predictor variables
 # PredVars <- c("StemScores", "NotStemScores", "L1Count", "L1Count_Full",
@@ -100,12 +102,32 @@ cor.test(DataPerSummaryGR$L1Count - DataPerSummaryGR$L1Count_Full,
 # Regress LINE-1 count of 1000 genome against summaries
 Form <- as.formula(paste("L1Count ~ ", paste(PredVars, collapse = "+")))
 GLM_1000G <- glm(Form, data = DataPerSummaryGR, family = poisson)
-summary(GLM_1000G)
+Sum_GLM_1000G <- summary(GLM_1000G)
 
 # Regress LINE-1 count of reference genome against summaries
-Form <- as.formula(paste("L1Count_ref ~ ", paste(PredVars, collapse = "+")))
-GLM_Ref <- glm(Form, data = DataPerSummaryGR, family = poisson)
-summary(GLM_Ref)
+Form_Ref <- as.formula(paste("L1Count_ref ~ ", paste(PredVars, collapse = "+")))
+GLM_Ref <- glm(Form_Ref, data = DataPerSummaryGR, family = poisson)
+Sum_GLM_Ref <- summary(GLM_Ref)
+
+
+# Export regression coefficients and p values
+
+# *****************   MS RESULT     **********************#
+ResultMat <- cbind(Sum_GLM_1000G$coefficients[,c('Estimate', 'Pr(>|z|)')],
+      p.adjust(Sum_GLM_1000G$coefficients[,'Pr(>|z|)']),
+      Sum_GLM_Ref$coefficients[,c('Estimate', 'Pr(>|z|)')],
+      p.adjust(Sum_GLM_Ref$coefficients[,'Pr(>|z|)']))
+colnames(ResultMat) <- c("Coefficient 1000G", "Pvalue 1000G", "Adj Pvalue 1000G",
+                         "Coefficient Ref", "Pvalue Ref", "Adj Pvalue Ref")
+write.csv(ResultMat, "D:/L1polymORF/Data/L1RegressionResults.csv")
+# *****************   MS RESULT     **********************#
+
+# Plot predictions of L1 based on 100 genome against prediction based on
+# reference genome against each other
+plot(predict(GLM_1000G, newdata = DataPerSummaryGR), 
+     predict(GLM_Ref, newdata = DataPerSummaryGR), 
+     xlab = "1000 genome prediction", ylab = "refernce prediction")
+lines(c(-10, 10), c (-10, 10), col = "red")
 
 # Regress LINE-1 count of reference genome against summaries
 GLM_L1_All <- glm(L1Count ~ NotStemScores + StemScores + GC +
@@ -135,7 +157,7 @@ plot(SUM_GLM_L1_Full$coefficients[,'Estimate'], SUM_GLM_L1_All$coefficients[,'Es
 GLM_L1_Ref <- glm(L1Count_ref ~ NotStemScores + StemScores + GC +
                     CpGCount +  GeneCount + decodeAvg +
                     TxnCount + 
-                    + ReprCount +TargetFreq + phastCons,
+                    + ReprCount + TargetFreq + phastCons,
                   data = DataPerSummaryGR, family = poisson)
 summary(GLM_L1_Ref)
 SUM_GLM_L1_Ref <- summary(GLM_L1_Ref)
@@ -186,9 +208,11 @@ L1Predict <- predict(GLM_L1_All, newdata = DataPerSummaryGR)
 
 # Test for correlation
 cor.test(DataPerSummaryGR$MeanFreq, exp(L1Predict))
-cor.test(DataPerSummaryGR$MeanFreq, L1Predict, method = "spearman")
+#cor.test(DataPerSummaryGR$MeanFreq, L1Predict, method = "spearman")
+# *****************   MS RESULT     **********************#
 spearman_test(DataPerSummaryGR$MeanFreq ~ L1Predict)
 spearman_test(DataPerSummaryGR$MeanFreq ~ DataPerSummaryGR$L1Count)
+# *****************   MS RESULT     **********************#
 
 plot(DataPerSummaryGR$MeanFreq, DataPerSummaryGR$L1Count, col = PCol, pch = 16)
 plot(DataPerSummaryGR$L1Count, DataPerSummaryGR$MeanFreq, col = PCol, pch = 16)
@@ -264,47 +288,21 @@ cat("done\n")
 #################################################################
 
 # cat("Performing GEE regression ...")
-
+DataPerSummaryGR$Chrom
+DataPerSummaryGR$ChromNum <- as.numeric(substr(DataPerSummaryGR$Chrom,
+                                               4, nchar(DataPerSummaryGR$Chrom)))
 # Regress LINE-1 count against DNAse scores
-GLM_L1_DNAse_gee <- gee(L1Count ~ NotStemScores + StemScores + GC +
-                          CpGCount + EnhancerCount + TxnCount + 
-                          + ReprCount + GeneCount + decodeAvg +
-                          TargetFreq,
-                         data = DataPerSummaryGR, family = "poisson",
+GLM_1000G_gee <- gee(Form, data = DataPerSummaryGR, family = "poisson",
                          corstr =  "exchangeable", Mv = 1,
-                        id = ChrNum)
-SUM_GLM_L1_DNAse_gee <- summary(GLM_L1_DNAse_gee)
-coef(SUM_GLM_L1_DNAse_gee)[,'Estimate']
-se <- SUM_GLM_L1_DNAse_gee$coefficients[, "Robust S.E."]
-Ps <- 1 - pnorm(abs(coef(SUM_GLM_L1_DNAse_gee)[,'Estimate']) / se)
-format(Ps, digits = 22)
-cbind(coef(SUM_GLM_L1_DNAse_gee)[,'Estimate'] - se * qnorm(0.9995),
-      coef(SUM_GLM_L1_DNAse_gee)[,'Estimate'] + se * qnorm(0.9995))
-
-GLM_L1_DNAse_stem <- glm(L1Count ~ StemScores, data = DataPerSummaryGR,
-                    family = "poisson")
-summary(GLM_L1_DNAse_stem)
-GLM_L1_DNAse_NotStem <- glm(L1Count ~ NotStemScores, data = DataPerSummaryGR,
-                    family = "poisson")
-GLM_L1_DNAse_GC <- glm(L1Count ~ GC, data = DNAseSummary,
-                            family = "poisson")
-summary(GLM_L1_DNAse_GC)
-GLM_L1_DNAse_fragm <- glm(L1Count_fragm ~ StemScores + NotStemScores, data = DNAseSummary,
-                    family = "poisson")
-summary(GLM_L1_DNAse_fragm)
-GLM_L1_DNAse_full <- glm(L1Count_full ~ StemScores + NotStemScores, data = DNAseSummary,
-                          family = "poisson")
-summary(GLM_L1_DNAse_full)
-max(DNAseSummary$L1Count_full)
-
-plot(DNAseSummary$StemScores, DNAseSummary$NotStemScores, col = PCol)
-plot(DNAseSummary$StemScores, DNAseSummary$L1Count, col = PCol)
-plot(DNAseSummary$NotStemScores, DNAseSummary$L1Count, col = PCol)
-
-cor(DNAseSummary$StemScores, DNAseSummary$NotStemScores)
-cor(DNAseSummary$StemScores, DNAseSummary$GC)
-cor(DNAseSummary$NotStemScores, DNAseSummary$GC)
-
+                        id = ChromNum)
+SUM_GLM_1000G_gee <- summary(GLM_1000G_gee)
+coef(SUM_GLM_1000G_gee)[,'Estimate']
+se <- SUM_GLM_1000G_gee$coefficients[, "Robust S.E."]
+Ps <- 1 - pnorm(abs(coef(SUM_GLM_1000G_gee)[,'Estimate']) / se)
+ResultMat_gee <- cbind(Coeff = coef(SUM_GLM_1000G_gee)[,'Estimate'], 
+      PValue = Ps, 
+      Padj = p.adjust(Ps))
+write.csv(ResultMat_gee, "D:/L1polymORF/Data/L1RegressionResults_GEE.csv")
 
 # Determine proportion of L1 overlapping with heterochromatin
 # blnOLHetero <- overlapsAny(L1_1000G_GR_hg19, HeteroGR)
@@ -354,3 +352,6 @@ cor(DNAseSummary$NotStemScores, DNAseSummary$GC)
 # aggregate(coef ~ blnOLGene, data = L1SingletonCoeffs, FUN = mean)
 # 
 # sum(L1_1000G$blnOLGene) / 3060
+
+#  Save results
+save(file = RegrOutputPath, list = c("GLM_1000G", "GLM_1000G_gee", "SummaryGR", "DataPerSummaryGR"))
