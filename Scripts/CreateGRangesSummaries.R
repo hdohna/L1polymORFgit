@@ -294,6 +294,23 @@ rm(list = c("PhastConsSummaryDF", "PhastCons"))
 gc()
 colnames(DataPerSummaryGR)[colnames(DataPerSummaryGR) == "V6"] <- "phastCons"
 
+# Summarize singleton coefficient per 1 Mb window
+CoeffSummaryDF <- AggregateDataPerGRanges(
+  Data2Summarize = L1SingletonCoeffs,
+  Cols2Summarize = c("coef",  "se.coef."),
+  SeqNameCol     = "chromosome",
+  StartCol       = "Pos",
+  EndCol         = "Pos",
+  RangeWidth     = RangeWidth, 
+  ChromLengths = ChromLengthsHg19,
+  blnAddGRInfo = T)
+
+# Merge existing data with new ones
+DataPerSummaryGR <- merge(DataPerSummaryGR, CoeffSummaryDF, sort = F)
+rm(list = c("CoeffSummaryDF"))
+gc()
+colnames(DataPerSummaryGR)[colnames(DataPerSummaryGR) == "coef"] <- "SinglCoef"
+
 # Add various counts (better: calculate sum of width)
 CoverGR <- GeneGR
 CalcGRCoverage <- function(SummaryGR, CoverGR){

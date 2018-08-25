@@ -653,6 +653,15 @@ NrSame   <- sum(L1GeneOLInfo$blnSameStrand[blnNotNA])
 pbinom(q = NrSame, size = sum(blnNotNA), prob = 0.5)
 NrSame / sum(blnNotNA)
 
+#############################################################
+#                                                           #
+#      Check association between L1 density per 1 Mb        #
+#             and selection coeff per 1 Mb                  #
+#                                                           #
+#############################################################
+
+# Calculate correlation between L1 density and singleton coefficient
+
 ##########################################
 #                                        #
 #   Export IDs of intersecting genes     #

@@ -206,12 +206,17 @@ DataPerSummaryGR$MeanFreq[MeanFreq$Group.1] <- MeanFreq$x
 # Get predicted L1 frequency
 L1Predict <- predict(GLM_L1_All, newdata = DataPerSummaryGR)
 
-# Test for correlation
+# Test for correlation between different selection measures
 cor.test(DataPerSummaryGR$MeanFreq, exp(L1Predict))
 #cor.test(DataPerSummaryGR$MeanFreq, L1Predict, method = "spearman")
 # *****************   MS RESULT     **********************#
 spearman_test(DataPerSummaryGR$MeanFreq ~ L1Predict)
 spearman_test(DataPerSummaryGR$MeanFreq ~ DataPerSummaryGR$L1Count)
+spearman_test(DataPerSummaryGR$L1Count ~ DataPerSummaryGR$SinglCoef)
+spearman_test(L1Predict ~ DataPerSummaryGR$SinglCoef)
+spearman_test(L1SingletonCoeffs$coef ~ L1SingletonCoeffs$Freq)
+cor.test(L1SingletonCoeffs$coef, L1SingletonCoeffs$Freq)
+cor.test(DataPerSummaryGR$L1Count, DataPerSummaryGR$SinglCoef)
 # *****************   MS RESULT     **********************#
 
 plot(DataPerSummaryGR$MeanFreq, DataPerSummaryGR$L1Count, col = PCol, pch = 16)
