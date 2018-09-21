@@ -25,8 +25,10 @@ sVals <- c(seq(-0.1, -sOffSet, 0.001), seq(sOffSet, 0.1, 0.001))
 # -(exp(-x)*(e^x-1)*(e^(2*n*x)-e^(2*n*y*x)))/(n*(y-1)*y*x*(e^(2*n*x)-1))
 fa <- function(x, y) -(exp(-x)*(exp(x)-1)*(exp(2*n*x)-exp(2*n*y*x)))/(n*(y-1)*y*x*(exp(2*n*x)-1))
 fa(0.1, 0.5)
-x = -0.1
-y = 0.5
+
+# Integrate y from 1/2N to 1
+integrate(fa(s, x), lower = 
+
 
 # First derivative:
 fa1 <- function(x, y) ((2*n*y-1)*e^(-x)*(((((2*n*y-2*n)*x-1)*e^x+(-2*n*y+2*n+1)*x+1)*e^(2*n*x)+(1-2*n*y*x)*e^x+(2*n*y-1)*x-1)*e^(2*n*y*x)+(e^x-x-1)*e^(4*n*x)+((2*n*x-1)*e^x+(1-2*n)*x+1)*e^(2*n*x)))/(2*n^2*(y-1)*y*x^2*(e^(2*n*x)-1)^2)
@@ -85,3 +87,9 @@ plot(sVals, sapply(sVals, function(z) fb(z, 0.9)))
 plot(sVals, NIa + NIb)
 segments(0, -100, 0, 100, lty = 2)
 segments(-1, 0, 1, 0)
+
+
+################
+#
+#
+#######################
