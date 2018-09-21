@@ -636,7 +636,10 @@ cat("Regressing alignedness ...")
 
 # Create data.frame that contains L1 start and strandedness for overlapping
 # pairs
-blnNoDupl <- !duplicated(L1_Gene_OL@from)
+# blnNoDupl <- which(!duplicated(L1_Gene_OL@from) & 
+#                      L1_1000G$L1EndNum[L1_Gene_OL@from] >= 6000)
+blnNoDupl <- !duplicated(L1_Gene_OL@from) 
+#blnNoDupl <- 1:length(L1_Gene_OL@from)
 L1GeneOLInfo <- data.frame(L1Start = L1_1000G$L1StartNum[L1_Gene_OL@from[blnNoDupl]],
                            L1End = L1_1000G$L1EndNum[L1_Gene_OL@from[blnNoDupl]],
                            L1Strand = L1_1000G$L1Strand[L1_Gene_OL@from[blnNoDupl]],
@@ -650,8 +653,27 @@ sum(is.na(L1GeneOLInfo$blnSameStrand))
 # Test whether alignedness differs significantly from 0.5
 blnNotNA <- !is.na(L1GeneOLInfo$blnSameStrand)
 NrSame   <- sum(L1GeneOLInfo$blnSameStrand[blnNotNA])
+# *****************   MS RESULT     **********************#
 pbinom(q = NrSame, size = sum(blnNotNA), prob = 0.5)
+# *****************   MS RESULT     **********************#
 NrSame / sum(blnNotNA)
+
+# Logistic regression whether same strand depends on start
+# *****************   MS RESULT     **********************#
+LogRegStrandVsL1Start <- glm(blnSameStrand ~ L1Start, 
+                             family = "binomial", data = L1GeneOLInfo)
+summary(LogRegStrandVsL1Start)
+
+# Logistic regression whether same strand depends on frequency
+LogRegStrandVsFreq <- glm(blnSameStrand ~ Freq, 
+                             family = "binomial", data = L1GeneOLInfo)
+summary(LogRegStrandVsFreq)
+
+# Logistic regression whether same strand depends on gene width
+LogRegStrandVsGW <- glm(blnSameStrand ~ GeneWidth, 
+                          family = "binomial", data = L1GeneOLInfo)
+summary(LogRegStrandVsGW)
+
 
 #############################################################
 #                                                           #
