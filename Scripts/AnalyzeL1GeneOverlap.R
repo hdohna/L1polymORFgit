@@ -477,6 +477,160 @@ CreateDisplayPdf('D:/L1polymORF/Figures/PropL1InRegions.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 7, width = 7)
 
+###################################################
+#                                                 #
+#   Fit effect of insertion length on selection   #
+#                                                 #
+###################################################
+
+# Create a matrix of predictor variables (L1 start and boolean variable for)
+PredictMat <- L1_1000G[, c("L1StartNum", "blnFull")]
+blnNA <- sapply(1:nrow(L1_1000G), function(x) any(is.na(PredictMat[x,])))
+
+AlleleFreqLogLik_abc(Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+                     Counts = rep(1, sum(!blnNA)), 
+                     Predict = PredictMat[!blnNA,], 
+                     a = -0.02, b = 10^(-6), c = 0, N = 10^4, SampleSize = 2*2504)
+  
+# Determine maximum likelihood with one parameter (selection coefficient)
+cat("Maximizing likelihood for one parameter (selection coefficient) ...")
+ML_1Par <- optim(par = c(a = 0),
+      fn = function(x) -AlleleFreqLogLik_abc(Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+                                            Counts = rep(1, sum(!blnNA)), 
+                                            Predict = PredictMat[!blnNA,], 
+                                            a = x, b = 0, c = 0, N = 10^4, 
+                                            SampleSize = 2*2504),
+      lower = -0.01, upper = 0.02,
+      method = "L-BFGS-B")
+cat("done!\n")
+
+# Determine maximum likelihood with 3 parameters (selection coefficient as 
+# function of L1 start and indicator for full-length)
+cat("Maximizing likelihood for two parameters ...")
+ML_3Pars <- optim(par = c(a = -0.006, b = 0),
+                  fn = function(x) -AlleleFreqLogLik_abc(Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+                                                         Counts = rep(1, sum(!blnNA)), 
+                                                         Predict = PredictMat[!blnNA,], 
+                                                         a = x[1], b = x[2], N = 10^4, 
+                                                         SampleSize = 2*2504),
+                  lower = c(a = -0.01, b = -10^(-6)), 
+                  upper = c(a = 0.02, b =  10^(-6)),
+                  method = "L-BFGS-B")
+cat("done!\n")
+
+
+# Determine maximum likelihood with 3 parameters (selection coefficient as 
+# function of L1 start and indicator for full-length)
+cat("Maximizing likelihood for three parameters ...")
+ML_3Pars <- optim(par = c(a = -0.005, b = 0, c = 0),
+      fn = function(x) -AlleleFreqLogLik_abc(Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+                                             Counts = rep(1, sum(!blnNA)), 
+                                             Predict = PredictMat[!blnNA,], 
+                                             a = x[1], b = x[2], c = x[3], N = 10^4, 
+                                             SampleSize = 2*2504),
+      lower = c(a = -0.01, b = -10^(-6), c = -10^(-3)), 
+      upper = c(a = 0.02, b =  10^(-6), c = 10^(-3)),
+      method = "L-BFGS-B")
+cat("done!\n")
+MLCO_3Pars <- constrOptim(theta = c(a = -0.006, b = 0, c = 0),
+                  f = function(x) -AlleleFreqLogLik_abc(Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+                                                         Counts = rep(1, sum(!blnNA)), 
+                                                         Predict = PredictMat[!blnNA,], 
+                                                         a = x[1], b = x[2], c = x[3], N = 10^4, 
+                                                         SampleSize = 2*2504),
+                  grad = NULL,
+                  ui = rbind(c(1, 0, 0),  c(0, 1, 0),  c(0, 0, 1), 
+                             c(-1, 0, 0), c(0, -1, 0), c(0, 0, -1)),
+                  ci = c(a = -0.01, b = -10^(-6), c = -10^(-3), 
+                         a = -0.02, b = -10^(-6), c = -10^(-3)),
+                  method = "Nelder-Mead")
+
+###################################################
+#                                                 #
+#   Fit effect of insertion length on selection   #
+#                                                 #
+###################################################
+
+# Create a matrix of predictor variables 
+PredictMat <- L1SingletonCoeffs[, c("coef", "L1Start")]
+blnNA <- sapply(1:nrow(L1SingletonCoeffs), function(x) any(is.na(PredictMat[x,])))
+
+AlleleFreqLogLik_abc(Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
+                     Counts = rep(1, sum(!blnNA)), 
+                     Predict = PredictMat[!blnNA,], 
+                     a = -0.02, b = 10^(-6), c = 0, N = 10^4, SampleSize = 2*2504)
+
+# Determine maximum likelihood with one parameter (selection coefficient)
+cat("Maximizing likelihood for one parameter (selection coefficient) ...")
+ML_1Par_coef <- optim(par = c(a = 0),
+                 fn = function(x) -AlleleFreqLogLik_abc(
+                   Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
+                            Counts = rep(1, sum(!blnNA)), 
+                            Predict = PredictMat[!blnNA,], 
+                            a = x, b = 0, c = 0, N = 10^4, 
+                            SampleSize = 2*2504),
+                 lower = -0.01, upper = 0.02,
+                 method = "L-BFGS-B")
+cat("done!\n")
+
+# Determine maximum likelihood with 3 parameters (selection coefficient as 
+# function of L1 start and indicator for full-length)
+cat("Maximizing likelihood for two parameters ...")
+ML_2Pars_coef <- optim(par = c(a = -0.006, b = 0),
+                  fn = function(x) -AlleleFreqLogLik_abc(
+                    Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
+                    Counts = rep(1, sum(!blnNA)), 
+                    Predict = PredictMat[!blnNA,], 
+                    a = x[1], b = x[2], c = 0, N = 10^4, 
+                    SampleSize = 2*2504),
+                    lower = c(a = -0.01, b = -10^(-6)), 
+                    upper = c(a = 0.01,   b =  10^(-6)),
+                    method = "L-BFGS-B")
+cat("done!\n")
+
+###################################################
+#                                                 #
+#   Fit effect of coefficient   #
+#                                                 #
+###################################################
+
+# Create a matrix of predictor variables 
+PredictMat <- L1SingletonCoeffs[, c("coef", "L1Start")]
+blnNA <- sapply(1:nrow(L1SingletonCoeffs), function(x) any(is.na(PredictMat[x,])))
+
+AlleleFreqLogLik_abc(Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
+                     Counts = rep(1, sum(!blnNA)), 
+                     Predict = PredictMat[!blnNA,], 
+                     a = -0.02, b = 10^(-6), c = 0, N = 10^4, SampleSize = 2*2504)
+
+# Determine maximum likelihood with one parameter (selection coefficient)
+cat("Maximizing likelihood for one parameter (selection coefficient) ...")
+ML_1Par_coef <- optim(par = c(a = 0),
+                      fn = function(x) -AlleleFreqLogLik_abc(
+                        Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
+                        Counts = rep(1, sum(!blnNA)), 
+                        Predict = PredictMat[!blnNA,], 
+                        a = x, b = 0, c = 0, N = 10^4, 
+                        SampleSize = 2*2504),
+                      lower = -0.01, upper = 0.02,
+                      method = "L-BFGS-B")
+cat("done!\n")
+
+# Determine maximum likelihood with 3 parameters (selection coefficient as 
+# function of L1 start and indicator for full-length)
+cat("Maximizing likelihood for two parameters ...")
+ML_2Pars_coef <- optim(par = c(a = -0.006, b = 0),
+                       fn = function(x) -AlleleFreqLogLik_abc(
+                         Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
+                         Counts = rep(1, sum(!blnNA)), 
+                         Predict = PredictMat[!blnNA,], 
+                         a = x[1], b = x[2], c = 0, N = 10^4, 
+                         SampleSize = 2*2504),
+                       lower = c(a = -0.01, b = -10^(-6)), 
+                       upper = c(a = 0.01,   b =  10^(-6)),
+                       method = "L-BFGS-B")
+cat("done!\n")
+
 ##########################################
 #                                        #
 #   Regress intersection with genes      #
