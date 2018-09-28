@@ -30,7 +30,7 @@ AlleleFreqSample_Der <- function(k, s, N, SampleSize = 2504){
          AlleleFreqTime_Der(x, s, N) * x^(k + 1) * (1 - x)^(SampleSize - k)
      }, 0, 1)$value / 
    integrate(function(x) AlleleFreqTime(x, s, N) * x^(k + 1) *
-                 (1 - x)^(SampleSize - k) , 0, 1)$value)
+                 (1 - x)^(SampleSize - k) , 0, 1)$value
      -
   IntConst / integrate(function(x) x * AlleleFreqTime(x, s, N), 0, 1)$value
 }

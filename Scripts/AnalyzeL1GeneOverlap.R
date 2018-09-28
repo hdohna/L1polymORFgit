@@ -486,79 +486,126 @@ CreateDisplayPdf('D:/L1polymORF/Figures/PropL1InRegions.pdf',
 # Create a matrix of predictor variables (L1 start and boolean variable for)
 PredictMat <- L1_1000G[, c("L1StartNum", "blnFull")]
 blnNA <- sapply(1:nrow(L1_1000G), function(x) any(is.na(PredictMat[x,])))
+sum(!blnNA)
 
-AlleleFreqLogLik_abc(Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-                     Counts = rep(1, sum(!blnNA)), 
-                     Predict = PredictMat[!blnNA,], 
-                     a = -0.02, b = 10^(-6), c = 0, N = 10^4, SampleSize = 2*2504)
-  
 # Determine maximum likelihood with one parameter (selection coefficient)
 cat("Maximizing likelihood for one parameter (selection coefficient) ...")
 ML_1Par <- optim(par = c(a = 0),
-      fn = function(x) -AlleleFreqLogLik_abc(Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-                                            Counts = rep(1, sum(!blnNA)), 
-                                            Predict = PredictMat[!blnNA,], 
-                                            a = x, b = 0, c = 0, N = 10^4, 
-                                            SampleSize = 2*2504),
-      lower = -0.01, upper = 0.02,
+      fn = function(x) -AlleleFreqLogLik_abc(
+                          Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA],
+                          Counts = rep(1, sum(!blnNA)),
+                          Predict = PredictMat[!blnNA,],
+                          a = x, b = 0, c = 0, N = 10^4,
+                          SampleSize = 2*2504),
+            lower = -0.01, upper = 0.02,
       method = "L-BFGS-B")
+# ML_1Par <-  constrOptim(theta = c(a = 0),
+#                           f = function(x) -AlleleFreqLogLik_abc(
+#                             Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+#                             Counts = rep(1, sum(!blnNA)), 
+#                             Predict = PredictMat[!blnNA,], 
+#                             a = x[1], b = 0, c = 0, N = 10^4, 
+#                             SampleSize = 2*2504),
+#                           grad = NULL,
+#                           ui = rbind(1,-1),
+#                           ci = c(a = -0.01, a = -0.02),
+#                           method = "Nelder-Mead")
+AIC1Par <- 2 + 2*ML_1Par$value 
 cat("done!\n")
 
-# Determine maximum likelihood with 3 parameters (selection coefficient as 
-# function of L1 start and indicator for full-length)
-cat("Maximizing likelihood for two parameters ...")
-ML_3Pars <- optim(par = c(a = -0.006, b = 0),
-                  fn = function(x) -AlleleFreqLogLik_abc(Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-                                                         Counts = rep(1, sum(!blnNA)), 
-                                                         Predict = PredictMat[!blnNA,], 
-                                                         a = x[1], b = x[2], N = 10^4, 
-                                                         SampleSize = 2*2504),
-                  lower = c(a = -0.01, b = -10^(-6)), 
-                  upper = c(a = 0.02, b =  10^(-6)),
-                  method = "L-BFGS-B")
+# Get maximum likelihood estimate for effect of L1 start on selection
+cat("Estimate effect of L1 start on selections ...")
+ML_L1start <-  constrOptim(theta = c(a = -0.006, b = 0),
+                          f = function(x) -AlleleFreqLogLik_abc(
+                            Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+                            Counts = rep(1, sum(!blnNA)), 
+                            Predict = PredictMat[!blnNA,], 
+                            a = x[1], b = x[2], c = 0, N = 10^4, 
+                            SampleSize = 2*2504),
+                          grad = NULL,
+                          ui = rbind(c(1, 0),  c(0, 1),   
+                                     c(-1, 0), c(0, -1)),
+                          ci = c(a = -0.01, c = -10^(-6), 
+                                 a = -0.02, c = -10^(-6)),
+                          method = "Nelder-Mead")
+AIC2L1start <- 4 + 2*ML_L1start$value
+# ML_L1start <- optim(par = c(a = -0.006, b = 0),
+#                   fn = function(x) -AlleleFreqLogLik_abc(
+#                          Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+#                          Counts = rep(1, sum(!blnNA)), 
+#                          Predict = PredictMat[!blnNA,], 
+#                          a = x[1], b = x[2], c = 0, N = 10^4, 
+#                          SampleSize = 2*2504),
+#                   lower = c(a = -0.01, b = -10^(-6)), 
+#                   upper = c(a = 0.02, b =  10^(-6)),
+#                   method = "L-BFGS-B")
 cat("done!\n")
 
+# Get maximum likelihood estimate for effect of full-length L1 on selection
+cat("Estimate effect of L1 full-length on selections ...")
+ML_L1full <-  constrOptim(theta = c(a = -0.006, c = 0),
+                          f = function(x) -AlleleFreqLogLik_abc(
+                      Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+                      Counts = rep(1, sum(!blnNA)), 
+                      Predict = PredictMat[!blnNA,], 
+                      a = x[1], b = 0, c = x[2], N = 10^4, 
+                      SampleSize = 2*2504),
+                      grad = NULL,
+                      ui = rbind(c(1, 0),  c(0, 1),   
+                                 c(-1, 0), c(0, -1)),
+                      ci = c(a = -0.01, c = -10^(-3), 
+                             a = -0.02, c = -10^(-3)),
+                      method = "Nelder-Mead")
+AIC2L1full <- 4 + 2 * ML_L1full$value
+cat("done!\n")
 
 # Determine maximum likelihood with 3 parameters (selection coefficient as 
 # function of L1 start and indicator for full-length)
 cat("Maximizing likelihood for three parameters ...")
-ML_3Pars <- optim(par = c(a = -0.005, b = 0, c = 0),
-      fn = function(x) -AlleleFreqLogLik_abc(Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-                                             Counts = rep(1, sum(!blnNA)), 
-                                             Predict = PredictMat[!blnNA,], 
-                                             a = x[1], b = x[2], c = x[3], N = 10^4, 
-                                             SampleSize = 2*2504),
-      lower = c(a = -0.01, b = -10^(-6), c = -10^(-3)), 
-      upper = c(a = 0.02, b =  10^(-6), c = 10^(-3)),
-      method = "L-BFGS-B")
+# ML_3Pars <- optim(par = c(a = -0.005, b = 0, c = 0),
+#       fn = function(x) -AlleleFreqLogLik_abc(
+#         Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+#         Counts = rep(1, sum(!blnNA)), 
+#         Predict = PredictMat[!blnNA,], 
+#         a = x[1], b = x[2], c = x[3], N = 10^4, 
+#         SampleSize = 2*2504),
+#       lower = c(a = -0.01, b = -10^(-6), c = -10^(-3)), 
+#       upper = c(a = 0.02, b =  10^(-6), c = 10^(-3)),
+#       method = "L-BFGS-B")
 cat("done!\n")
-MLCO_3Pars <- constrOptim(theta = c(a = -0.006, b = 0, c = 0),
-                  f = function(x) -AlleleFreqLogLik_abc(Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-                                                         Counts = rep(1, sum(!blnNA)), 
-                                                         Predict = PredictMat[!blnNA,], 
-                                                         a = x[1], b = x[2], c = x[3], N = 10^4, 
-                                                         SampleSize = 2*2504),
+ML_L1startL1full <- constrOptim(theta = c(a = -0.007, b = 1.5*10^(-7), c = 0),
+                  f = function(x) -AlleleFreqLogLik_abc(
+                    Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+                    Counts = rep(1, sum(!blnNA)), 
+                    Predict = PredictMat[!blnNA,], 
+                    a = x[1], b = x[2], c = x[3], N = 10^4, 
+                    SampleSize = 2*2504),
                   grad = NULL,
                   ui = rbind(c(1, 0, 0),  c(0, 1, 0),  c(0, 0, 1), 
                              c(-1, 0, 0), c(0, -1, 0), c(0, 0, -1)),
                   ci = c(a = -0.01, b = -10^(-6), c = -10^(-3), 
                          a = -0.02, b = -10^(-6), c = -10^(-3)),
                   method = "Nelder-Mead")
+AIC2L1startL1full <- 6 + 2 * ML_L1startL1full$value
+cat("done!\n")
+
+# Combine AIC values into one vector
+AICTab <- data.frame(NrParameters = c(1, 2, 2, 3),
+                     Predictor = c("none", "L1 start", "L1 full-length", 
+                                   "L1 start and full-length"),
+                     AIC = c(AIC1Par, AIC2L1start, AIC2L1full,
+                             AIC2L1startL1full),
+                     stringsAsFactors = F)
 
 ###################################################
 #                                                 #
-#   Fit effect of insertion length on selection   #
+#   Fit effect of singleton coef. on selection    #
 #                                                 #
 ###################################################
 
 # Create a matrix of predictor variables 
 PredictMat <- L1SingletonCoeffs[, c("coef", "L1Start")]
 blnNA <- sapply(1:nrow(L1SingletonCoeffs), function(x) any(is.na(PredictMat[x,])))
-
-AlleleFreqLogLik_abc(Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
-                     Counts = rep(1, sum(!blnNA)), 
-                     Predict = PredictMat[!blnNA,], 
-                     a = -0.02, b = 10^(-6), c = 0, N = 10^4, SampleSize = 2*2504)
 
 # Determine maximum likelihood with one parameter (selection coefficient)
 cat("Maximizing likelihood for one parameter (selection coefficient) ...")
@@ -576,60 +623,92 @@ cat("done!\n")
 # Determine maximum likelihood with 3 parameters (selection coefficient as 
 # function of L1 start and indicator for full-length)
 cat("Maximizing likelihood for two parameters ...")
-ML_2Pars_coef <- optim(par = c(a = -0.006, b = 0),
+ML_2Pars <- optim(par = c(a = -0.006, b = 0),
                   fn = function(x) -AlleleFreqLogLik_abc(
-                    Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
+                    Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
                     Counts = rep(1, sum(!blnNA)), 
                     Predict = PredictMat[!blnNA,], 
-                    a = x[1], b = x[2], c = 0, N = 10^4, 
+                    a = x[1], b = x[2], N = 10^4, 
                     SampleSize = 2*2504),
-                    lower = c(a = -0.01, b = -10^(-6)), 
-                    upper = c(a = 0.01,   b =  10^(-6)),
-                    method = "L-BFGS-B")
+                  lower = c(a = -0.01, b = -10^(-6)), 
+                  upper = c(a = 0.02, b =  10^(-6)),
+                  method = "L-BFGS-B")
 cat("done!\n")
+
+# Calculate aic of 1 and 2 parameter model
+AIC1Par_coef <- 2 + 2*ML_1Par_coef$value 
+AIC2Par_coef <- 4 + 2*ML_2Pars_coef$value 
+AIC1Par_coef - AIC2Par_coef
 
 ###################################################
 #                                                 #
-#   Fit effect of coefficient   #
+#  Fit effect of L1 density on selection          #
 #                                                 #
 ###################################################
+
+# Match summary ranges to L1 ranges of 1000 genome data
+L1SummaryOL <- findOverlaps(L1_1000G_GR_hg19, SummaryGR)
+all(L1SummaryOL@from == 1:nrow(L1_1000G))
+L1_1000G$L1Count <- DataPerSummaryGR$L1Count[L1SummaryOL@to]
 
 # Create a matrix of predictor variables 
-PredictMat <- L1SingletonCoeffs[, c("coef", "L1Start")]
-blnNA <- sapply(1:nrow(L1SingletonCoeffs), function(x) any(is.na(PredictMat[x,])))
-
-AlleleFreqLogLik_abc(Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
-                     Counts = rep(1, sum(!blnNA)), 
-                     Predict = PredictMat[!blnNA,], 
-                     a = -0.02, b = 10^(-6), c = 0, N = 10^4, SampleSize = 2*2504)
-
-# Determine maximum likelihood with one parameter (selection coefficient)
-cat("Maximizing likelihood for one parameter (selection coefficient) ...")
-ML_1Par_coef <- optim(par = c(a = 0),
-                      fn = function(x) -AlleleFreqLogLik_abc(
-                        Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
-                        Counts = rep(1, sum(!blnNA)), 
-                        Predict = PredictMat[!blnNA,], 
-                        a = x, b = 0, c = 0, N = 10^4, 
-                        SampleSize = 2*2504),
-                      lower = -0.01, upper = 0.02,
-                      method = "L-BFGS-B")
-cat("done!\n")
+PredictMat <- L1_1000G[, c("L1Count", "L1StartNum")]
+blnNA <- sapply(1:nrow(L1_1000G), function(x) any(is.na(PredictMat[x,])))
+sum(!blnNA)
 
 # Determine maximum likelihood with 3 parameters (selection coefficient as 
 # function of L1 start and indicator for full-length)
 cat("Maximizing likelihood for two parameters ...")
-ML_2Pars_coef <- optim(par = c(a = -0.006, b = 0),
-                       fn = function(x) -AlleleFreqLogLik_abc(
-                         Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
-                         Counts = rep(1, sum(!blnNA)), 
-                         Predict = PredictMat[!blnNA,], 
-                         a = x[1], b = x[2], c = 0, N = 10^4, 
-                         SampleSize = 2*2504),
-                       lower = c(a = -0.01, b = -10^(-6)), 
-                       upper = c(a = 0.01,   b =  10^(-6)),
-                       method = "L-BFGS-B")
+# ML_2Pars_L1count <- optim(par = c(a = -0.008, b = 0),
+#                       fn = function(x) -AlleleFreqLogLik_abc(
+#                         Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+#                         Counts = rep(1, sum(!blnNA)), 
+#                         Predict = PredictMat[!blnNA,], 
+#                         a = x[1], b = x[2], c = 0, N = 10^4, 
+#                         SampleSize = 2*2504),
+#                       lower = c(a = -0.01, b = -2*10^(-3)), 
+#                       upper = c(a =  0.02, b =  2*10^(-3)),
+#                       method = "L-BFGS-B")
 cat("done!\n")
+ML_2Pars_L1count <- constrOptim(
+     theta = c(a = -0.008, b = 10^(-3)),
+                          f = function(x) -AlleleFreqLogLik_abc(
+                            Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+                            Counts = rep(1, sum(!blnNA)), 
+                            Predict = PredictMat[!blnNA,], 
+                            a = x[1], b = x[2], c = 0, N = 10^4, 
+                            SampleSize = 2*2504),
+                          grad = NULL,
+                          ui = rbind(c(1, 0),  c(0, 1),  
+                                     c(-1, 0), c(0, -1)),
+                          ci = c(a = -0.02, b = -5*10^(-2), 
+                                 a = -0.02, b = -5*10^(-2)),
+                          method = "Nelder-Mead")
+AIC2Pars_L1count <- 4 + 2*ML_2Pars_L1count$value 
+AIC1Par - AIC2Pars_L1count
+
+ML_2Pars_L1count <- constrOptim(
+  theta = c(a = -0.008, b = 10^(-3), c = 0, d = 0),
+  f = function(x) -AlleleFreqLogLik_4Par(
+    Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+    Counts = rep(1, sum(!blnNA)), 
+    Predict = PredictMat[!blnNA,], 
+    a = x[1], b = x[2], c = 0, d = 0, N = 10^4, 
+    SampleSize = 2*2504),
+  grad = NULL,
+  ui = rbind(c(1, 0),  c(0, 1),  
+             c(-1, 0), c(0, -1)),
+  ci = c(a = -0.02, b = -5*10^(-2), 
+         a = -0.02, b = -5*10^(-2)),
+  method = "Nelder-Mead")
+
+# Combine AIC values into one vector
+AICTabAppend <- data.frame(NrParameters = 2,
+           Predictor = "L1count",
+           AIC = AIC2Pars_L1count,
+           stringsAsFactors = F)
+AICTab <- rbind(AICTab, AICTabAppend)
+
 
 ##########################################
 #                                        #
