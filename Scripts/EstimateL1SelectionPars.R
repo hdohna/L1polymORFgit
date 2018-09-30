@@ -14,12 +14,6 @@ source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 library(GenomicRanges)
 library(rtracklayer)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-library(KernSmooth)
-library(glmnet)
-library(org.Hs.eg.db)
-library(UniProt.ws)
-library(gee)
-library(Homo.sapiens)
 library(BSgenome.Hsapiens.UCSC.hg19)
 
 ##########################################
@@ -38,6 +32,8 @@ ChrLPath        <- 'D:/L1polymORF/Data/ChromLengthsHg19.Rdata'
 InputPath       <- 'D:/L1polymORF/Data/SingletonAnalysis_unphased.RData'
 L1RefPath       <- 'D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
 RegrOutputPath     <- "D:/L1polymORF/Data/L1RegressionResults.RData"
+SelectTabOutPath <- "D:/L1polymORF/Data/L1SelectionResults.csv"
+SelectResultOutPath <- "D:/L1polymORF/Data/L1SelectionResults.RData"
 
 # Number of info columns in vcf file
 NrInfoCols   <- 9
@@ -170,11 +166,7 @@ L1SingletonCoeffs$blnOLGene  <- overlapsAny(L1SingletonCoeffs_GR, GeneGR, ignore
 L1SingletonCoeffs$blnOLProm     <- overlapsAny(L1SingletonCoeffs_GR, PromGR, ignore.strand = T)
 L1SingletonCoeffs$blnOLExon     <- overlapsAny(L1SingletonCoeffs_GR, ExonGR, ignore.strand = T)
 L1SingletonCoeffs$blnOLIntron   <- L1SingletonCoeffs$blnOLGene & (!L1SingletonCoeffs$blnOLExon)
-L1SingletonCoeffs$blnOLEnhancer   <- overlapsAny(L1SingletonCoeffs_GR, EnhancerGR, ignore.strand = T)
-L1SingletonCoeffs$blnOLIntergen <- !(L1SingletonCoeffs$blnOLGene | L1SingletonCoeffs$blnOLProm |
-                                       L1SingletonCoeffs$blnOLEnhancer)
-L1SingletonCoeffs$blnOLCpG   <- overlapsAny(L1SingletonCoeffs_GR, CpGGR, ignore.strand = T)
-L1SingletonCoeffs$Dist2CpG   <- Dist2Closest(L1SingletonCoeffs_GR, CpGGR)
+L1SingletonCoeffs$blnOLIntergen <- !(L1SingletonCoeffs$blnOLGene | L1SingletonCoeffs$blnOLProm)
 L1SingletonCoeffs$L1StartNum <- as.numeric(as.character(L1SingletonCoeffs$L1Start))
 L1SingletonCoeffs$L1EndNum   <- as.numeric(as.character(L1SingletonCoeffs$L1End))
 L1SingletonCoeffs$blnFull    <- L1SingletonCoeffs$L1StartNum <= 1 & L1SingletonCoeffs$L1EndNum >= 6000
@@ -215,7 +207,6 @@ L1SingletonCoeffs$CoefSt <- (L1SingletonCoeffs$coef - L1SingletonCoeffs$MeanCof)
   L1SingletonCoeffs$StDevCof
 cat("done!\n")
 
-
 ####################################################
 #                                                  #
 #   Overview of L1 intersection with features      #
@@ -229,9 +220,6 @@ L1_1000G$blnOLProm     <- overlapsAny(L1_1000G_GR_hg19, PromGR, ignore.strand = 
 L1_1000G$blnOLExon     <- overlapsAny(L1_1000G_GR_hg19, ExonGR, ignore.strand = T)
 L1_1000G$blnOLIntron   <- L1_1000G$blnOLGene & (!L1_1000G$blnOLExon)
 L1_1000G$blnOLIntergen <- !(L1_1000G$blnOLGene | L1_1000G$blnOLProm)
-L1_1000G$blnOLCpG      <- overlapsAny(L1_1000G_GR_hg19, CpGGR, ignore.strand = T)
-L1_1000G$blnOLEnhancer <- overlapsAny(L1_1000G_GR_hg19, EnhancerGR, ignore.strand = T)
-L1_1000G$Dist2CpG   <- Dist2Closest(L1_1000G_GR_hg19, CpGGR)
 L1_1000G$L1StartNum <- as.numeric(as.character(L1_1000G$L1Start))
 L1_1000G$L1EndNum   <- as.numeric(as.character(L1_1000G$L1End))
 L1_1000G$blnFull    <- L1_1000G$L1StartNum <= 1 & L1_1000G$L1EndNum >= 6000
@@ -241,7 +229,6 @@ L1_1000G$InsType <- "Intergenic"
 L1_1000G$InsType[L1_1000G$blnOLProm]     <- "Promoter"
 L1_1000G$InsType[L1_1000G$blnOLExon]     <- "Exon"
 L1_1000G$InsType[L1_1000G$blnOLIntron]   <- "Intron"
-L1_1000G$InsType[L1_1000G$blnOLEnhancer] <- "Enhancer"
 table(L1_1000G$blnOLIntergen)
 
 # Perform pairwise Wilcoxon test for differences in L1 frequencies
@@ -260,14 +247,12 @@ blnOLGeneSameStrand_RefL1 <- overlapsAny(L1RefGR, GeneGR)
 blnOLProm_RefL1   <- overlapsAny(L1RefGR, PromGR, ignore.strand = T)
 blnOLExon_RefL1   <- overlapsAny(L1RefGR, ExonGR, ignore.strand = T)
 blnOLIntron_RefL1 <- blnOLGene_RefL1 & (!blnOLExon_RefL1)
-blnOLEnhancer_RefL1 <- overlapsAny(L1RefGR, EnhancerGR, ignore.strand = T)
 
 # Get number of insertions per bp
 GeneTot     <- sum(width(GeneGR))
 ExonTot     <- sum(width(ExonGR))
 IntronTot   <- GeneTot - ExonTot
 PromTot     <- sum(width(PromGR))
-EnhancerTot <- sum(width(EnhancerGR))
 IntergenTot <- sum(as.numeric(ChromLengthsHg19)) - GeneTot - PromTot #- EnhancerTot
 
 # Get mean frequency of L1 in different functional regions
@@ -284,7 +269,6 @@ hist(L1_1000G$Frequency[L1_1000G$blnOLProm], breaks = seq(0, 1, 0.01))
 hist(L1_1000G$Frequency[L1_1000G$blnOLExon], breaks = seq(0, 1, 0.01))
 hist(L1_1000G$Frequency[L1_1000G$blnOLIntron], breaks = seq(0, 1, 0.01))
 hist(L1_1000G$Frequency[L1_1000G$blnOLIntergen], breaks = seq(0, 1, 0.01))
-hist(L1_1000G$Frequency[L1_1000G$blnOLEnhancer], breaks = seq(0, 1, 0.01))
 hist(sqrt(-log10(L1_1000G$Frequency[L1_1000G$blnOLProm])))
 hist(-log10(L1_1000G$Frequency[L1_1000G$blnOLExon]))
 hist(log10(L1_1000G$Frequency[L1_1000G$blnOLIntron]))
@@ -293,14 +277,12 @@ hist(log10(L1_1000G$Frequency[L1_1000G$blnOLIntergen]))
 # Get number of L1 per Mb in different functional regions
 InsPerbp <- 10^6 * rbind(
   c(
-    #Enhancer = sum(blnOLEnhancer_RefL1) / EnhancerTot,
     Promoter = sum(blnOLProm_RefL1) / PromTot,
     Exon = sum(blnOLExon_RefL1) / ExonTot,
     Intron = sum(blnOLIntron_RefL1) / IntronTot,
     Intergenic = sum(!(blnOLGene_RefL1 | blnOLProm_RefL1)) / IntergenTot
     ),
   c(
-    #Enhancer = sum(L1_1000G$blnOLEnhancer) / EnhancerTot,
     Promoter = sum(L1_1000G$blnOLProm) / PromTot,
     Exon = sum(L1_1000G$blnOLExon) / ExonTot,
     Intron = sum(L1_1000G$blnOLIntron) / IntronTot,
@@ -436,14 +418,6 @@ ML_L1startL1full <- constrOptim(theta = c(a = -0.007, b = 1.5*10^(-7), c = 0),
 AIC2L1startL1full <- 6 + 2 * ML_L1startL1full$value
 cat("done!\n")
 
-# Combine AIC values into one vector
-AICTab <- data.frame(NrParameters = c(1, 2, 2, 3),
-                     Predictor = c("none", "L1 start", "L1 full-length", 
-                                   "L1 start and full-length"),
-                     AIC = c(AIC1Par, AIC2L1start, AIC2L1full,
-                             AIC2L1startL1full),
-                     stringsAsFactors = F)
-
 ###################################################
 #                                                 #
 #   Fit effect of singleton coef. on selection    #
@@ -550,11 +524,37 @@ ML_4Pars_L1countL1startL1full <- constrOptim(
   method = "Nelder-Mead")
 AIC4Pars_L1countL1startL1full <- 8 + 2*ML_4Pars_L1countL1startL1full$value 
 
+
+###################################################
+#                                                 #
+#  Summarize results         #
+#                                                 #
+###################################################
+
+# Function to extract AIC from optim results
+OptimResults = ML_4Pars_L1countL1startL1full
+GetAIC <- function(OptimResults){
+  round(2 * (length(OptimResults$par) + OptimResults$value), 2)
+}
+GetParVals <- function(OptimResults){
+  Results <- paste(names(OptimResults$par), 
+                   format(OptimResults$par, digits = 2), sep = " = ",
+                   collapse = ", ")
+}
+
+Cols2Append <- t(sapply(list(ML_1Par, ML_L1start, ML_L1full, ML_2Pars_L1count, ML_L1startL1full,
+         ML_4Pars_L1countL1startL1full), function(x){
+           c(AIC = GetAIC(x), Pars = GetParVals(x))
+         }))
 # Combine AIC values into one vector
-AICTabAppend <- data.frame(NrParameters = 2,
-           Predictor = "L1count",
-           AIC = AIC2Pars_L1count,
-           stringsAsFactors = F)
-AICTab <- rbind(AICTab, AICTabAppend)
-
-
+AICTab <- cbind(data.frame(
+            NrParameters = c(1, 2, 2, 2, 3, 4),
+            Predictor = c("none", "L1 start", "L1 full-length", "L1count",
+                                   "L1 start and full-length",
+                          "L1 start, L1 full-length, L1count"),
+            stringsAsFactors = F),
+            Cols2Append)
+                     
+# Save table with AIC
+write.csv(AICTab, SelectTabOutPath)
+save.image(SelectResultOutPath)
