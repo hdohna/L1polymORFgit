@@ -339,7 +339,6 @@ ML_1Par <- optim(par = c(a = 0),
 #                           ui = rbind(1,-1),
 #                           ci = c(a = -0.01, a = -0.02),
 #                           method = "Nelder-Mead")
-AIC1Par <- 2 + 2*ML_1Par$value 
 cat("done!\n")
 
 # Get maximum likelihood estimate for effect of L1 start on selection
@@ -357,7 +356,6 @@ ML_L1start <-  constrOptim(theta = c(a = -0.006, b = 0),
                           ci = c(a = -0.01, c = -10^(-6), 
                                  a = -0.02, c = -10^(-6)),
                           method = "Nelder-Mead")
-AIC2L1start <- 4 + 2*ML_L1start$value
 # ML_L1start <- optim(par = c(a = -0.006, b = 0),
 #                   fn = function(x) -AlleleFreqLogLik_abc(
 #                          Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
@@ -385,7 +383,6 @@ ML_L1full <-  constrOptim(theta = c(a = -0.006, c = 0),
                       ci = c(a = -0.01, c = -10^(-3), 
                              a = -0.02, c = -10^(-3)),
                       method = "Nelder-Mead")
-AIC2L1full <- 4 + 2 * ML_L1full$value
 cat("done!\n")
 
 # Determine maximum likelihood with 3 parameters (selection coefficient as 
@@ -415,7 +412,6 @@ ML_L1startL1full <- constrOptim(theta = c(a = -0.007, b = 1.5*10^(-7), c = 0),
                   ci = c(a = -0.01, b = -10^(-6), c = -10^(-3), 
                          a = -0.02, b = -10^(-6), c = -10^(-3)),
                   method = "Nelder-Mead")
-AIC2L1startL1full <- 6 + 2 * ML_L1startL1full$value
 cat("done!\n")
 
 ###################################################
@@ -443,23 +439,18 @@ cat("done!\n")
 
 # Determine maximum likelihood with 3 parameters (selection coefficient as 
 # function of L1 start and indicator for full-length)
-cat("Maximizing likelihood for two parameters ...")
-ML_2Pars <- optim(par = c(a = -0.006, b = 0),
-                  fn = function(x) -AlleleFreqLogLik_abc(
-                    Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-                    Counts = rep(1, sum(!blnNA)), 
-                    Predict = PredictMat[!blnNA,], 
-                    a = x[1], b = x[2], N = 10^4, 
-                    SampleSize = 2*2504),
-                  lower = c(a = -0.01, b = -10^(-6)), 
-                  upper = c(a = 0.02, b =  10^(-6)),
-                  method = "L-BFGS-B")
-cat("done!\n")
-
-# Calculate aic of 1 and 2 parameter model
-AIC1Par_coef <- 2 + 2*ML_1Par_coef$value 
-AIC2Par_coef <- 4 + 2*ML_2Pars_coef$value 
-AIC1Par_coef - AIC2Par_coef
+# cat("Maximizing likelihood for two parameters ...")
+# ML_2Pars_coef <- optim(par = c(a = -0.006, b = 0),
+#                   fn = function(x) -AlleleFreqLogLik_abc(
+#                     Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
+#                     Counts = rep(1, sum(!blnNA)), 
+#                     Predict = PredictMat[!blnNA,], 
+#                     a = x[1], b = x[2], N = 10^4, 
+#                     SampleSize = 2*2504),
+#                   lower = c(a = -0.01, b = -10^(-6)), 
+#                   upper = c(a = 0.02, b =  10^(-6)),
+#                   method = "L-BFGS-B")
+# cat("done!\n")
 
 ###################################################
 #                                                 #
@@ -505,9 +496,41 @@ ML_2Pars_L1count <- constrOptim(
                           ci = c(a = -0.02, b = -5*10^(-2), 
                                  a = -0.02, b = -5*10^(-2)),
                           method = "Nelder-Mead")
-AIC2Pars_L1count <- 4 + 2*ML_2Pars_L1count$value 
-AIC1Par - AIC2Pars_L1count
 
+# Maximum likelihood estimate for effect of L1 density and full-length L1
+ML_3Pars_L1countL1full <- constrOptim(
+  theta = c(a = -0.006, b = 10^(-7), d = 7*10^(-4)), 
+  f = function(x) -AlleleFreqLogLik_4Par(
+    Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+    Counts = rep(1, sum(!blnNA)), 
+    Predict = PredictMat[!blnNA,], 
+    a = x[1], b = x[2], c = 0, d = x[3], N = 10^4, 
+    SampleSize = 2*2504),
+  grad = NULL,
+  ui = rbind(c(1, 0, 0),  c(0, 1, 0), c(0, 0, 1),     
+             c(-1, 0, 0),  c(0, -1, 0), c(0, 0, -1)),
+  ci = c(a = -0.02, b = -5*10^(-2), d = -10^(-3), 
+         a = -0.02, b = -5*10^(-2), d = -10^(-3)),
+  method = "Nelder-Mead")
+
+# Maximum likelihood estimate for effect of L1 density and L1 start
+ML_3Pars_L1countL1start <- constrOptim(
+  theta = c(a = -0.006, b = 10^(-7), c = 3*10^(-7)),
+  f = function(x) -AlleleFreqLogLik_4Par(
+    Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
+    Counts = rep(1, sum(!blnNA)), 
+    Predict = PredictMat[!blnNA,], 
+    a = x[1], b = x[2], c = x[3], d = 0, N = 10^4, 
+    SampleSize = 2*2504),
+  grad = NULL,
+  ui = rbind(c(1, 0, 0),  c(0, 1, 0), c(0, 0, 1),     
+             c(-1, 0, 0),  c(0, -1, 0), c(0, 0, -1)),
+  ci = c(a = -0.02, b = -5*10^(-2), c = -10^(-6), 
+         a = -0.02, b = -5*10^(-2), c = -10^(-6)),
+  method = "Nelder-Mead")
+
+# Maximum likelihood estimate for effect of L1 density, L1 start, and 
+# full-length L1
 ML_4Pars_L1countL1startL1full <- constrOptim(
   theta = c(a = -0.006, b = 10^(-7), c = 3*10^(-7), d = 7*10^(-4)),
   f = function(x) -AlleleFreqLogLik_4Par(
@@ -522,7 +545,6 @@ ML_4Pars_L1countL1startL1full <- constrOptim(
   ci = c(a = -0.02, b = -5*10^(-2), c = -10^(-6), d = -10^(-3), 
          a = -0.02, b = -5*10^(-2), c = -10^(-6), d = -10^(-3)),
   method = "Nelder-Mead")
-AIC4Pars_L1countL1startL1full <- 8 + 2*ML_4Pars_L1countL1startL1full$value 
 
 
 ###################################################
@@ -532,7 +554,6 @@ AIC4Pars_L1countL1startL1full <- 8 + 2*ML_4Pars_L1countL1startL1full$value
 ###################################################
 
 # Function to extract AIC from optim results
-OptimResults = ML_4Pars_L1countL1startL1full
 GetAIC <- function(OptimResults){
   round(2 * (length(OptimResults$par) + OptimResults$value), 2)
 }
@@ -542,15 +563,20 @@ GetParVals <- function(OptimResults){
                    collapse = ", ")
 }
 
-Cols2Append <- t(sapply(list(ML_1Par, ML_L1start, ML_L1full, ML_2Pars_L1count, ML_L1startL1full,
+# Get columns of AIC and parameter values
+Cols2Append <- t(sapply(list(ML_1Par, ML_L1start, ML_L1full, ML_2Pars_L1count, 
+                             ML_L1startL1full, ML_3Pars_L1countL1start,
+                             ML_3Pars_L1countL1full,
          ML_4Pars_L1countL1startL1full), function(x){
            c(AIC = GetAIC(x), Pars = GetParVals(x))
          }))
 # Combine AIC values into one vector
 AICTab <- cbind(data.frame(
-            NrParameters = c(1, 2, 2, 2, 3, 4),
+            NrParameters = c(1, 2, 2, 2, 3, 3, 3, 4),
             Predictor = c("none", "L1 start", "L1 full-length", "L1count",
                                    "L1 start and full-length",
+                          "L1 count and L1 start",
+                          "L1 count and L1 full",
                           "L1 start, L1 full-length, L1count"),
             stringsAsFactors = F),
             Cols2Append)

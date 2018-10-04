@@ -77,9 +77,10 @@ load(ParalogPath)
 load(RegrOutputPath)
 
 # Read in table with enhancer ranges
-EnhancerTable <- read.delim(EnhancerPath, header = F, 
-                            col.names = c("chromosome", "start", "end", "enhancerID", "score", "strand",
-                                          "thickStart", "thickEnd", "col9", "col10", "col11", "col12"))
+EnhancerTable <- read.delim(
+  EnhancerPath, header = F, 
+  col.names = c("chromosome", "start", "end", "enhancerID", "score", "strand",
+                "thickStart", "thickEnd", "col9", "col10", "col11", "col12"))
 EnhancerGR  <- makeGRangesFromDataFrame(EnhancerTable)
 
 # Make genomic ranges for L1SingletonCoeffs
@@ -237,6 +238,7 @@ L1SingletonCoeffs$idxGene   <- NA
 L1SingletonCoeffs$GeneWidth <- NA
 L1SingletonCoeffs$GeneID <- NA
 L1SingletonCoeffs$blnOLGeneSameStrand <- NA
+sum(duplicated(L1coeff_Gene_OL@from))
 L1SingletonCoeffs$idxGene[L1coeff_Gene_OL@from] <- L1coeff_Gene_OL@to
 L1SingletonCoeffs$GeneWidth[L1coeff_Gene_OL@from] <- width(GeneGR)[L1coeff_Gene_OL@to]
 L1SingletonCoeffs$GeneID[L1coeff_Gene_OL@from] <- 
@@ -265,6 +267,13 @@ L1SingletonCoeffs$MeanCof <- CoeffAggMerge$Mean[FreqMatch]
 L1SingletonCoeffs$StDevCof <- CoeffAggMerge$StDev[FreqMatch]
 L1SingletonCoeffs$CoefSt <- (L1SingletonCoeffs$coef - L1SingletonCoeffs$MeanCof) / 
   L1SingletonCoeffs$StDevCof
+
+
+
+# Match summary ranges to L1 ranges of 1000 genome data
+L1SummaryOL <- findOverlaps(L1SingletonCoeffs_GR, SummaryGR)
+all(L1SummaryOL@from == 1:nrow(L1SingletonCoeffs))
+L1SingletonCoeffs$L1Count <- DataPerSummaryGR$L1Count[L1SummaryOL@to]
 cat("done!\n")
 
 ##########################################
@@ -294,8 +303,13 @@ LML1CoefVsStartFreq <- lm(coef ~ Freq, data = L1SinglCoeff_nonzeroSE, weights = 
 summary(LML1CoefVsStartFreq)
 # *****************   MS RESULT     **********************#
 
-LML1CoefVsOLProm <- lm(coef ~ blnOLProm, data = L1SingletonCoeffs, weights = 1/se.coef.)
-summary(LML1CoefVsOLProm)
+# Regress selection coefficient vs. L1 start, full-length L1 and 
+# *****************   MS RESULT     **********************#
+LML1CoefVsL1StartFullL1count <- lm(coef ~ L1Start + blnFull + L1Count, 
+                                   data = L1SingletonCoeffs, 
+                                   weights = 1/se.coef.)
+summary(LML1CoefVsL1StartFullL1count)
+# *****************   MS RESULT     **********************#
 
 # Regress coefficients vs L1 start
 par(mfrow = c(1, 1))
@@ -374,19 +388,26 @@ cat("done!\n")
 #                                                  #
 ####################################################
 
+# Get overlaps between 1000 genome L1 and genes
+L1_1000G_Gene_OL <- findOverlaps(L1_1000G_GR_hg19, GeneGR)
+idxOL1000G <- L1_1000G_Gene_OL@from[!duplicated(L1_1000G_Gene_OL@from)] 
+idxOLGene  <- L1_1000G_Gene_OL@to[!duplicated(L1_1000G_Gene_OL@from)] 
+
 # Indicator variable for intersection with various GRanges
 L1_1000G$blnOLGene  <- overlapsAny(L1_1000G_GR_hg19, GeneGR, ignore.strand = T)
-L1_1000G$blnOLGeneSameStrand <- overlapsAny(L1_1000G_GR_hg19, GeneGR)
+L1_1000G$blnOLGeneSameStrand <- NA
+L1_1000G$blnOLGeneSameStrand[idxOL1000G] <- 
+  L1_1000G$L1Strand[idxOL1000G] == as.vector(strand(GeneGR))[idxOLGene]
 L1_1000G$blnOLProm     <- overlapsAny(L1_1000G_GR_hg19, PromGR, ignore.strand = T)
 L1_1000G$blnOLExon     <- overlapsAny(L1_1000G_GR_hg19, ExonGR, ignore.strand = T)
 L1_1000G$blnOLIntron   <- L1_1000G$blnOLGene & (!L1_1000G$blnOLExon)
 L1_1000G$blnOLIntergen <- !(L1_1000G$blnOLGene | L1_1000G$blnOLProm)
 L1_1000G$blnOLCpG      <- overlapsAny(L1_1000G_GR_hg19, CpGGR, ignore.strand = T)
 L1_1000G$blnOLEnhancer <- overlapsAny(L1_1000G_GR_hg19, EnhancerGR, ignore.strand = T)
-L1_1000G$Dist2CpG   <- Dist2Closest(L1_1000G_GR_hg19, CpGGR)
-L1_1000G$L1StartNum <- as.numeric(as.character(L1_1000G$L1Start))
-L1_1000G$L1EndNum   <- as.numeric(as.character(L1_1000G$L1End))
-L1_1000G$blnFull    <- L1_1000G$L1StartNum <= 1 & L1_1000G$L1EndNum >= 6000
+L1_1000G$Dist2CpG      <- Dist2Closest(L1_1000G_GR_hg19, CpGGR)
+L1_1000G$L1StartNum    <- as.numeric(as.character(L1_1000G$L1Start))
+L1_1000G$L1EndNum      <- as.numeric(as.character(L1_1000G$L1End))
+L1_1000G$blnFull       <- L1_1000G$L1StartNum <= 1 & L1_1000G$L1EndNum >= 6000
 
 # Create a variable indicating insertion type
 L1_1000G$InsType <- "Intergenic"
@@ -476,239 +497,6 @@ AddErrorBars(MidX = bp1, MidY = MeanFreqs, ErrorRange = StErr,
 CreateDisplayPdf('D:/L1polymORF/Figures/PropL1InRegions.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 7, width = 7)
-
-###################################################
-#                                                 #
-#   Fit effect of insertion length on selection   #
-#                                                 #
-###################################################
-
-# Create a matrix of predictor variables (L1 start and boolean variable for)
-PredictMat <- L1_1000G[, c("L1StartNum", "blnFull")]
-blnNA <- sapply(1:nrow(L1_1000G), function(x) any(is.na(PredictMat[x,])))
-sum(!blnNA)
-
-# Determine maximum likelihood with one parameter (selection coefficient)
-cat("Maximizing likelihood for one parameter (selection coefficient) ...")
-ML_1Par <- optim(par = c(a = 0),
-      fn = function(x) -AlleleFreqLogLik_abc(
-                          Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA],
-                          Counts = rep(1, sum(!blnNA)),
-                          Predict = PredictMat[!blnNA,],
-                          a = x, b = 0, c = 0, N = 10^4,
-                          SampleSize = 2*2504),
-            lower = -0.01, upper = 0.02,
-      method = "L-BFGS-B")
-# ML_1Par <-  constrOptim(theta = c(a = 0),
-#                           f = function(x) -AlleleFreqLogLik_abc(
-#                             Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-#                             Counts = rep(1, sum(!blnNA)), 
-#                             Predict = PredictMat[!blnNA,], 
-#                             a = x[1], b = 0, c = 0, N = 10^4, 
-#                             SampleSize = 2*2504),
-#                           grad = NULL,
-#                           ui = rbind(1,-1),
-#                           ci = c(a = -0.01, a = -0.02),
-#                           method = "Nelder-Mead")
-AIC1Par <- 2 + 2*ML_1Par$value 
-cat("done!\n")
-
-# Get maximum likelihood estimate for effect of L1 start on selection
-cat("Estimate effect of L1 start on selections ...")
-ML_L1start <-  constrOptim(theta = c(a = -0.006, b = 0),
-                          f = function(x) -AlleleFreqLogLik_abc(
-                            Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-                            Counts = rep(1, sum(!blnNA)), 
-                            Predict = PredictMat[!blnNA,], 
-                            a = x[1], b = x[2], c = 0, N = 10^4, 
-                            SampleSize = 2*2504),
-                          grad = NULL,
-                          ui = rbind(c(1, 0),  c(0, 1),   
-                                     c(-1, 0), c(0, -1)),
-                          ci = c(a = -0.01, c = -10^(-6), 
-                                 a = -0.02, c = -10^(-6)),
-                          method = "Nelder-Mead")
-AIC2L1start <- 4 + 2*ML_L1start$value
-# ML_L1start <- optim(par = c(a = -0.006, b = 0),
-#                   fn = function(x) -AlleleFreqLogLik_abc(
-#                          Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-#                          Counts = rep(1, sum(!blnNA)), 
-#                          Predict = PredictMat[!blnNA,], 
-#                          a = x[1], b = x[2], c = 0, N = 10^4, 
-#                          SampleSize = 2*2504),
-#                   lower = c(a = -0.01, b = -10^(-6)), 
-#                   upper = c(a = 0.02, b =  10^(-6)),
-#                   method = "L-BFGS-B")
-cat("done!\n")
-
-# Get maximum likelihood estimate for effect of full-length L1 on selection
-cat("Estimate effect of L1 full-length on selections ...")
-ML_L1full <-  constrOptim(theta = c(a = -0.006, c = 0),
-                          f = function(x) -AlleleFreqLogLik_abc(
-                      Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-                      Counts = rep(1, sum(!blnNA)), 
-                      Predict = PredictMat[!blnNA,], 
-                      a = x[1], b = 0, c = x[2], N = 10^4, 
-                      SampleSize = 2*2504),
-                      grad = NULL,
-                      ui = rbind(c(1, 0),  c(0, 1),   
-                                 c(-1, 0), c(0, -1)),
-                      ci = c(a = -0.01, c = -10^(-3), 
-                             a = -0.02, c = -10^(-3)),
-                      method = "Nelder-Mead")
-AIC2L1full <- 4 + 2 * ML_L1full$value
-cat("done!\n")
-
-# Determine maximum likelihood with 3 parameters (selection coefficient as 
-# function of L1 start and indicator for full-length)
-cat("Maximizing likelihood for three parameters ...")
-# ML_3Pars <- optim(par = c(a = -0.005, b = 0, c = 0),
-#       fn = function(x) -AlleleFreqLogLik_abc(
-#         Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-#         Counts = rep(1, sum(!blnNA)), 
-#         Predict = PredictMat[!blnNA,], 
-#         a = x[1], b = x[2], c = x[3], N = 10^4, 
-#         SampleSize = 2*2504),
-#       lower = c(a = -0.01, b = -10^(-6), c = -10^(-3)), 
-#       upper = c(a = 0.02, b =  10^(-6), c = 10^(-3)),
-#       method = "L-BFGS-B")
-cat("done!\n")
-ML_L1startL1full <- constrOptim(theta = c(a = -0.007, b = 1.5*10^(-7), c = 0),
-                  f = function(x) -AlleleFreqLogLik_abc(
-                    Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-                    Counts = rep(1, sum(!blnNA)), 
-                    Predict = PredictMat[!blnNA,], 
-                    a = x[1], b = x[2], c = x[3], N = 10^4, 
-                    SampleSize = 2*2504),
-                  grad = NULL,
-                  ui = rbind(c(1, 0, 0),  c(0, 1, 0),  c(0, 0, 1), 
-                             c(-1, 0, 0), c(0, -1, 0), c(0, 0, -1)),
-                  ci = c(a = -0.01, b = -10^(-6), c = -10^(-3), 
-                         a = -0.02, b = -10^(-6), c = -10^(-3)),
-                  method = "Nelder-Mead")
-AIC2L1startL1full <- 6 + 2 * ML_L1startL1full$value
-cat("done!\n")
-
-# Combine AIC values into one vector
-AICTab <- data.frame(NrParameters = c(1, 2, 2, 3),
-                     Predictor = c("none", "L1 start", "L1 full-length", 
-                                   "L1 start and full-length"),
-                     AIC = c(AIC1Par, AIC2L1start, AIC2L1full,
-                             AIC2L1startL1full),
-                     stringsAsFactors = F)
-
-###################################################
-#                                                 #
-#   Fit effect of singleton coef. on selection    #
-#                                                 #
-###################################################
-
-# Create a matrix of predictor variables 
-PredictMat <- L1SingletonCoeffs[, c("coef", "L1Start")]
-blnNA <- sapply(1:nrow(L1SingletonCoeffs), function(x) any(is.na(PredictMat[x,])))
-
-# Determine maximum likelihood with one parameter (selection coefficient)
-cat("Maximizing likelihood for one parameter (selection coefficient) ...")
-ML_1Par_coef <- optim(par = c(a = 0),
-                 fn = function(x) -AlleleFreqLogLik_abc(
-                   Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
-                            Counts = rep(1, sum(!blnNA)), 
-                            Predict = PredictMat[!blnNA,], 
-                            a = x, b = 0, c = 0, N = 10^4, 
-                            SampleSize = 2*2504),
-                 lower = -0.01, upper = 0.02,
-                 method = "L-BFGS-B")
-cat("done!\n")
-
-# Determine maximum likelihood with 3 parameters (selection coefficient as 
-# function of L1 start and indicator for full-length)
-cat("Maximizing likelihood for two parameters ...")
-ML_2Pars <- optim(par = c(a = -0.006, b = 0),
-                  fn = function(x) -AlleleFreqLogLik_abc(
-                    Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-                    Counts = rep(1, sum(!blnNA)), 
-                    Predict = PredictMat[!blnNA,], 
-                    a = x[1], b = x[2], N = 10^4, 
-                    SampleSize = 2*2504),
-                  lower = c(a = -0.01, b = -10^(-6)), 
-                  upper = c(a = 0.02, b =  10^(-6)),
-                  method = "L-BFGS-B")
-cat("done!\n")
-
-# Calculate aic of 1 and 2 parameter model
-AIC1Par_coef <- 2 + 2*ML_1Par_coef$value 
-AIC2Par_coef <- 4 + 2*ML_2Pars_coef$value 
-AIC1Par_coef - AIC2Par_coef
-
-###################################################
-#                                                 #
-#  Fit effect of L1 density on selection          #
-#                                                 #
-###################################################
-
-# Match summary ranges to L1 ranges of 1000 genome data
-L1SummaryOL <- findOverlaps(L1_1000G_GR_hg19, SummaryGR)
-all(L1SummaryOL@from == 1:nrow(L1_1000G))
-L1_1000G$L1Count <- DataPerSummaryGR$L1Count[L1SummaryOL@to]
-
-# Create a matrix of predictor variables 
-PredictMat <- L1_1000G[, c("L1Count", "L1StartNum")]
-blnNA <- sapply(1:nrow(L1_1000G), function(x) any(is.na(PredictMat[x,])))
-sum(!blnNA)
-
-# Determine maximum likelihood with 3 parameters (selection coefficient as 
-# function of L1 start and indicator for full-length)
-cat("Maximizing likelihood for two parameters ...")
-# ML_2Pars_L1count <- optim(par = c(a = -0.008, b = 0),
-#                       fn = function(x) -AlleleFreqLogLik_abc(
-#                         Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-#                         Counts = rep(1, sum(!blnNA)), 
-#                         Predict = PredictMat[!blnNA,], 
-#                         a = x[1], b = x[2], c = 0, N = 10^4, 
-#                         SampleSize = 2*2504),
-#                       lower = c(a = -0.01, b = -2*10^(-3)), 
-#                       upper = c(a =  0.02, b =  2*10^(-3)),
-#                       method = "L-BFGS-B")
-cat("done!\n")
-ML_2Pars_L1count <- constrOptim(
-     theta = c(a = -0.008, b = 10^(-3)),
-                          f = function(x) -AlleleFreqLogLik_abc(
-                            Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-                            Counts = rep(1, sum(!blnNA)), 
-                            Predict = PredictMat[!blnNA,], 
-                            a = x[1], b = x[2], c = 0, N = 10^4, 
-                            SampleSize = 2*2504),
-                          grad = NULL,
-                          ui = rbind(c(1, 0),  c(0, 1),  
-                                     c(-1, 0), c(0, -1)),
-                          ci = c(a = -0.02, b = -5*10^(-2), 
-                                 a = -0.02, b = -5*10^(-2)),
-                          method = "Nelder-Mead")
-AIC2Pars_L1count <- 4 + 2*ML_2Pars_L1count$value 
-AIC1Par - AIC2Pars_L1count
-
-ML_2Pars_L1count <- constrOptim(
-  theta = c(a = -0.008, b = 10^(-3), c = 0, d = 0),
-  f = function(x) -AlleleFreqLogLik_4Par(
-    Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
-    Counts = rep(1, sum(!blnNA)), 
-    Predict = PredictMat[!blnNA,], 
-    a = x[1], b = x[2], c = 0, d = 0, N = 10^4, 
-    SampleSize = 2*2504),
-  grad = NULL,
-  ui = rbind(c(1, 0),  c(0, 1),  
-             c(-1, 0), c(0, -1)),
-  ci = c(a = -0.02, b = -5*10^(-2), 
-         a = -0.02, b = -5*10^(-2)),
-  method = "Nelder-Mead")
-
-# Combine AIC values into one vector
-AICTabAppend <- data.frame(NrParameters = 2,
-           Predictor = "L1count",
-           AIC = AIC2Pars_L1count,
-           stringsAsFactors = F)
-AICTab <- rbind(AICTab, AICTabAppend)
-
 
 ##########################################
 #                                        #
@@ -1273,6 +1061,12 @@ L1SingletonCoeffs$blnOLGlyco <- overlapsAny(L1SingletonCoeffs_GR,
 L1SingletonCoeffs$blnOLGlycoMem <- overlapsAny(L1SingletonCoeffs_GR, 
                                             GeneGR[idxGlycoMembrane], ignore.strand = T)
 
+# Test whether L1 in glycoproteins have a different singleton coefficient
+LM_Glyco <- lm(coef ~ blnOLGlyco, data = L1SingletonCoeffs, subset = blnOLGene)
+wilcox.test(coef ~ blnOLGlyco, data = L1SingletonCoeffs, subset = blnOLGene)
+boxplot(coef ~ blnOLGlyco, data = L1SingletonCoeffs, subset = blnOLGene)
+summary(LM_Glyco)
+
 # Test whether glycoproteins are overrepresented among genes that have the same
 # strand as L1
 blnStrandInfo <- !is.na(L1_1000G$L1Strand)
@@ -1318,6 +1112,10 @@ LogRegGlycoOLVsFreqOnly <- glm(blnOLGlyco ~ Frequency,
                                   family = "binomial", data = L1_1000G,
                                subset = blnOLGene)
 summary(LogRegGlycoOLVsFreqOnly)
+wilcox.test(Frequency ~ blnOLGlyco, data = L1_1000G,
+                               subset = blnOLGene)
+t.test(Frequency ~ blnOLGlyco, data = L1_1000G,
+            subset = blnOLGene)
 
 
 L1GlycoOLVsL1StartSmoothed <- supsmu(L1_1000G$L1StartNum,  1*L1_1000G$blnOLGlyco)
@@ -1330,7 +1128,7 @@ plot(L1noGlycoOLVsL1StartSmoothed$x, L1noGlycoOLVsL1StartSmoothed$y, type = "l",
 
 # Check whether frequency or start differs between L1 in glycoprotein genes and other genes
 L1_inGenes <- L1_1000G[L1_1000G$blnOLGene, ]
-wilcox.test(Frequency ~ blnOLGlyco, data = L1_inGenes)
+wilcox.test(Frequency  ~ blnOLGlyco, data = L1_inGenes)
 wilcox.test(L1StartNum ~ blnOLGlyco, data = L1_inGenes)
 
 # Regress glycoprotein indicator against frequency and L1 start
@@ -1354,6 +1152,71 @@ write.csv(GycoProtL1, file = "D:/L1polymORF/Data/GlycoProtsWithL1.csv")
 
 cat("done!\n")
 
+#####################################################
+#                                                   #
+#   Estimate selection coefficient for insertions   #
+#   in glycoproteins or other genes    #
+#                                                   #
+#####################################################
+
+# Create a matrix of predictor variables (L1 start and boolean variable for)
+PredictMat <- L1_inGenes[, c("blnOLGlyco", "blnOLGene")]
+blnNA <- sapply(1:nrow(L1_inGenes), function(x) any(is.na(PredictMat[x,])))
+all(!blnNA)
+
+# Determine maximum likelihood with one parameter (selection coefficient)
+cat("Maximizing likelihood for one parameter (selection coefficient) ...")
+ML_1Par <- optim(par = c(a = 0),
+                 fn = function(x) -AlleleFreqLogLik_abc(
+                   Freqs = (L1_inGenes$Frequency * 2*2504)[!blnNA],
+                   Counts = rep(1, sum(!blnNA)),
+                   Predict = PredictMat[!blnNA,],
+                   a = x, b = 0, c = 0, N = 10^4,
+                   SampleSize = 2*2504),
+                 lower = -0.01, upper = 0.02,
+                 method = "L-BFGS-B")
+cat("done!\n")
+
+# Get maximum likelihood estimate for effect of L1 start on selection
+cat("Estimate effect of prsence in glycoproteins ...")
+ML_L1glyco <-  constrOptim(theta = c(a = -0.006, b = 0),
+                           f = function(x) -AlleleFreqLogLik_abc(
+                             Freqs = (L1_inGenes$Frequency * 2*2504)[!blnNA], 
+                             Counts = rep(1, sum(!blnNA)), 
+                             Predict = PredictMat[!blnNA,], 
+                             a = x[1], b = x[2], c = 0, N = 10^4, 
+                             SampleSize = 2*2504),
+                           grad = NULL,
+                           ui = rbind(c(1, 0),  c(0, 1),   
+                                      c(-1, 0), c(0, -1)),
+                           ci = c(a = -0.01, c = -10^(-3), 
+                                  a = -0.02, c = -10^(-3)),
+                           method = "Nelder-Mead")
+cat("done!\n")
+
+# Function to extract AIC from optim results
+GetAIC <- function(OptimResults){
+  round(2 * (length(OptimResults$par) + OptimResults$value), 2)
+}
+GetParVals <- function(OptimResults){
+  Results <- paste(names(OptimResults$par), 
+                   format(OptimResults$par, digits = 2), sep = " = ",
+                   collapse = ", ")
+}
+
+# Get columns of AIC and parameter values
+Cols2Append <- t(sapply(list(ML_1Par, ML_L1glyco), function(x){
+                               c(AIC = GetAIC(x), Pars = GetParVals(x))
+                             }))
+# Combine AIC values into one vector
+AICTab <- cbind(data.frame(
+  NrParameters = c(1, 2),
+  Predictor = c("none", "L1 presence in glycoprotein"),
+  stringsAsFactors = F),
+  Cols2Append)
+
+# Save table with AIC
+write.csv(AICTab, SelectTabOutPath)
 ###################################################
 #                                                 #
 #     Regressing L1 count against DNAse           #
