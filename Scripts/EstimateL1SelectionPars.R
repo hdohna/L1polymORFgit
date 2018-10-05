@@ -493,8 +493,8 @@ ML_2Pars_L1count <- constrOptim(
                           grad = NULL,
                           ui = rbind(c(1, 0),  c(0, 1),  
                                      c(-1, 0), c(0, -1)),
-                          ci = c(a = -0.02, b = -5*10^(-2), 
-                                 a = -0.02, b = -5*10^(-2)),
+                          ci = c(a = -0.01, b = -2*10^(-3), 
+                                 a = -0.01, b = -2*10^(-3)),
                           method = "Nelder-Mead")
 
 # Maximum likelihood estimate for effect of L1 density and full-length L1
@@ -509,8 +509,8 @@ ML_3Pars_L1countL1full <- constrOptim(
   grad = NULL,
   ui = rbind(c(1, 0, 0),  c(0, 1, 0), c(0, 0, 1),     
              c(-1, 0, 0),  c(0, -1, 0), c(0, 0, -1)),
-  ci = c(a = -0.02, b = -5*10^(-2), d = -10^(-3), 
-         a = -0.02, b = -5*10^(-2), d = -10^(-3)),
+  ci = c(a = -0.02, b = -5*10^(-3), d = -10^(-3), 
+         a = -0.02, b = -5*10^(-3), d = -10^(-3)),
   method = "Nelder-Mead")
 
 # Maximum likelihood estimate for effect of L1 density and L1 start
@@ -542,14 +542,35 @@ ML_4Pars_L1countL1startL1full <- constrOptim(
   grad = NULL,
   ui = rbind(c(1, 0, 0, 0),  c(0, 1, 0, 0), c(0, 0, 1, 0),  c(0, 0, 0, 1),   
              c(-1, 0, 0, 0),  c(0, -1, 0, 0), c(0, 0, -1, 0),  c(0, 0, 0, -1)),
-  ci = c(a = -0.02, b = -5*10^(-2), c = -10^(-6), d = -10^(-3), 
-         a = -0.02, b = -5*10^(-2), c = -10^(-6), d = -10^(-3)),
+  ci = c(a = -0.01, b = -2*10^(-3), c = -10^(-6), d = -10^(-3), 
+         a = -0.01, b = -2*10^(-3), c = -10^(-6), d = -10^(-3)),
   method = "Nelder-Mead")
 
 
 ###################################################
 #                                                 #
-#  Summarize results         #
+#  Compare estimated and observed frequencies     #
+#                                                 #
+###################################################
+
+LogProbs <- AlleleFreqSampleProb(s = 0, N = 10^4, SampleSize = 2*2504)
+sum(is.infinite(LogProbs))
+length(LogProbs)
+min(LogProbs[!is.infinite(LogProbs)])
+idxFinite <- which(!is.infinite(LogProbs))
+plot(idxFinite, LogProbs[idxFinite])
+plot(idxFinite, LogProbs[idxFinite], xlim = c(4800, 5000))
+lchoose(5008, 1000)
+ k <- 200
+ SampleSize = 5008
+ integrate(function(x) AlleleFreqTime(x, s = 0, N = 10^4) * x^(k) *
+             (1 - x)^(SampleSize - k) , 0, 1)$value
+ integrate(function(x) log(AlleleFreqTime(x, s = 0, N = 10^4)) + 
+             k * log(x) + (SampleSize - k) * log(1 - x), 0, 1)$value
+ 
+###################################################
+#                                                 #
+#  Summarize results                              #
 #                                                 #
 ###################################################
 
