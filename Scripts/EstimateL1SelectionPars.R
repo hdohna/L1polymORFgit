@@ -525,8 +525,8 @@ ML_3Pars_L1countL1start <- constrOptim(
   grad = NULL,
   ui = rbind(c(1, 0, 0),  c(0, 1, 0), c(0, 0, 1),     
              c(-1, 0, 0),  c(0, -1, 0), c(0, 0, -1)),
-  ci = c(a = -0.02, b = -5*10^(-2), c = -10^(-6), 
-         a = -0.02, b = -5*10^(-2), c = -10^(-6)),
+  ci = c(a = -0.02, b = -5*10^(-3), c = -10^(-6), 
+         a = -0.02, b = -5*10^(-3), c = -10^(-6)),
   method = "Nelder-Mead")
 
 # Maximum likelihood estimate for effect of L1 density, L1 start, and 
