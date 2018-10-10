@@ -312,8 +312,13 @@ CreateDisplayPdf('D:/L1polymORF/Figures/PropL1InRegions.pdf',
 #                                                 #
 ###################################################
 
+# Match summary ranges to L1 ranges of 1000 genome data
+L1SummaryOL <- findOverlaps(L1_1000G_GR_hg19, SummaryGR)
+all(L1SummaryOL@from == 1:nrow(L1_1000G))
+L1_1000G$L1Count <- DataPerSummaryGR$L1Count[L1SummaryOL@to]
+
 # Create a matrix of predictor variables (L1 start and boolean variable for)
-PredictMat <- L1_1000G[, c("L1StartNum", "blnFull")]
+PredictMat <- L1_1000G[, c("L1Count", "L1StartNum", "blnFull")]
 blnNA <- sapply(1:nrow(L1_1000G), function(x) any(is.na(PredictMat[x,])))
 sum(!blnNA)
 
@@ -328,6 +333,28 @@ cat("Maximizing likelihood for one parameter (selection coefficient) ...")
 #                           SampleSize = 2*2504),
 #             lower = -0.01, upper = 0.02,
 #       method = "L-BFGS-B")
+aVals <- seq(-0.01, 0.0003, 0.0001)
+LikVals <- sapply(aVals, function(x) {
+  print(x)
+  LL_FPrime = AlleleFreqLogLik_4Par(
+    Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA],
+    Counts = rep(1, sum(!blnNA)),
+    Predict = PredictMat[!blnNA,],
+    a = x, b = 0, c = 0, d = 0, N = 10^4,
+    SampleSize = 2*2504, blnUseFPrime = T)
+  LL_NoFPrime = AlleleFreqLogLik_4Par(
+    Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA],
+    Counts = rep(1, sum(!blnNA)),
+    Predict = PredictMat[!blnNA,],
+    a = x, b = 0, c = 0, d = 0,  N = 10^4,
+    SampleSize = 2*2504, blnUseFPrime = F)
+  cat("a =", x, "LL_FPrime = ", LL_FPrime, "LL_NoFPrime = ", LL_NoFPrime, "\n")
+  c(LL_FPrime, LL_NoFPrime)
+  })
+par(mfrow = c(1, 1))
+plot(aVals, LikVals[1,], type = "l", col = "red")
+lines(aVals, LikVals[2, ], col = "blue")
+
 ML_1Par <-  constrOptim(theta = c(a = 0),
                           f = function(x) -AlleleFreqLogLik_abc(
                             Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA],
@@ -470,10 +497,6 @@ cat("done!\n")
 #                                                 #
 ###################################################
 
-# Match summary ranges to L1 ranges of 1000 genome data
-L1SummaryOL <- findOverlaps(L1_1000G_GR_hg19, SummaryGR)
-all(L1SummaryOL@from == 1:nrow(L1_1000G))
-L1_1000G$L1Count <- DataPerSummaryGR$L1Count[L1SummaryOL@to]
 
 # Create a matrix of predictor variables 
 PredictMat <- L1_1000G[, c("L1Count", "L1StartNum", "blnFull")]

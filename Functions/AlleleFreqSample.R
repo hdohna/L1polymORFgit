@@ -17,7 +17,7 @@
 
 ##############################################
 
-AlleleFreqSample <- function(k, s, N, SampleSize = 2504, blnUseFPrime = F){
+AlleleFreqSample <- function(k, s, N, SampleSize = 2504, blnUseFPrime = T){
     
   # The lines below use F' in Boissinot's paper
   if (blnUseFPrime){
