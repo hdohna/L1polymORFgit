@@ -29,7 +29,7 @@ AlleleFreqLogLik_abc <- function(Freqs, Counts, Predict, a, b, c, N, SampleSize 
   }
   LogLikVals <- sapply(1:length(Freqs), function(i){
     Counts[i] * AlleleFreqSample(Freqs[i], a + b * Predict[i, 1] +
-                                       c* Predict[i, 2], N, 
+                                       c * Predict[i, 2], N, 
                                  SampleSize = SampleSize)
   })
   blnInf <- is.infinite(LogLikVals)

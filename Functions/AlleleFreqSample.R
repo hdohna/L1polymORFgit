@@ -17,7 +17,7 @@
 
 ##############################################
 
-AlleleFreqSample <- function(k, s, N, SampleSize = 2504, blnUseFPrime = T){
+AlleleFreqSample <- function(k, s, N, SampleSize = 2504, blnUseFPrime = F){
     
   # The lines below use F' in Boissinot's paper
   if (blnUseFPrime){
@@ -25,17 +25,22 @@ AlleleFreqSample <- function(k, s, N, SampleSize = 2504, blnUseFPrime = T){
     # Calculate integration constant
     IntConst <- integrate(function(x) x * AlleleFreqTime(x, s, N), 0, 1)$value
     
-    # Calculate probability of obtaining k alleles in a sample size
+    # Calculate probability of obtaining k alleles in a sample of size 
+    # SampleSize
     lchoose(SampleSize, k) +
-      integrate(function(x) log(AlleleFreqTime(x, s, N)) + (k + 1) * log(x) +
-                  (SampleSize - k) * log(1 - x), 0, 1)$value - log(IntConst)
+      log(integrate(function(x) AlleleFreqTime(x, s, N) * x^(k + 1) * 
+                      (1 - x)^(SampleSize - k), 0, 1)$value) - log(IntConst)
 
   } else {
-    # Calculate probability of obtaining k alleles in a sample size
-    lchoose(SampleSize, k) +
-      integrate(function(x) log(AlleleFreqTime(x, s, N)) + k * log(x) +
-                  (SampleSize - k) * log(1 - x), 0, 1)$value 
     
+    # Calculate integration constant
+    IntConst <- integrate(function(x) AlleleFreqTime(x, s, N), 0, 1)$value
+    
+    # Calculate probability of obtaining k alleles in a sample of size 
+    # SampleSize
+    lchoose(SampleSize, k) +
+      log(integrate(function(x) AlleleFreqTime(x, s, N) * x^k * 
+                      (1 - x)^(SampleSize - k), 0, 1)$value) - log(IntConst)
   }
   
   
