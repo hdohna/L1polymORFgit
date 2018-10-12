@@ -23,13 +23,14 @@ AlleleFreqSample <- function(k, s, N, SampleSize = 2504, blnUseFPrime = T){
   if (blnUseFPrime){
     
     # Calculate integration constant
-    IntConst <- integrate(function(x) x * AlleleFreqTime(x, s, N), 0, 1)$value
+    IntConst <- integrate(function(x) (1 - exp(-x*SampleSize)) * AlleleFreqTime(x, s, N), 
+                          10^(-4), 1 - 10^(-4))$value
     
     # Calculate probability of obtaining k alleles in a sample of size 
     # SampleSize
     lchoose(SampleSize, k) +
-      log(integrate(function(x) AlleleFreqTime(x, s, N) * x^(k + 1) * 
-                      (1 - x)^(SampleSize - k), 0, 1)$value) - log(IntConst)
+      log(integrate(function(x) (1 - exp(-x*SampleSize))* AlleleFreqTime(x, s, N) * x^k * 
+                      (1 - x)^(SampleSize - k), 10^(-4), 1 - 10^(-4))$value) - log(IntConst)
 
   } else {
     

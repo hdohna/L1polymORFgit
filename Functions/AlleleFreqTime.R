@@ -23,7 +23,7 @@ AlleleFreqTime <- function(y, s, N) {
       ((exp(2*N*s) - 1)*N*s*(y - 1)*y)
     
   } else {
-    (1 + sign(1/(2*N) - y)) / 2 * (1 - 2*N) / (N*(y - 1)*(N + 1))
+    (1 + sign(1/(2*N) - y)) / 2 * (1 - 2*N) / (N*(y - 1)*(N + 1)) +
     (1 + sign(y - 1/(2*N))) / 2 / (N*y*(N + 1))
     
   }

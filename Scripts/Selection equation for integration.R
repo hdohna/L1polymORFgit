@@ -9,7 +9,7 @@ library(expint)
 (e^(-s)*(e^(2*n*s)-e^s)*(ln(abs(x-1)/abs(x))+expintegral_ei(2*n*s*x)-e^(2*n*s)*expintegral_ei(2*n*s*(x-1))))/(n*s*(e^(2*n*s)-1))
 
 # Result of numerator derivative:
--e^(-s)*(((2*n*x+2*n-1)*e^(2*n*s)-2*n*x*e^s)*e^(2*n*x*s)+(1-2*n)*e^(2*n*s))
+-e^(-s)*(((2*n*x + 2*n - 1)*e^(2*n*s) - 2*n*x*e^s) * e^(2*n*x*s) + (1 - 2*n)*e^(2*n*s))
 -1*((2*n - 1) + (1 - 2*n)) # s = 0
 
 # Second derivative of numerator
