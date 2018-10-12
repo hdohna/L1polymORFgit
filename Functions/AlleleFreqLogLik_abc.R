@@ -21,8 +21,9 @@
 
 ##############################################
 
-AlleleFreqLogLik_abc <- function(Freqs, Counts, Predict, a, b, c, N, SampleSize = 2504,
-                                 MinFactor = 2){
+AlleleFreqLogLik_abc <- function(Freqs, Counts, Predict, a, b, c, N, 
+                                 SampleSize = 2504,
+                                 MinFactor = 2, blnUseFPrime = T){
   if ((length(Freqs) != length(Counts)) | (length(Freqs) != nrow(Predict)) |
       (nrow(Predict) != length(Counts)) ){
     stop("Freqs, Counts and Predict vector have to have the same length\n")
@@ -30,7 +31,8 @@ AlleleFreqLogLik_abc <- function(Freqs, Counts, Predict, a, b, c, N, SampleSize 
   LogLikVals <- sapply(1:length(Freqs), function(i){
     Counts[i] * AlleleFreqSample(Freqs[i], a + b * Predict[i, 1] +
                                        c * Predict[i, 2], N, 
-                                 SampleSize = SampleSize)
+                                 SampleSize = SampleSize,
+                                 blnUseFPrime = blnUseFPrime)
   })
   blnInf <- is.infinite(LogLikVals)
   LogLikVals[blnInf] <- MinFactor * min(LogLikVals[!blnInf])

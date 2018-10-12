@@ -333,7 +333,7 @@ cat("Maximizing likelihood for one parameter (selection coefficient) ...")
 #                           SampleSize = 2*2504),
 #             lower = -0.01, upper = 0.02,
 #       method = "L-BFGS-B")
-aVals <- seq(-0.01, 0.0003, 0.0001)
+aVals <- seq(-0.002, 0.0003, 0.0001)
 LikVals <- sapply(aVals, function(x) {
   print(x)
   LL_FPrime = AlleleFreqLogLik_4Par(
@@ -364,24 +364,24 @@ ML_1Par <-  constrOptim(theta = c(a = 0),
                             SampleSize = 2*2504),
                           grad = NULL,
                           ui = rbind(1,-1),
-                          ci = c(a = -0.001, a = -0.001),
+                          ci = c(a = -0.002, a = -0.002),
                           method = "Nelder-Mead")
 cat("done!\n")
 
 # Get maximum likelihood estimate for effect of L1 start on selection
 cat("Estimate effect of L1 start on selections ...")
-ML_L1start <-  constrOptim(theta = c(a = -0.006, b = 0),
-                          f = function(x) -AlleleFreqLogLik_abc(
+ML_L1start <-  constrOptim(theta = c(a = -0.001, b = 0),
+                          f = function(x) -AlleleFreqLogLik_4Par(
                             Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
                             Counts = rep(1, sum(!blnNA)), 
                             Predict = PredictMat[!blnNA,], 
-                            a = x[1], b = x[2], c = 0, N = 10^4, 
+                            a = x[1], b = 0, c = x[2], d = 0, N = 10^4, 
                             SampleSize = 2*2504),
                           grad = NULL,
                           ui = rbind(c(1, 0),  c(0, 1),   
                                      c(-1, 0), c(0, -1)),
-                          ci = c(a = -0.01, c = -10^(-6), 
-                                 a = -0.02, c = -10^(-6)),
+                          ci = c(a = -0.002, c = -10^(-6), 
+                                 a = -0.002, c = -10^(-6)),
                           method = "Nelder-Mead")
 # ML_L1start <- optim(par = c(a = -0.006, b = 0),
 #                   fn = function(x) -AlleleFreqLogLik_abc(
@@ -397,18 +397,18 @@ cat("done!\n")
 
 # Get maximum likelihood estimate for effect of full-length L1 on selection
 cat("Estimate effect of L1 full-length on selections ...")
-ML_L1full <-  constrOptim(theta = c(a = -0.006, c = 0),
-                          f = function(x) -AlleleFreqLogLik_abc(
+ML_L1full <-  constrOptim(theta = c(a = -0.001, c = 0),
+                          f = function(x) -AlleleFreqLogLik_4Par(
                       Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
                       Counts = rep(1, sum(!blnNA)), 
                       Predict = PredictMat[!blnNA,], 
-                      a = x[1], b = 0, c = x[2], N = 10^4, 
+                      a = x[1], b = 0, c = 0, d = x[2], N = 10^4, 
                       SampleSize = 2*2504),
                       grad = NULL,
                       ui = rbind(c(1, 0),  c(0, 1),   
                                  c(-1, 0), c(0, -1)),
-                      ci = c(a = -0.01, c = -10^(-3), 
-                             a = -0.02, c = -10^(-3)),
+                      ci = c(a = -0.002, c = -10^(-3), 
+                             a = -0.002, c = -10^(-3)),
                       method = "Nelder-Mead")
 cat("done!\n")
 
@@ -427,11 +427,11 @@ cat("Maximizing likelihood for three parameters ...")
 #       method = "L-BFGS-B")
 cat("done!\n")
 ML_L1startL1full <- constrOptim(theta = c(a = -0.007, b = 1.5*10^(-7), c = 0),
-                  f = function(x) -AlleleFreqLogLik_abc(
+                  f = function(x) -AlleleFreqLogLik_4Par(
                     Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
                     Counts = rep(1, sum(!blnNA)), 
                     Predict = PredictMat[!blnNA,], 
-                    a = x[1], b = x[2], c = x[3], N = 10^4, 
+                    a = x[1], b = 0, c = x[2], d = x[3], N = 10^4, 
                     SampleSize = 2*2504),
                   grad = NULL,
                   ui = rbind(c(1, 0, 0),  c(0, 1, 0),  c(0, 0, 1), 
