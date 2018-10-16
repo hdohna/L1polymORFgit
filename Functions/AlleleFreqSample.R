@@ -48,8 +48,7 @@ AlleleFreqSample <- function(k, s, N, SampleSize = 2504, blnUseFPrime = T){
     
     # Calculate probability of obtaining k alleles in a sample of size 
     # SampleSize
-    lchoose(SampleSize, k) +
-      log(integrate(function(x) AlleleFreqTime(x, s, N) *
+    log(integrate(function(x) AlleleFreqTime(x, s, N) *
                       dbinom(k, SampleSize, x), 0, 1)$value) - log(IntConst)
   }
   

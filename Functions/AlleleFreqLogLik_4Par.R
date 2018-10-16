@@ -37,14 +37,7 @@ AlleleFreqLogLik_4Par <- function(Freqs, Counts, Predict, a, b, c, d, N,
                                  SampleSize = SampleSize, blnUseFPrime = blnUseFPrime)
   })
   blnInf       <- is.infinite(LogLikVals)
-  LogLikNotInf <- LogLikVals[!blnInf]
-  FreqsNotInf  <- Freqs[!blnInf]
-  LogLikOrder  <- order(LogLikNotInf)
-  idxExtra     <- LogLikOrder[1:min(NrObsExtrapol, sum(!blnInf))]
-  LM           <- lm(LogLikNotInf[idxExtra] ~ FreqsNotInf[idxExtra])
-  summary(LM)
-  LogLikVals[blnInf] <- LM$coefficients[1] + LM$coefficients[2] *
-    Freqs[blnInf]
+  LogLikVals[blnInf] <- MinFactor*min(LogLikVals[!blnInf])
 
   if (verbose){
     cat("parameter values: a =", a, "b =", b, "c = ", c, "d = ", d,
