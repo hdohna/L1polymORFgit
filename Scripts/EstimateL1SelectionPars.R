@@ -333,7 +333,8 @@ cat("Maximizing likelihood for one parameter (selection coefficient) ...")
 #                           SampleSize = 2*2504),
 #             lower = -0.01, upper = 0.02,
 #       method = "L-BFGS-B")
-aVals <- seq(-0.002, 0.0003, 0.0001)
+aVals <- seq(-0.0002, 0.00003, 0.00001)
+x = -0.001
 LikVals <- sapply(aVals, function(x) {
   print(x)
   LL_FPrime = AlleleFreqLogLik_4Par(
@@ -347,20 +348,31 @@ LikVals <- sapply(aVals, function(x) {
     Counts = rep(1, sum(!blnNA)),
     Predict = PredictMat[!blnNA,],
     a = x, b = 0, c = 0, d = 0,  N = 10^4,
-    SampleSize = 2*2504, blnUseFPrime = F)
+    SampleSize = 2*2504, blnUseFPrime = F, MinFactor = 10)
   cat("a =", x, "LL_FPrime = ", LL_FPrime, "LL_NoFPrime = ", LL_NoFPrime, "\n")
   c(LL_FPrime, LL_NoFPrime)
   })
 par(mfrow = c(1, 1))
 plot(aVals, LikVals[1,], type = "l", col = "red")
 lines(aVals, LikVals[2, ], col = "blue")
+plot(aVals, LikVals[2,], type = "l", col = "red")
 
+LL_FPrime = AlleleFreqLogLik_4Par(
+  Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA],
+  Counts = rep(1, sum(!blnNA)),
+  Predict = PredictMat[!blnNA,],
+  a = -0.001, b = 0, c = 0, d = 0, N = 10^4,
+  SampleSize = 2*2504, blnUseFPrime = T, showInfIndices = T)
+
+L1_1000G$Frequency[c(24, 29, 37, 55)]
+sum(L1_1000G$Frequency > 0.05)
+which(L1_1000G$Frequency > 0.05)
 ML_1Par <-  constrOptim(theta = c(a = 0),
-                          f = function(x) -AlleleFreqLogLik_abc(
+                          f = function(x) -AlleleFreqLogLik_4Par(
                             Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA],
                             Counts = rep(1, sum(!blnNA)),
                             Predict = PredictMat[!blnNA,],
-                            a = x[1], b = 0, c = 0, N = 10^4,
+                            a = x[1], b = 0, c = 0, d = 0, N = 10^4,
                             SampleSize = 2*2504),
                           grad = NULL,
                           ui = rbind(1,-1),
@@ -370,7 +382,7 @@ cat("done!\n")
 
 # Get maximum likelihood estimate for effect of L1 start on selection
 cat("Estimate effect of L1 start on selections ...")
-ML_L1start <-  constrOptim(theta = c(a = -0.001, b = 0),
+ML_L1start <-  constrOptim(theta = c(a = 0, b = 0),
                           f = function(x) -AlleleFreqLogLik_4Par(
                             Freqs = (L1_1000G$Frequency * 2*2504)[!blnNA], 
                             Counts = rep(1, sum(!blnNA)), 

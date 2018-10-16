@@ -21,19 +21,39 @@
 
 ##############################################
 
-AlleleFreqLogLik_4Par <- function(Freqs, Counts, Predict, a, b, c, d, N, SampleSize = 2504,
-                                 MinFactor = 2, blnUseFPrime = T){
+AlleleFreqLogLik_4Par <- function(Freqs, Counts, Predict, a, b, c, d, N, 
+                                  SampleSize = 2504,
+                                 MinFactor = 2, 
+                                 NrObsExtrapol = 10, 
+                                 blnUseFPrime = T,
+                                 verbose = T, showInfIndices = F){
   if ((length(Freqs) != length(Counts)) | (length(Freqs) != nrow(Predict)) |
       (nrow(Predict) != length(Counts)) ){
     stop("Freqs, Counts and Predict vector have to have the same length\n")
   }
+  sVals <- as.matrix(Predict) %*% c(b, c, d)
   LogLikVals <- sapply(1:length(Freqs), function(i){
-    Counts[i] * AlleleFreqSample(Freqs[i], a + b * Predict[i, 1] +
-                                       c * Predict[i, 2] + d * Predict[i, 3], N, 
+    Counts[i] * AlleleFreqSample(Freqs[i], a + sVals[i], N, 
                                  SampleSize = SampleSize, blnUseFPrime = blnUseFPrime)
   })
-  blnInf <- is.infinite(LogLikVals)
-  LogLikVals[blnInf] <- MinFactor * min(LogLikVals[!blnInf])
+  blnInf       <- is.infinite(LogLikVals)
+  LogLikNotInf <- LogLikVals[!blnInf]
+  FreqsNotInf  <- Freqs[!blnInf]
+  LogLikOrder  <- order(LogLikNotInf)
+  idxExtra     <- LogLikOrder[1:min(NrObsExtrapol, sum(!blnInf))]
+  LM           <- lm(LogLikNotInf[idxExtra] ~ FreqsNotInf[idxExtra])
+  summary(LM)
+  LogLikVals[blnInf] <- LM$coefficients[1] + LM$coefficients[2] *
+    Freqs[blnInf]
+
+  if (verbose){
+    cat("parameter values: a =", a, "b =", b, "c = ", c, "d = ", d,
+        "log-likelihood =", sum(LogLikVals), "\n")
+    cat("Number of observations with infinite log-likelihood:", sum(blnInf), "\n")
+  }
+  if (showInfIndices){
+    cat("Indices of infinte values:", paste(which(blnInf), collapse = "\n"), "\n")
+  }
   sum(LogLikVals)
 }
 
