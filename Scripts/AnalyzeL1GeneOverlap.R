@@ -45,6 +45,7 @@ CpGPath         <- 'D:/L1polymORF/Data/CpG_hg19.txt'
 ParalogPath     <- "D:/L1polymORF/Data/Paralogs_hg19.RData"
 EnhancerPath    <- "D:/L1polymORF/Data/Fantom/human_permissive_enhancers_phase_1_and_2.bed"
 RegrOutputPath     <- "D:/L1polymORF/Data/L1RegressionResults.RData"
+SelectGenGlycoTabOutPath <- "D:/L1polymORF/Data/L1SelectionGeneGlycoResults.csv"
 
 # Number of info columns in vcf file
 NrInfoCols   <- 9
@@ -1152,6 +1153,8 @@ write.csv(GycoProtL1, file = "D:/L1polymORF/Data/GlycoProtsWithL1.csv")
 
 cat("done!\n")
 
+
+
 #####################################################
 #                                                   #
 #   Estimate selection coefficient for insertions   #
@@ -1160,31 +1163,50 @@ cat("done!\n")
 #####################################################
 
 # Create a matrix of predictor variables (L1 start and boolean variable for)
-PredictMat <- L1_inGenes[, c("blnOLGlyco", "blnOLGene")]
-blnNA <- sapply(1:nrow(L1_inGenes), function(x) any(is.na(PredictMat[x,])))
-all(!blnNA)
+PredictMatWithinGene <- L1_1000G[L1_1000G$blnOLGene, 
+                                 c( "blnOLGeneSameStrand", "blnOLGlyco", "blnOLGene")]
+blnNA <- apply(PredictMatWithinGene, 1, function(x) any(is.na(x)))
 
 # Determine maximum likelihood with one parameter (selection coefficient)
 cat("Maximizing likelihood for one parameter (selection coefficient) ...")
-ML_1Par <- optim(par = c(a = 0),
-                 fn = function(x) -AlleleFreqLogLik_abc(
-                   Freqs = (L1_inGenes$Frequency * 2*2504)[!blnNA],
-                   Counts = rep(1, sum(!blnNA)),
-                   Predict = PredictMat[!blnNA,],
-                   a = x, b = 0, c = 0, N = 10^4,
-                   SampleSize = 2*2504),
-                 lower = -0.01, upper = 0.02,
-                 method = "L-BFGS-B")
+ML_1Par_gene <- constrOptim(theta = c(a = -0.0004),
+                            f = function(x) -AlleleFreqLogLik_4Par(
+                              Freqs = (L1_1000G$Frequency[which(L1_1000G$blnOLGene)[!blnNA]] * 2*2504),
+                              Counts = rep(1, sum(!blnNA)),
+                              Predict = PredictMatWithinGene[!blnNA, ],
+                              a = x[1], b = 0, c = 0, d = 0, N = 10^4,
+                              SampleSize = 2*2504),
+                            grad = NULL,
+                            ui = rbind(1,-1),
+                            ci = c(a = -0.01, a = -0.01),
+                            method = "Nelder-Mead")
+cat("done!\n")
+
+# Get maximum likelihood estimate for effect of exonic L1 on selection
+cat("Estimate effect of same strand overlap on selections ...")
+ML_L1SameStrand <-  constrOptim(theta = c(a = ML_1Par_gene$par, b = 0),
+                                f = function(x) -AlleleFreqLogLik_4Par(
+                                  Freqs = (L1_1000G$Frequency[which(L1_1000G$blnOLGene)[!blnNA]] * 2*2504),
+                                  Counts = rep(1, sum(!blnNA)),
+                                  Predict = PredictMatWithinGene[!blnNA, ],
+                                  a = x[1], b = x[2], c = 0, d = 0, N = 10^4,
+                                  SampleSize = 2*2504),
+                                grad = NULL,
+                                ui = rbind(c(1, 0),  c(0, 1),   
+                                           c(-1, 0), c(0, -1)),
+                                ci = c(a = -0.01, b = -10^(-2), 
+                                       a = -0.01, b = -10^(-2)),
+                                method = "Nelder-Mead")
 cat("done!\n")
 
 # Get maximum likelihood estimate for effect of L1 start on selection
 cat("Estimate effect of prsence in glycoproteins ...")
-ML_L1glyco <-  constrOptim(theta = c(a = -0.006, b = 0),
+ML_L1glyco <-  constrOptim(theta = c(a = -0.0004, b = 0),
                            f = function(x) -AlleleFreqLogLik_abc(
-                             Freqs = (L1_inGenes$Frequency * 2*2504)[!blnNA], 
-                             Counts = rep(1, sum(!blnNA)), 
-                             Predict = PredictMat[!blnNA,], 
-                             a = x[1], b = x[2], c = 0, N = 10^4, 
+                             Freqs = (L1_1000G$Frequency[which(L1_1000G$blnOLGene)[!blnNA]] * 2*2504),
+                             Counts = rep(1, sum(!blnNA)),
+                             Predict = PredictMatWithinGene[!blnNA, ],
+                             a = x[1], b = 0, c = x[2], N = 10^4, 
                              SampleSize = 2*2504),
                            grad = NULL,
                            ui = rbind(c(1, 0),  c(0, 1),   
@@ -1203,20 +1225,26 @@ GetParVals <- function(OptimResults){
                    format(OptimResults$par, digits = 2), sep = " = ",
                    collapse = ", ")
 }
+GetNPar <- function(OptimResults){
+  length(OptimResults$par)
+}
 
 # Get columns of AIC and parameter values
-Cols2Append <- t(sapply(list(ML_1Par, ML_L1glyco), function(x){
-                               c(AIC = GetAIC(x), Pars = GetParVals(x))
-                             }))
+Cols2Append <- t(sapply(list(ML_1Par_gene, ML_L1SameStrand, ML_L1glyco), 
+  function(x){
+    c(NrParameters = GetNPar(x), AIC = GetAIC(x), 
+      Pars = GetParVals(x))
+  }))
+
 # Combine AIC values into one vector
-AICTab <- cbind(data.frame(
-  NrParameters = c(1, 2),
-  Predictor = c("none", "L1 presence in glycoprotein"),
+AICTabWithinGeneGlyco <- cbind(data.frame(
+  Predictor = c("none", "SameStrand", "Glyco"),
   stringsAsFactors = F),
   Cols2Append)
 
 # Save table with AIC
-write.csv(AICTab, SelectTabOutPath)
+write.csv(AICTabWithinGene, SelectGenGlycoTabOutPath)
+
 ###################################################
 #                                                 #
 #     Regressing L1 count against DNAse           #

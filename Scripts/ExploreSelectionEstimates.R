@@ -24,6 +24,7 @@ plot(Freqs, DistMat1[,1], col = Cols[1], type = "l")
 for (i in 2:ncol(DistMat1)){
   lines(Freqs, DistMat1[,i], col = Cols[i])
 }
+legend("topright", legend = SelectCoeffs, lty = 1, col = Cols)
 
 # Calculate count probabilities
 CountVals <- seq(1, SampleSize, 10)
