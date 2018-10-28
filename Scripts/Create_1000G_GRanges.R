@@ -10,7 +10,7 @@ library(GenomicRanges)
 NrInfoCols <- 9
 DataFolder <- "/srv/gsfs0/projects/levinson/hzudohna/1000Genomes/"
 Chrom      <- "chr1"
-NrRowsPerRead <- 5*10^4
+NrRowsPerRead <- 10^5
 
 # Specify vcf file and output file based on chromosome
 VcfFilePattern  <- paste("ALL.", Chrom, ".phase3", sep = "")
@@ -36,6 +36,8 @@ while(blnRows2Read){
                          nrows = NrRowsPerRead, as.is = T, header = F)
   cat(RowsReadIn + nrow(VarTable), "\n")
   cat("done! \n")
+  RowsReadIn   <- RowsReadIn + nrow(VarTable)
+  blnRows2Read <- nrow(VarTable) == NrRowsPerRead
   
   # Append rows to growing genomic ranges object
   NewVariantGR <- GRanges(seqnames = Chrom, IRanges(start = VarTable$V2,
