@@ -2,7 +2,8 @@
 #
 # General description:
 #
-#   The following script reads a bam file, finds peaks that do not overlap
+#   The following script reads the repeat masker table for hg19
+#   and creates genomic ranges of L1 and L1HS
 #   with reference L1s 
 
 # Input:
@@ -27,16 +28,19 @@
 source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
 
 # Load packages
-library(ShortRead)
-library(csaw)
-library(chipseq)
-library(BSgenome.Hsapiens.UCSC.hg19)
+# library(ShortRead)
+# library(csaw)
+# library(chipseq)
+# library(BSgenome.Hsapiens.UCSC.hg19)
+library(GenomicRanges)
+library(rtracklayer)
 
 # L1TableFileName   <- "/home/hzudohna/L1polymORF/Data/L1_repeat_table_Hg19.csv"
 # OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference.Rdata'
 ChrLPath           <- 'D:/L1polymORF/Data/ChromLengthsHg19.Rdata'
 L1TableFileName   <- "D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv"
 OutResults        <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
+OutBedPath        <- 'D:/L1polymORF/Data/L1HSRefRanges_hg19.bed'
 
 FullLength       <- 6000
 
@@ -75,3 +79,6 @@ L1HSFullLength_GRanges <- L1GRanges[idxL1HsFullLength]
 cat("*******  Saving results ...   *******\n")
 save(list = c("L1GRanges", "L1HSFullLength_GRanges", "ChromLengthsHg19"), 
      file = OutResults)
+
+# Export bed file with L1HS ranges
+export.bed(L1GRanges, con = OutBedPath)
