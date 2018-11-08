@@ -9,7 +9,8 @@ DataFolder     <- "/labs/dflev/hzudohna/1000Genomes/"
 LineIdentifier <- "VT=INDEL"
 FilePrefix     <- "IndelInfo"
 LineIdentifier <- "ME:LINE1"
-FilePrefix     <- "LINE1_Info"
+LineIdentifier <- "DEL:ME"
+FilePrefix     <- "ME_Deletions"
 
 # Get file names, loop over files and do the filtering
 # Example file name: ALL.chr2.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf
@@ -20,10 +21,10 @@ for (InFile in AllFiles){
   InFileSplit <- strsplit(InFile, "\\.")[[1]]
   OutFile     <- paste(c(InFileSplit[1], FilePrefix, "_", InFileSplit[2], ".vcf"), collapse = "")
   OutFile     <- gsub("ALL", "", OutFile)
-  OutFile
-  SubsetCmd <- paste("cut -s -f 1-9 ", InFile, 
-                     paste("| grep", LineIdentifier,  ">", OutFile))
+  # SubsetCmd <- paste("cut -s -f 1-9 ", InFile, 
+  #                    paste("| grep", LineIdentifier,  ">", OutFile))
+  SubsetCmd <- paste("grep", LineIdentifier,  InFile, ">", OutFile)
   cat("Filtering", InFile, "\n\n")
-  ScriptName <- paste("IndelScript", InFileSplit[2], sep = "")
+  ScriptName <- paste("ME_DEL_Script", InFileSplit[2], sep = "_")
   CreateAndCallSlurmScript(file = ScriptName, SlurmCommandLines = SubsetCmd)
 }
