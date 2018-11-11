@@ -21,8 +21,8 @@ load(paste(RefPath, 'L1RefRanges_hg19.Rdata', sep = ""))
 ChrNames <- as.vector(seqnames(L1GRanges))
 ChrNrs   <- substr(ChrNames, 4, nchar(ChrNames))
 L1NeighborRanges <- GRanges(seqnames = ChrNrs, 
-                            IRanges(start = start(L1GRanges) - 500,
-                                    end   = end(L1GRanges) + 500))
+                            IRanges(start = start(L1GRanges) - 5000,
+                                    end   = end(L1GRanges) + 5000))
 L1NeighborbedPath <- paste(RefPath, "L1NeighborRanges.bed", sep = "")
 L1bedPath         <- paste(RefPath, "L1Ranges.bed", sep = "")
 export.bed(L1NeighborRanges, L1NeighborbedPath) 
@@ -34,18 +34,40 @@ export.bed(L1Ranges_shortName, L1bedPath)
 
 # Specify the general path to 1000 genome bam file
 BamPath1000G_General <- "ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase1/data/IndividualID/alignment/IndividualID.mapped.ILLUMINA.bwa.GBR.low_coverage.20101123.bam"
+DirPath1000G_General <- "ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase1/data/IndividualID/alignment/"
 
+# Get all files in the 1000 genome path
+Files1000G <- list.files(Path1000G)
+blnNotAnalyzed <- sapply(SampleColumns, function(x) length(grep(x, Files1000G)) == 0)
+IndividualID <- SampleColumns[blnNotAnalyzed][3]
+SampleColumns[blnNotAnalyzed]
 
-IndividualID <- "HG00096"
-for (IndividualID in  SampleColumns[-1]){
+for (IndividualID in SampleColumns[blnNotAnalyzed]){
   
   # Define paths
-  BamPath1000G <- gsub("IndividualID", IndividualID, BamPath1000G_General)
-  BamOutPath   <- paste(Path1000G, "L1Filtered_", IndividualID, "_sorted.bam", sep = "")
+  DirPath1000G <- gsub("IndividualID", IndividualID, DirPath1000G_General)
+  BamOutPath   <- paste(Path1000G, "L1Filtered_", IndividualID, ".bam", sep = "")
   
+  # Create curl command to get file names on ftp directories
+  DirListPath  <- paste(Path1000G, "FileList.txt", sep = "")
+  CurlCmd <- paste("curl", paste("ftp://", DirPath1000G, sep = ""),
+                   ">", DirListPath)
+  system(CurlCmd)
+
+  # Get name of bam file 
+  DirListLines <- readLines(DirListPath)
+  FileNames <- sapply(DirListLines, function(x){
+    SplitLines <- strsplit(x, " ")[[1]]
+    SplitLines[length(SplitLines)]
+  })
+  FileNames   <- FileNames[grep("\\.mapped", FileNames)]
+  BamFileName <- FileNames[-grep("bam.b", FileNames)]
+  BamPath1000G <- paste("ftp://", DirPath1000G, BamFileName, sep = "")
+
   # Construct samtools command to get filtered bam file
   SamToolsCmds <- c("module load samtools",
-                    paste("samtools view -b -h", BamPath1000G, "-L", L1NeighborbedPath, "-o",
+                    paste("samtools view -b -h", BamPath1000G, "-L", 
+                          L1NeighborbedPath, "| samtools sort -o",
                           BamOutPath),
                     paste("samtools index", BamOutPath))
   
@@ -53,7 +75,7 @@ for (IndividualID in  SampleColumns[-1]){
   MELTCmds <- paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar Deletion-Genotype -bamfile",
                     BamOutPath,"-h /labs/dflev/hzudohna/RefSeqData/hg19masked.fa",
                     "-bed", L1bedPath,
-                    "-w /labs/dflev/hzudohna/MELTv2.1.5/")
+                    "-w /labs/dflev/hzudohna/1000Genomes/")
   
   # Command to remove bam files
   RemCmds <- c(paste("rm", BamOutPath), paste("rm ", BamOutPath, ".bai", sep = ""))
