@@ -25,7 +25,7 @@
 CreateAndCallSlurmScript <- function(file,
    SlurmHeaderLines = c('#!/bin/bash', 
                        '#SBATCH --account=dflev', 
-                       '#SBATCH --time=1:00:00', 
+                       '#SBATCH --time=12:00:00', 
                        '#SBATCH --job-name="My Simple Job."', 
                        '#SBATCH --nodes=1', 
                        '#SBATCH --ntasks=1', 
