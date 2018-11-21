@@ -26,6 +26,8 @@ AlleleFreqSample <- function(k, s, N, SampleSize = 2504, blnUseFPrime = T){
     IntConst <- integrate(function(x) AlleleFreqTime(x, s, N), 
                           0, 1)$value - 
       integrate(function(x) (1 - x)^SampleSize * AlleleFreqTime(x, s, N), 
+                0, 1)$value -
+      integrate(function(x) x^SampleSize * AlleleFreqTime(x, s, N), 
                 0, 1)$value
     
     
@@ -40,7 +42,10 @@ AlleleFreqSample <- function(k, s, N, SampleSize = 2504, blnUseFPrime = T){
       log(integrate(function(x) AlleleFreqTime(x, s, N)*dbinom(k, SampleSize, x), 
                     0, 1)$value -
             integrate(function(x) (1 - x)^SampleSize * AlleleFreqTime(x, s, N)*
-                        dbinom(k, SampleSize, x), 0, 1)$value) - log(IntConst)
+                        dbinom(k, SampleSize, x), 0, 1)$value - 
+            integrate(function(x) x^SampleSize * AlleleFreqTime(x, s, N)*
+                        dbinom(k, SampleSize, x), 0, 1)$value) -
+        log(IntConst)
   } else {
     
     # Calculate integration constant

@@ -42,6 +42,7 @@ blnNotAnalyzed <- sapply(SampleColumns, function(x) length(grep(x, Files1000G)) 
 IndividualID <- SampleColumns[blnNotAnalyzed][3]
 SampleColumns[blnNotAnalyzed]
 
+########################################################################################
 # Run MELT for low coverage bam files
 for (IndividualID in SampleColumns[blnNotAnalyzed]){
   
@@ -74,7 +75,8 @@ for (IndividualID in SampleColumns[blnNotAnalyzed]){
   
   # Construct MELT command
   MELTCmds <- paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar Deletion-Genotype -bamfile",
-                    BamOutPath,"-h /labs/dflev/hzudohna/RefSeqData/hg19masked.fa",
+#                    BamOutPath,"-h /labs/dflev/hzudohna/RefSeqData/hg19masked.fa",
+                    BamOutPath, "-h /labs/dflev/hzudohna/RefSeqData/human_g1k_v37.fasta",
                     "-bed", L1bedPath,
                     "-w /labs/dflev/hzudohna/1000Genomes/")
   
@@ -92,6 +94,9 @@ for (IndividualID in SampleColumns[blnNotAnalyzed]){
   
 }
 
+########################################################################################
+# Run MELT for high coverage bam files
+
 # Read file with high coverage paths and get IDs with 
 HiCovPaths <- readLines("/labs/dflev/hzudohna/1000Genomes/1000G_highCoverPaths")
 HighCoverageIDs <- sapply(HiCovPaths, function(x){
@@ -99,7 +104,7 @@ HighCoverageIDs <- sapply(HiCovPaths, function(x){
   strsplit(PathSplit[length(PathSplit)], "\\.")[[1]][1]
   
 })
-
+HighCoverageIDs
 DirPath1000G_General_HiCov <- "ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase3/data/IndividualID/high_coverage_alignment/"
 for (IndividualID in HighCoverageIDs){
   
@@ -131,7 +136,8 @@ for (IndividualID in HighCoverageIDs){
   
   # Construct MELT command
   MELTCmds <- paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar Deletion-Genotype -bamfile",
-                    BamOutPath,"-h /labs/dflev/hzudohna/RefSeqData/hg19masked.fa",
+                    #                    BamOutPath,"-h /labs/dflev/hzudohna/RefSeqData/hg19masked.fa",
+                    BamOutPath, "-h /labs/dflev/hzudohna/RefSeqData/human_g1k_v37.fasta",
                     "-bed", L1bedPath,
                     "-w /labs/dflev/hzudohna/1000Genomes/")
   

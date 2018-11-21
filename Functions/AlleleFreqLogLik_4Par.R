@@ -23,18 +23,21 @@
 
 AlleleFreqLogLik_4Par <- function(Freqs, Counts, Predict, a, b, c, d, N, 
                                   SampleSize = 2504,
-                                 MinFactor = 2, 
-                                 NrObsExtrapol = 10, 
-                                 blnUseFPrime = T,
-                                 verbose = T, showInfIndices = F){
+                                  MinFactor = 2, 
+                                  NrObsExtrapol = 10, 
+                                  blnUseFPrime = T,
+                                  verbose = T, showInfIndices = F){
   if ((length(Freqs) != length(Counts)) | (length(Freqs) != nrow(Predict)) |
       (nrow(Predict) != length(Counts)) ){
     stop("Freqs, Counts and Predict vector have to have the same length\n")
   }
+  if (length(SampleSize) == 1){
+    SampleSize <- rep(SampleSize, length(Freqs))
+  }
   sVals <- as.matrix(Predict) %*% c(b, c, d)
   LogLikVals <- sapply(1:length(Freqs), function(i){
     Counts[i] * AlleleFreqSample(Freqs[i], a + sVals[i], N, 
-                                 SampleSize = SampleSize, blnUseFPrime = blnUseFPrime)
+                                 SampleSize = SampleSize[i], blnUseFPrime = blnUseFPrime)
   })
   blnInf       <- is.infinite(LogLikVals)
   LogLikVals[blnInf] <- MinFactor*min(LogLikVals[!blnInf])
