@@ -13,35 +13,28 @@
 #     SampleSize: sample size
 
 # Comment:
-#     This function requires the function AlleleFreqTime
+#     This function requires the package pracma
 
 ##############################################
 
-AlleleFreqSampleVar <- function(k, m, SD, N, SampleSize = 2504){
+AlleleFreqSampleVar <- function(k, m, SD, N = 10^4, SampleSize = 2*2504, LowerS = -1,
+                                UpperS = 1){
     
-    # Calculate integration constant
-    IntConst <- integrate(function(s){
-      dnorm(s, m, SD) * (
-        integrate(function(x) AlleleFreqTime(x, s, N), 
-                0, 1)$value - 
-        integrate(function(x) (1 - x)^SampleSize * AlleleFreqTime(x, s, N), 
-                  0, 1)$value
-      )
-    }, -1, 1)$value
-    
+  # Calculate integration constant
+  IntConst <- integral2(fun = function(x, y){
+     dnorm(y, m, SD) * AlleleFreqTime(x, y, N) * 
+       (1 - (1 - x)^SampleSize - x^SampleSize)
+   }, xmin = 0, xmax = 1, ymin = LowerS, ymax = UpperS)$Q
+  
     
     # Calculate probability of obtaining k alleles in a sample of size 
     # SampleSize
-    log(integrate(function(s){
-      dnorm(s, m, SD) * (
-        integrate(function(x) AlleleFreqTime(x, s, N)*dbinom(k, SampleSize, x), 
-                    0, 1)$value -
-        integrate(function(x) (1 - x)^SampleSize * AlleleFreqTime(x, s, N)*
-                        dbinom(k, SampleSize, x), 0, 1)$value
-      )
-    }, -1, 1)$value)
-
-    - log(IntConst)
+    log(integral2(fun = function(x, y){
+        dnorm(y, m, SD) * AlleleFreqTime(x, y, N) * 
+        (1 - (1 - x)^SampleSize - x^SampleSize) *
+        dbinom(k, SampleSize, x)
+      }, xmin = 0, xmax = 1, ymin = LowerS, ymax = UpperS)$Q
+    ) - log(IntConst)
 }
 
 

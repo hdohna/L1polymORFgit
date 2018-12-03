@@ -12,11 +12,12 @@
 #     N: population size
 
 # Comment:
-#     This function is used in the function AlleleFreqSample
+#     This function is used in the function AlleleFreqSampleVar
+#     Requires package pracma
 
 ##############################################
 
-AlleleFreqTime <- function(y, s, N) {
+AlleleFreqTimeVar <- function(y, s, SD, m, N) {
   # if (s != 0){
   #   exp(-s)*(((1 + sign(1/(2*N) - y)) / 2 * (exp(s) - exp(2*N*s))*(exp(2*N*s*y) - 1))
   #            - (1 + sign(y - 1/(2*N))) / 2  * ((exp(s) - 1)*(exp(2*N*s) - exp(2*N*s*y)))) / 
@@ -27,16 +28,15 @@ AlleleFreqTime <- function(y, s, N) {
   #   (1 + sign(y - 1/(2*N))) / 2 / (N*y)
   #   
   # }
+  NormF <- exp(-(s - m)^2 / SD)
   AFTime <-
     exp(-s)*(((1 + sign(1/(2*N) - y)) / 2 * (exp(s) - exp(2*N*s))*(exp(2*N*s*y) - 1))
              - (1 + sign(y - 1/(2*N))) / 2  * ((exp(s) - 1)*(exp(2*N*s) - exp(2*N*s*y)))) / 
       ((exp(2*N*s) - 1)*N*s*(y - 1)*y)
-    AddTerm <- is.na(AFTime) *((1 + sign(1/(2*N) - y)) / 2 * (1 - 2*N) / (N*(y - 1)) +
+  AddTerm <- is.na(AFTime) *((1 + sign(1/(2*N) - y)) / 2 * (1 - 2*N) / (N*(y - 1)) +
       (1 + sign(y - 1/(2*N))) / 2 / (N*y))
-    AFTime[is.na(AFTime)] <- 0 
-    AFTime + AddTerm
-      
-
+  AFTime[is.na(AFTime)] <- 0 
+  NormF * (AFTime + AddTerm)
 }
 
 

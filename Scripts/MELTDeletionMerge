@@ -1,0 +1,8 @@
+# Merging high coverage deletion results
+java -jar -Xmx2G /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar Deletion-Merge \
+–mergelist /labs/dflev/hzudohna/1HiCovMELT_DelOutput.txt \
+-bed /labs/dflev/hzudohna/1000Genomes/L1Ranges.bed \
+–h /labs/dflev/hzudohna/RefSeqData/human_g1k_v37.fasta
+
+# Merging high coverage deletion results
+java -jar -Xmx2G /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar Deletion-Merge -mergelist /labs/dflev/hzudohna/1000Genomes/L1HiCovMELT_DelOutput.txt -bed /labs/dflev/hzudohna/RefSeqData/L1Ranges.bed -h /labs/dflev/hzudohna/RefSeqData/human_g1k_v37.fasta

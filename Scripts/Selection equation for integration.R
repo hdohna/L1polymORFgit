@@ -5,25 +5,31 @@ library(expint)
 
 # x < 1/2N
 (e^(-s)*(e^s - e^(2*N*s))*(e^(2*N*s*x) - 1))/((e^(2*N*s) - 1)*N*s*(x - 1)*x) 
-# Result (https://www.integral-calculator.com/)
+# Result integral (https://www.integral-calculator.com/)
 (e^(-s)*(e^(2*n*s)-e^s)*(ln(abs(x-1)/abs(x))+expintegral_ei(2*n*s*x)-e^(2*n*s)*expintegral_ei(2*n*s*(x-1))))/(n*s*(e^(2*n*s)-1))
 
-# Result of numerator derivative:
+# First derivative of numerator with respect to s:
+# https://www.derivative-calculator.net/
 -e^(-s)*(((2*n*x + 2*n - 1)*e^(2*n*s) - 2*n*x*e^s) * e^(2*n*x*s) + (1 - 2*n)*e^(2*n*s))
 -1*((2*n - 1) + (1 - 2*n)) # s = 0
+0 # s = 0 (verified once)
 
 # Second derivative of numerator
 -e^(-s)*(((4*n^2*x^2+(8*n^2-4*n)*x+4*n^2-4*n+1)*e^(2*n*s)-4*n^2*x^2*e^s)*e^(2*n*x*s)+(-4*n^2+4*n-1)*e^(2*n*s))
 -1*(((4*n^2*x^2 + (8*n^2 - 4*n)*x + 4*n^2 - 4*n + 1) - 4*n^2*x^2) + (-4*n^2 + 4*n - 1)) # s = 0
--1*((8*n^2 - 4*n)*x)
-x*n*(4 - 8*n)
+-1*((8*n^2 - 4*n)*x) # s = 0
+4*x*n*(1 - 2*n) # s= 0 (verified once)
+
+# First derivative of numerator with respect to s:
+n*(x-1)*x*((2*n*s+1)*e^(2*n*s)-1) 
+n*(x-1)*x*(1-1) = 0 # s=0
 
 # Second derivative of denominator
 4*n^2*(x-1)*x*(n*s+1)*e^(2*n*s)
-4*n^2*(x-1)*x*(n+1) # s = 0
+4*n^2*(x-1)*x# s = 0
 
 # Ratio of second derivatives for s = 0
-x*n*(4 - 8*n) / (4*n^2*(x-1)*x*(n+1)) = (1 - 2*n) / (n*(x - 1)*(n + 1))
+4*x*n*(1 - 2*n) / (4*n^2*x*(x - 1)) = (1 - 2*n) / (n*(x - 1))
     
     
 # x > 1/2N
@@ -31,14 +37,23 @@ x*n*(4 - 8*n) / (4*n^2*(x-1)*x*(n+1)) = (1 - 2*n) / (n*(x - 1)*(n + 1))
 # Result (https://www.integral-calculator.com/)
 (e^(-s)*(e^s-1)*(e^(2*n*s)*(ln(abs(x))+expintegral_ei(2*n*s*(x-1))-ln(abs(x-1)))-expintegral_ei(2*n*s*x)))/(n*s*(e^(n*s)-1)*(e^(n*s)+1))
 
-# Second derivative of numerator
+# First derivative of numerator with respect to s:
+e^(-s)*((2*n*x*e^s-2*n*x+1)*e^(2*n*x*s)+(-2*n*e^s+2*n-1)*e^(2*n*s))
+1*((2*n*x - 2*n*x + 1) + (-2*n + 2*n - 1)) # s = 0
+1*(1 - 1) = 0 # s=0
+
+# Second derivative of numerator with respect to s
 e^(-s)*((4*n^2*x^2*e^s-4*n^2*x^2+4*n*x-1)*e^(2*n*x*s)+(-4*n^2*e^s+4*n^2-4*n+1)*e^(2*n*s))
 (4*n^2*x^2 - 4*n^2*x^2 + 4*n*x - 1) + (-4*n^2 + 4*n^2 - 4*n + 1) # s = 0
-4*n*(x - 1)
+4*n*(x - 1) # s = 0 (verified once)
 
 # Ratio of second derivatives for s = 0
-4*n*(x - 1) / (4*n^2*(x-1)*x*(n+1)) = 1 / (n*x*(n + 1))
+4*n*(x - 1) / (4*n^2*x*(x - 1)) = 1 / (n*x)
 
+# Checking that ratios are the same when x = 1/(2n)
+(1 - 2*n) / (n*(x - 1)) = 1 / (n*x) # plugging in x = 1/(2n)
+(1 - 2*n) / (1/2 - n)   = 1 / (1/2)
+2*(1/2 - n) / (1/2 - n) = 2 = 1 / (1/2)
 
 
 # R function for distribution of frequency as function of selection coefficient

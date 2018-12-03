@@ -24,6 +24,7 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 
 # Specify file paths
 InputPath <- "D:/L1polymORF/Data/L1SelectionResults.RData"
+InputPath <- "D:/L1polymORF/Data/L1SelectionResults_MELT.RData"
 
 ##########################################
 #                                        #
@@ -67,26 +68,27 @@ par(oma = c(2, 1, 1, 3), mfcol = c(2, 2), mai = c(1, 1, 0.2, 0.2),
 layout(rbind(1:2, c(3, 3)), widths = c(1, 1))
 layout(rbind(c(1, 1, 2, 2), c(0, 3, 3, 0)), widths = c(1, 1))
 # Plot LINE-1 frequency against number of LINE-1 per Mb
-plot(InsPerbp[2,], MeanFreqs*SSize, xlab = "LINE-1s per Mb", 
+plot(InsPerbp[2,], MeanFreqs, xlab = "LINE-1s per Mb", 
      ylab = "Mean LINE-1 frequency", main = "A")
 text(InsPerbp[2,] + 2*10^(-1)*c(1, 0, 0, -1.2), 
-     MeanFreqs*SSize + c(10, 10, 10, -10),  
+     MeanFreqs + c(3*10^-3, 3*10^-3, 3*10^-3, -3*10^-3),  
      names(SCoeffVect))
 
 # Plot expected frequency versus observed mean frequency
 ExpL1 <- sapply(SVals, function(x) ExpAlleleFreq(x, N = 10^4, SampleSize = 2*2504))
-plot(SCoeffVect, MeanFreqs*SSize, ylab = "Mean LINE-1 frequency", 
-     xlab = "Selection coefficient", xlim = c(-0.0025, 0.0007), 
-     ylim = c(20, 155), main = "B")
+plot(SCoeffVect, MeanFreqs, ylab = "Mean LINE-1 frequency", 
+     xlab = "Selection coefficient", xlim = c(-0.0025, 0.0007), main = "B")
 text(SCoeffVect + 2*c(0.0003, 0, -0.0003, -0.0003), 
-     MeanFreqs*SSize + c(0, 10, 0, 0), names(SCoeffVect))
+     MeanFreqs + c(0, 3*10^-3, 0, 0), names(SCoeffVect))
 lines(SVals, ExpL1)
 
 
 # Plot probability for inclusion versus number of LINE-1 per Mb
-ProbL1 <- sapply(SVals, function(x) ProbAlleleIncluded(x,N = 10^4, SampleSize = 2*2504))
+ProbL1 <- sapply(SVals, function(x) ProbAlleleIncluded(x,N = 10^4, 
+                                                       SampleSize = 2*2504))
 plot(SCoeffVect, InsPerbp[2,], ylab = "LINE-1s per Mb", 
-     xlab = "Selection coefficient", ylim = c(0, 2.5), xlim = c(-0.0025, 0), main = "C")
+     xlab = "Selection coefficient", xlim = c(-0.0025, 0), ylim = c(0, 3),
+     main = "C")
 text(SCoeffVect, InsPerbp[2,] + 2*10^(-1), names(SCoeffVect))
 par(new = TRUE)
 plot(SVals, ProbL1, type = "l", axes = FALSE, bty = "n", xlab = "", ylab = "",
@@ -95,7 +97,7 @@ axis(side = 4)
 mtext("Inclusion probability", 4, line = 3)
 #mtext("Selection coefficient", 1, line = 3)
 
-CreateDisplayPdf('D:/L1polymORF/Figures/SelectionPerRegion.pdf',
+CreateDisplayPdf('D:/L1polymORF/Figures/SelectionPerRegion_MELT.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 7, width = 7)
 
