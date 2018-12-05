@@ -17,7 +17,10 @@
 
 ##############################################
 
-AlleleFreqSampleVar <- function(k, m, SD, N = 10^4, SampleSize = 2*2504, LowerS = -1,
+AlleleFreqSampleVar <- function(k, m, SD, N = 10^4, SampleSize = 2*2504, 
+                                DetectProb = 1,
+                                blnIns = T,
+                                LowerS = -1,
                                 UpperS = 1){
     
   # Calculate integration constant
@@ -32,7 +35,7 @@ AlleleFreqSampleVar <- function(k, m, SD, N = 10^4, SampleSize = 2*2504, LowerS 
     log(integral2(fun = function(x, y){
         dnorm(y, m, SD) * AlleleFreqTime(x, y, N) * 
         (1 - (1 - x)^SampleSize - x^SampleSize) *
-        dbinom(k, SampleSize, x)
+        dbinom(k, SampleSize, DetectProb * x)
       }, xmin = 0, xmax = 1, ymin = LowerS, ymax = UpperS)$Q
     ) - log(IntConst)
 }

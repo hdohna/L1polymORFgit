@@ -38,9 +38,10 @@ library(rtracklayer)
 # L1TableFileName   <- "/home/hzudohna/L1polymORF/Data/L1_repeat_table_Hg19.csv"
 # OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference.Rdata'
 ChrLPath           <- 'D:/L1polymORF/Data/ChromLengthsHg19.Rdata'
-L1TableFileName   <- "D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv"
-OutResults        <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
-OutBedPath        <- 'D:/L1polymORF/Data/L1HSRefRanges_hg19.bed'
+L1TableFileName <- "D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv"
+OutResults      <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
+OutBedPath      <- 'D:/L1polymORF/Data/L1HSRefRanges_hg19.bed'
+OutBedPath2     <- 'D:/L1polymORF/Data/L1HSRefRanges_Plus200_hg19.bed'
 
 FullLength       <- 6000
 
@@ -81,4 +82,12 @@ save(list = c("L1GRanges", "L1HSFullLength_GRanges", "ChromLengthsHg19"),
      file = OutResults)
 
 # Export bed file with L1HS ranges
-export.bed(L1GRanges, con = OutBedPath)
+ChrChar <- as.character(L1Table$genoName)
+ChrNr <- substr(ChrChar, 4, nchar(ChrChar))
+L1GRanges_ChrNr <- GRanges(seqnames = ChrNr, ranges = L1IRanges,
+                           strand = L1Table$strand)
+export.bed(L1GRanges_ChrNr, con = OutBedPath)
+L1GRangesPlus200 <- GRanges(seqnames = ChrNr, 
+                            ranges = IRanges(start = start(L1GRanges) - 200,
+                                      end = end(L1GRanges) + 200))
+export.bed(L1GRangesPlus200, con = OutBedPath2)

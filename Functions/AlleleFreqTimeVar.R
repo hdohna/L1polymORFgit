@@ -17,7 +17,8 @@
 
 ##############################################
 
-AlleleFreqTimeVar <- function(y, s, SD, m, N) {
+AlleleFreqTimeVar <- function(y, s, SD, m, N, DetectProb = 1,
+                              blnIns = T) {
   # if (s != 0){
   #   exp(-s)*(((1 + sign(1/(2*N) - y)) / 2 * (exp(s) - exp(2*N*s))*(exp(2*N*s*y) - 1))
   #            - (1 + sign(y - 1/(2*N))) / 2  * ((exp(s) - 1)*(exp(2*N*s) - exp(2*N*s*y)))) / 

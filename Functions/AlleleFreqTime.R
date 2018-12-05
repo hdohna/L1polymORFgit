@@ -27,14 +27,20 @@ AlleleFreqTime <- function(y, s, N) {
   #   (1 + sign(y - 1/(2*N))) / 2 / (N*y)
   #   
   # }
+  
+  # Calculate allele frequency time for s!=0
   AFTime <-
     exp(-s)*(((1 + sign(1/(2*N) - y)) / 2 * (exp(s) - exp(2*N*s))*(exp(2*N*s*y) - 1))
              - (1 + sign(y - 1/(2*N))) / 2  * ((exp(s) - 1)*(exp(2*N*s) - exp(2*N*s*y)))) / 
       ((exp(2*N*s) - 1)*N*s*(y - 1)*y)
-    AddTerm <- is.na(AFTime) *((1 + sign(1/(2*N) - y)) / 2 * (1 - 2*N) / (N*(y - 1)) +
+  
+  # Calculate allele frequency time for s=0
+  AddTerm <- is.na(AFTime) *((1 + sign(1/(2*N) - y)) / 2 * (1 - 2*N) / (N*(y - 1)) +
       (1 + sign(y - 1/(2*N))) / 2 / (N*y))
-    AFTime[is.na(AFTime)] <- 0 
-    AFTime + AddTerm
+  AFTime[is.na(AFTime)] <- 0 
+    
+  # Combine allele frequency time for all values of s
+  AFTime + AddTerm
       
 
 }

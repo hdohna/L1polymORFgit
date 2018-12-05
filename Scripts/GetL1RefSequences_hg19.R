@@ -32,7 +32,8 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 
 # L1TableFileName   <- "/home/hzudohna/L1polymORF/Data/L1_repeat_table_Hg19.csv"
 # OutResults        <- '/home/hzudohna/L1polymORF/Data/L1NonReference.Rdata'
-L1TableFileName   <- "D:/L1polymORF/Data/L1_repeat_table_Hg19.csv"
+L1TableFileName   <- "D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv"
+ChrLPath          <- "D:/L1polymORF/Data/ChromLengthsHg19.Rdata"
 OutResults        <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
 
 FullLength       <- 6000
@@ -44,9 +45,11 @@ FullLength       <- 6000
 #######################################
 
 # Loop through chromosomes and calculate length
-Chromosomes <- paste("chr", c(1:22, "X", "Y"), sep = "")
-ChromLengths <- sapply(Chromosomes, function(x) {
-  length(BSgenome.Hsapiens.UCSC.hg19[[x]])})
+# Chromosomes <- paste("chr", c(1:22, "X", "Y"), sep = "")
+# ChromLengths <- sapply(Chromosomes, function(x) {
+#   length(BSgenome.Hsapiens.UCSC.hg19[[x]])})
+load(ChrLPath)
+ChromLengths <- ChromLengthsHg19
 
 # Read in table with L1 ranges
 L1Table <- read.csv(L1TableFileName)
@@ -59,6 +62,12 @@ SubFamiliesLookUp <- sapply(unique(repNChar), function(x){
 })
 NameMatch   <- match(repNChar, SubFamiliesLookUp["Name",])
 SubFamilies <- SubFamiliesLookUp["SubFam", NameMatch]
+
+#######################################
+#                                     #
+#    Create genomic ranges            #
+#                                     #
+#######################################
 
 # Create GRanges objects with L1 Seqences
 L1IRanges <- IRanges(start = L1Table$genoStart,
@@ -74,3 +83,12 @@ L1HSFullLength_GRanges <- L1GRanges[idxL1HsFullLength]
 cat("*******  Saving results ...   *******\n")
 save(list = c("L1GRanges", "L1HSFullLength_GRanges", "ChromLengths"), 
      file = OutResults)
+
+#######################################
+#                                     #
+#    Get sequences                    #
+#                                     #
+#######################################
+
+# Get sequences of all LINE-1s
+L1Seq <- getSeq(BSgenome.Hsapiens.UCSC.hg19, L1GRanges)

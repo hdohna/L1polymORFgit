@@ -21,14 +21,16 @@
 
 ##############################################
 
-AlleleFreqLogLik_4Par <- function(Freqs, Counts, Predict, a, b, c, d, N, 
+AlleleFreqLogLik_4Par <- function(Freqs, Counts, Predict, a, b, c, d, SD = NULL, N, 
                                   SampleSize = 2504,
                                   blnIns,
                                   MinFactor = 2, 
                                   NrObsExtrapol = 10, 
                                   DetectProb = 1,
                                   verbose = T, showInfIndices = F,
-                                  Var = T){
+                                  VariableSelection = F,
+                                  LowerS = -1,
+                                  UpperS = 1){
   if ((length(Freqs) != length(Counts)) | (length(Freqs) != nrow(Predict)) |
       (nrow(Predict) != length(Counts)) | (length(Freqs) != length(blnIns))){
     stop("Freqs, Counts and Predict vector have to have the same length\n")
@@ -37,16 +39,28 @@ AlleleFreqLogLik_4Par <- function(Freqs, Counts, Predict, a, b, c, d, N,
     SampleSize <- rep(SampleSize, length(Freqs))
   }
   sVals <- as.matrix(Predict) %*% c(b, c, d)
-  LogLikVals <- sapply(1:length(Freqs), function(i){
-    Counts[i] * AlleleFreqSample(Freqs[i], a + sVals[i], N, 
-                                 SampleSize = SampleSize[i], blnIns = blnIns[i],
-                                 DetectProb = DetectProb)
-  })
+  if(!VariableSelection){
+    LogLikVals <- sapply(1:length(Freqs), function(i){
+      Counts[i] * AlleleFreqSample(Freqs[i], a + sVals[i], N, 
+                                   SampleSize = SampleSize[i], blnIns = blnIns[i],
+                                   DetectProb = DetectProb)
+      
+      })
+    } else {
+      LogLikVals <- sapply(1:length(Freqs), function(i){
+        Counts[i] * AlleleFreqSampleVar(Freqs[i], a + sVals[i], SD = SD, N, 
+                                     SampleSize = SampleSize[i], blnIns = blnIns[i],
+                                     DetectProb = DetectProb, LowerS = LowerS,
+                                     UpperS = UpperS)
+      })
+  }
+
   blnInf       <- is.infinite(LogLikVals)
-  LogLikVals[blnInf] <- MinFactor*min(LogLikVals[!blnInf])
+#  LogLikVals[blnInf] <- MinFactor*min(LogLikVals[!blnInf])
 
   if (verbose){
     cat("parameter values: a =", a, "b =", b, "c = ", c, "d = ", d,
+        "SD = ", SD,
         "log-likelihood =", sum(LogLikVals), "\n")
     cat("Number of observations with infinite log-likelihood:", sum(blnInf), "\n")
   }

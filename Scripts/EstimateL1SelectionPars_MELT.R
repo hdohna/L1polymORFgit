@@ -379,25 +379,26 @@ sum(!blnNA)
 max(L1TotData$Freq / L1TotData$SampleSize, na.rm = T)
 
 # Plot log-likelihood for different selection coefficients
-aVals <- seq(-0.0021, 0.003, 0.0001)
-LikVals <- sapply(aVals, function(x) {
-  print(x)
-  LL_FPrime = AlleleFreqLogLik_4Par(
-    Freqs = round(L1TotData$Freq[!blnNA], 0),
-    Counts = rep(1, sum(!blnNA)),
-    Predict = PredictMat[!blnNA, 1:3],
-    a = x, b = 0, c = 0, d = 0, N = 10^4,
-    SampleSize = L1TotData$SampleSize[!blnNA], 
-    blnIns = L1TotData$blnIns[!blnNA], 
-    DetectProb = 0.9)
-  })
-par(mfrow = c(1, 1))
-plot(aVals, LikVals, type = "l", col = "red")
-plot(aVals, LikVals, type = "l", col = "red", 
-     xlim = c(-0.0005, 0), ylim)
+# aVals <- seq(-0.0021, 0.003, 0.0001)
+# LikVals <- sapply(aVals, function(x) {
+#   print(x)
+#   LL_FPrime = AlleleFreqLogLik_4Par(
+#     Freqs = round(L1TotData$Freq[!blnNA], 0),
+#     Counts = rep(1, sum(!blnNA)),
+#     Predict = PredictMat[!blnNA, 1:3],
+#     a = x, b = 0, c = 0, d = 0, N = 10^4,
+#     SampleSize = L1TotData$SampleSize[!blnNA], 
+#     blnIns = L1TotData$blnIns[!blnNA], 
+#     DetectProb = 0.9)
+#   })
+# par(mfrow = c(1, 1))
+# plot(aVals, LikVals, type = "l", col = "red")
+# plot(aVals, LikVals, type = "l", col = "red", 
+#      xlim = c(-0.0005, 0), ylim)
 
 # Estimate maximum likelihood for a single selection coefficient
-ML_1Par <-  constrOptim(theta = c(a = -0.0003),
+cat("Estimate maximum likelihood for a single selection coefficient\n")
+ML_1Par <-  constrOptim(theta = c(a = 0),
                           f = function(x) -AlleleFreqLogLik_4Par(
                             Freqs = round(L1TotData$Freq[!blnNA], 0),
                             Counts = rep(1, sum(!blnNA)),
@@ -411,6 +412,7 @@ ML_1Par <-  constrOptim(theta = c(a = -0.0003),
                           ci = c(a = -0.03, a = -0.03),
                           method = "Nelder-Mead")
 cat("done!\n")
+
 
 # Get maximum likelihood estimate for effect of L1 start on selection
 cat("Estimate effect of L1 start on selections ...")
