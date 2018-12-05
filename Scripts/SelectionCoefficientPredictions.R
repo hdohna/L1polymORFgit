@@ -84,7 +84,7 @@ lines(SVals, ExpL1)
 
 
 # Plot probability for inclusion versus number of LINE-1 per Mb
-ProbL1 <- sapply(SVals, function(x) ProbAlleleIncluded(x,N = 10^4, 
+ProbL1 <- sapply(SVals, function(x) ProbAlleleIncluded(x,N = 5*10^4, 
                                                        SampleSize = 2*2504))
 plot(SCoeffVect, InsPerbp[2,], ylab = "LINE-1s per Mb", 
      xlab = "Selection coefficient", xlim = c(-0.0025, 0), ylim = c(0, 3),
