@@ -143,7 +143,8 @@ L1TotData <- rbind(MEInsCall[ ,c("L1width", "Freq", "SampleSize", "blnFull")],
                    RefL1Data)
 L1TotData$blnIns <- c(rep(T, nrow(MEInsCall)), rep(F, nrow(RefL1Data)))
 L1TotData$L1Freq <- NA
-L1TotData$L1Freq[L1TotData$blnIns] <- L1TotData$Freq / L1TotData$SampleSize[L1TotData$blnIns]
+L1TotData$L1Freq[L1TotData$blnIns] <- L1TotData$Freq[L1TotData$blnIns] / 
+  L1TotData$SampleSize[L1TotData$blnIns]
 L1TotData$L1Freq[!L1TotData$blnIns] <- 1 - L1TotData$Freq[!L1TotData$blnIns] / 
   L1TotData$SampleSize[!L1TotData$blnIns]
 
