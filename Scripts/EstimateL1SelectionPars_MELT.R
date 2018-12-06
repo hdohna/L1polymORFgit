@@ -143,8 +143,9 @@ L1TotData <- rbind(MEInsCall[ ,c("L1width", "Freq", "SampleSize", "blnFull")],
                    RefL1Data)
 L1TotData$blnIns <- c(rep(T, nrow(MEInsCall)), rep(F, nrow(RefL1Data)))
 L1TotData$L1Freq <- NA
-L1TotData$L1Freq[L1TotData$blnIns] <- L1TotData$Freq / L1TotData$SampleSize
-L1TotData$L1Freq[!L1TotData$blnIns] <- 1 - L1TotData$Freq / L1TotData$SampleSize
+L1TotData$L1Freq[L1TotData$blnIns] <- L1TotData$Freq / L1TotData$SampleSize[L1TotData$blnIns]
+L1TotData$L1Freq[!L1TotData$blnIns] <- 1 - L1TotData$Freq[!L1TotData$blnIns] / 
+  L1TotData$SampleSize[!L1TotData$blnIns]
 
 L1TotGR <- c(MEIns_GR, L1GRanges)
 
@@ -326,14 +327,14 @@ MeanFreqs <- c(
 
 # Plot distn of frequency of L1 in different functional regions
 par(mfrow = c(1, 1))
-hist(L1TotData$Frequency[L1TotData$blnOLProm], breaks = seq(0, 1, 0.01))
-hist(L1TotData$Frequency[L1TotData$blnOLExon], breaks = seq(0, 1, 0.01))
-hist(L1TotData$Frequency[L1TotData$blnOLIntron], breaks = seq(0, 1, 0.01))
-hist(L1TotData$Frequency[L1TotData$blnOLIntergen], breaks = seq(0, 1, 0.01))
-hist(sqrt(-log10(L1TotData$Frequency[L1TotData$blnOLProm])))
-hist(-log10(L1TotData$Frequency[L1TotData$blnOLExon]))
-hist(log10(L1TotData$Frequency[L1TotData$blnOLIntron]))
-hist(log10(L1TotData$Frequency[L1TotData$blnOLIntergen]))
+hist(L1TotData$L1Freq[L1TotData$blnOLProm], breaks = seq(0, 1, 0.01))
+hist(L1TotData$L1Freq[L1TotData$blnOLExon], breaks = seq(0, 1, 0.01))
+hist(L1TotData$L1Freq[L1TotData$blnOLIntron], breaks = seq(0, 1, 0.01))
+hist(L1TotData$L1Freq[L1TotData$blnOLIntergen], breaks = seq(0, 1, 0.01))
+hist(sqrt(-log10(L1TotData$L1Freq[L1TotData$blnOLProm])))
+hist(-log10(L1TotData$L1Freq[L1TotData$blnOLExon]))
+hist(log10(L1TotData$L1Freq[L1TotData$blnOLIntron]))
+hist(log10(L1TotData$L1Freq[L1TotData$blnOLIntergen]))
 
 # Get number of L1 per Mb in different functional regions
 InsPerbp <- 10^6 * rbind(

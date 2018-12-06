@@ -34,7 +34,7 @@ cat("done!\n")
 # Estimate maximum likelihood for three selection coefficient parameters 
 # and selection coefficient variance
 cat("Maximizing likelihood for three selection parameters and variance ...")
-ML_L1startL1full_Var <- constrOptim(theta = c(a = ML_L1startL1full$par[1], 
+ML_L1startL1full_Var <- constrOptim(theta = c(a = MML_1ParVar$par[1], 
                                               c = ML_L1startL1full$par[2], 
                                               d = ML_L1startL1full$par[3], 
                                               SD = 0.9*10^-3),
