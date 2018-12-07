@@ -11,10 +11,7 @@
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load packages
-library(GenomicRanges)
-library(rtracklayer)
-library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-library(BSgenome.Hsapiens.UCSC.hg19)
+library(pracma)
 
 ##########################################
 #                                        #
@@ -43,8 +40,6 @@ load(InputPath)
 #                                                 #
 ###################################################
 
-# Probability 
-N1 <- length(L1GRanges)
 
 # Create a vector of selection coefficients
 SCoeffVect <- c(Promoter = ML_L1ExonIntron$par[1],
@@ -65,6 +60,13 @@ if (!all(names(SCoeffVect) == names(MeanFreqs))){
 # Get sample size and create a range of s-values
 SSize <- 2*2504
 SVals <- seq(-0.0025, -0.00001, 0.00001)
+
+# Probability of inclusion 
+Pf1 <- sapply(SVals, function(x) ProbFix1(x, N = 10^4)) # Probability of fixation at 1
+Pf  <- N1 / (Pf1*Nnf + N1) # Probability of fixation
+ProbL1 <- sapply(SVals, function(x) { # Probability of inclusion | no fixation
+  ProbAlleleIncluded(x,N = 10^4, SampleSize = SSize)})
+PIncl <- (1 - Pf)*ProbL1 + Pf * Pf1
 
 par(oma = c(2, 1, 1, 3), mfcol = c(2, 2), mai = c(1, 1, 0.2, 0.2),
     cex.axis = 1, cex.lab = 1.5)
@@ -87,15 +89,13 @@ lines(SVals, ExpL1)
 
 
 # Plot probability for inclusion versus number of LINE-1 per Mb
-ProbL1 <- sapply(SVals, function(x) ProbAlleleIncluded(x,N = 5*10^4, 
-                                                       SampleSize = 2*2504))
 plot(SCoeffVect, InsPerbp[2,], ylab = "LINE-1s per Mb", 
      xlab = "Selection coefficient", xlim = c(-0.0025, 0), ylim = c(0, 3),
      main = "C")
 text(SCoeffVect, InsPerbp[2,] + 2*10^(-1), names(SCoeffVect))
 par(new = TRUE)
-plot(SVals, ProbL1, type = "l", axes = FALSE, bty = "n", xlab = "", ylab = "",
-     ylim = c(0, 1))
+plot(SVals, PIncl, type = "l", axes = FALSE, bty = "n", xlab = "", ylab = "",
+     ylim = c(0, 5*10^-6))
 axis(side = 4)
 mtext("Inclusion probability", 4, line = 3)
 #mtext("Selection coefficient", 1, line = 3)
