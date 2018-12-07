@@ -43,6 +43,9 @@ load(InputPath)
 #                                                 #
 ###################################################
 
+# Probability 
+N1 <- length(L1GRanges)
+
 # Create a vector of selection coefficients
 SCoeffVect <- c(Promoter = ML_L1ExonIntron$par[1],
                 Exon = sum(ML_L1ExonIntron$par[c(1, 2)]),

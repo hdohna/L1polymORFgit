@@ -24,14 +24,14 @@ library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 ##########################################
 
 # Specify file paths
-DataPath        <- 'D:/L1polymORF/Data/'
-MeltInsPath     <- "D:/L1polymORF/Data/nstd144.GRCh37.variant_call.vcf"
-MeltDelPath     <- "D:/L1polymORF/Data/DEL.final_comp.vcf"
-ChrLPath        <- 'D:/L1polymORF/Data/ChromLengthsHg19.Rdata'
-InputPath       <- 'D:/L1polymORF/Data/SingletonAnalysis_unphased.RData'
-L1RefPath       <- 'D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
-L1RefRangePath       <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
-RegrOutputPath     <- "D:/L1polymORF/Data/L1RegressionResults.RData"
+DataPath            <- 'D:/L1polymORF/Data/'
+MeltInsPath         <- "D:/L1polymORF/Data/nstd144.GRCh37.variant_call.vcf"
+MeltDelPath         <- "D:/L1polymORF/Data/DEL.final_comp.vcf"
+ChrLPath            <- 'D:/L1polymORF/Data/ChromLengthsHg19.Rdata'
+InputPath           <- 'D:/L1polymORF/Data/SingletonAnalysis_unphased.RData'
+L1RefPath           <- 'D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
+L1RefRangePath      <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
+RegrOutputPath      <- "D:/L1polymORF/Data/L1RegressionResults.RData"
 SelectTabOutPath    <- "D:/L1polymORF/Data/L1SelectionResults_MELT.csv"
 SelectGenTabOutPath <- "D:/L1polymORF/Data/L1SelectionGeneResults_MELT.csv"
 SelectResultOutPath <- "D:/L1polymORF/Data/L1SelectionResults_MELT.RData"
@@ -134,6 +134,10 @@ OL_MEDelRefL1 <- findOverlaps(L1NeighborRanges, MEDel_GR)
 RefL1Data$Freq[OL_MEDelRefL1@from] <- MEDelCall$Freq[OL_MEDelRefL1@to]
 RefL1Data$SampleSize[OL_MEDelRefL1@from] <- MEDelCall$SampleSize[OL_MEDelRefL1@to]
 RefL1Data$blnFull <- RefL1Data$L1width >= MinLengthFullL1
+
+# Number of L1 that are fixed at proportion 1
+N1 <- length(L1GRanges) - length(OL_MEDelRefL1@from)
+
 RefL1Data <- RefL1Data[OL_MEDelRefL1@from, ]
 L1GRanges <- L1GRanges[OL_MEDelRefL1@from]
 
@@ -147,8 +151,20 @@ L1TotData$L1Freq[L1TotData$blnIns] <- L1TotData$Freq[L1TotData$blnIns] /
   L1TotData$SampleSize[L1TotData$blnIns]
 L1TotData$L1Freq[!L1TotData$blnIns] <- 1 - L1TotData$Freq[!L1TotData$blnIns] / 
   L1TotData$SampleSize[!L1TotData$blnIns]
+L1TotData$DetectProb <- 0.85
+L1TotData$DetectProb[L1TotData$blnIns] <- 0.9
 
+# Perform logistic regression for the probability of reference L1 as function
+# of L1 frequency
+L1TotData$blnRef <- !L1TotData$blnIns
+LogRegL1Ref <- glm(blnRef ~ L1Freq, family = binomial, data = L1TotData)
+LogRegL1Ref$coefficients
+
+# Combine genomic ranges
 L1TotGR <- c(MEIns_GR, L1GRanges)
+
+# Number of L1 that are not fixed
+Nnf <- nrow(L1TotData)
 
 # Make genomic ranges for L1SingletonCoeffs
 L1SingletonCoeffs$chromosome <- paste("chr", L1SingletonCoeffs$Chrom, sep = "")
@@ -365,6 +381,7 @@ InsPerbp[1,] / InsPerbp[2,]
 L1SummaryOL <- findOverlaps(L1TotGR, SummaryGR)
 all(L1SummaryOL@from %in% 1:nrow(L1TotData))
 blnNoDupl <- !duplicated(L1SummaryOL@from)
+L1TotData$L1Count <- NA
 L1TotData$L1Count[L1SummaryOL@from[blnNoDupl]] <- 
   DataPerSummaryGR$L1Count[L1SummaryOL@to[blnNoDupl]]
 
@@ -402,13 +419,13 @@ max(L1TotData$Freq / L1TotData$SampleSize, na.rm = T)
 cat("Estimate maximum likelihood for a single selection coefficient\n")
 ML_1Par <-  constrOptim(theta = c(a = 0),
                           f = function(x) -AlleleFreqLogLik_4Par(
-                            Freqs = round(L1TotData$L1Freq[!blnNA] *
-                                            L1TotData$SampleSize[!blnNA], 0),
+                            Freqs = round(L1TotData$Freq[!blnNA], 0),
                             Counts = rep(1, sum(!blnNA)),
                             Predict = PredictMat[!blnNA, 1:3],
                             a = x[1], b = 0, c = 0, d = 0, N = 10^4,
                             SampleSize = L1TotData$SampleSize[!blnNA],
                             blnIns = L1TotData$blnIns[!blnNA], 
+                            LogRegCoeff = LogRegL1Ref$coefficients,
                             DetectProb = 0.9),
                           grad = NULL,
                           ui = rbind(1,-1),
@@ -421,13 +438,13 @@ cat("done!\n")
 cat("Estimate effect of L1 start on selections ...")
 ML_L1width <-  constrOptim(theta = c(a = ML_1Par$par, c = 0),
                           f = function(x) -AlleleFreqLogLik_4Par(
-                            Freqs = round(L1TotData$L1Freq[!blnNA] *
-                                            L1TotData$SampleSize[!blnNA], 0),
+                            Freqs = round(L1TotData$Freq[!blnNA], 0),
                             Counts = rep(1, sum(!blnNA)),
                             Predict = PredictMat[!blnNA, 1:3],
                             a = x[1], b = 0, c = x[2], d = 0, N = 10^4, 
                             SampleSize = L1TotData$SampleSize[!blnNA],
                             blnIns = L1TotData$blnIns[!blnNA], 
+                            LogRegCoeff = LogRegL1Ref$coefficients,
                             DetectProb = 0.9),
                           grad = NULL,
                           ui = rbind(c(1, 0),  c(0, 1),   
@@ -441,13 +458,13 @@ cat("done!\n")
 cat("Estimate effect of L1 full-length on selections ...")
 ML_L1full <-  constrOptim(theta = c(a = ML_1Par$par, d = 0),
                           f = function(x) -AlleleFreqLogLik_4Par(
-                            Freqs = round(L1TotData$L1Freq[!blnNA] *
-                                            L1TotData$SampleSize[!blnNA], 0),
+                            Freqs = round(L1TotData$Freq[!blnNA], 0),
                             Counts = rep(1, sum(!blnNA)),
                             Predict = PredictMat[!blnNA, 1:3],
                             a = x[1], b = 0, c = 0, d = x[2], N = 10^4, 
                             SampleSize = L1TotData$SampleSize[!blnNA],
                             blnIns = L1TotData$blnIns[!blnNA], 
+                            LogRegCoeff = LogRegL1Ref$coefficients,
                             DetectProb = 0.9),
                           grad = NULL,
                       ui = rbind(c(1, 0),  c(0, 1),   
@@ -463,13 +480,13 @@ cat("Maximizing likelihood for three parameters ...")
 ML_L1widthL1full <- constrOptim(theta = c(a = ML_L1width$par[1], b = ML_L1width$par[2], 
                                           c = ML_L1full$par[2]),
                   f = function(x) -AlleleFreqLogLik_4Par(
-                    Freqs = round(L1TotData$L1Freq[!blnNA] *
-                                    L1TotData$SampleSize[!blnNA], 0),
+                    Freqs = round(L1TotData$Freq[!blnNA], 0),
                     Counts = rep(1, sum(!blnNA)),
                     Predict = PredictMat[!blnNA, 1:3],
                     a = x[1], b = 0, c = x[2], d = x[3], N = 10^4, 
                     SampleSize = L1TotData$SampleSize[!blnNA],
                     blnIns = L1TotData$blnIns[!blnNA], 
+                    LogRegCoeff = LogRegL1Ref$coefficients,
                     DetectProb = 0.9),
                   grad = NULL,
                   ui = rbind(c(1, 0, 0),  c(0, 1, 0),  c(0, 0, 1), 
@@ -493,13 +510,13 @@ cat("Maximizing likelihood for L1 count ...")
 ML_2Pars_L1count <- constrOptim(
      theta = c(a = ML_1Par$par, b = 0),
                           f = function(x) -AlleleFreqLogLik_4Par(
-                            Freqs = round(L1TotData$L1Freq[!blnNA] *
-                                            L1TotData$SampleSize[!blnNA], 0),
+                            Freqs = round(L1TotData$Freq[!blnNA], 0),
                             Counts = rep(1, sum(!blnNA)),
                             Predict = PredictMat[!blnNA, 1:3],
                             a = x[1], b = x[2], c = 0, d = 0, N = 10^4, 
                             SampleSize = L1TotData$SampleSize[!blnNA],
                             blnIns = L1TotData$blnIns[!blnNA], 
+                            LogRegCoeff = LogRegL1Ref$coefficients,
                             DetectProb = 0.9),
                           grad = NULL,
                           ui = rbind(c(1, 0),  c(0, 1),  
@@ -515,13 +532,13 @@ ML_3Pars_L1countL1full <- constrOptim(
   theta = c(a = ML_2Pars_L1count$par[1], ML_2Pars_L1count$par[2], 
             d = ML_L1full$par[2]), 
   f = function(x) -AlleleFreqLogLik_4Par(
-    Freqs = round(L1TotData$L1Freq[!blnNA] *
-                    L1TotData$SampleSize[!blnNA], 0),
+    Freqs = round(L1TotData$Freq[!blnNA], 0),
     Counts = rep(1, sum(!blnNA)),
     Predict = PredictMat[!blnNA, 1:3],
     a = x[1], b = x[2], c = 0, d = x[3], N = 10^4, 
     SampleSize = L1TotData$SampleSize[!blnNA],
     blnIns = L1TotData$blnIns[!blnNA], 
+    LogRegCoeff = LogRegL1Ref$coefficients,
     DetectProb = 0.9),
   grad = NULL,
   ui = rbind(c(1, 0, 0),  c(0, 1, 0), c(0, 0, 1),     
@@ -535,13 +552,13 @@ ML_3Pars_L1countL1width <- constrOptim(
   theta = c(a = ML_2Pars_L1count$par[1], ML_2Pars_L1count$par[2], 
             c = ML_L1width$par[2]),
   f = function(x) -AlleleFreqLogLik_4Par(
-    Freqs = round(L1TotData$L1Freq[!blnNA] *
-                    L1TotData$SampleSize[!blnNA], 0),
+    Freqs = round(L1TotData$Freq[!blnNA], 0),
     Counts = rep(1, sum(!blnNA)),
     Predict = PredictMat[!blnNA, 1:3],
     a = x[1], b = x[2], c = x[3], d = 0, N = 10^4, 
     SampleSize = L1TotData$SampleSize[!blnNA],
     blnIns = L1TotData$blnIns[!blnNA], 
+    LogRegCoeff = LogRegL1Ref$coefficients,
     DetectProb = 0.9),
   grad = NULL,
   ui = rbind(c(1, 0, 0),  c(0, 1, 0), c(0, 0, 1),     
@@ -556,13 +573,13 @@ ML_4Pars_L1countL1widthL1full <- constrOptim(
   theta = c(a = ML_2Pars_L1count$par[1], b = 0, 
             c = ML_L1widthL1full$par[2], d = ML_L1widthL1full$par[3]),
   f = function(x) -AlleleFreqLogLik_4Par(
-    Freqs = round(L1TotData$L1Freq[!blnNA] *
-                    L1TotData$SampleSize[!blnNA], 0),
+    Freqs = round(L1TotData$Freq[!blnNA], 0),
     Counts = rep(1, sum(!blnNA)), 
     Predict = PredictMat[!blnNA, 1:3], 
     a = x[1], b = x[2], c = x[3], d = x[4], N = 10^4, 
     SampleSize = L1TotData$SampleSize[!blnNA],
     blnIns = L1TotData$blnIns[!blnNA], 
+    LogRegCoeff = LogRegL1Ref$coefficients,
     DetectProb = 0.9),
   grad = NULL,
   ui = rbind(c(1, 0, 0, 0),  c(0, 1, 0, 0), c(0, 0, 1, 0),  c(0, 0, 0, 1),   
@@ -664,18 +681,18 @@ blnNA <- sapply(1:nrow(PredictMatGeneOL), function(x) any(is.na(PredictMatGeneOL
 #                         ui = rbind(1,-1),
 #                         ci = c(a = -0.001, a = -0.001),
 #                         method = "Nelder-Mead")
-
+sum(!blnNA)
 # Get maximum likelihood estimate for effect of exonic L1 on selection
 cat("Estimate effect of exon overlap on selections ...")
 ML_L1Exon <-  constrOptim(theta = c(a = ML_1Par$par, b = 0),
                           f = function(x) -AlleleFreqLogLik_4Par(
-                            Freqs = round(L1TotData$L1Freq[!blnNA] *
-                                            L1TotData$SampleSize[!blnNA], 0),
+                            Freqs = round(L1TotData$Freq[!blnNA], 0),
                             Counts = rep(1, sum(!blnNA)),
                             Predict = PredictMatGeneOL[!blnNA,],
                             a = x[1], b = x[2], c = 0, d = 0, N = 10^4,
                             SampleSize = L1TotData$SampleSize[!blnNA],
                             blnIns = L1TotData$blnIns[!blnNA], 
+                            LogRegCoeff = LogRegL1Ref$coefficients,
                             DetectProb = 0.9),
                           grad = NULL,
                            ui = rbind(c(1, 0),  c(0, 1),   
@@ -689,13 +706,13 @@ cat("done!\n")
 cat("Estimate effect of exon or intron overlap on selections ...")
 ML_L1ExonOrIntron <-  constrOptim(theta = c(a = ML_1Par$par, b = 0),
                           f = function(x) -AlleleFreqLogLik_4Par(
-                            Freqs = round(L1TotData$L1Freq[!blnNA] *
-                                            L1TotData$SampleSize[!blnNA], 0),
+                            Freqs = round(L1TotData$Freq[!blnNA], 0),
                             Counts = rep(1, sum(!blnNA)),
                             Predict = PredictMatGeneOL[!blnNA,],
                             a = x[1], b = x[2], c = 0, d = 0, N = 10^4,
                             SampleSize = L1TotData$SampleSize[!blnNA],
                             blnIns = L1TotData$blnIns[!blnNA], 
+                            LogRegCoeff = LogRegL1Ref$coefficients,
                             DetectProb = 0.9),
                           grad = NULL,
                           ui = rbind(c(1, 0),  c(0, 1),   
@@ -709,13 +726,13 @@ cat("done!\n")
 cat("Estimate effect of intron overlap on selections ...")
 ML_L1Intron <-  constrOptim(theta = c(a = ML_1Par$par, c = 0),
                           f = function(x) -AlleleFreqLogLik_4Par(
-                            Freqs = round(L1TotData$L1Freq[!blnNA] *
-                                            L1TotData$SampleSize[!blnNA], 0),
+                            Freqs = round(L1TotData$Freq[!blnNA], 0),
                             Counts = rep(1, sum(!blnNA)),
                             Predict = PredictMatGeneOL[!blnNA,],
                             a = x[1], b = 0, c = x[2], d = 0, N = 10^4,
                             SampleSize = L1TotData$SampleSize[!blnNA],
                             blnIns = L1TotData$blnIns[!blnNA], 
+                            LogRegCoeff = LogRegL1Ref$coefficients,
                             DetectProb = 0.9),
                           grad = NULL,
                           ui = rbind(c(1, 0),  c(0, 1),   
@@ -729,13 +746,13 @@ cat("done!\n")
 cat("Estimate effect of promoter overlap on selections ...")
 ML_L1Prom <-  constrOptim(theta = c(a = ML_1Par$par, d = 0),
                             f = function(x) -AlleleFreqLogLik_4Par(
-                              Freqs = round(L1TotData$L1Freq[!blnNA] *
-                                              L1TotData$SampleSize[!blnNA], 0),
+                              Freqs = round(L1TotData$Freq[!blnNA], 0),
                               Counts = rep(1, sum(!blnNA)),
                               Predict = PredictMatGeneOL[!blnNA,],
                               a = x[1], b = 0, c = 0, d = x[2], N = 10^4,
                               SampleSize = L1TotData$SampleSize[!blnNA],
                               blnIns = L1TotData$blnIns[!blnNA], 
+                              LogRegCoeff = LogRegL1Ref$coefficients,
                               DetectProb = 0.9),
                           grad = NULL,
                             ui = rbind(c(1, 0),  c(0, 1),   
@@ -752,13 +769,13 @@ ML_L1ExonIntron <-  constrOptim(
                                     b = ML_L1Exon$par[2],
                                     c = ML_L1Intron$par[2]),
                           f = function(x) -AlleleFreqLogLik_4Par(
-                            Freqs = round(L1TotData$L1Freq[!blnNA] *
-                                            L1TotData$SampleSize[!blnNA], 0),
+                            Freqs = round(L1TotData$Freq[!blnNA], 0),
                             Counts = rep(1, sum(!blnNA)),
                             Predict = PredictMatGeneOL[!blnNA,],
                             a = x[1], b = x[2], c = x[3], d = 0, N = 10^4,
                             SampleSize = L1TotData$SampleSize[!blnNA],
                             blnIns = L1TotData$blnIns[!blnNA], 
+                            LogRegCoeff = LogRegL1Ref$coefficients,
                             DetectProb = 0.9),
                           grad = NULL,
                           ui = rbind(c(1, 0, 0),  c(0, 1, 0), c(0, 0, 1),   
@@ -782,6 +799,7 @@ f = function(x) -AlleleFreqLogLik_4Par(
   a = x[1], b = x[2], c = x[3], d = 0, N = 10^4,
   SampleSize = L1TotData$SampleSize[!blnNA],
   blnIns = L1TotData$blnIns[!blnNA], 
+  LogRegCoeff = LogRegL1Ref$coefficients,
   DetectProb = 0.9),
 grad = NULL,
   ui = rbind(c(1, 0, 0, 0),  c(0, 1, 0, 0), c(0, 0, 1, 0), c(0, 0, 0, 1),  
@@ -793,7 +811,7 @@ cat("done!\n")
 
 # Get columns of AIC and parameter values
 Cols2Append <- t(sapply(list(ML_1Par, ML_L1Exon, ML_L1Intron, ML_L1Prom, 
-#                             ML_L1ExonOrIntron, 
+                             ML_L1ExonOrIntron, 
                              ML_L1ExonIntron,
                              ML_L1ExonIntronProm), 
                         function(x){
@@ -803,7 +821,7 @@ Cols2Append <- t(sapply(list(ML_1Par, ML_L1Exon, ML_L1Intron, ML_L1Prom,
 # Combine AIC values into one vector
 AICTabGene <- cbind(data.frame(
   Predictor = c("none", "Exon", "Intron", "Promoter",
-#                "Exon or intron", 
+                "Exon or intron", 
                 "Exon and intron", 
                 "Exon, intron, and promoter"),
   stringsAsFactors = F),
@@ -870,7 +888,7 @@ CreateDisplayPdf('D:/L1polymORF/Figures/SelectionPerRegion_MELT.pdf',
 L1TotData$L1widthClass <- cut(L1TotData$L1width, breaks = 
                                   seq(0, 7000, 1000))
 MEInsCall$L1widthClass <- cut(MEInsCall$L1width, breaks = 
-                                   seq(0, 6100, 1000))
+                                   seq(0, 7000, 1000))
 
 MEInsCall$Freq
 # Get mean L1 frequency per start
@@ -896,7 +914,7 @@ par( mfrow = c(1, 1))
 plot(L1widthAggregated$L1width, 
      L1widthAggregated$L1Freq, xlab = "LINE-1 length",
      ylab = "Mean LINE-1 frequency")
-lines(StartVals, ExpL1width / 2 /MEInsSamplesize)
+lines(StartVals, ExpL1width )
 mtext("Selection coefficient", 1, line = 3)
 CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1width_MELT.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
@@ -909,31 +927,48 @@ CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1width_MELT.pdf',
 ###################################################
 
 # Create a matrix of predictor variables (L1 start and boolean variable for)
-PredictMatWithinGene <- L1TotData[L1TotData$blnOLGene, 
+PredictMatWithinGene <- L1TotData[L1TotData$blnOLGene & !blnNA , 
                                  c( "blnOLGeneSameStrand", "blnOLGene", "blnOLGene")]
 
 # Estimate maximum likelihood for a single selection coefficient
-ML_1Par_gene <- constrOptim(theta = c(a = -0.0004),
+# f = function(x) -AlleleFreqLogLik_4Par(
+#   Freqs = round(L1TotData$Freq[!blnNA], 0),
+#   Counts = rep(1, sum(!blnNA)),
+#   Predict = PredictMatGeneOL[!blnNA,],
+#   a = x[1], b = x[2], c = x[3], d = 0, N = 10^4,
+#   SampleSize = L1TotData$SampleSize[!blnNA],
+#   blnIns = L1TotData$blnIns[!blnNA], 
+#   LogRegCoeff = LogRegL1Ref$coefficients,
+#   DetectProb = 0.9),
+sum(L1TotData$blnOLGene)
+colSums(PredictMatWithinGene)
+ML_1Par_gene <- constrOptim(theta = c(a = 0),
                             f = function(x) -AlleleFreqLogLik_4Par(
-                              Freqs = (L1TotData$Frequency[L1TotData$blnOLGene] * 2*2504),
-                              Counts = rep(1, sum(L1TotData$blnOLGene)),
+                              Freqs = round(L1TotData$Freq[L1TotData$blnOLGene & !blnNA], 0),
+                              Counts = rep(1, sum(L1TotData$blnOLGene & !blnNA)),
                               Predict = PredictMatWithinGene,
                               a = x[1], b = 0, c = 0, d = 0, N = 10^4,
-                              SampleSize = 2*2504),
+                              SampleSize = L1TotData$SampleSize[L1TotData$blnOLGene  & !blnNA ],
+                              blnIns = L1TotData$blnIns[L1TotData$blnOLGene & !blnNA], 
+                              LogRegCoeff = LogRegL1Ref$coefficients,
+                              DetectProb = 0.9),
                             grad = NULL,
                             ui = rbind(1,-1),
-                            ci = c(a = -0.01, a = -0.01),
+                            ci = c(a = -0.001, a = -0.001),
                             method = "Nelder-Mead")
 
 # Get maximum likelihood estimate for effect of exonic L1 on selection
 cat("Estimate effect of same strand overlap on selections ...")
 ML_L1SameStrand <-  constrOptim(theta = c(a = ML_1Par_gene$par, b = 0),
-                          f = function(x) -AlleleFreqLogLik_4Par(
-                            Freqs = (L1TotData$Frequency[L1TotData$blnOLGene] * 2*2504),
-                            Counts = rep(1, sum(L1TotData$blnOLGene)),
-                            Predict = PredictMatWithinGene,
-                            a = x[1], b = x[2], c = 0, d = 0, N = 10^4,
-                            SampleSize = 2*2504),
+                                f = function(x) -AlleleFreqLogLik_4Par(
+                                  Freqs = round(L1TotData$Freq[L1TotData$blnOLGene & !blnNA], 0),
+                                Counts = rep(1, sum(L1TotData$blnOLGene & !blnNA)),
+                                Predict = PredictMatWithinGene,
+                                a = x[1], b = x[2], c = 0, d = 0, N = 10^4,
+                                SampleSize = L1TotData$SampleSize[L1TotData$blnOLGene  & !blnNA ],
+                                blnIns = L1TotData$blnIns[L1TotData$blnOLGene & !blnNA], 
+                                LogRegCoeff = LogRegL1Ref$coefficients,
+                                DetectProb = 0.9),
                           grad = NULL,
                           ui = rbind(c(1, 0),  c(0, 1),   
                                      c(-1, 0), c(0, -1)),
@@ -962,28 +997,40 @@ AICTabWithinGene <- cbind(data.frame(
 ###################################################
 
 # Create a matrix of predictor variables 
-PredictMat <- L1SingletonCoeffs[, c("coef", "L1width", "L1width")]
+PredictMat <- L1SingletonCoeffs[, c("coef", "coef", "coef")]
 blnNA <- sapply(1:nrow(L1SingletonCoeffs), function(x) any(is.na(PredictMat[x,])))
 
 # Determine maximum likelihood with one parameter (selection coefficient)
 cat("Maximizing likelihood for one parameter (selection coefficient) ...")
-ML_1Par_coef <- optim(par = c(a = ML_1Par$par),
-                      fn = function(x) -AlleleFreqLogLik_4Par(
-                        Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
-                        Counts = rep(1, sum(!blnNA)), 
-                        Predict = PredictMat[!blnNA,], 
-                        a = x, b = 0, c = 0, d = 0, N = 10^4, 
-                        SampleSize = 2*2504),
-                      lower = -0.01, upper = 0.01,
-                      method = "L-BFGS-B")
-ML_2Pars_L1coef <- constrOptim(
-  theta = c(a = ML_1Par_coef$par, b = 0),
+ML_1Par_coef <- constrOptim(
+  theta = c(a = ML_1Par$par),
   f = function(x) -AlleleFreqLogLik_4Par(
     Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
     Counts = rep(1, sum(!blnNA)), 
     Predict = PredictMat[!blnNA,], 
-    a = x[1], b = x[2], c = 0, d = 0, N = 10^4, 
-    SampleSize = 2*2504),
+    a = x[1], b = 0, c = 0, d = 0, N = 10^4,
+    SampleSize = rep(2*2504, sum(!blnNA)),
+    blnIns = rep(T, sum(!blnNA)), 
+    LogRegCoeff = LogRegL1Ref$coefficients,
+    DetectProb = 0.9),
+  grad = NULL,
+  ui = rbind(1,-1),
+  ci = c(a = -0.03, a = -0.03),
+  method = "Nelder-Mead")
+
+# Determine maximum likelihood with an intercept and one parameter for thr 
+# selection coefficient
+ML_2Pars_L1coef <- constrOptim(
+  theta = c(a = ML_1Par_coef$par, b = 0),
+  f = function(x) -AlleleFreqLogLik_4Par(
+    Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA],
+    Counts = rep(1, sum(!blnNA)),
+    Predict = PredictMat[!blnNA,], 
+    a = x[1], b = x[2], c = 0, d = 0, N = 10^4,
+    SampleSize = rep(2*2504, sum(!blnNA)),
+    blnIns = rep(T, sum(!blnNA)), 
+    LogRegCoeff = LogRegL1Ref$coefficients,
+    DetectProb = 0.9),
   grad = NULL,
   ui = rbind(c(1, 0),  c(0, 1),  
              c(-1, 0), c(0, -1)),

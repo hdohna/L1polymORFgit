@@ -23,16 +23,17 @@
 
 AlleleFreqLogLik_4Par <- function(Freqs, Counts, Predict, a, b, c, d, SD = NULL, N, 
                                   SampleSize = 2504,
-                                  blnIns,
+                                  blnIns, LogRegCoeff,
                                   MinFactor = 2, 
                                   NrObsExtrapol = 10, 
-                                  DetectProb = 1,
+                                  DetectProb = rep(1, length(Freqs)),
                                   verbose = T, showInfIndices = F,
                                   VariableSelection = F,
                                   LowerS = -1,
                                   UpperS = 1){
   if ((length(Freqs) != length(Counts)) | (length(Freqs) != nrow(Predict)) |
-      (nrow(Predict) != length(Counts)) | (length(Freqs) != length(blnIns))){
+      (nrow(Predict) != length(Counts)) | (length(Freqs) != length(blnIns)) |
+      length(Counts) != length(DetectProb)){
     stop("Freqs, Counts and Predict vector have to have the same length\n")
   }
   if (length(SampleSize) == 1){
@@ -43,14 +44,16 @@ AlleleFreqLogLik_4Par <- function(Freqs, Counts, Predict, a, b, c, d, SD = NULL,
     LogLikVals <- sapply(1:length(Freqs), function(i){
       Counts[i] * AlleleFreqSample(Freqs[i], a + sVals[i], N, 
                                    SampleSize = SampleSize[i], blnIns = blnIns[i],
-                                   DetectProb = DetectProb)
+                                   LogRegCoeff = LogRegCoeff,
+                                   DetectProb = DetectProb[i])
       
       })
     } else {
       LogLikVals <- sapply(1:length(Freqs), function(i){
         Counts[i] * AlleleFreqSampleVar(Freqs[i], a + sVals[i], SD = SD, N, 
                                      SampleSize = SampleSize[i], blnIns = blnIns[i],
-                                     DetectProb = DetectProb, LowerS = LowerS,
+                                     LogRegCoeff = LogRegCoeff,
+                                     DetectProb = DetectProb[i], LowerS = LowerS,
                                      UpperS = UpperS)
       })
   }

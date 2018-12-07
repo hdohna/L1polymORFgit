@@ -13,7 +13,7 @@ source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 cat("Maximizing likelihood for one selection parameter and variance ...")
 ML_1ParVar <-  constrOptim(theta = c(a = ML_1Par$par, SD = 10^-3),
                            f = function(x) -AlleleFreqLogLik_4Par(
-                             Freqs = round(round(L1TotData$L1Freq[!blnNA] *
+                             Freqs = round(L1TotData$L1Freq[!blnNA] *
                                                    L1TotData$SampleSize[!blnNA], 0),
                              Counts = rep(1, sum(!blnNA)),
                              Predict = PredictMat[!blnNA, 1:3],
