@@ -8,19 +8,25 @@ library(pracma)
 # Source start script
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
+# Create a matrix of predictor variables (L1 start and boolean variable for)
+PredictMat <- L1TotData[, c("L1Count", "L1width", "blnFull", "Freq", "SampleSize",
+                            "blnIns")]
+blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
+
 # Estimate maximum likelihood for a single selection coefficient and its 
 # variance
 cat("Maximizing likelihood for one selection parameter and variance ...")
 ML_1ParVar <-  constrOptim(theta = c(a = ML_1Par$par, SD = 10^-3),
                            f = function(x) -AlleleFreqLogLik_4Par(
-                             Freqs = round(L1TotData$L1Freq[!blnNA] *
-                                                   L1TotData$SampleSize[!blnNA], 0),
+                             Freqs = round(L1TotData$Freq[!blnNA], 0),
                              Counts = rep(1, sum(!blnNA)),
                              Predict = PredictMat[!blnNA, 1:3],
                              a = x[1], b = 0, c = 0, d = 0, SD = x[2], N = 10^4,
                              SampleSize = L1TotData$SampleSize[!blnNA],
                              blnIns = L1TotData$blnIns[!blnNA], 
-                             DetectProb = 0.9, VariableSelection = T,
+                             LogRegCoeff = LogRegL1Ref$coefficients,
+                             DetectProb = L1TotData$DetectProb[!blnNA],
+                             VariableSelection = T,
                              LowerS = -1,
                              UpperS = 1),
                            grad = NULL,
@@ -47,7 +53,9 @@ ML_L1startL1full_Var <- constrOptim(theta = c(a = MML_1ParVar$par[1],
                                   N = 10^4, 
                                   SampleSize = L1TotData$SampleSize[!blnNA],
                                   blnIns = L1TotData$blnIns[!blnNA], 
-                                  DetectProb = 0.9, VariableSelection = T,
+                                  LogRegCoeff = LogRegL1Ref$coefficients,
+                                  DetectProb = L1TotData$DetectProb[!blnNA],
+                                  VariableSelection = T,
                                   LowerS = -1,
                                   UpperS = 1),
                                 grad = NULL,

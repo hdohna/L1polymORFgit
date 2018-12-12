@@ -18,26 +18,56 @@
 ##############################################
 
 AlleleFreqSampleVar <- function(k, m, SD, N = 10^4, SampleSize = 2*2504, 
+                                LogRegCoeff,
                                 DetectProb = 1,
                                 blnIns = T,
                                 LowerS = -1,
                                 UpperS = 1){
     
-  # Calculate integration constant
-  IntConst <- integral2(fun = function(x, y){
-     dnorm(y, m, SD) * AlleleFreqTime(x, y, N) * 
-       (1 - (1 - x)^SampleSize - x^SampleSize)
-   }, xmin = 0, xmax = 1, ymin = LowerS, ymax = UpperS)$Q
+  ProbRef <- function(x) {
+    ExpCoeff <- exp(LogRegCoeff[1] + LogRegCoeff[2] * x)
+    ExpCoeff / (1 + ExpCoeff)
+  }
   
+  # The lines below are for insertions relative to the reference
+  if (blnIns){
+    
+    # Calculate integration constant
+    IntConst <- integral2(fun = function(x, y){
+      dnorm(y, m, SD) * AlleleFreqTime(x, y, N) * 
+        (1 - (1 - x)^SampleSize) * (1 - ProbRef(x))
+    }, xmin = 0, xmax = 1, ymin = LowerS, ymax = UpperS)$Q
+    
     
     # Calculate probability of obtaining k alleles in a sample of size 
     # SampleSize
     log(integral2(fun = function(x, y){
-        dnorm(y, m, SD) * AlleleFreqTime(x, y, N) * 
+      dnorm(y, m, SD) * AlleleFreqTime(x, y, N) * 
         (1 - (1 - x)^SampleSize - x^SampleSize) *
-        dbinom(k, SampleSize, DetectProb * x)
-      }, xmin = 0, xmax = 1, ymin = LowerS, ymax = UpperS)$Q
+        dbinom(k, SampleSize, DetectProb * x) * (1 - ProbRef(x))
+    }, xmin = 0, xmax = 1, ymin = LowerS, ymax = UpperS)$Q
     ) - log(IntConst)
-}
+    
+  } else {
+    
+    # Calculate integration constant
+    IntConst <- integral2(fun = function(x, y){
+      dnorm(y, m, SD) * AlleleFreqTime(x, y, N) * 
+        (1 - x^SampleSize) * ProbRef(x)
+    }, xmin = 0, xmax = 1, ymin = LowerS, ymax = UpperS)$Q
+    
+    
+    # Calculate probability of obtaining k alleles in a sample of size 
+    # SampleSize
+    log(integral2(fun = function(x, y){
+      dnorm(y, m, SD) * AlleleFreqTime(x, y, N) * 
+        (1 - x^SampleSize) *
+        dbinom(k, SampleSize, DetectProb * (1 - x)) * ProbRef(x)
+    }, xmin = 0, xmax = 1, ymin = LowerS, ymax = UpperS)$Q
+    ) - log(IntConst)
+    
+  }
+  
+ }
 
 
