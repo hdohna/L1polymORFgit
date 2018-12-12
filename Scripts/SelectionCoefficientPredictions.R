@@ -61,26 +61,46 @@ if (!all(names(SCoeffVect) == names(MeanFreqs))){
 SSize <- 2*2504
 SVals <- seq(-0.0025, -0.00001, 0.00001)
 
-# Probability of inclusion 
-Pf1 <- sapply(SVals, function(x) ProbFix1(x, N = 10^4)) # Probability of fixation at 1
-Pf  <- N1 / (Pf1*Nnf + N1) # Probability of fixation
-ProbL1 <- sapply(SVals, function(x) { # Probability of inclusion | no fixation
-  ProbAlleleIncluded(x,N = 10^4, SampleSize = SSize)})
-PIncl <- (1 - Pf)*ProbL1 + Pf * Pf1
+# Probability of inclusion as funtion of selection coefficient
+PInclFun <- function(s, N = 10^4, N1, Nnf, SampleSize){
+  Pf1 <- ProbFix1(s, N = N) # Probability of fixation at 1
+  Pf  <- N1 / (Pf1*Nnf + N1) # Probability of fixation
+  ProbL1 <- ProbAlleleIncluded(s, N = N, SampleSize = SampleSize) # Probability of inclusion | no fixation
+  (1 - Pf)*ProbL1 + Pf * Pf1
+  
+}
+PIncl <- sapply(SVals, function(s) PInclFun(s, N1 = N1, Nnf = Nnf, SampleSize = SSize)) # Probability of fixation at 1
+ExpL1 <- sapply(SVals, function(x) ExpAlleleFreq(x, N = 10^4, SampleSize = SSize))
+
+# Get probability of inclusion and mean frequency as function of selection
+# coefficient for each insertion region
+PInclVect <- sapply(SCoeffVect, function(s) {
+  PInclFun(s, N1 = N1, Nnf = Nnf, SampleSize = SSize)})
+SqDiffDens <- function(x) {sum((InsPerbp[2,] - x *PInclVect)^2)}
+CoeffVals <- seq(10^5, 5*10^5, 100)
+plot(CoeffVals, sapply(CoeffVals, function(x) SqDiffDens(x)), type = "l")
+OptCoeff <- optim(par = 3 * mean(InsPerbp[2,]) / mean(PIncl), 
+                  fn = function(x) SqDiffDens(x),
+                  method = "Brent",
+                  lower = 10^4, upper = 10^6)
+
+plot(InsPerbp[2,], PInclVect* 3 * mean(InsPerbp[2,]) / mean(PIncl))
+lines(c(0, 10), c(0, 10))
 
 par(oma = c(2, 1, 1, 3), mfcol = c(2, 2), mai = c(1, 1, 0.2, 0.2),
     cex.axis = 1, cex.lab = 1.5)
 layout(rbind(1:2, c(3, 3)), widths = c(1, 1))
 layout(rbind(c(1, 1, 2, 2), c(0, 3, 3, 0)), widths = c(1, 1))
+
 # Plot LINE-1 frequency against number of LINE-1 per Mb
-plot(InsPerbp[2,], MeanFreqs, xlab = "LINE-1s per Mb", 
-     ylab = "Mean LINE-1 frequency", main = "A")
-text(InsPerbp[2,] + 2*10^(-1)*c(1, 0, 0, -1.2), 
-     MeanFreqs + c(3*10^-3, 3*10^-3, 3*10^-3, -3*10^-3),  
+plot(MeanFreqs, InsPerbp[2,], ylab = "LINE-1s per Mb", 
+     xlab = "Mean LINE-1 frequency", main = "A", ylim = c(0, 3))
+lines(ExpL1, PIncl * OptCoeff$par)
+text(MeanFreqs + c(3*10^-3, 3*10^-3, 3*10^-3, -3*10^-3),
+     InsPerbp[2,] + 2*10^(-1)*c(1, 0, 0, -1.2), 
      names(SCoeffVect))
 
 # Plot expected frequency versus observed mean frequency
-ExpL1 <- sapply(SVals, function(x) ExpAlleleFreq(x, N = 10^4, SampleSize = 2*2504))
 plot(SCoeffVect, MeanFreqs, ylab = "Mean LINE-1 frequency", 
      xlab = "Selection coefficient", xlim = c(-0.0025, 0.0007), main = "B")
 text(SCoeffVect + 2*c(0.0003, 0, -0.0003, -0.0003), 
