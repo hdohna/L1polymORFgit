@@ -35,6 +35,7 @@ RegrOutputPath      <- "D:/L1polymORF/Data/L1RegressionResults.RData"
 SelectTabOutPath    <- "D:/L1polymORF/Data/L1SelectionResults_MELT.csv"
 SelectGenTabOutPath <- "D:/L1polymORF/Data/L1SelectionGeneResults_MELT.csv"
 SelectResultOutPath <- "D:/L1polymORF/Data/L1SelectionResults_MELT.RData"
+SelectWithinGenTabOutPath <- "D:/L1polymORF/Data/L1SelectionWithinGeneResults_MELT.csv"
 
 # False discovery rate for selected L1
 FDR <- 0.1
@@ -377,6 +378,8 @@ InsPerbp[1,] / InsPerbp[2,]
 #                                                 #
 ###################################################
 
+cat("\n********   Estimating effect of insertion length    **********\n")
+
 # Match summary ranges to L1 ranges of 1000 genome data
 L1SummaryOL <- findOverlaps(L1TotGR, SummaryGR)
 all(L1SummaryOL@from %in% 1:nrow(L1TotData))
@@ -682,29 +685,9 @@ ML_L1Exon <-  constrOptim(theta = c(a = ML_1Par$par, b = 0),
                           grad = NULL,
                            ui = rbind(c(1, 0),  c(0, 1),   
                                       c(-1, 0), c(0, -1)),
-                           ci = c(a = -0.01, b = -10^(-2), 
-                                  a = -0.01, b = -10^(-2)),
+                           ci = c(a = -0.001, b = -10^(-2), 
+                                  a = -0.001, b = -10^(-2)),
                            method = "Nelder-Mead")
-cat("done!\n")
-
-# Get maximum likelihood estimate for effect of exonic L1 on selection
-cat("Estimate effect of exon or intron overlap on selections ...")
-ML_L1ExonOrIntron <-  constrOptim(theta = c(a = ML_1Par$par, b = 0),
-                          f = function(x) -AlleleFreqLogLik_4Par(
-                            Freqs = round(L1TotData$Freq[!blnNA], 0),
-                            Counts = rep(1, sum(!blnNA)),
-                            Predict = PredictMatGeneOL[!blnNA,],
-                            a = x[1], b = x[2], c = 0, d = 0, N = 10^4,
-                            SampleSize = L1TotData$SampleSize[!blnNA],
-                            blnIns = L1TotData$blnIns[!blnNA], 
-                            LogRegCoeff = LogRegL1Ref$coefficients,
-                            DetectProb = L1TotData$DetectProb[!blnNA]),
-                          grad = NULL,
-                          ui = rbind(c(1, 0),  c(0, 1),   
-                                     c(-1, 0), c(0, -1)),
-                          ci = c(a = -0.01, b = -10^(-2), 
-                                 a = -0.01, b = -10^(-2)),
-                          method = "Nelder-Mead")
 cat("done!\n")
 
 # Get maximum likelihood estimate for effect of intronic L1 on selection
@@ -781,7 +764,7 @@ f = function(x) -AlleleFreqLogLik_4Par(
   Freqs = round(L1TotData$Freq[!blnNA], 0),
   Counts = rep(1, sum(!blnNA)),
   Predict = PredictMatGeneOL[!blnNA,],
-  a = x[1], b = x[2], c = x[3], d = 0, N = 10^4,
+  a = x[1], b = x[2], c = x[3], d = x[4], N = 10^4,
   SampleSize = L1TotData$SampleSize[!blnNA],
   blnIns = L1TotData$blnIns[!blnNA], 
   LogRegCoeff = LogRegL1Ref$coefficients,
@@ -794,11 +777,35 @@ grad = NULL,
   method = "Nelder-Mead")
 cat("done!\n")
 
+# Get maximum likelihood estimate for effect of exonic L1 on selection
+cat("Estimate effect of exon or intron overlap on selections ...")
+ML_L1PromOrIntron <-  constrOptim(theta = c(a = ML_1Par$par, 
+                                            b = ML_L1Exon$par[2],
+                                            c = ML_L1Intron$par[2]),
+                                  f = function(x) -AlleleFreqLogLik_4Par(
+                                    Freqs = round(L1TotData$Freq[!blnNA], 0),
+                                    Counts = rep(1, sum(!blnNA)),
+                                    Predict = PredictMatGeneOL[!blnNA,],
+                                    a = x[1], b = x[2], c = x[3], d = x[3], N = 10^4,
+                                    SampleSize = L1TotData$SampleSize[!blnNA],
+                                    blnIns = L1TotData$blnIns[!blnNA], 
+                                    LogRegCoeff = LogRegL1Ref$coefficients,
+                                    DetectProb = L1TotData$DetectProb[!blnNA]),
+                                  grad = NULL,
+                                  ui = rbind(c(1, 0),  c(0, 1),   
+                                             c(-1, 0), c(0, -1)),
+                                  ci = c(a = -0.01, b = -10^(-2), 
+                                         a = -0.01, b = -10^(-2)),
+                                  method = "Nelder-Mead")
+cat("done!\n")
+
+
 # Get columns of AIC and parameter values
 Cols2Append <- t(sapply(list(ML_1Par, ML_L1Exon, ML_L1Intron, ML_L1Prom, 
                              ML_L1ExonOrIntron, 
                              ML_L1ExonIntron,
-                             ML_L1ExonIntronProm), 
+                             ML_L1ExonIntronProm,
+                             ML_L1PromOrIntron), 
                         function(x){
                                c(NrParameters = GetNPar(x), AIC = GetAIC(x), 
                                  Pars = GetParVals(x))
@@ -808,7 +815,8 @@ AICTabGene <- cbind(data.frame(
   Predictor = c("none", "Exon", "Intron", "Promoter",
                 "Exon or intron", 
                 "Exon and intron", 
-                "Exon, intron, and promoter"),
+                "Exon, intron, and promoter",
+                "Exon, intron or promoter"),
   stringsAsFactors = F),
   Cols2Append)
 
@@ -965,6 +973,8 @@ AICTabWithinGene <- cbind(data.frame(
   stringsAsFactors = F),
   Cols2Append)
 
+# Save table with AIC
+write.csv(AICTabWithinGene, SelectWithinGenTabOutPath)
 
 ###################################################
 #                                                 #
