@@ -36,6 +36,7 @@ SelectTabOutPath    <- "D:/L1polymORF/Data/L1SelectionResults_MELT.csv"
 SelectGenTabOutPath <- "D:/L1polymORF/Data/L1SelectionGeneResults_MELT.csv"
 SelectResultOutPath <- "D:/L1polymORF/Data/L1SelectionResults_MELT.RData"
 SelectWithinGenTabOutPath <- "D:/L1polymORF/Data/L1SelectionWithinGeneResults_MELT.csv"
+SelectSingletonTabOutPath <- "D:/L1polymORF/Data/L1SelectionSingletonResults_MELT.csv"
 
 # False discovery rate for selected L1
 FDR <- 0.1
@@ -792,17 +793,16 @@ ML_L1PromOrIntron <-  constrOptim(theta = c(a = ML_1Par$par,
                                     LogRegCoeff = LogRegL1Ref$coefficients,
                                     DetectProb = L1TotData$DetectProb[!blnNA]),
                                   grad = NULL,
-                                  ui = rbind(c(1, 0),  c(0, 1),   
-                                             c(-1, 0), c(0, -1)),
-                                  ci = c(a = -0.01, b = -10^(-2), 
-                                         a = -0.01, b = -10^(-2)),
+                                  ui = rbind(c(1, 0, 0),  c(0, 1, 0), c(0, 0, 1),   
+                                             c(-1, 0, 0), c(0, -1, 0) , c(0, 0, -1)),
+                                  ci = c(a = -0.01, b = -10^(-2), c = -10^(-2), 
+                                         a = -0.01, b = -10^(-2), c = -10^(-2)),
                                   method = "Nelder-Mead")
 cat("done!\n")
 
 
 # Get columns of AIC and parameter values
 Cols2Append <- t(sapply(list(ML_1Par, ML_L1Exon, ML_L1Intron, ML_L1Prom, 
-                             ML_L1ExonOrIntron, 
                              ML_L1ExonIntron,
                              ML_L1ExonIntronProm,
                              ML_L1PromOrIntron), 
@@ -813,7 +813,6 @@ Cols2Append <- t(sapply(list(ML_1Par, ML_L1Exon, ML_L1Intron, ML_L1Prom,
 # Combine AIC values into one vector
 AICTabGene <- cbind(data.frame(
   Predictor = c("none", "Exon", "Intron", "Promoter",
-                "Exon or intron", 
                 "Exon and intron", 
                 "Exon, intron, and promoter",
                 "Exon, intron or promoter"),
@@ -1024,6 +1023,21 @@ ML_2Pars_L1coef <- constrOptim(
          a = -0.01, b = -2*10^(-3)),
   method = "Nelder-Mead")
 cat("done!\n")
+
+# Get columns of AIC and parameter values
+Cols2Append <- t(sapply(list(ML_1Par_coef, ML_2Pars_L1coef), 
+                        function(x){
+                          c(NrParameters = GetNPar(x), AIC = GetAIC(x), 
+                            Pars = GetParVals(x))
+                        }))
+# Combine AIC values into one vector
+AICTabSingleton <- cbind(data.frame(
+  Predictor = c("none", "Signleton coefficient"),
+  stringsAsFactors = F),
+  Cols2Append)
+
+# Save table with AIC
+write.csv(AICTabSingleton, SelectSingletonTabOutPath)
 
 # Save everything
 save.image(SelectResultOutPath)

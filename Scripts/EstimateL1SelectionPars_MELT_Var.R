@@ -41,9 +41,9 @@ cat("done!\n")
 # Estimate maximum likelihood for three selection coefficient parameters 
 # and selection coefficient variance
 cat("Maximizing likelihood for three selection parameters and variance ...")
-ML_L1startL1full_Var <- constrOptim(theta = c(a = MML_1ParVar$par[1], 
-                                              c = ML_L1startL1full$par[2], 
-                                              d = ML_L1startL1full$par[3], 
+ML_L1startL1full_Var <- constrOptim(theta = c(a = ML_1ParVar$par[1], 
+                                              c = ML_L1widthL1full$par[2], 
+                                              d = ML_L1widthL1full$par[3], 
                                               SD = 0.9*10^-3),
                                 f = function(x) -AlleleFreqLogLik_4Par(
                                   Freqs = round(L1TotData$Freq[!blnNA], 0),
