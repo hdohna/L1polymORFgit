@@ -65,8 +65,9 @@ SVals <- seq(-0.0025, -0.00001, 0.00001)
 PInclFun <- function(s, N = 10^4, N1, Nnf, SampleSize){
   Pf1 <- ProbFix1(s, N = N) # Probability of fixation at 1
   Pf  <- N1 / (Pf1*Nnf + N1) # Probability of fixation
-  ProbL1 <- ProbAlleleIncluded(s, N = N, SampleSize = SampleSize) # Probability of inclusion | no fixation
-  (1 - Pf)*ProbL1 + Pf * Pf1
+  # Probability of inclusion | no fixation
+  ProbL1 <- ProbAlleleIncluded(s, N = N, SampleSize = SampleSize) 
+  (1 - Pf)*ProbL1 #+ Pf * Pf1
   
 }
 PIncl <- sapply(SVals, function(s) PInclFun(s, N1 = N1, Nnf = Nnf, SampleSize = SSize)) # Probability of fixation at 1
@@ -158,95 +159,17 @@ CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Start.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 7, width = 7)
 
-###################################################
-#                                                 #
-#   Fit effect of strandedness on selection       #
-#                                                 #
-###################################################
+###############################################################
+#                                                             #
+#   Plot expected and observed allele frequency distribution  #
+#                                                             #
+###############################################################
 
-# Create a matrix of predictor variables (L1 start and boolean variable for)
-PredictMatWithinGene <- L1_1000G[L1_1000G$blnOLGene, 
-                                 c( "blnOLGeneSameStrand", "blnOLGene", "blnOLGene")]
-
-# Estimate maximum likelihood for a single selection coefficient
-ML_1Par_gene <- constrOptim(theta = c(a = -0.0004),
-                            f = function(x) -AlleleFreqLogLik_4Par(
-                              Freqs = (L1_1000G$Frequency[L1_1000G$blnOLGene] * 2*2504),
-                              Counts = rep(1, sum(L1_1000G$blnOLGene)),
-                              Predict = PredictMatWithinGene,
-                              a = x[1], b = 0, c = 0, d = 0, N = 10^4,
-                              SampleSize = 2*2504),
-                            grad = NULL,
-                            ui = rbind(1,-1),
-                            ci = c(a = -0.01, a = -0.01),
-                            method = "Nelder-Mead")
-
-# Get maximum likelihood estimate for effect of exonic L1 on selection
-cat("Estimate effect of same strand overlap on selections ...")
-ML_L1SameStrand <-  constrOptim(theta = c(a = ML_1Par_gene$par, b = 0),
-                          f = function(x) -AlleleFreqLogLik_4Par(
-                            Freqs = (L1_1000G$Frequency[L1_1000G$blnOLGene] * 2*2504),
-                            Counts = rep(1, sum(L1_1000G$blnOLGene)),
-                            Predict = PredictMatWithinGene,
-                            a = x[1], b = x[2], c = 0, d = 0, N = 10^4,
-                            SampleSize = 2*2504),
-                          grad = NULL,
-                          ui = rbind(c(1, 0),  c(0, 1),   
-                                     c(-1, 0), c(0, -1)),
-                          ci = c(a = -0.01, b = -10^(-2), 
-                                 a = -0.01, b = -10^(-2)),
-                          method = "Nelder-Mead")
-cat("done!\n")
-
-# Get columns of AIC and parameter values
-Cols2Append <- t(sapply(list(ML_1Par_gene, ML_L1SameStrand), 
-                        function(x){
-                          c(NrParameters = GetNPar(x), AIC = GetAIC(x), 
-                            Pars = GetParVals(x))
-                        }))
-# Combine AIC values into one vector
-AICTabWithinGene <- cbind(data.frame(
-  Predictor = c("none", "SameStrand"),
-  stringsAsFactors = F),
-  Cols2Append)
+# Create a matrix of predictor variables (L1 width and boolean variable for
+# for full-length L1)
+XMat <- as.matrix(cbind(1, L1TotData[, c("L1width", "blnFull")]))
+blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(XMat[x,])))
 
 
-###################################################
-#                                                 #
-#   Fit effect of singleton coef. on selection    #
-#                                                 #
-###################################################
+sVals <- XMat %*% ML_L1widthL1full$par
 
-# Create a matrix of predictor variables 
-PredictMat <- L1SingletonCoeffs[, c("coef", "L1Start", "L1Start")]
-blnNA <- sapply(1:nrow(L1SingletonCoeffs), function(x) any(is.na(PredictMat[x,])))
-
-# Determine maximum likelihood with one parameter (selection coefficient)
-cat("Maximizing likelihood for one parameter (selection coefficient) ...")
-ML_1Par_coef <- optim(par = c(a = ML_1Par$par),
-                      fn = function(x) -AlleleFreqLogLik_4Par(
-                        Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
-                        Counts = rep(1, sum(!blnNA)), 
-                        Predict = PredictMat[!blnNA,], 
-                        a = x, b = 0, c = 0, d = 0, N = 10^4, 
-                        SampleSize = 2*2504),
-                      lower = -0.01, upper = 0.01,
-                      method = "L-BFGS-B")
-ML_2Pars_L1coef <- constrOptim(
-  theta = c(a = ML_1Par_coef$par, b = 0),
-  f = function(x) -AlleleFreqLogLik_4Par(
-    Freqs = (L1SingletonCoeffs$Freq * 2*2504)[!blnNA], 
-    Counts = rep(1, sum(!blnNA)), 
-    Predict = PredictMat[!blnNA,], 
-    a = x[1], b = x[2], c = 0, d = 0, N = 10^4, 
-    SampleSize = 2*2504),
-  grad = NULL,
-  ui = rbind(c(1, 0),  c(0, 1),  
-             c(-1, 0), c(0, -1)),
-  ci = c(a = -0.01, b = -2*10^(-3), 
-         a = -0.01, b = -2*10^(-3)),
-  method = "Nelder-Mead")
-cat("done!\n")
-
-# Save everything
-save.image(SelectResultOutPath)
