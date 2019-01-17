@@ -36,6 +36,10 @@ PosCharGR <- paste(as.character(seqnames(L1GRangesAll)),
 PosMatch <- match(PosCharGR, PosCharTable)
 L1Table <- L1Table[PosMatch, ]
 
+# Subset GRanges to get only L1PA 
+blnL1PA <- substr(L1Table$repName, 1, 4) == "L1PA"
+L1GRanges_L1PA <- L1GRangesAll[blnL1PA]
+
 # Get file names, loop over files and do the filtering
 AllFiles <- list.files(DataFolder, pattern = "_L1NoPoly_DelDupInv", 
                        full.names = T)
@@ -165,14 +169,21 @@ Deltas         <- c(L1Width[L1WidthOrder[1]],
 DeltasSqProd   <- 10^-10*Deltas^2 * (L1WidthOrder - 1)
 Rev            <- length(L1GRangesAll):1
 L1WidthProd    <- cumsum(DeltasSqProd[Rev])[Rev]
-L1WidthProd[1:5]
-plot(L1WidthProd[seq(1, length(L1WidthProd), 1000)])
 RecPredict     <- L1WidthProd[OrderMatch]
-max(RecPredict)
-hist(RecPredict)
-# RecPredict2 <- sapply(L1Width, function(x){
-#   sum(L1Width[L1Width <= x])
-# })
+
+# Create a predictor variable for involvement in ectopic recombination
+# for L1PA only
+L1Width_L1PA        <- width(L1GRanges_L1PA)
+L1Width_L1PA[L1Width_L1PA >= 4500] <- 4500
+L1Width_L1PAOrder   <- order(L1Width_L1PA, decreasing = T)
+OrderMatch     <- match(1:length(L1GRanges_L1PA), L1Width_L1PAOrder)
+Deltas         <- c(L1Width_L1PA[L1Width_L1PAOrder[1]], 
+                    L1Width_L1PA[L1Width_L1PAOrder[-length(L1Width_L1PA)]] - 
+                      L1Width_L1PA[L1Width_L1PAOrder[-1]])
+DeltasSqProd   <- 10^-10*Deltas^2 * (L1Width_L1PAOrder - 1)
+Rev            <- length(L1GRanges_L1PA):1
+L1Width_L1PAProd    <- cumsum(DeltasSqProd[Rev])[Rev]
+RecPredict_L1PA     <- L1Width_L1PAProd[OrderMatch]
 
 # Get indicator for L1s that overlap with either end of the CNV
 # blnOL   <- overlapsAny(L1NoPolyGR, StartGR) | overlapsAny(L1NoPolyGR, EndGR)
@@ -195,11 +206,13 @@ pbinom(sum(blnOL_Both), length(StartGR), PropOLStart*PropOLEnd)
 
 # Read in file and create GRanges
 # RecData <- read.delim("D:/L1polymORF/Data/hg19deCodeRecomb.txt")
-RecData <- read.delim("D:/L1polymORF/Data/hg19RecombRate.txt", stringsAsFactors = F)
+RecData <- read.delim("D:/L1polymORF/Data/hg19RecombRate.txt", 
+                      stringsAsFactors = F)
 RecData$chrom <- substr(RecData$chrom, 4, nchar(RecData$chrom))
 Rec_GR <- makeGRangesFromDataFrame(RecData)
 
 # Find overlaps to catalog L1 and create a vector of recombination values
+cat("Calculating recombination rate per L1")
 RecL1CatOverlaps <- findOverlaps(L1GRangesAll, Rec_GR)
 MeanRec         <- aggregate(RecData$decodeAvg[RecL1CatOverlaps@to], 
                              by = list(RecL1CatOverlaps@from) , FUN = mean) 
@@ -208,6 +221,8 @@ MeanRecPerL1[MeanRec$Group.1] <- MeanRec$x
 
 # Create a vector of L1 width classes
 L1widthClass <- cut(width(L1GRangesAll), breaks = 
+                      seq(0, 6250, 250))
+L1widthClass_L1PA <- cut(width(L1GRanges_L1PA), breaks = 
                       seq(0, 6250, 250))
 
 # Get mean L1 overlap with deletion per width class
@@ -235,12 +250,33 @@ L1widthAggregated_n <- aggregate(data.frame(L1Width = width(L1GRangesAll),
                                               OLCount3 = OLCount3), 
                                    by = list(L1widthClass), 
                                    FUN = length)
-LM2 <- lm(OLCount2 ~ L1Width, data = L1widthAggregated)
-LM3 <- lm(OLCount3 ~ L1Width, data = L1widthAggregated)
-LM3$coefficients
+L1widthAgg_L1PA <- aggregate(data.frame(L1Width = width(L1GRanges_L1PA), 
+                                          blnOL = blnOL[blnL1PA],
+                                          blnOLBoth = blnOLBoth[blnL1PA],
+                                          OLCount = OLCount[blnL1PA],
+                                          OLCount2 = OLCount2[blnL1PA],
+                                          OLCount3 = OLCount3[blnL1PA]), 
+                               by = list(L1widthClass_L1PA), 
+                               FUN = mean)
+L1widthAgg_L1PA_var <- aggregate(data.frame(L1Width = width(L1GRanges_L1PA), 
+                                            blnOL = blnOL[blnL1PA],
+                                            blnOLBoth = blnOLBoth[blnL1PA],
+                                            OLCount = OLCount[blnL1PA],
+                                            OLCount2 = OLCount2[blnL1PA],
+                                            OLCount3 = OLCount3[blnL1PA]), 
+                                 by = list(L1widthClass_L1PA), 
+                                   FUN = var)
+L1widthAgg_L1PA_n <- aggregate(data.frame(L1Width = width(L1GRanges_L1PA), 
+                                            blnOL = blnOL[blnL1PA],
+                                            blnOLBoth = blnOLBoth[blnL1PA],
+                                            OLCount = OLCount[blnL1PA],
+                                            OLCount2 = OLCount2[blnL1PA],
+                                            OLCount3 = OLCount3[blnL1PA]), 
+                                 by = list(L1widthClass_L1PA), 
+                                 FUN = length)
 
 # Check whether probability of overlap depends on end and full-length indicator
-blnFull <- width(L1GRangesAll)  >= 5000
+blnFull <- width(L1GRangesAll)  >= 4700
 GLM_OL <- glm(OLCount ~ width(L1GRangesAll) + blnFull, family = poisson("identity"))
 summary(GLM_OL)
 GLM_OL_log <- glm(OLCount ~ log(width(L1GRangesAll)) + blnFull, family = poisson)
@@ -266,10 +302,22 @@ GLM_OL3_pred <- glm(OLCount3 ~ log(RecPredict + 10^-10) + blnFull,
                     family = poisson,
                    start = c(1.4, 1, -5))
 summary(GLM_OL3_pred)
-sort(RecPredict)[1:1000]
+# GLM_OL3_pred_ident <- glm(OLCount3 ~ RecPredict +  MeanRecPerL1,
+#                           family = poisson("identity"),
+#                           start = c(10^-5, 1.4, 0))
+GLM_OL3_pred_ident <- glm(OLCount3 ~ 0 + RecPredict + blnFull,
+                          family = poisson("identity"),
+                          start = c(10^-5, 1.4, 0))
+summary(GLM_OL3_pred_ident)
+GLM_OL3_pred_ident_L1PA <- glm(OLCount3[blnL1PA] ~ RecPredict_L1PA,
+                    family = poisson("identity"),
+                    start = c(10^-5, 1.4))
+blnNARec <- is.na(MeanRecPerL1)
 
 # Get order of L1 width
 WidthOrder <- order(width(L1GRangesAll))
+WidthOrderRec <- order(width(L1GRangesAll)[!blnNARec])
+WidthOrder_L1PA <- order(width(L1GRanges_L1PA))
 
 plot(L1widthAggregated$L1Width, L1widthAggregated$OLCount, xlab = "L1 length",
      ylab = "Proportion of deletions with end in L1", ylim = c(0, 0.14))
@@ -292,11 +340,30 @@ AddErrorBars(MidX = L1widthAggregated$L1Width,
              TipWidth = 20)
 lines(width(L1GRangesAll)[WidthOrder], GLM_OL3_pred$fitted.values[WidthOrder],
       col = "red")
+lines(width(L1GRangesAll)[WidthOrder], 
+      GLM_OL3_pred_ident$fitted.values[WidthOrder], col = "red")
+# lines(width(L1GRangesAll)[!blnNARec][WidthOrderRec], 
+#       GLM_OL3_pred_ident$fitted.values[WidthOrderRec], col = "red")
+length(GLM_OL3_pred_ident$fitted.values)
+length(L1GRangesAll)
 # lines(width(L1GRangesAll)[WidthOrder], 1.4*RecPredict[WidthOrder],
 #       col = "red")
 # lines(width(L1GRangesAll)[WidthOrder], GLM_OL3_lin$fitted.values[WidthOrder],
 #       col = "red")
 lines(width(L1GRangesAll)[WidthOrder], GLM_OL3_log$fitted.values[WidthOrder])
+
+# Plot mean deletions per L1 size class for L1PA
+plot(L1widthAgg_L1PA$L1Width, L1widthAgg_L1PA$OLCount3, 
+     xlab = "L1 length", ylab = "Deletions per L1",
+     ylim = c(0, 0.06))
+AddErrorBars(MidX = L1widthAgg_L1PA$L1Width, 
+             MidY = L1widthAgg_L1PA$OLCount3, 
+             ErrorRange = sqrt(L1widthAgg_L1PA_var$OLCount3 /
+                                 L1widthAgg_L1PA_n$OLCount3),
+             TipWidth = 20)
+lines(width(L1GRanges_L1PA)[WidthOrder_L1PA], 
+      GLM_OL3_pred_ident_L1PA$fitted.values[WidthOrder_L1PA],
+      col = "red")
 
 # Sample regression coefficients
 NrSamples <- 1000
