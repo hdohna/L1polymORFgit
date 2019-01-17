@@ -132,32 +132,40 @@ CreateDisplayPdf('D:/L1polymORF/Figures/SelectionPerRegion_MELT.pdf',
 ###################################################
 
 # Create a vector of L1 start classes
-L1_1000G$L1StartNumClass <- cut(L1_1000G$L1StartNum, breaks = 
-                                  seq(0, 6100, 500))
-L1_1000G$Frequency
+L1_1000G$InsLengthClass <- cut(L1_1000G$InsLength, breaks = 
+                                  seq(0, 6500, 500))
 
 # Get mean L1 frequency per start
-L1StartAggregated <- aggregate(L1_1000G[,c("L1StartNum", "Frequency")], 
-                               by = list(L1_1000G$L1StartNumClass), FUN = mean)
+L1WidthAggregated <- aggregate(L1_1000G[,c("InsLength", "Frequency")], 
+                               by = list(L1_1000G$InsLengthClass), FUN = mean)
+L1WidthAggregated_var <- aggregate(L1_1000G[,c("InsLength", "Frequency")], 
+                               by = list(L1_1000G$InsLengthClass), FUN = var)
+L1WidthAggregated_n <- aggregate(L1_1000G[,c("InsLength", "Frequency")], 
+                                   by = list(L1_1000G$InsLengthClass), FUN = length)
 
 # Get sample size and create a range of s-values
 SSize <- 2*2504
-StartVals  <- seq(0, 6000, 100)
-Full       <- StartVals == 0
-SVals <- ML_L1startL1full$par[1] + ML_L1startL1full$par[2]*StartVals +
-  ML_L1startL1full$par[3]*Full
+StartVals  <- seq(0, 6100, 10)
+Full       <- StartVals >= 6000
+SVals <- ML_L1widthL1full$par[1] + ML_L1widthL1full$par[2]*StartVals +
+  ML_L1widthL1full$par[3]*Full
 
 # Plot expected frequency versus observed mean frequency
-ExpL1Start <- sapply(SVals, function(x) ExpAlleleFreq(x, N = 10^4, SampleSize = 2*2504))
+ExpL1Width <- sapply(SVals, function(x) ExpAlleleFreq(x, N = 10^4, 
+                                                      SampleSize = 2*2504))
 par( mfrow = c(1, 1))
-plot(L1StartAggregated$L1StartNum, 
-     L1StartAggregated$Frequency * SSize, xlab = "5' start of LINE-1",
-     ylab = "Mean LINE-1 frequency")
-lines(StartVals, ExpL1Start)
-mtext("Selection coefficient", 1, line = 3)
-CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Start.pdf',
+plot(L1WidthAggregated$InsLength, 
+     L1WidthAggregated$Frequency, xlab = "LINE-1 length [bp]",
+     ylab = "Mean LINE-1 frequency", ylim = c(0, 0.05))
+AddErrorBars(MidX = L1WidthAggregated$InsLength, 
+             MidY = L1WidthAggregated$Frequency, 
+             ErrorRange = sqrt(L1WidthAggregated_var$Frequency /
+                                 L1WidthAggregated_n$Frequency),
+             TipWidth = 20)
+lines(StartVals, ExpL1Width)
+CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
-                 height = 7, width = 7)
+                 height = 5, width = 5)
 
 ###############################################################
 #                                                             #
