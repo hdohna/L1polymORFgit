@@ -319,6 +319,10 @@ WidthOrder <- order(width(L1GRangesAll))
 WidthOrderRec <- order(width(L1GRangesAll)[!blnNARec])
 WidthOrder_L1PA <- order(width(L1GRanges_L1PA))
 
+# Get a smoothed curve through deletions as function of Length
+DelVsL1Length <- supsmu(x = width(L1GRangesAll), y = OLCount3)
+save(list = "DelVsL1Length", file = "D:/L1polymORF/Data/DelVsL1Length.RData")
+xOrder <- order(DelVsL1Length$x)
 plot(L1widthAggregated$L1Width, L1widthAggregated$OLCount, xlab = "L1 length",
      ylab = "Proportion of deletions with end in L1", ylim = c(0, 0.14))
 lines(width(L1GRangesAll)[WidthOrder], GLM_OL$fitted.values[WidthOrder])
@@ -338,6 +342,7 @@ AddErrorBars(MidX = L1widthAggregated$L1Width,
              ErrorRange = sqrt(L1widthAggregated_var$OLCount3 /
                                  L1widthAggregated_n$OLCount3),
              TipWidth = 20)
+lines(DelVsL1Length$x[xOrder], DelVsL1Length$y[xOrder])
 lines(width(L1GRangesAll)[WidthOrder], GLM_OL3_pred$fitted.values[WidthOrder],
       col = "red")
 lines(width(L1GRangesAll)[WidthOrder], 
