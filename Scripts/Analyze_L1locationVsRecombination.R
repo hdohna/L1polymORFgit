@@ -38,6 +38,8 @@ MaxFragLength <- 5900
 #                                    #
 ######################################
 
+load(L1GRanges1000GenomesPath)
+
 # Read repeat table and subset to get only L1HS rows with fragment size below 
 # MaxFragLength
 RepeatTable      <- read.csv("D:/L1polymORF/Data/repeatsHg38_L1HS.csv")

@@ -139,11 +139,11 @@ DistCat2_1000G <- Dist2Closest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
 
 # Get indices of 1000 Genome and catalog elements that match
 idx1000G <- nearest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
-L1CatalogMatch1000G <- L1CatalogL1Mapped[DistCat2_1000G < 100, ]
-L1CatalogGRMatch1000G <- L1CatalogGR[DistCat2_1000G < 100]
-L1CatalogGRMatch1000G_hg19 <- L1CatalogGR_hg19[DistCat2_1000G < 100]
-L1CatalogMatch1000G$Dist2Gene <- DistCat2_1000G[DistCat2_1000G < 100]
-idx1000GMatchCat    <- idx1000G[DistCat2_1000G < 100]
+L1CatalogMatch1000G   <- L1CatalogL1Mapped[which(DistCat2_1000G < 100), ]
+L1CatalogGRMatch1000G <- L1CatalogGR[which(DistCat2_1000G < 100)]
+L1CatalogGRMatch1000G_hg19 <- L1CatalogGR_hg19[which(DistCat2_1000G < 100)]
+L1CatalogMatch1000G$Dist2Gene <- DistCat2_1000G[which(DistCat2_1000G < 100)]
+idx1000GMatchCat    <- idx1000G[which(DistCat2_1000G < 100)]
 
 # Get rows of L1_1000G table that can be matched to catalog
 L1_1000G_match <- L1_1000G_reduced[idx1000GMatchCat, ]
@@ -367,6 +367,7 @@ L1DistGene_1000GFragm     <- Dist2Closest(GRL1Ins1000G_Fragm, GRgenes_hg19)
 #  Calculate distances to domain boundaries, catalog L1
 ##########
 
+cat("Processing TAD data \n")
 # List of files with domains and loops
 DomainFiles <- list.files("D:/L1polymORF/Data/HiCData/", pattern = "domainlist.txt",
                           full.names = T)
@@ -402,27 +403,27 @@ DomainDist0 <- sapply(DomainDistList, function(x) {
   c(nrFragm = length(x$DistFragm),
     nrCatRef = length(x$DistCatRef),
     nrRefnotCat = length(x$DistRefnotCat),
-    prop0Fragm = mean(x$DistFragm == 0),
-    prop0CatRef = mean(x$DistCatRef == 0),
-    prop0RefnotCat = mean(x$DistRefnotCat == 0),
-    sum0Fragm = sum(x$DistFragm == 0),
-    sum0CatRef = sum(x$DistCatRef == 0),
-    sum0RefnotCat = sum(x$DistRefnotCat == 0))
+    prop0Fragm = mean(x$DistFragm == 0, na.rm = T),
+    prop0CatRef = mean(x$DistCatRef == 0, na.rm = T),
+    prop0RefnotCat = mean(x$DistRefnotCat == 0, na.rm = T),
+    sum0Fragm = sum(x$DistFragm == 0, na.rm = T),
+    sum0CatRef = sum(x$DistCatRef == 0, na.rm = T),
+    sum0RefnotCat = sum(x$DistRefnotCat == 0, na.rm = T))
 })
 LoopDist0 <- sapply(LoopDistList, function(x) {
   c(nrFragm = length(x$DistFragm),
     nrCatRef = length(x$DistCatRef),
     nrRefnotCat = length(x$DistRefnotCat),
-    prop0Fragm = mean(x$DistFragm == 0),
-    prop0CatRef = mean(x$DistCatRef == 0),
-    prop0RefnotCat = mean(x$DistRefnotCat == 0),
-    sum0Fragm = sum(x$DistFragm == 0),
-    sum0CatRef = sum(x$DistCatRef == 0),
+    prop0Fragm = mean(x$DistFragm == 0, na.rm = T),
+    prop0CatRef = mean(x$DistCatRef == 0, na.rm = T),
+    prop0RefnotCat = mean(x$DistRefnotCat == 0, na.rm = T),
+    sum0Fragm = sum(x$DistFragm == 0, na.rm = T),
+    sum0CatRef = sum(x$DistCatRef == 0, na.rm = T),
     sum0RefnotCat = sum(x$DistRefnotCat == 0))
 })
 
 # Probability of observed number of catalog intersections given the proportion
-# of fragment interesections
+# of fragment intersections
 apply(LoopDist0, 2, FUN = function(x){
   pbinom(x["sum0CatRef"] - 1, x["nrCatRef"], x["prop0Fragm"])
 })
@@ -516,6 +517,10 @@ QQDistPlot <- function(FragmDist, Dist1, Dist2 = NULL, Dist3 = NULL,
                        Title = "", blnAxLab = T,
                        XLim = NULL, YLim = NULL,
                        Plot = T){
+  FragmDist <- FragmDist[!is.na(FragmDist)]
+  Dist1     <- Dist1[!is.na(Dist1)]
+  Dist2     <- Dist2[!is.na(Dist2)]
+  Dist3     <- Dist3[!is.na(Dist3)]
   QSampled <- SampleQuantiles(c(FragmDist, Dist1), length(Dist1),
                               QuantV = QuantV, NrSamples = NrSamples)
   QSMat <- QSampled$QMat
@@ -553,7 +558,7 @@ QSamplesDomain <- sapply (1:length(DomainDistList), function(i){
   QQDistPlot(x$DistFragm, x$DistCatRef, x$DistRefnotCat, 
              Title = names(DomainDistList)[i])
 })
-names(QSamplesDomain) <- names(DomainDistList)
+colnames(QSamplesDomain) <- names(DomainDistList)
 mtext("Distance fragment L1 to domain", side = 1, line = 1, outer = T)
 mtext("Distance full-length L1 to domain", side = 2, line = 1, outer = T)
 #CreateDisplayPdf('D:/L1polymORF/Figures/L1DomainDistQQ.pdf')
@@ -567,22 +572,21 @@ QSamplesDomain_1000G <- sapply (1:length(DomainDistList_1000G), function(i){
   QQDistPlot(x$DistFragm, x$DistFullHigh, x$DistFullLow, 
              Title = names(DomainDistList_1000G)[i])
 })
-names(QSamplesDomain_1000G) <- names(DomainDistList_1000G)
+colnames(QSamplesDomain_1000G) <- names(DomainDistList_1000G)
 mtext("Distance fragment L1 to domain", side = 1, line = 1, outer = T)
 mtext("Distance full-length L1 to domain", side = 2, line = 1, outer = T)
 #CreateDisplayPdf('D:/L1polymORF/Figures/L1DomainDistQQ_1000G.pdf')
 CreateDisplayPdf('D:/L1polymORF/Figures/L1DomainDistQQ_1000G.pdf', 
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
 
-plot(QSamplesDomain, QSamplesDomain_1000G)
-
+# Plot 
 par(mfrow = c(3, 3)) 
 QSamplesLoop <- sapply (1:length(LoopDistList), function(i){
     x <- LoopDistList[[i]] 
   QQDistPlot(x$DistFragm, x$DistCatRef, x$DistRefnotCat, 
              Title = names(DomainDistList)[i])
 })
-names(QSamplesLoop) <- names(LoopDistList)
+colnames(QSamplesLoop) <- names(LoopDistList)
 mtext("Distance fragment L1 to loop borders", side = 1, line = 1, outer = T)
 mtext("Distance full-length L1 to loop borders", side = 2, line = 1, outer = T)
 #CreateDisplayPdf('D:/L1polymORF/Figures/L1LoopDistQQ.pdf')
@@ -591,7 +595,7 @@ CreateDisplayPdf('D:/L1polymORF/Figures/L1LoopDistQQ.pdf',
 write.csv(QSamplesLoop, "D:/L1polymORF/Manuscript_InsertionLocation/LoopDistP.csv")
 
 par(mfrow = c(1, 1))
-plot(QSamplesLoop, QSamplesDomain)
+plot(QSamplesLoop[1,], QSamplesDomain[1,])
 
 # Plot quantiles against each other for distance to genes and distance to domains
 par(mfrow = c(2, 2), mar = c(3, 2, 2, 0.5), oma = c(2, 2.5, 1, 1))
@@ -690,6 +694,10 @@ LM <- lm(log(FreqActCombined$Allele_frequencyNum + 10^(-3)) ~ FreqActCombined$Ac
 summary(LM)
 L1CatalogGRMatch1000G_hg19
 
+# 
+Dist2Closest(L1CatalogGRMatch1000G_hg19, LoopGR_Intersect)
+
+
 # Do the same for distance to loops
 L1DistLoopIntersect_1000Gmatch <- Dist2Closest(L1CatalogGRMatch1000G_hg19, LoopGR_Intersect)
 DistCombined <- c(L1DistLoopIntersect_1000Gmatch, L1DistLoopIntersect_Cat[blnNotMatched])
@@ -765,6 +773,8 @@ plot(MidPoints, FreqPerDist$x)
 L1DistLoop_1000GFull      <- Dist2Closest(GRL1Ins1000G_Full, LoopGR_Intersect)
 cor.test(L1DistLoop_1000GFull,GRL1Ins1000G_Full@elementMetadata@listData$Frequency,
          method = "kendall")
+cor.test(L1DistLoop_1000GFull,GRL1Ins1000G_Full@elementMetadata@listData$Frequency,
+         method = "spearman")
 
 ##############################
 #                            #

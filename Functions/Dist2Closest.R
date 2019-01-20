@@ -18,12 +18,14 @@
 ##############################################
 
 Dist2Closest <- function(GR1, GR2){
-  DistObj <- distanceToNearest(GR1, GR2, ignore.strand = T) 
+  DistObj <- distanceToNearest(GR1, GR2, ignore.strand = T, select="all") 
   Dists <- DistObj@elementMetadata@listData$distance
   
   # Return a warning message if not all GR1s received a distance
   if (length(Dists) != length(GR1)) {
-    warning("Not the same number of distances as input ranges!\n")
+    Dists <- rep(NA, length(GR1))
+    Dists[DistObj@from] <- DistObj@elementMetadata@listData$distance
+    warning(sum(is.na(Dists)), " elements of GR1 do not have a distance!\n")
   }
   Dists
 }
