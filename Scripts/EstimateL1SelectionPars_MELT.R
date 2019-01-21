@@ -45,7 +45,7 @@ FDR <- 0.1
 RangeWidth <- 10^6
 
 # Minimum length for a full L1
-MinLengthFullL1 <- 6000
+MinLengthFullL1 <- 5900
 
 # Sample size for ME insertion calls
 MEInsSamplesize <- 2453
@@ -123,6 +123,7 @@ load(L1GRPath)
 load(ChrLPath)
 load(L1RefRangePath)
 load(RegrOutputPath)
+load("D:/L1polymORF/Data/DelVsL1Length.RData")
 
 # Create genomic ranges of reference L1 with 100 bp added on each side
 L1NeighborRanges <- GRanges(seqnames = seqnames(L1GRanges), 
@@ -164,6 +165,29 @@ LogRegL1Ref$coefficients
 
 # Combine genomic ranges
 L1TotGR <- c(MEIns_GR, L1GRanges)
+
+# Create a predictor variable for involvement in ectopic recombination
+# L1Width      <- width(L1TotGR)
+# hist(L1Width, breaks = seq(0, 6500, 100))
+idxWidth <- which(!is.na(L1TotData$L1width))
+L1TotData$RecPredict <- NA
+L1TotData$RecPredict[idxWidth] <- 150000*sapply(L1TotData$L1width[idxWidth], function(x){
+  idxMatch <- which.min(abs(x - DelVsL1Length$x))
+  DelVsL1Length$y[idxMatch]
+})
+
+L1Width <- L1TotData$L1width[idxWidth]                             
+L1Width[L1Width >= 4500] <- 4500
+L1WidthOrder <- order(L1Width, decreasing = T)
+OrderMatch   <- match(1:length(idxWidth), L1WidthOrder)
+Deltas       <- c(L1Width[L1WidthOrder[-length(L1Width)]] - L1Width[L1WidthOrder[-1]],
+                  L1Width[L1WidthOrder[length(L1Width)]])
+DeltasSqProd <- 10^-7*Deltas^2 * (L1WidthOrder - 1)
+Rev          <- length(idxWidth):1
+L1WidthProd  <- cumsum(DeltasSqProd[Rev])[Rev]
+L1TotData$RecPredict[idxWidth]  <- L1WidthProd[OrderMatch]
+max(L1TotData$RecPredict[idxWidth])
+plot(L1TotData$L1width, L1TotData$RecPredict)
 
 # Number of L1 that are not fixed
 Nnf <- nrow(L1TotData)
@@ -395,12 +419,13 @@ L1TotData$Dist2Nearest <- Dist2Nearest@elementMetadata@listData$distance
 max(L1TotData$Dist2Nearest)
 
 # Create a matrix of predictor variables (L1 start and boolean variable for)
-PredictMat <- L1TotData[, c("L1Count", "L1width", "blnFull", "Freq", "SampleSize",
-                            "blnIns")]
+PredictMat <- L1TotData[, c("L1Count", "L1width", "blnFull", "RecPredict", 
+                            "Freq", "SampleSize", "blnIns")]
+                        
 blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
 sum(!blnNA)
 max(L1TotData$Freq / L1TotData$SampleSize, na.rm = T)
-
+max(PredictMat$RecPredict)
 # Plot log-likelihood for different selection coefficients
 # aVals <- seq(-0.0021, 0.003, 0.0001)
 # LikVals <- sapply(aVals, function(x) {
@@ -498,6 +523,28 @@ ML_L1widthL1full <- constrOptim(theta = c(a = ML_L1width$par[1], b = ML_L1width$
                   ci = c(a = -0.01, b = -10^(-6), d = -10^(-3), 
                          a = -0.02, b = -10^(-6), d = -10^(-3)),
                   method = "Nelder-Mead")
+cat("done!\n")
+
+# Determine maximum likelihood with 3 parameters (selection coefficient as 
+# function of Recombination predictor and indicator for full-length)
+cat("Maximizing likelihood for three parameters ...")
+ML_L1RecL1full <- constrOptim(theta = c(a = ML_L1widthL1full$par[1],  
+                                          c = ML_L1widthL1full$par[3], d = ML_L1widthL1full$par[2]),
+                                f = function(x) -AlleleFreqLogLik_4Par(
+                                  Freqs = round(L1TotData$Freq[!blnNA], 0),
+                                  Counts = rep(1, sum(!blnNA)),
+                                  Predict = PredictMat[!blnNA, 2:4],
+                                  a = x[1], b = 0, c = x[2], d = x[3], N = 10^4, 
+                                  SampleSize = L1TotData$SampleSize[!blnNA],
+                                  blnIns = L1TotData$blnIns[!blnNA], 
+                                  LogRegCoeff = LogRegL1Ref$coefficients,
+                                  DetectProb = L1TotData$DetectProb[!blnNA]),
+                                grad = NULL,
+                                ui = rbind(c(1, 0, 0),  c(0, 1, 0),  c(0, 0, 1), 
+                                           c(-1, 0, 0), c(0, -1, 0), c(0, 0, -1)),
+                                ci = c(a = -0.01, b = -10^(-3), d = -10^(-6), 
+                                       a = -0.02, b = -10^(-3), d = -10^(-6)),
+                                method = "Nelder-Mead")
 cat("done!\n")
 
 
