@@ -11,7 +11,6 @@
 # Load packages
 library(ape)
 library(seqinr)
-library(BSgenome.Hsapiens.UCSC.hg38)
 library(TxDb.Hsapiens.UCSC.hg38.knownGene)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(ShortRead)

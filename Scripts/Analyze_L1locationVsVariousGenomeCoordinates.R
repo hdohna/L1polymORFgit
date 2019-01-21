@@ -11,11 +11,11 @@
 # Load packages
 library(ape)
 library(seqinr)
-library(BSgenome.Hsapiens.UCSC.hg38)
 library(TxDb.Hsapiens.UCSC.hg38.knownGene)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(ShortRead)
 library(csaw)
+library(rtracklayer)
 
 # Source start script
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.r')
@@ -712,10 +712,10 @@ DistObj <- distanceToNearest(GR1, GR2, ignore.strand = T)
 Dists <- DistObj@elementMetadata@listData$distance
 idxDist <- DistObj@from
 
-DistCombined <- c(Dists, L1DistDomainIntersect_Cat[blnNotMatched])
-LM <- lm(log(FreqActCombined$Allele_frequencyNum[-27] + 10^(-4)) ~ FreqActCombined$ActivityNum[-27] + 
-           DistCombined)
-summary(LM)
+# DistCombined <- c(Dists, L1DistDomainIntersect_Cat[blnNotMatched])
+# LM <- lm(log(FreqActCombined$Allele_frequencyNum[-27] + 10^(-4)) ~ FreqActCombined$ActivityNum[-27] + 
+#            DistCombined[-27])
+# summary(LM)
 length(DistCombined)
 
 # Perform regression to determine whether distance to closest gene depends on
@@ -820,6 +820,3 @@ mtext("Distance from full-length L1 [Mb]", side = 2, line = 1, outer = T)
 CreateDisplayPdf('D:/L1polymORF/Figures/L1GeneLoopDistQQ_Catalog.pdf', 
       PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
       height = 5)
-
-qqGD <- QQDistPlot(L1DistGene_FullnotCat, L1DistGene_CatRef)
-qqGD$Pvalue
