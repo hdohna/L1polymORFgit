@@ -652,6 +652,8 @@ blnPos <- as.vector(strand(L1CatalogGR_Ref_hg19)) == "+"
 StartDiff[blnPos]
 EndDiff[!blnPos]
 
+
+
 ##################################
 #                                #
 #    Other tests                 #
@@ -733,16 +735,42 @@ QQDistPlot(L1DistGene_1000GFragm, L1DistGene_1000GFull,
            yLab = "Distance from full-length L1")
 
 # Create quantile plots for loop intersction and union distances
-QQDistPlot(L1DistLoopIntersect_Fragm, L1DistLoopIntersect_CatRef, L1DistLoopIntersect_FullnotCat)
-QQDistPlot(L1DistLoopUnion_Fragm, L1DistLoopUnion_CatRef)
-QQDistPlot(L1DistDomainIntersect_Fragm, L1DistDomainIntersect_CatRef)
-QQDistPlot(L1DistDomainUnion_Fragm, L1DistDomainUnion_CatRef)
+QQDistLoopIntersect       <- QQDistPlot(L1DistLoopIntersect_Fragm, 
+                                 L1DistLoopIntersect_CatRef, 
+                                 L1DistLoopIntersect_FullnotCat)
+QQDistLoopUnion           <- QQDistPlot(L1DistLoopUnion_Fragm, 
+                                  L1DistLoopUnion_CatRef)
+QQDistDomainIntersect <- QQDistPlot(L1DistDomainIntersect_Fragm, 
+                                        L1DistDomainIntersect_CatRef)
+QQDistDomainUnion     <- QQDistPlot(L1DistDomainUnion_Fragm, 
+                                        L1DistDomainUnion_CatRef)
 
-sum(L1DistLoopIntersect_Cat == 0)/length(L1DistLoopIntersect_Cat)
-sum(L1DistLoopIntersect_Fragm == 0)/length(L1DistLoopIntersect_Fragm)
+sum(L1DistLoopIntersect_Cat == 0, na.rm = T)/length(L1DistLoopIntersect_Cat)
+sum(L1DistLoopIntersect_Fragm == 0, na.rm = T)/length(L1DistLoopIntersect_Fragm)
 
-sum(L1DistDomainIntersect_CatRef == 0)/length(L1DistDomainIntersect_CatRef)
-sum(L1DistDomainIntersect_Fragm == 0)/length(L1DistDomainIntersect_Fragm)
+sum(L1DistDomainIntersect_CatRef == 0, na.rm = T)/sum(!is.na(L1DistDomainIntersect_CatRef))
+sum(L1DistDomainIntersect_Fragm == 0, na.rm = T)/sum(!is.na(L1DistDomainIntersect_Fragm))
+
+# Combine p-values and adjust for multiple testing
+PLoops <- unlist(c(QSamplesLoop["Pvalue",], 
+                  QQDistLoopUnion$Pvalue, 
+                  QQDistLoopIntersect$Pvalue))
+PDomains <- unlist(c(QSamplesDomain["Pvalue",], 
+                  QQDistDomainUnion$Pvalue, 
+                  QQDistDomainIntersect$Pvalue))
+PGenes <- rep(NA, length(PLoops))
+PGenes[length(PGenes)] <- pGeneDistCat$Pvalue
+PadjAll <- p.adjust(c(PLoops, PDomains, pGeneDistCat$Pvalue))
+PGenesAdj <- PGenes
+PGenesAdj[length(PGenesAdj)] <- PadjAll[length(PadjAll)]
+
+# Create table with p-values
+PDistTable <- data.frame(LoopsRaw = PLoops, DomainsRaw = PDomains, GenesRaw = PGenes,
+           LoopsAdj = PadjAll[1:length(PLoops)], 
+           DomainsAdj = PadjAll[(length(PLoops) + 1):(2*length(PLoops))], 
+           GenesAdj = PGenesAdj)
+write.csv(PDistTable, "D:/L1polymORF/Manuscript_FragmFullL1/PDistTable.csv")
+
 
 # Test linear regression fragemnt size vs distance
 DistVsWidth <- lm(L1DistGene_Fragm ~ width(L1FragmGR))

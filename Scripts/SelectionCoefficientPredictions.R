@@ -153,7 +153,9 @@ SVals <- ML_L1widthL1full$par[1] + ML_L1widthL1full$par[2]*StartVals +
 # Plot expected frequency versus observed mean frequency
 ExpL1Width <- sapply(SVals, function(x) ExpAlleleFreq(x, N = 10^4, 
                                                       SampleSize = 2*2504))
-par( mfrow = c(1, 1))
+par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2), 
+     mai = c(1, 1, 0.2, 1),
+     cex.lab = 1)
 plot(L1WidthAggregated$InsLength, 
      L1WidthAggregated$Frequency, xlab = "LINE-1 length [bp]",
      ylab = "Mean LINE-1 frequency", ylim = c(0, 0.05))
@@ -163,6 +165,12 @@ AddErrorBars(MidX = L1WidthAggregated$InsLength,
                                  L1WidthAggregated_n$Frequency),
              TipWidth = 20)
 lines(StartVals, ExpL1Width)
+par(new = T)
+plot(StartVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", xlab = "",
+     lty = 2)
+axis(side = 4)
+mtext(side = 4, line = 3, 'Selection coefficient')
+
 CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 5, width = 5)
@@ -180,4 +188,26 @@ blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(XMat[x,])))
 
 
 sVals <- XMat %*% ML_L1widthL1full$par
+sVals <- sVals[!is.na(sVals)]
 
+freqVals <- seq(1, SSize, 100)
+
+ExpFreqMat <- sapply(sVals, function(x){
+  sapply(freqVals, function(y) {
+    AlleleFreqSample(k = y, s = x, N = 10^4,
+                     SampleSize = SSize, 
+                     DetectProb = 0.9,
+                     LogRegCoeff = LogRegL1Ref$coefficients, 
+                     blnIns = T)
+  })
+})
+dim(ExpFreqMat)
+ExpFreq <- rowSums(exp(ExpFreqMat))
+LogFreq <- log(ExpFreq)
+plot(ExpFreq, type = "l")
+plot(LogFreq, type = "l")
+plot(LogFreq, type = "l", ylim = c(-10, 5))
+
+HF <- hist(L1_1000G$Frequency)
+plot(HF$counts)
+plot(log(HF$counts))

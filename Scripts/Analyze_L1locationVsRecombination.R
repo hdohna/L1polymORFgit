@@ -62,6 +62,7 @@ L1FragmGR_hg19   <- L1RefGR_hg19[width(L1RefGR_hg19) < MaxFragLength]
 # Read in table with known L1 
 L1Catalogue <- read.csv(L1CataloguePath, as.is = T)
 L1Catalogue$Allele[is.na(L1Catalogue$Allele)] <- 1
+L1Catalogue$Allele_frequency_Num <- as.numeric(L1Catalogue$Allele_frequency)
 
 # Retain only entries with mapped L1 insertions and allele 1
 blnL1Mapped       <- !is.na(L1Catalogue$start_HG38) 
@@ -99,9 +100,9 @@ blnInRef_hg19   <- width(L1CatalogGR_hg19) > 6000
 L1CatalogGR_Ref_hg19 <- L1CatalogGR_hg19[blnInRef_hg19]
 
 #######################################
-#                                     #
+#                                       #
 #    Read & process recombination data  #
-#                                     #
+#                                       #
 #######################################
 
 cat("Processing 1000 Genome data\n")
@@ -138,4 +139,47 @@ SampledRecMeans <- sapply(1:NSamples, function(x){
 })
 sum(SampledRecMeans >= mean(RecL1Cat)) / NSamples
 
+#######################################
+#                                       #
+#  Correlation recombination vs frequency  #
+#                                       #
+#######################################
 
+# Find overlaps to fragment L1 and create a vector of recombination values
+RecL1_1000G_OL <- findOverlaps(L1_1000G_GR_hg19, Rec_GR)
+
+# Average recombination per L1 in 1000 genomes
+AvRecomb <- aggregate(RecData[RecL1_1000G_OL@to, 
+                              c("decodeAvg", "marshfieldAvg","genethonAvg")],
+                      by = list(RecL1_1000G_OL@from), FUN = mean)
+
+# Add columns with recombination values
+L1_1000G$decodeAvg     <- NA
+L1_1000G$marshfieldAvg <- NA
+L1_1000G$genethonAvg   <- NA
+L1_1000G$decodeAvg[AvRecomb$Group.1]     <- AvRecomb$decodeAvg
+L1_1000G$marshfieldAvg[AvRecomb$Group.1] <- AvRecomb$marshfieldAvg
+L1_1000G$genethonAvg[AvRecomb$Group.1]   <- AvRecomb$genethonAvg
+
+# Distinguish between full-length and fragment L1
+blnFull <- L1_1000G$InsLength >= 6000
+CorrFull <- cor(L1_1000G$Frequency[blnFull], L1_1000G$decodeAvg[blnFull],
+                use = "pairwise.complete.obs")
+cor.test(L1_1000G$Frequency[blnFull], L1_1000G$decodeAvg[blnFull],
+    use = "pairwise.complete.obs")
+CorrFragm <- cor(L1_1000G$Frequency[!blnFull], L1_1000G$decodeAvg[!blnFull],
+                use = "pairwise.complete.obs")
+cor.test(L1_1000G$Frequency[!blnFull], L1_1000G$decodeAvg[!blnFull],
+    use = "pairwise.complete.obs")
+
+# Determine whether correlation between frequency and recombination differs
+# between full-length and fragment L1
+NrSamples <- 1000
+idxFragm <- which(!blnFull)
+NrFull   <- sum(blnFull, na.rm = T)
+SampledCors <- sapply(1:NrSamples, function(x){
+  idxSample <- sample(idxFragm,NrFull)
+  cor(L1_1000G$Frequency[idxSample], L1_1000G$decodeAvg[idxSample],
+      use = "pairwise.complete.obs")
+})
+sum(SampledCors >= CorrFull) / NrSamples
