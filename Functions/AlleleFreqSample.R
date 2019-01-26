@@ -48,7 +48,7 @@ AlleleFreqSample <- function(k, s, N, SampleSize = 2504, DetectProb = 1,
       AlleleFreqTime(x, s, N) * (1 - ProbRef(x))
     },  0, 1)$value - 
     integrate(function(x) {
-      AlleleFreqTime(x, s, N) * (1 - x)^SampleSize * (1 - ProbRef(x))
+      AlleleFreqTime(x, s, N) * (1 - DetectProb * x)^SampleSize * (1 - ProbRef(x))
     },  0, 1)$value
     
     # Calculate probability of obtaining k alleles in a sample of size 
@@ -59,7 +59,7 @@ AlleleFreqSample <- function(k, s, N, SampleSize = 2504, DetectProb = 1,
           dbinom(k, SampleSize, DetectProb * x)
         }, 0, 1)$value - 
       integrate(function(x) {
-          AlleleFreqTime(x, s, N) * (1 - x)^SampleSize * (1 - ProbRef(x)) * 
+          AlleleFreqTime(x, s, N) * (1 - DetectProb * x)^SampleSize * (1 - ProbRef(x)) * 
             dbinom(k, SampleSize, DetectProb * x)
         }, 0, 1)$value
       ) -
@@ -84,7 +84,7 @@ AlleleFreqSample <- function(k, s, N, SampleSize = 2504, DetectProb = 1,
          AlleleFreqTime(x, s, N) * ProbRef(x)
       },  0, 1)$value - 
     integrate(function(x) {
-        AlleleFreqTime(x, s, N) * x^SampleSize * ProbRef(x)
+        AlleleFreqTime(x, s, N) * (1 - (1-x)*DetectProb)^SampleSize * ProbRef(x)
       },  0, 1)$value
     
     # Calculate probability of obtaining k alleles in a sample of size 
@@ -95,7 +95,7 @@ AlleleFreqSample <- function(k, s, N, SampleSize = 2504, DetectProb = 1,
           dbinom(k, SampleSize, DetectProb * (1 - x))
         }, 0, 1)$value - 
       integrate(function(x) {
-        AlleleFreqTime(x, s, N) * x^SampleSize * ProbRef(x) * 
+        AlleleFreqTime(x, s, N) * (1 - (1-x)*DetectProb)^SampleSize * ProbRef(x) * 
           dbinom(k, SampleSize, DetectProb * (1 - x))
       }, 0, 1)$value
     ) - log(IntConst)
