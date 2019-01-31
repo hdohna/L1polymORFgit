@@ -22,6 +22,7 @@ library(pracma)
 # Specify file paths
 InputPath <- "D:/L1polymORF/Data/L1SelectionResults.RData"
 InputPath <- "D:/L1polymORF/Data/L1SelectionResults_MELT.RData"
+InputPath <- "D:/L1polymORF/Data/L1SelectionResults_L1widthMELT.RData"
 
 ##########################################
 #                                        #
@@ -132,38 +133,61 @@ CreateDisplayPdf('D:/L1polymORF/Figures/SelectionPerRegion_MELT.pdf',
 ###################################################
 
 # Create a vector of L1 start classes
-L1_1000G$InsLengthClass <- cut(L1_1000G$InsLength, breaks = 
+L1TotData$InsLengthClass <- cut(L1TotData$L1width, breaks = 
                                   seq(0, 6500, 500))
 
 # Get mean L1 frequency per start
-L1WidthAggregated <- aggregate(L1_1000G[,c("InsLength", "Frequency")], 
-                               by = list(L1_1000G$InsLengthClass), FUN = mean)
-L1WidthAggregated_var <- aggregate(L1_1000G[,c("InsLength", "Frequency")], 
-                               by = list(L1_1000G$InsLengthClass), FUN = var)
-L1WidthAggregated_n <- aggregate(L1_1000G[,c("InsLength", "Frequency")], 
-                                   by = list(L1_1000G$InsLengthClass), FUN = length)
-
+L1WidthAggregated <- aggregate(L1TotData[,c("L1width", "Freq")], 
+                               by = list(L1TotData$InsLengthClass), 
+                               FUN = function(x) mean(x, na.rm = T))
+L1WidthAggregated_var <- aggregate(L1TotData[,c("L1width", "Freq")], 
+                                   by = list(L1TotData$InsLengthClass), 
+                                   FUN = function(x) var(x, na.rm = T))
+L1WidthAggregated_n <- aggregate(L1TotData[,c("L1width", "Freq")], 
+                                 by = list(L1TotData$InsLengthClass), 
+                                 FUN = function(x) sum(!is.na(x)))
+# L1WidthAggregated <- aggregate(L1TotData[L1TotData$blnIns,c("L1width", "Freq")], 
+#                                by = list(L1TotData$InsLengthClass[L1TotData$blnIns]), 
+#                                FUN = function(x) mean(x, na.rm = T))
+# L1WidthAggregated_var <- aggregate(L1TotData[L1TotData$blnIns,c("L1width", "Freq")], 
+#                                by = list(L1TotData$InsLengthClass[L1TotData$blnIns]), 
+#                                FUN = function(x) var(x, na.rm = T))
+# L1WidthAggregated_n <- aggregate(L1TotData[L1TotData$blnIns,c("L1width", "Freq")], 
+#                                    by = list(L1TotData$InsLengthClass[L1TotData$blnIns]), 
+#                                    FUN = function(x) sum(!is.na(x)))
+# 
 # Get sample size and create a range of s-values
 SSize <- 2*2504
 StartVals  <- seq(0, 6100, 10)
 Full       <- StartVals >= 6000
 SVals <- ML_L1widthL1full$par[1] + ML_L1widthL1full$par[2]*StartVals +
   ML_L1widthL1full$par[3]*Full
+SVals2 <- -0.000001 - 2*10^-7*StartVals +
+  1.08*10^-3*Full
+SVals2 <-  ML_L1widthL1full_N$par[1] + ML_L1widthL1full_N$par[2]*StartVals +
+  ML_L1widthL1full_N$par[3]*Full
 
 # Plot expected frequency versus observed mean frequency
-ExpL1Width <- sapply(SVals, function(x) ExpAlleleFreq(x, N = 10^4, 
-                                                      SampleSize = 2*2504))
+ExpL1Width <- sapply(SVals, function(x) ExpAlleleFreq(x, N = PopSize, 
+                                                      SampleSize = 2*2504,
+                                                      DetectProb = 0.9,
+                                                      LogRegCoeff = LogRegL1Ref$coefficients))
+ExpL1Width2 <- sapply(SVals2, function(x) ExpAlleleFreq(s = x, N = 10^5, 
+                                                      SampleSize = 2*2504,
+                                                      DetectProb = 0.9,
+                                                      LogRegCoeff = LogRegL1Ref$coefficients))
 par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2), 
      mai = c(1, 1, 0.2, 1),
      cex.lab = 1)
-plot(L1WidthAggregated$InsLength, 
-     L1WidthAggregated$Frequency, xlab = "LINE-1 length [bp]",
-     ylab = "Mean LINE-1 frequency", ylim = c(0, 0.05))
-AddErrorBars(MidX = L1WidthAggregated$InsLength, 
-             MidY = L1WidthAggregated$Frequency, 
-             ErrorRange = sqrt(L1WidthAggregated_var$Frequency /
-                                 L1WidthAggregated_n$Frequency),
+plot(L1WidthAggregated$L1width, 
+     L1WidthAggregated$Freq/SSize, xlab = "LINE-1 length [bp]",
+     ylab = "Mean LINE-1 frequency", ylim = c(0, 0.03))
+AddErrorBars(MidX = L1WidthAggregated$L1width, 
+             MidY = L1WidthAggregated$Freq/SSize, 
+             ErrorRange = sqrt(L1WidthAggregated_var$Freq/SSize^2 /
+                                 L1WidthAggregated_n$Freq),
              TipWidth = 20)
+#lines(StartVals, ExpL1Width2)
 lines(StartVals, ExpL1Width)
 par(new = T)
 plot(StartVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", xlab = "",
@@ -174,6 +198,51 @@ mtext(side = 4, line = 3, 'Selection coefficient')
 CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 5, width = 5)
+
+# Plot Individual points
+par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2), 
+     mai = c(1, 1, 0.2, 1),
+     cex.lab = 1)
+plot(L1TotData$L1width, 
+     L1TotData$Freq/SSize, xlab = "LINE-1 length [bp]",
+     ylab = "Mean LINE-1 frequency", col = rgb(0, 0, 0, alpha = 0.2), ylim = c(0, 0.06),
+     pch = 16)
+L1FreqLengthSmoothed <- supsmu(L1TotData$L1width, 
+                               L1TotData$Freq/SSize, span = 0.3)
+lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, col = "red")
+lines(StartVals, ExpL1Width, lty = 4, lwd = 2, col = "red")
+par(new = T)
+plot(StartVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", xlab = "",
+     col = "blue")
+axis(side = 4, col = "blue")
+mtext(side = 4, line = 4, 'Selection coefficient')
+
+CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width_smoothed.pdf',
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+                 height = 6, width = 6)
+
+# Plot variance against width
+VarL1Width <- sapply(SVals, function(x) VarAlleleFreq(x, N = 10^4, 
+                                                      SampleSize = 2*2504,
+                                                      DetectProb = 0.9,
+                                                      LogRegCoeff = LogRegL1Ref$coefficients))
+par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2), 
+     mai = c(1, 1, 0.2, 1),
+     cex.lab = 1)
+plot(L1WidthAggregated$InsLength, 
+     L1WidthAggregated_var$Frequency, xlab = "LINE-1 length [bp]",
+     ylab = "Variance LINE-1 frequency")
+lines(StartVals, VarL1Width)
+par(new = T)
+plot(StartVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", xlab = "",
+     lty = 2)
+axis(side = 4)
+mtext(side = 4, line = 3, 'Selection coefficient')
+
+CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width.pdf',
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+                 height = 5, width = 5)
+
 
 ###############################################################
 #                                                             #

@@ -17,7 +17,7 @@
 
 ##############################################
 
-ExpAlleleFreq <- function(s, N = 10^4, SampleSize = 2*2504, blnIns = T){
+ExpAlleleFreq <- function(s, N = 10^4, SampleSize = 2*2504, probIns = 0.5, DetectProb, LogRegCoeff){
     
     # # Calculate integration constant
     # integrate(function(x) x * SampleSize / 
@@ -29,15 +29,35 @@ ExpAlleleFreq <- function(s, N = 10^4, SampleSize = 2*2504, blnIns = T){
     ExpCoeff / (1 + ExpCoeff)
   }
   
-  if (blnIns) {
-    IntConst <- integrate(function(x) (1 - (1 - x)^SampleSize) * ProbRef(x) *
-                            AlleleFreqTime(x, s, N), 
-                          0, 1)$value
-    # Calculate expected frequency
-    integrate(function(x) x* (1 - (1 - x)^SampleSize) * ProbRef(x) *
-                AlleleFreqTime(x, s, N) * x, 0, 1)$value / IntConst
+    # Calculate integration constant
+    IntConst <- integrate(function(x) {
+      AlleleFreqTime(x, s, N) * (1 - ProbRef(x))
+    },  0, 1)$value - 
+      integrate(function(x) {
+        AlleleFreqTime(x, s, N) * (1 - DetectProb * x)^SampleSize * (1 - ProbRef(x))
+      },  0, 1)$value
     
-  }
+    # Calculate probability of obtaining k alleles in a sample of size 
+    # SampleSize
+    (integrate(function(x) {
+      x * AlleleFreqTime(x, s, N) * (1 - ProbRef(x)) 
+    }, 0, 1)$value - 
+      integrate(function(x) {
+        x * AlleleFreqTime(x, s, N) * (1 - DetectProb * x)^SampleSize * (1 - ProbRef(x)) 
+      }, 0, 1)$value) / 
+      IntConst
+    
+    
+    
+    
+    # IntConst <- integrate(function(x) (1 - (1 - x)^SampleSize) * ProbRef(x) *
+    #                         AlleleFreqTime(x, s, N), 
+    #                       0, 1)$value
+    # # Calculate expected frequency
+    # integrate(function(x) x* (1 - (1 - x)^SampleSize) * ProbRef(x) *
+    #             AlleleFreqTime(x, s, N) * x, 0, 1)$value / IntConst
+    
+  
   # Calculate integration constant
 }
 
