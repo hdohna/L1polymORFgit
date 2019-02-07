@@ -1,0 +1,13 @@
+/home/hzudohna/wgsim/wgsim \
+-e 0.004 -d 379.5 -s 21.6 -1 100 -2 100 -N 145000000 \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096.fa \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_1.fq \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_2.fq \
+> /labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_wgsim_out
+
+/home/hzudohna/wgsim/wgsim \
+-e 0.004 -d 379.5 -s 21.6 -1 100 -2 100 -N 145000000 \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00097.fa \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00097_1.fq \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00097_2.fq \
+> /labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00097_wgsim_out
