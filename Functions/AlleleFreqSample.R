@@ -45,11 +45,11 @@ AlleleFreqSample <- function(k, s, N, SampleSize = 2504, DetectProb = 1,
   
     # Calculate integration constant
     IntConst <- integrate(function(x) {
-      AlleleFreqTime(x, s, N) * (1 - ProbRef(x))
-    },  0, 1)$value - 
+        AlleleFreqTime(x, s, N) * (1 - ProbRef(x))
+      },  0, 1)$value - 
     integrate(function(x) {
-      AlleleFreqTime(x, s, N) * (1 - DetectProb * x)^SampleSize * (1 - ProbRef(x))
-    },  0, 1)$value
+        AlleleFreqTime(x, s, N) * (1 - DetectProb * x)^SampleSize * (1 - ProbRef(x))
+      },  0, 1)$value
     
     # Calculate probability of obtaining k alleles in a sample of size 
     # SampleSize
