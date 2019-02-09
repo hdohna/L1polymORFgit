@@ -25,14 +25,16 @@
 CreateAndCallSlurmScript <- function(file,
    SlurmHeaderLines = c('#!/bin/bash', 
                        '#SBATCH --account=dflev', 
+                       '#SBATCH --time=12:00:00', 
                        '#SBATCH --job-name="My Simple Job."', 
                        '#SBATCH --nodes=1', 
                        '#SBATCH --ntasks=1', 
                        '#SBATCH --cpus-per-task=1', 
+                       '#SBATCH --mem=50G', 
                        '#SBATCH --mail-user=hb54@aub.edu.lb', 
                        '#SBATCH --mail-type=BEGIN,END,FAIL'
    ),
-   RunTime = "12:00:00",
+   RunTime = '12:00:00',
    Mem = '50G', 
    SlurmCommandLines, 
    scriptName = 'NoName', 
@@ -41,10 +43,12 @@ CreateAndCallSlurmScript <- function(file,
   
   # Replace name, time and memory in header lines
   SlurmHeaderLines[grep("--job-name=", SlurmHeaderLines)] <- 
-    paste('#SBATCH --job-name=', scriptName)
-  SlurmHeaderLines <- c(SlurmHeaderLines, paste('#SBATCH --time=', RunTime, sep = "")) 
-  SlurmHeaderLines <- c(SlurmHeaderLines, paste('#SBATCH --mem=', Mem)) 
-  
+    paste('#SBATCH --job-name=', scriptName, sep = '')
+  SlurmHeaderLines[grep("--time=", SlurmHeaderLines)] <- 
+    paste('#SBATCH --time=', RunTime, sep = '')
+  SlurmHeaderLines[grep("#--mem=", SlurmHeaderLines)] <- 
+    paste('#SBATCH #SBATCH --mem=', Mem, sep = '')
+
   # Save script
   writeLines(c(SlurmHeaderLines, SlurmCommandLines), file)
   
