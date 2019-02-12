@@ -30,13 +30,12 @@ CreateAndCallSlurmScript <- function(file,
                        '#SBATCH --nodes=1', 
                        '#SBATCH --ntasks=1', 
                        '#SBATCH --cpus-per-task=1', 
-                       '#SBATCH --mem=50G', 
-                       '#SBATCH --mail-user=hb54@aub.edu.lb', 
-                       '#SBATCH --mail-type=BEGIN,END,FAIL'
+                       '#SBATCH --mem=50G' 
    ),
    RunTime = '12:00:00',
    Mem = '50G', 
    SlurmCommandLines, 
+   blnSendEmails = F,
    scriptName = 'NoName', 
    Args = "",
    blnWait = F){
@@ -48,6 +47,14 @@ CreateAndCallSlurmScript <- function(file,
     paste('#SBATCH --time=', RunTime, sep = '')
   SlurmHeaderLines[grep("#--mem=", SlurmHeaderLines)] <- 
     paste('#SBATCH #SBATCH --mem=', Mem, sep = '')
+  
+  # Add email options
+  if (blnSendEmails){
+    SlurmHeaderLines <- c(SlurmHeaderLines,
+                          '#SBATCH --mail-user=hb54@aub.edu.lb', 
+                          '#SBATCH --mail-type=BEGIN,END,FAIL')
+    
+  }
 
   # Save script
   writeLines(c(SlurmHeaderLines, SlurmCommandLines), file)
