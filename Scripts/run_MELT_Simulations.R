@@ -9,10 +9,14 @@ library(Rsamtools)
 library(rtracklayer)
 
 # Boolean variables for different parts of the workflow
-blnRunSim  <- T
-blnRunBWA  <- T
-blnIdxBam  <- T
+blnRunSim  <- F
+blnRunBWA  <- F
+blnIdxBam  <- F
 blnRunMELT <- T
+
+# Specify run parameters
+RunTime <- '12:00:00'
+Mem     <- '100G'
 
 # Path to reference data and for 1000 genomes
 #RefPath    <- "D:/L1polymORF/Data/"
@@ -36,7 +40,7 @@ for (SimGenome in SimGenomes){
   ID     <- strsplit(Split1[length(Split1)], "\\.")[[1]][1]
   
   # Create folder for MELT
-  NewDir <- paste(Path1000G, ID, sep = "")
+  NewDir <- paste(Path1000G, Split1[4], sep = "")
   
   # Generate output file names for simulation 
   SimGenome2  <- gsub("1.fa", "2.fa", SimGenome)
@@ -63,7 +67,8 @@ for (SimGenome in SimGenomes){
                  paste("/home/hzudohna/wgsim/wgsim -h -e 0.004 -d 379.5 -s 21.6 -1 100 -2 100 -N 70000000",
                        SimGenome2, Fq21, Fq22, ">", OutSim2),
                  paste("cat", Fq11, Fq21, ">", Fq1),
-                 paste("cat", Fq12, Fq22, ">", Fq2))
+                 paste("cat", Fq12, Fq22, ">", Fq2),
+                 paste("rm", Fq11, Fq21, Fq12, Fq22))
                  
   
   # Bwa commands
@@ -86,8 +91,12 @@ for (SimGenome in SimGenomes){
                   paste("samtools index", OutBamSorted))
 
   # Construct MELT command
-  MELTCmds <- c("module load bowtie",
-                paste("mkdir", NewDir),
+  MkDirCmd <- NULL
+  if (!dir.exists(NewDir)){
+    paste("mkdir", NewDir)
+  }
+  MELTCmds <- c(MkDirCmd,
+                "module load bowtie2",
                 paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar Single -bamfile",
                       OutBamSorted, 
                       "-c 7",
@@ -105,8 +114,8 @@ for (SimGenome in SimGenomes){
   # Create script name and run script
   ScriptName <- paste("Sim_Bwa_MELTScript", ID, sep = "_")
   CreateAndCallSlurmScript(file = ScriptName, 
-                           RunTime = '12:00:00',
-                           Mem = '100G',
+                           RunTime = RunTime,
+                           Mem = Mem,
                            SlurmCommandLines = AllCmds)
   
 }
