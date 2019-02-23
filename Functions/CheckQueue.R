@@ -27,9 +27,11 @@ CheckQueue <- function(MaxNrTrials = 10,
   NrTrials      <- 0
   while((!QueueFinished) & NrTrials < MaxNrTrials) {
     NrTrials <- NrTrials + 1
-    cat("Checking queue, trial", NrTrials, "out of", MaxNrTrials, "\n")
+    cat("Checking queue, trial", NrTrials, "out of", MaxNrTrials, 
+        ", ", round((NrTrials - 1) * SleepTime/60, 2), "min elapsed")
     QueueStatus   <- system('squeue -u hzudohna',  intern = T)
     QueueFinished <- length(grep("batch", QueueStatus)) == 0
+    if (!QueueFinished) cat("- queue not yet finished!\n")
     Sys.sleep(SleepTime)
   }
   if (!QueueFinished){

@@ -13,11 +13,11 @@ RunTime <- '12:00:00'
 Mem     <- '50G'
 
 # Path to reference data and for 1000 genomes
-#RefPath   <- "D:/L1polymORF/Data/"
-RefPath   <- "/labs/dflev/hzudohna/RefSeqData/"
-RefFilePath <- "/labs/dflev/hzudohna/RefSeqData/hg19.fa"
-Path1000G <- "/labs/dflev/hzudohna/1000Genomes/"
-Path1000GSim   <- "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/"
+#RefPath     <- "D:/L1polymORF/Data/"
+RefPath      <- "/labs/dflev/hzudohna/RefSeqData/"
+RefFilePath  <- "/labs/dflev/hzudohna/RefSeqData/hg19.fa"
+Path1000G    <- "/labs/dflev/hzudohna/1000Genomes/"
+Path1000GSim <- "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/"
 
 # Load necessary objects
 load(paste(Path1000G, 'GRanges_L1_1000Genomes.RData', sep = ""))
@@ -51,7 +51,7 @@ L1bedPath_1000G         <- paste(RefPath, "L1Ranges_1000G.bed", sep = "")
 
 export.bed(c(L1Ranges_shortName, L1NeighborRanges_1000G), L1NeighborbedPath_1000G) 
 
-# Get Paths
+# Get paths to bam files
 BamFiles <- list.files(Path1000GSim, pattern = "_sorted.bam", full.names = T)
 BamFiles <- BamFiles[-grep("_sorted.bam.", BamFiles)]
 
