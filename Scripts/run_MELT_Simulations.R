@@ -12,14 +12,14 @@ library(rtracklayer)
 blnRunSim  <- F
 blnRunBWA  <- F
 blnIdxBam  <- F
-blnRunMELT <- T
+blnRunMELT <- F
 blnRunSimAnalysis   <- F
 blnRunGroupAnalysis <- T
 
 # Specify run parameters
 RunTime <- '12:00:00'
 Mem     <- '100G'
-RunTime_MELT <- '6:00:00'
+RunTime_MELT <- '2:00:00'
 Mem_MELT     <- '50G'
 
 # Path to reference data and for 1000 genomes
@@ -163,7 +163,6 @@ if(blnRunGroupAnalysis){
                         "-c 7",
                         "-h", RefFilePath,
                         "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
-                        "-n /labs/dflev/hzudohna/MELTv2.1.5/add_bed_files/1KGP_Hg19/hg19.genes.bed",
                         "-b MT/GL000207.1/GL000226.1/GL000229.1/GL000231.1/GL000210.1/GL000239.1/GL000235.1/GL000201.1/GL000247.1/GL000245.1/GL000197.1/GL000203.1/GL000246.1/GL000249.1/GL000196.1/GL000248.1/GL000244.1/GL000238.1/GL000202.1/GL000234.1/GL000232.1/GL000206.1/GL000240.1/GL000236.1/GL000241.1/GL000243.1/GL000242.1/GL000230.1/GL000237.1/GL000233.1/GL000204.1/GL000198.1/GL000208.1/GL000191.1/GL000227.1/GL000228.1/GL000214.1/GL000221.1/GL000209.1/GL000218.1/GL000220.1/GL000213.1/GL000211.1/GL000199.1/GL000217.1/GL000216.1/GL000215.1/GL000205.1/GL000219.1/GL000224.1/GL000223.1/GL000195.1/GL000212.1/GL000222.1/GL000200.1/GL000193.1/GL000194.1/GL000225.1/GL000192.1/NC_007605",
                         "-w", Path1000G))
     
@@ -171,80 +170,95 @@ if(blnRunGroupAnalysis){
     # Create script name and run script
     ScriptName <- paste("GroupInd_MELTScript", ID, sep = "_")
     CreateAndCallSlurmScript(file = ScriptName, 
-                             RunTime = RunTime,
-                             Mem = Mem,
+                             RunTime = RunTime_MELT,
+                             Mem = Mem_MELT,
                              SlurmCommandLines = MELTCmds)
     
   }
   
   # Check whether for bam files queue is finished, once it is finished, run group analysis
-  QueueBamFinished <- CheckQueue(MaxNrTrials = 30, SleepTime   = 30)
+  cat("\n\n")
+  Sys.sleep(10)
+  QueueBamFinished <- CheckQueue(MaxNrTrials = 50, SleepTime = 30)
+  
+  # Summarizing results from individual bam files
   if (QueueBamFinished){
     
     cat("\n*************   Summarizing MELT for individual bam files     *************\n")
-    # Create directory for discovery file
-    DiscoveryDir <- paste(Path1000G, "L1DiscoveryGroup", sep = "") 
-    
-    # Construct command to make directory
-    MkDiscoveryDirCmd <- NULL
-    if (!dir.exists(DiscoveryDir)){
-      MkDiscoveryDirCmd <- paste("mkdir", DiscoveryDir)
-    }
-
     # Create commands to run MELT
-    MELTCmds <- c(MkDiscoveryDirCmd,
-                  "module load bowtie2",
+    MELTCmds <- c("module load bowtie2",
                   paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar GroupAnalysis",
-                        "-discoverydir", DiscoveryDir,
-                        "-c 7",
+                        "-discoverydir", Path1000G,
                         "-h", RefFilePath,
                         "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
                         "-n /labs/dflev/hzudohna/MELTv2.1.5/add_bed_files/1KGP_Hg19/hg19.genes.bed",
-                        "-b MT/GL000207.1/GL000226.1/GL000229.1/GL000231.1/GL000210.1/GL000239.1/GL000235.1/GL000201.1/GL000247.1/GL000245.1/GL000197.1/GL000203.1/GL000246.1/GL000249.1/GL000196.1/GL000248.1/GL000244.1/GL000238.1/GL000202.1/GL000234.1/GL000232.1/GL000206.1/GL000240.1/GL000236.1/GL000241.1/GL000243.1/GL000242.1/GL000230.1/GL000237.1/GL000233.1/GL000204.1/GL000198.1/GL000208.1/GL000191.1/GL000227.1/GL000228.1/GL000214.1/GL000221.1/GL000209.1/GL000218.1/GL000220.1/GL000213.1/GL000211.1/GL000199.1/GL000217.1/GL000216.1/GL000215.1/GL000205.1/GL000219.1/GL000224.1/GL000223.1/GL000195.1/GL000212.1/GL000222.1/GL000200.1/GL000193.1/GL000194.1/GL000225.1/GL000192.1/NC_007605",
-                        "-w", Path1000G))
-    
+                         "-w", Path1000G))
     
     # Create script name and run script
-    ScriptName <- paste("GroupInd_MELTScript", ID, sep = "_")
+    ScriptName <- paste("GroupAnalysis_MELTScript")
     CreateAndCallSlurmScript(file = ScriptName, 
-                             RunTime = RunTime,
-                             Mem = Mem,
+                             RunTime = RunTime_MELT,
+                             Mem = Mem_MELT,
                              SlurmCommandLines = MELTCmds)
     
     # Check whether queue of group analysis is finished, once it is finished, run group analysis
-    QueueGroupFinished <- CheckQueue(MaxNrTrials = 30, SleepTime   = 30)
+    Sys.sleep(10)
+    QueueGroupFinished <- CheckQueue(MaxNrTrials = 50, SleepTime   = 30)
     if (QueueGroupFinished){
       
       cat("\n*************   Getting genotypes for individual bam files     *************\n")
-      
       # Perform variant discovery for each individual bam file
       for (BamFile in BamFiles){
         
         # Get ID from bam file
         Split1 <- strsplit(BamFile, "_")[[1]]
-        ID     <- strsplit(Split1[length(Split1)], "\\.")[[1]][1]
+        ID     <- strsplit(Split1[length(Split1) - 1], "\\.")[[1]][1]
         
         # Create commands to run MELT
         MELTCmds <- c("module load bowtie2",
                       paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar Genotype",
                             " -bamfile", BamFile, 
-                            "-c 7",
                             "-h", RefFilePath,
                             "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
-                            "-n /labs/dflev/hzudohna/MELTv2.1.5/add_bed_files/1KGP_Hg19/hg19.genes.bed",
-                            "-b MT/GL000207.1/GL000226.1/GL000229.1/GL000231.1/GL000210.1/GL000239.1/GL000235.1/GL000201.1/GL000247.1/GL000245.1/GL000197.1/GL000203.1/GL000246.1/GL000249.1/GL000196.1/GL000248.1/GL000244.1/GL000238.1/GL000202.1/GL000234.1/GL000232.1/GL000206.1/GL000240.1/GL000236.1/GL000241.1/GL000243.1/GL000242.1/GL000230.1/GL000237.1/GL000233.1/GL000204.1/GL000198.1/GL000208.1/GL000191.1/GL000227.1/GL000228.1/GL000214.1/GL000221.1/GL000209.1/GL000218.1/GL000220.1/GL000213.1/GL000211.1/GL000199.1/GL000217.1/GL000216.1/GL000215.1/GL000205.1/GL000219.1/GL000224.1/GL000223.1/GL000195.1/GL000212.1/GL000222.1/GL000200.1/GL000193.1/GL000194.1/GL000225.1/GL000192.1/NC_007605",
-                            "-w", DiscoveryDir))
-        
+                            "-w", Path1000G,
+                            "-p", Path1000G))
         
         # Create script name and run script
-        ScriptName <- paste("GroupInd_MELTScript", ID, sep = "_")
+        ScriptName <- paste("Genotype_MELTScript", ID, sep = "_")
         CreateAndCallSlurmScript(file = ScriptName, 
-                                 RunTime = RunTime,
-                                 Mem = Mem,
+                                 RunTime = RunTime_MELT,
+                                 Mem = Mem_MELT,
                                  SlurmCommandLines = MELTCmds)
         
-      }
-    }
+      } # End of loop over bam files to genotype
+      
+      # check whether genotyping loop has finished
+      cat("\n\n")
+      Sys.sleep(10)
+      QueueGenotypeFinished <- CheckQueue(MaxNrTrials = 30, SleepTime = 30)
+      
+      # Launch making of vcf file once genotyping loop has finished
+      if (QueueGenotypeFinished){
+        
+        cat("\n*************   Create vcf file     *************\n")
+        # Create commands to run MELT
+        MELTCmds <- c("module load bowtie2",
+                      paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar MakeVCF",
+                            "-genotypingdir", Path1000G,
+                            "-h", RefFilePath,
+                            "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
+                            "-w", Path1000G,
+                            "-p", paste(Path1000G, "LINE1.pre_geno.tsv", sep = "")))
+        
+        # Create script name and run script
+        ScriptName <- paste("Vcf_MELTScript")
+        CreateAndCallSlurmScript(file = ScriptName, 
+                                 RunTime = RunTime_MELT,
+                                 Mem = Mem_MELT,
+                                 SlurmCommandLines = MELTCmds)
+      } # End of checking whether genotype analysis has finished
+      
+    } # End of checking whether group analysis has finished
     
     
     

@@ -12,13 +12,21 @@ library(GenomicRanges)
 #load('D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData')
 load('/labs/dflev/hzudohna/1000Genomes/GRanges_L1_1000Genomes.RData')
 
-# Get names of vcf
-VcfDirs <- list.dirs("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/",
-          full.names = F)
+#############################################
+#                                           #
+#   Analyze L1 detection from standard      #
+#          simulated files                  #
+#                                           #
+#############################################
+
+# Specify simulation directory
+SimDir <- "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT_single/"
+
+# Get names of vcf files
+VcfDirs <- list.dirs(SimDir, full.names = F)
 VcfDirs <- VcfDirs[VcfDirs %in% SampleColumns]
 VcfDirs <-  setdiff(VcfDirs, c("HG00096", "HG00097", "HG00099", "HG00100","HG00101"))
-VcfFiles <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/", 
-                  VcfDirs, "/LINE1.final_comp.vcf", sep = "")
+VcfFiles <- paste(SimDir, VcfDirs, "/LINE1.final_comp.vcf", sep = "")
 # VcfDirs <-  c("HG00096", "HG00097", "HG00099", "HG00100","HG00101")
 # VcfFiles <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/", 
 #       VcfDirs, "/LINE1.final_comp.vcf", sep = "")
@@ -82,3 +90,90 @@ AddErrorBars(MidX = L1WidthAgg$L1width,
              TipWidth = 20)
 dev.off()
 
+#############################################
+#                                           #
+#   Analyze L1 detection from filtered      #
+#          simulated files                  #
+#                                           #
+#############################################
+
+# Get names of vcf files
+VcfDirs <- list.dirs("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/",
+                     full.names = F)
+VcfDirs <-  VcfDirs[VcfDirs %in% paste(SampleColumns, "Filtered", sep = "_")]
+VcfFiles <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/", 
+                  VcfDirs, "/LINE1.final_comp.vcf", sep = "")
+# VcfDirs <-  c("HG00096", "HG00097", "HG00099", "HG00100","HG00101")
+# VcfFiles <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/", 
+#       VcfDirs, "/LINE1.final_comp.vcf", sep = "")
+# Read in vcf file and create genomic ranges
+L1Detect_Filter <- NULL
+for (VcfFile in VcfFiles[file.exists(VcfFiles)]){
+  cat("Processing", VcfFile, "\n")
+  
+  VcfFile <- ReadVCF(VcfFile)
+  VcfGR   <- makeGRangesFromDataFrame(VcfFile, seqnames.field = "X.CHROM",
+                                      start.field = "POS",
+                                      end.field = "POS")
+  VcfGR <- resize(VcfGR, width = 150, fix = "center")
+  
+  # Get sample ID from vcf column and get index of L1 insertions that occur in
+  # that sample
+  SampleID <- strsplit(colnames(VcfFile)[ncol(VcfFile)], "_")[[1]][2]
+  cat("Processing", SampleID, "\n")
+  idxL1    <- which(L1_1000G[,SampleID] > 0)
+  SampleGR <- makeGRangesFromDataFrame(L1_1000G[idxL1,], seqnames.field = "chromosome",
+                                       start.field = "POS",
+                                       end.field = "POS")
+  
+  # Create data.frame that keeps track of L1 width and their detection status
+  L1DetectNew <- data.frame(blnDetect = overlapsAny(SampleGR, VcfGR),
+                            L1width = L1_1000G$InsLength[idxL1])
+  L1Detect_Filter   <- rbind(L1Detect_Filter, L1DetectNew)
+  
+}
+
+
+# Logistic regression for detection probability as finction of insertion length
+LogReg_DetectL1width <- glm(blnDetect ~ L1width, data = L1Detect_Filter,
+                            family = binomial)
+summary(LogReg_DetectL1width)
+
+
+######################################################
+#                                                    #
+#   Analyze L1 detection from group analysis of      #
+#          simulated files                           #
+#                                                    #
+######################################################
+
+VcfFile <- ReadVCF(paste(SimDir, "LINE1.final_comp.vcf", sep = ""))
+VcfGR   <- makeGRangesFromDataFrame(VcfFile, seqnames.field = "X.CHROM",
+                                    start.field = "POS",
+                                    end.field = "POS")
+VcfGR <- resize(VcfGR, width = 150, fix = "center")
+
+# Get sample ID from vcf column and get index of L1 insertions that occur in
+# that sample
+SampleIDs <- sapply(10:ncol(VcfFile), function(x) {
+  strsplit(colnames(VcfFile)[x], "_")[[1]][2]
+})
+L1Detect_Group <- NULL
+for (SampleID in  SampleIDs){
+  cat("Processing", SampleID, "\n")
+  idxL1    <- which(L1_1000G[,SampleID] > 0)
+  SampleGR <- makeGRangesFromDataFrame(L1_1000G[idxL1,], seqnames.field = "chromosome",
+                                       start.field = "POS",
+                                       end.field = "POS")
+  
+  # Create data.frame that keeps track of L1 width and their detection status
+  L1DetectNew <- data.frame(blnDetect = overlapsAny(SampleGR, VcfGR),
+                            L1width = L1_1000G$InsLength[idxL1])
+  L1Detect_Group <- rbind(L1Detect_Group, L1DetectNew)
+  
+}
+
+# Logistic regression for detection probability as finction of insertion length
+LogReg_DetectL1width_Group <- glm(blnDetect ~ L1width, data = L1Detect_Group,
+                            family = binomial)
+summary(LogReg_DetectL1width_Group)

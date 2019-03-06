@@ -1,0 +1,44 @@
+# Index reference genome
+bwa index /labs/dflev/hzudohna/RefSeqData/human_g1k_v37.fasta
+
+bwa aln /labs/dflev/hzudohna/RefSeqData/hg19.fa \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_1.fq \
+> /labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_1.sai 
+
+bwa aln /labs/dflev/hzudohna/RefSeqData/hg19.fa \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_2.fq \
+> /labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_2.sai 
+
+bwa sampe -a 618 /labs/dflev/hzudohna/RefSeqData/human_g1k_v37.fasta \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_1.sai \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_2.sai \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_1.fq \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_2.fq 
+
+
+/reference/RefGenomes/1000genomes/hs37d5/
+
+bwa sampe -a 618 /reference/RefGenomes/1000genomes/human_g1k_v37/human_g1k_v37.fasta \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_1.sai \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_2.sai \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_1.fq \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_2.fq \
+> /labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096.sam
+
+bwa sampe -a 618 /reference/RefGenomes/1000genomes/hs37d5/hs37d5.fa \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_1.sai \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_2.sai \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_1.fq \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_2.fq \
+> /labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096.sam
+
+
+bwa sampe -a 618 /reference/RefGenomes/H_sapiens/hg19/hg19.fa \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_1.sai \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_2.sai \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_1.fq \
+/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096_2.fq \
+> /labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_HG00096.sam
+
+
+
