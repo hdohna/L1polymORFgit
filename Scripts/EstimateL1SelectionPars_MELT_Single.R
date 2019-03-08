@@ -37,7 +37,7 @@ SelectResultOutPath <- "D:/L1polymORF/Data/L1SelectionResults_MELT_Single.RData"
 
 # Specify logistic rgeression coefficients for relationship between insert
 # size and detection probability
-L1SizeDetectCoeff <- c(a = 0.8, b = 10^-4)
+L1SizeDetectCoeff <- c(a = 0.8, b = 10^-5)
 
 # False discovery rate for selected L1
 FDR <- 0.1
@@ -295,7 +295,7 @@ ML_L1widthL1full <- constrOptim(theta = c(a = ML_L1width$par[1],
                     a = x[1], b = x[2], c = x[3], d = 0, N = PopSize, 
                     SampleSize = L1TotData$SampleSize[!blnNA],
                     blnIns = L1TotData$blnIns[!blnNA], 
-                    LogRegCoeff = LogRegL1Ref$coefficients,
+                    LogRegCoeff = LogRegL1RefCoeff,
                     DetectProb = L1TotData$DetectProb[!blnNA]),
                   grad = NULL,
                   ui = rbind(c(1, 0, 0),  c(0, 1, 0),  c(0, 0, 1), 
@@ -328,34 +328,16 @@ GetNPar <- function(OptimResults){
 Cols2Append <- t(sapply(list(ML_1Par, 
                              ML_L1width, 
                              ML_L1full, 
-#                             ML_2Pars_L1count, 
-                             ML_L1widthL1full, 
-                             # ML_3Pars_L1countL1width,
-                             # ML_3Pars_L1countL1full
-#         ML_4Pars_L1countL1widthL1full
-         ), function(x){
+                             ML_L1widthL1full), function(x){
            c(AIC = GetAIC(x), Pars = GetParVals(x))
          }))
 # Combine AIC values into one vector
 AICTab <- cbind(data.frame(
-            NrParameters = c(1, 
-                             2, 
-                             2, 
-#                             2, 
-                             3, 
-                             # 3, 
-                             # 3
-#                             4
-                             ),
+            NrParameters = c(1, 2, 2, 3),
             Predictor = c("none", 
                           "L1 width", 
                           "L1 full-length", 
-#                          "L1count",
-                          "L1 width and full-length",
-                          # "L1 count and L1 start",
-                          # "L1 count and L1 full"
-  #                        "L1 start, L1 full-length, L1count"
-                          ),
+                          "L1 width and full-length"),
             stringsAsFactors = F),
             Cols2Append)
                      
