@@ -6,8 +6,8 @@ library(Rsamtools)
 library(rtracklayer)
 
 # Run parameters
-RunTime_MELT <- '2:00:00'
-Mem_MELT     <- '50G'
+RunTime_MELT <- '12:00:00'
+Mem_MELT     <- '100G'
 
 # Path to reference data and for 1000 genomes
 #RefPath   <- "D:/L1polymORF/Data/"
@@ -16,6 +16,9 @@ RefFilePath <- "/labs/dflev/hzudohna/RefSeqData/hg19.fa"
 RefFilePath <- "/labs/dflev/hzudohna/RefSeqData/hs37d5.fa.gz"
 
 Path1000G   <-   "/labs/dflev/hzudohna/1000Genomes/"
+
+# Path for scratch storage
+ScratchPath <- "/scratch/users/hzudohna/"
 
 # Load necessary objects
 load(paste(Path1000G, 'GRanges_L1_1000Genomes.RData', sep = ""))
@@ -43,14 +46,16 @@ sum(blnNotAnalyzed)
 ########################################################################################
 # Run MELT for low coverage bam files
 IndividualID = SampleColumns[1]
-for (IndividualID in SampleColumns[blnNotAnalyzed]){
+for (IndividualID in SampleColumns[-1]){
   
   # Define paths
   DirPath1000G <- gsub("IndividualID", IndividualID, DirPath1000G_General)
   BamOutPath   <- paste(Path1000G, "L1Filtered_", IndividualID, ".bam", sep = "")
+  BamOutPath_Lftp.bam   <- paste(ScratchPath, IndividualID, ".bam", sep = "")
+  BamOutPath_Lftp.bai   <- paste(ScratchPath, IndividualID, ".bai", sep = "")
   
   # Create folder for MELT results
-  NewDir <- paste(Path1000G, IndividualID, sep = "")
+  NewDir <- paste(Path1000G, IndividualID, "_fullGenome", sep = "")
   MkDirCmd <- NULL
   if (!dir.exists(NewDir)){
     paste("mkdir", NewDir)
@@ -70,20 +75,29 @@ for (IndividualID in SampleColumns[blnNotAnalyzed]){
   })
   FileNames   <- FileNames[grep("\\.mapped", FileNames)]
   BamFileName <- FileNames[-grep("bam.", FileNames)]
+  BaiFileName <- FileNames[grep(".bai", FileNames)]
   BamPath1000G <- paste("ftp://", DirPath1000G, BamFileName, sep = "")
-
-  # Construct samtools command to get filtered bam file
-  SamToolsCmds <- c("module load samtools",
-                    paste("samtools view -b -h", BamPath1000G, "-L", 
-                          L1NeighborbedPath_1000G, "| samtools sort -o",
-                          BamOutPath),
-                    paste("samtools index", BamOutPath))
+  BaiPath1000G <- paste("ftp://", DirPath1000G, BaiFileName, sep = "")
+  
+  # # Construct samtools command to get filtered bam file
+  # SamToolsCmds <- c("module load samtools",
+  #                   paste("samtools view -b -h", BamPath1000G, "-L", 
+  #                         L1NeighborbedPath_1000G, "| samtools sort -o",
+  #                         BamOutPath),
+  #                   paste("samtools index", BamOutPath))
+  
+  # Construct lftp command to get  bam file
+  LftpCmds <- paste("lftp -c'", 
+                    paste("open ftp://", DirPath1000G, ";", sep = ""),
+                    paste("get1 -o", BamOutPath_Lftp.bam, " ", BamPath1000G, ";", sep = ""),
+                    paste("get1 -o", BamOutPath_Lftp.bai, " ", BaiPath1000G, ";", sep = ""),
+                    "'")
   
   # Construct MELT command
   MELTCmds <- c(MkDirCmd,
                 "module load bowtie2",
                 paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar Single -bamfile",
-                      BamOutPath, 
+                      BamOutPath_Lftp.bam, 
                       "-c 7",
                       "-h", RefFilePath,
                       "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
@@ -92,12 +106,13 @@ for (IndividualID in SampleColumns[blnNotAnalyzed]){
                       "-w", NewDir))
 
   # Command to remove bam files
-  RemCmds <- c(paste("rm", BamOutPath), paste("rm ", BamOutPath, ".bai", sep = ""))
+#  RemCmds <- c(paste("rm", BamOutPath), paste("rm ", BamOutPath, ".bai", sep = ""))
+  RemCmds <- c(paste("rm", BamOutPath_Lftp.bam), paste("rm ", BamOutPath_Lftp.bai, sep = ""))
   
   # Create script name and launch script
   ScriptName <- paste("ME_L1Ins_Script", IndividualID, sep = "_")
   CreateAndCallSlurmScript(file = ScriptName, 
-                           SlurmCommandLines = c(SamToolsCmds, 
+                           SlurmCommandLines = c(LftpCmds, 
                                                  "echo 'bam file retrieved'", 
                                                  "module load bowtie",
                                                  MELTCmds, 

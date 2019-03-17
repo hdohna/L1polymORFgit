@@ -8,9 +8,13 @@ source('/home/hzudohna/L1polymORFgit/Scripts/_Start_L1polymORF_scg4.R')
 library(Rsamtools)
 library(rtracklayer)
 
+# Boolean variables for different parts of the workflow
+blnRunSam  <- T
+blnRunMELT <- T
+
 # Specify run parameters
 RunTime <- '12:00:00'
-Mem     <- '50G'
+Mem     <- '100G'
 
 # Path to reference data and for 1000 genomes
 #RefPath     <- "D:/L1polymORF/Data/"
@@ -41,23 +45,25 @@ export.bed(L1Ranges_shortName, L1bedPath)
 
 # Create bed file of ranges around each 1000 genome L1
 ChrNames <- as.vector(seqnames(L1_1000G_GR_hg19))
-ChrNrs   <- substr(ChrNames, 4, nchar(ChrNames))
-L1NeighborRanges_1000G <- GRanges(seqnames = ChrNrs, 
+L1NeighborRanges_1000G <- GRanges(seqnames = ChrNames, 
                             IRanges(start = start(L1_1000G_GR_hg19) - 500,
                                     end   = end(L1_1000G_GR_hg19) + 500))
-L1NeighborbedPath_1000G <- paste(RefPath, "L1NeighborRanges_1000G.bed", sep = "")
+L1NeighborbedPath_1000G <- paste(RefPath, "L1NeighborRanges_1000G_chr.bed", sep = "")
 L1bedPath_1000G         <- paste(RefPath, "L1Ranges_1000G.bed", sep = "")
 #export.bed(L1NeighborRanges_1000G, L1NeighborbedPath_1000G) 
 
-export.bed(c(L1Ranges_shortName, L1NeighborRanges_1000G), L1NeighborbedPath_1000G) 
+export.bed(L1NeighborRanges_1000G, L1NeighborbedPath_1000G) 
 
 # Get paths to bam files
 BamFiles <- list.files(Path1000GSim, pattern = "_sorted.bam", full.names = T)
 BamFiles <- BamFiles[-grep("_sorted.bam.", BamFiles)]
+BamFiles_Filtered <- list.files(Path1000GSim, pattern = "Filtered.bam", full.names = T)
+BamFiles_Filtered <- BamFiles_Filtered[-grep("Filtered.bam.", BamFiles_Filtered)]
+BamFiles_Filtered
 
 ########################################################################################
 # Run MELT for low coverage bam files
-
+BamFile <- BamFiles[1]
 for (BamFile in BamFiles){
   
   # Get ID
@@ -94,8 +100,10 @@ for (BamFile in BamFiles){
   
   
   # Create a list of all commands
-  AllCmds <- c(SamToolsCmds, MELTCmds)
-  
+  # Create a list of all commands
+  CmdList <- list(SamToolsCmds, MELTCmds)
+  AllCmds <- unlist(CmdList[c(blnRunSam, blnRunMELT)])
+
   # Create script name and run script
   ScriptName <- paste("Sim_Bwa_MELTScript", Split1[4], "Filter", sep = "_")
   CreateAndCallSlurmScript(file = ScriptName, 

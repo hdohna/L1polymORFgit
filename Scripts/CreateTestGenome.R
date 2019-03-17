@@ -34,7 +34,7 @@ CreateInsertTxt <- function(idx){
 
 # Loop through the first 5 sample columns and generate reference genomes
 # with the same insertions as the current
-for (x in SampleColumns[6:26]){
+for (x in SampleColumns[27:40]){
   
   cat("******   Simulating genome", x, "   **********\n")
   

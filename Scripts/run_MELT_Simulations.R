@@ -14,7 +14,7 @@ blnRunBWA  <- F
 blnIdxBam  <- F
 blnRunMELT <- F
 blnRunSimAnalysis   <- F
-blnRunGroupAnalysis <- T
+blnRunGroupAnalysis <- F
 
 # Specify run parameters
 RunTime <- '12:00:00'
@@ -96,7 +96,7 @@ if (blnRunSimAnalysis){
                     paste("samtools view", OutSam, "-b -h -o", OutBam),
                     paste("rm", OutSam))
     
-    # Sam commands to turn sam file into bam file
+    # Sam commands to sort and index bam file
     SamIdxCmds <- c("module load samtools",
                     paste("samtools sort", OutBam, "-o", OutBamSorted),
                     paste("samtools index", OutBamSorted))
