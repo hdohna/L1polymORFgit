@@ -24,10 +24,16 @@ SimDir <- "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT_single/"
 
 # Get names of vcf files
 VcfDirs <- list.dirs("/labs/dflev/hzudohna/1000Genomes/", full.names = F)
-VcfDirs <- VcfDirs[VcfDirs %in% SampleColumns]
+VcfDirs <- VcfDirs[VcfDirs %in% paste(SampleColumns, "fullGenome", sep = "_")]
+VcfDirs[1:10]
 VcfFiles <- paste("/labs/dflev/hzudohna/1000Genomes/", VcfDirs, 
                   "/LINE1.final_comp.vcf", sep = "")
 FileSizes <- file.info(VcfFiles)$size
+VcfFiles[1:10]
+sum(is.na(FileSizes))
+sum(FileSizes == 0, na.rm = T)
+sum(!file.exists(VcfFiles))
+
 # Read in vcf file and create genomic ranges
 L1Vcf <- NULL
 for (VcfFile in VcfFiles[which(file.exists(VcfFiles) & FileSizes > 0)]){
@@ -43,4 +49,4 @@ for (VcfFile in VcfFiles[which(file.exists(VcfFiles) & FileSizes > 0)]){
 }
 
 # Write out vcf file
-write.table(L1Vcf, "/labs/dflev/hzudohna/1000Genomes/L1_SingleMELT_CombinedVcfs")
+write.table(L1Vcf, "/labs/dflev/hzudohna/1000Genomes/L1_SingleMELT_fullGenome_CombinedVcfs")

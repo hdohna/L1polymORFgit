@@ -8,6 +8,7 @@ library(rtracklayer)
 # Run parameters
 RunTime_MELT <- '12:00:00'
 Mem_MELT     <- '100G'
+JobsTotal    <- 500
 
 # Path to reference data and for 1000 genomes
 #RefPath   <- "D:/L1polymORF/Data/"
@@ -24,29 +25,41 @@ ScratchPath <- "/scratch/users/hzudohna/"
 load(paste(Path1000G, 'GRanges_L1_1000Genomes.RData', sep = ""))
 
 # Create bed file of ranges around each 1000 genome L1
-ChrNames <- as.vector(seqnames(L1_1000G_GR_hg19))
-ChrNrs   <- substr(ChrNames, 4, nchar(ChrNames))
-L1NeighborRanges_1000G <- GRanges(seqnames = ChrNrs, 
-                                  IRanges(start = start(L1_1000G_GR_hg19) - 500,
-                                          end   = end(L1_1000G_GR_hg19) + 500))
-L1NeighborbedPath_1000G <- paste(RefPath, "L1NeighborRanges_1000G.bed", sep = "")
-L1bedPath_1000G         <- paste(RefPath, "L1Ranges_1000G.bed", sep = "")
-export.bed(c(L1Ranges_shortName, L1NeighborRanges_1000G), L1NeighborbedPath_1000G) 
+# ChrNames <- as.vector(seqnames(L1_1000G_GR_hg19))
+# ChrNrs   <- substr(ChrNames, 4, nchar(ChrNames))
+# L1NeighborRanges_1000G <- GRanges(seqnames = ChrNrs, 
+#                                   IRanges(start = start(L1_1000G_GR_hg19) - 500,
+#                                           end   = end(L1_1000G_GR_hg19) + 500))
+# L1NeighborbedPath_1000G <- paste(RefPath, "L1NeighborRanges_1000G.bed", sep = "")
+# L1bedPath_1000G         <- paste(RefPath, "L1Ranges_1000G.bed", sep = "")
+# export.bed(c(L1Ranges_shortName, L1NeighborRanges_1000G), L1NeighborbedPath_1000G) 
 
 # Specify the general path to 1000 genome bam file
 BamPath1000G_General <- "ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase3/data/IndividualID/alignment/IndividualID.mapped.ILLUMINA.bwa.GBR.low_coverage.20101123.bam"
 DirPath1000G_General <- "ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase3/data/IndividualID/alignment/"
 
 # Get all directories in the 1000 genome path
-Dirs1000G <- list.dirs(Path1000G, recursive = F, full.names = F)
-blnNotAnalyzed <- !SampleColumns %in% Dirs1000G
-IndividualID <- SampleColumns[blnNotAnalyzed][3]
-sum(blnNotAnalyzed)
+# Dirs1000G <- list.dirs(Path1000G, recursive = F, full.names = F)
+# blnNotAnalyzed <- !SampleColumns %in% Dirs1000G
+# IndividualID <- SampleColumns[blnNotAnalyzed][3]
+# sum(blnNotAnalyzed)
+
+# Get names of vcf files
+VcfFiles <- paste("/labs/dflev/hzudohna/1000Genomes/", SampleColumns, "_fullGenome",
+                  "/LINE1.final_comp.vcf", sep = "")
+blnNoResults <- !file.exists(VcfFiles)
+cat(sum(!blnNoResults), "genomes with results\n")
+cat(sum(blnNoResults), "genomes without results\n")
+blnNotAnalyzed <- !dir.exists(paste("/labs/dflev/hzudohna/1000Genomes/", 
+                                    SampleColumns, "_fullGenome", sep = ""))
+cat(sum(!blnNotAnalyzed), "genomes analyzed\n")
+cat(sum(blnNotAnalyzed), "genomes not analyzed\n")
+
 
 ########################################################################################
 # Run MELT for low coverage bam files
-IndividualID = SampleColumns[1]
-for (IndividualID in SampleColumns[-1]){
+IndividualID = SampleColumns[blnNotAnalyzed]
+for (IndividualID in SampleColumns[blnNotAnalyzed][1:min(sum(blnNotAnalyzed), JobsTotal)]){
   
   # Define paths
   DirPath1000G <- gsub("IndividualID", IndividualID, DirPath1000G_General)
