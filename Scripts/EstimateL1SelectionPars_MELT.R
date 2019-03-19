@@ -79,7 +79,7 @@ GetLength <- function(x){
   LengthCh   <- strsplit(xSplit[grep("SVLEN=", xSplit)], "=")[[1]][2]
   as.numeric(LengthCh)
 }
-MEInsCall$Info[1:5]
+
 # Add columns necessary for analysis 
 MEInsCall$AF <- sapply(MEInsCall$Info, GetAF)
 MEInsCall$L1width <- sapply(MEInsCall$Info, GetLength)

@@ -7,8 +7,8 @@ library(rtracklayer)
 
 # Run parameters
 RunTime_MELT <- '12:00:00'
-Mem_MELT     <- '100G'
-JobsTotal    <- 500
+Mem_MELT     <- '500G'
+JobsTotal    <- 50
 
 # Path to reference data and for 1000 genomes
 #RefPath   <- "D:/L1polymORF/Data/"
@@ -50,17 +50,25 @@ VcfFiles <- paste("/labs/dflev/hzudohna/1000Genomes/", SampleColumns, "_fullGeno
 blnNoResults <- !file.exists(VcfFiles)
 cat(sum(!blnNoResults), "genomes with results\n")
 cat(sum(blnNoResults), "genomes without results\n")
+
+# Remove the files in folders with nor results
+NoResultFolders <- gsub("/LINE1.final_comp.vcf", "", VcfFiles[blnNoResults])
+
+RemoveCommand <- paste("rm -r", paste(NoResultFolders, collapse = " "))
+cat("Removing", length(NoResultFolders))
+system(RemoveCommand)
 blnNotAnalyzed <- !dir.exists(paste("/labs/dflev/hzudohna/1000Genomes/", 
                                     SampleColumns, "_fullGenome", sep = ""))
 cat(sum(!blnNotAnalyzed), "genomes analyzed\n")
 cat(sum(blnNotAnalyzed), "genomes not analyzed\n")
-
+SampleColumns[blnNoResults][1:5]
 
 ########################################################################################
 # Run MELT for low coverage bam files
 IndividualID = SampleColumns[blnNotAnalyzed]
-for (IndividualID in SampleColumns[blnNotAnalyzed][1:min(sum(blnNotAnalyzed), JobsTotal)]){
-  
+IDs2Analyze <- SampleColumns[blnNoResults][1:min(sum(blnNoResults), JobsTotal)]
+for (IndividualID in IDs2Analyze){
+
   # Define paths
   DirPath1000G <- gsub("IndividualID", IndividualID, DirPath1000G_General)
   BamOutPath   <- paste(Path1000G, "L1Filtered_", IndividualID, ".bam", sep = "")
