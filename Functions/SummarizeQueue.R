@@ -27,7 +27,7 @@ SummarizeQueue <- function(){
     idxInteract <- grep("interact", QueueStatus)
     idxRunning  <- grep(" R ", QueueStatus)
     idxPending  <- grep(" PD ", QueueStatus)
-    cat("******   Batch jobs:   **********\n")
+    cat("\n\n******   Batch jobs:   **********\n")
     cat(length(intersect(idxBatch, idxRunning)), "jobs running and ")
     cat(length(intersect(idxBatch, idxPending)), "jobs pending\n\n")
     cat("******   Interactive jobs:   **********\n")

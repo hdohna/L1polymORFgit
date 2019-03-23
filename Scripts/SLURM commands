@@ -1,7 +1,7 @@
 ## Interactive slurm
 srun --pty --time=1-00:00:00 --account=default --partition=interactive --nodes=1 --mem=500gb bash -l
-srun --pty --time=1-00:00:00 --account=default --partition=interactive --nodes=1 --mem=50gb bash -l
-srun --pty --time=1-00:00:00 --account=default --partition=interactive --nodes=1 --mem=5gb bash -l
+srun --pty --time=12:00:00 --account=default --partition=interactive --nodes=1 --mem=50gb bash -l
+srun --pty --time=2:00:00 --account=default --partition=interactive --nodes=1 --mem=5gb bash -l
 
 ## Job header
 #!/bin/bash -l

@@ -14,13 +14,9 @@ load('/labs/dflev/hzudohna/1000Genomes/GRanges_L1_1000Genomes.RData')
 
 #############################################
 #                                           #
-#   Analyze L1 detection from standard      #
-#          simulated files                  #
+#   Concatenate vcf files              #
 #                                           #
 #############################################
-
-# Specify simulation directory
-SimDir <- "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT_single/"
 
 # Get names of vcf files
 VcfDirs <- list.dirs("/labs/dflev/hzudohna/1000Genomes/", full.names = F)
@@ -30,9 +26,8 @@ VcfFiles <- paste("/labs/dflev/hzudohna/1000Genomes/", VcfDirs,
                   "/LINE1.final_comp.vcf", sep = "")
 FileSizes <- file.info(VcfFiles)$size
 VcfFiles[1:10]
-sum(is.na(FileSizes))
-sum(FileSizes == 0, na.rm = T)
-sum(!file.exists(VcfFiles))
+cat(sum(FileSizes == 0, na.rm = T), "empty vcf files\n")
+cat(sum(!file.exists(VcfFiles)), "vcf files don't exist\n")
 
 # Read in vcf file and create genomic ranges
 L1Vcf <- NULL

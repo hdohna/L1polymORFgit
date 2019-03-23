@@ -92,6 +92,82 @@ L1WidthAgg <- merge(L1WidthAggregated, L1WidthAggregated_n)
 #              TipWidth = 20)
 # dev.off()
 
+###################################################
+#                                                 #
+#   Analyze L1 detection from simulated L1        #
+#     with variable difference from consensus     #
+#                                                 #
+###################################################
+
+# Load file with simulation specifications
+load("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/L1SimSettings.RData")
+
+# Specify simulation directory
+SimDir <- "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/"
+
+# Get names of vcf files
+VcfDirs  <- list.dirs(SimDir, full.names = F)
+VcfDirs  <- VcfDirs[VcfDirs %in% paste(SampleColumns, "Var", sep = "_")]
+VcfFiles <- paste(SimDir, VcfDirs, "/LINE1.final_comp.vcf", sep = "")
+L1DetectVar <- NULL
+for (VcfFile in VcfFiles[file.exists(VcfFiles)]){
+  cat("Processing", VcfFile, "\n")
+  
+  VcfFile <- ReadVCF(VcfFile)
+  VcfGR   <- makeGRangesFromDataFrame(VcfFile, seqnames.field = "X.CHROM",
+                                      start.field = "POS",
+                                      end.field = "POS")
+  VcfGR <- resize(VcfGR, width = 150, fix = "center")
+  
+  # Get sample ID from vcf column and get index of L1 insertions that occur in
+  # that sample
+  SampleID <- strsplit(colnames(VcfFile)[ncol(VcfFile)], "_")[[1]][2]
+  cat("Processing", SampleID, "\n")
+  idxL1    <- which(L1_1000G[,SampleID] > 0)
+  SampleGR <- makeGRangesFromDataFrame(L1_1000G[idxL1,], seqnames.field = "chromosome",
+                                       start.field = "POS",
+                                       end.field = "POS")
+  
+  # Create data.frame that keeps track of L1 width and their detection status
+  L1DetectNew <- data.frame(blnDetect = overlapsAny(SampleGR, VcfGR),
+                            L1PropDiff = L1_1000G$PropDiff[idxL1])
+  L1DetectVar   <- rbind(L1DetectVar, L1DetectNew)
+  
+}
+
+
+# Logistic regression for detection probability as finction of insertion length
+LogReg_DetectL1L1PropDiff <- glm(blnDetect ~ L1PropDiff, data = L1Detect,
+                            family = binomial)
+summary(LogReg_DetectL1L1PropDiff)
+
+
+# Plot the percentage of detected LINE-1 per length class
+# Create a vector of L1 start classes
+L1Detect$InsLengthClass <- cut(L1Detect$L1width, breaks = 
+                                 seq(0, 6500, 500))
+
+# Get mean L1 detection per L1 width
+L1WidthAggregated <- aggregate(L1Detect[,c("L1width", "blnDetect")], 
+                               by = list(L1Detect$InsLengthClass), 
+                               FUN = function(x) mean(x, na.rm = T))
+L1WidthAggregated_n <- aggregate(L1Detect$L1width, 
+                                 by = list(L1Detect$InsLengthClass), 
+                                 FUN = function(x) sum(!is.na(x)))
+L1WidthAgg <- merge(L1WidthAggregated, L1WidthAggregated_n)
+
+# Plot detection probability vs insertion size
+# pdf(file = "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/DetectVsInsertSize.pdf")
+# plot(L1WidthAgg$L1width, L1WidthAgg$blnDetect, xlab = "L1 width",
+#      ylab = "Proportion detected")
+# SDdetect <- sqrt(L1WidthAgg$blnDetect*(1 - L1WidthAgg$blnDetect) /
+#   L1WidthAgg$x)
+# AddErrorBars(MidX = L1WidthAgg$L1width, 
+#              MidY = L1WidthAgg$blnDetect, 
+#              ErrorRange = SDdetect,
+#              TipWidth = 20)
+# dev.off()
+
 #############################################
 #                                           #
 #   Analyze L1 detection from filtered      #
