@@ -37,7 +37,9 @@ SelectResultOutPath <- "D:/L1polymORF/Data/L1SelectionResults_MELT_Single.RData"
 
 # Specify logistic rgeression coefficients for relationship between insert
 # size and detection probability
-L1SizeDetectCoeff <- c(a = 0.8, b = 10^-5)
+load("D:/L1polymORF/Data/L1Simulated_MELT.RData")
+L1SizeDetectCoeff <- c(a = LogReg_DetectL1width$coefficients[1], 
+                       b = LogReg_DetectL1width$coefficients[2])
 
 # False discovery rate for selected L1
 FDR <- 0.1
@@ -88,10 +90,37 @@ GetLength <- function(x){
   }
 }
 
+x <- MEInsCallPerL1$INFO[1]
+GetPropCovered <- function(x){
+  Split1 <- strsplit(x, ";")[[1]]
+  DiffPart1 <- grep("DIFF=", Split1, value = T)
+  if (length(DiffPart1) > 0){
+    DiffPart2 <- strsplit(DiffPart1, ":")[[1]]
+    as.numeric(strsplit(DiffPart2[1], "=")[[1]][2])
+  } else {
+    NA
+  }
+}
+
+GetPropDiff <- function(x){
+  Split1 <- strsplit(x, ";")[[1]]
+  DiffPart1 <- grep("DIFF=", Split1, value = T)
+  if (length(DiffPart1) > 0){
+    DiffPart2 <- strsplit(DiffPart1, ":")[[1]]
+    DiffPart3 <- strsplit(DiffPart2[2], ",")[[1]]
+    (length(DiffPart3) - length(grep("n", DiffPart3))) / 
+      as.numeric(strsplit(DiffPart2[1], "=")[[1]][2])
+  } else {
+    NA
+  }
+}
+
 # Add columns for numeric genotype and insertion length
 MEInsCallPerL1$GenoNum <- sapply(MEInsCallPerL1$Genotype, GetGenoNum)
 MEInsCallPerL1$L1width <- sapply(MEInsCallPerL1$INFO, GetLength)
-
+MEInsCallPerL1$PropCovered  <- sapply(MEInsCallPerL1$INFO, GetPropCovered)
+MEInsCallPerL1$L1Diff  <- sapply(MEInsCallPerL1$INFO, GetPropDiff)
+hist(MEInsCallPerL1$L1Diff)
 # Get L1 ID and aggregate values per L1
 MEInsCallPerL1$L1ID <- paste(MEInsCallPerL1$X.CHROM, MEInsCallPerL1$POS)
 MEInsCall <- aggregate(MEInsCallPerL1$GenoNum, 
@@ -101,11 +130,27 @@ colnames(MEInsCall) <- c("CHROM", "POS", "Freq")
 MEInsCall$L1ID <- paste(MEInsCall$CHROM, MEInsCall$POS)
 L1IDmatch <- match(MEInsCall$L1ID, MEInsCallPerL1$L1ID)
 MEInsCall$L1width <- MEInsCallPerL1$L1width[L1IDmatch]
+MEInsCall$L1Diff  <- sapply(MEInsCall$L1ID, function(x){
+  idxID  <- which(MEInsCallPerL1$L1ID == x)
+  idxMax <- which.max(MEInsCallPerL1$PropCovered[idxID])
+  if (length(idxMax) > 0){
+    MEInsCallPerL1$L1Diff[idxID][idxMax]
+  } else {
+    NA
+  }
+    
+})
+MEInsCall$L1Diff[is.infinite(MEInsCall$L1Diff)] <- NA
 
 # Add columns necessary for analysis 
 MEInsCall$AF <- MEInsCall$Freq / MEInsSamplesize
 MEInsCall$SampleSize <- 2 * MEInsSamplesize
 MEInsCall$blnFull    <- MEInsCall$L1width >= MinLengthFullL1
+cor.test(MEInsCall$AF[MEInsCall$blnFull], MEInsCall$L1Diff[MEInsCall$blnFull])
+L1Diff_LM <- lm(L1Diff ~ blnFull + L1width + Freq*blnFull, data = MEInsCall)
+summary(L1Diff_LM)
+hist( MEInsCall$L1Diff)
+plot(L1Diff ~ L1width, data = MEInsCall, col = rgb(0, 0, 0, alpha = 0.2))
 
 # Create GRanges object for MEInsCall
 MEInsCall$ChromName <- paste("chr", MEInsCall$CHROM, sep = "")

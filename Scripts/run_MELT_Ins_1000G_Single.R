@@ -7,16 +7,17 @@ library(rtracklayer)
 
 # Run parameters
 RunTime_MELT <- '12:00:00'
-Mem_MELT     <- '500G'
-JobsTotal    <- 50
+Mem_MELT     <- '100G'
+JobsTotal    <- 500
 
 # Path to reference data and for 1000 genomes
 #RefPath   <- "D:/L1polymORF/Data/"
 RefPath     <- "/labs/dflev/hzudohna/RefSeqData/"
-RefFilePath <- "/labs/dflev/hzudohna/RefSeqData/hg19.fa"
-RefFilePath <- "/labs/dflev/hzudohna/RefSeqData/hs37d5.fa.gz"
-
-Path1000G   <-   "/labs/dflev/hzudohna/1000Genomes/"
+# RefFilePath <- "/labs/dflev/hzudohna/RefSeqData/hg19.fa"
+# RefFilePath <- "/labs/dflev/hzudohna/RefSeqData/hs37d5.fa.gz"
+# RefFilePath <- "/reference/RefGenomes/1000genomes/human_g1k_v37/human_g1k_v37.fasta"
+RefFilePath <- "/reference/RefGenomes/1000genomes/hs37d5/hs37d5.fa"
+Path1000G   <- "/labs/dflev/hzudohna/1000Genomes/"
 
 # Path for scratch storage
 ScratchPath <- "/scratch/users/hzudohna/"
@@ -52,21 +53,19 @@ cat(sum(!blnNoResults), "genomes with results\n")
 cat(sum(blnNoResults), "genomes without results\n")
 
 # Remove the files in folders with nor results
-NoResultFolders <- gsub("/LINE1.final_comp.vcf", "", VcfFiles[blnNoResults])
-
-RemoveCommand <- paste("rm -r", paste(NoResultFolders, collapse = " "))
-cat("Removing", length(NoResultFolders))
-system(RemoveCommand)
-blnNotAnalyzed <- !dir.exists(paste("/labs/dflev/hzudohna/1000Genomes/", 
-                                    SampleColumns, "_fullGenome", sep = ""))
-cat(sum(!blnNotAnalyzed), "genomes analyzed\n")
-cat(sum(blnNotAnalyzed), "genomes not analyzed\n")
-SampleColumns[blnNoResults][1:5]
+# NoResultFolders <- gsub("/LINE1.final_comp.vcf", "", VcfFiles[blnNoResults])
+# blnDirExists    <- dir.exists(NoResultFolders)
+# blnNotAnalyzed <- !dir.exists(paste("/labs/dflev/hzudohna/1000Genomes/", 
+#                                     SampleColumns, "_fullGenome", sep = ""))
+# cat(sum(!blnNotAnalyzed), "genomes analyzed\n")
+# cat(sum(blnNotAnalyzed), "genomes not analyzed\n")
+# SampleColumns[blnNoResults][1:5]
 
 ########################################################################################
 # Run MELT for low coverage bam files
-IndividualID = SampleColumns[blnNotAnalyzed]
-IDs2Analyze <- SampleColumns[blnNoResults][1:min(sum(blnNoResults), JobsTotal)]
+# IndividualID = SampleColumns[blnNotAnalyzed]
+SampleColumns[blnNoResults][1:6]
+IDs2Analyze <- SampleColumns[blnNoResults][11:sum(blnNoResults)]
 for (IndividualID in IDs2Analyze){
 
   # Define paths
@@ -133,7 +132,9 @@ for (IndividualID in IDs2Analyze){
   # Create script name and launch script
   ScriptName <- paste("ME_L1Ins_Script", IndividualID, sep = "_")
   CreateAndCallSlurmScript(file = ScriptName, 
-                           SlurmCommandLines = c(LftpCmds, 
+                           scriptName = IndividualID,
+                           SlurmCommandLines = c(
+                             LftpCmds, 
                                                  "echo 'bam file retrieved'", 
                                                  "module load bowtie",
                                                  MELTCmds, 
