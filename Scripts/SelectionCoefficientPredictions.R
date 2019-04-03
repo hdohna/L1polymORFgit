@@ -168,7 +168,7 @@ SVals2 <-  ML_L1widthL1full_N$par[1] + ML_L1widthL1full_N$par[2]*StartVals +
   ML_L1widthL1full_N$par[3]*Full
 
 # Plot expected frequency versus observed mean frequency
-ExpL1Width <- sapply(SVals, function(x) ExpAlleleFreq(x, N = PopSize, 
+ExpL1Width <- sapply(SVals, function(x) ExpAlleleFreq(x, N = 10^5, 
                                                       SampleSize = 2*2504,
                                                       DetectProb = 0.9,
                                                       LogRegCoeff = LogRegL1Ref$coefficients))
@@ -205,21 +205,22 @@ par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2),
      cex.lab = 1)
 plot(L1TotData$L1width, 
      L1TotData$Freq/SSize, xlab = "LINE-1 length [bp]",
-     ylab = "Mean LINE-1 frequency", col = rgb(0, 0, 0, alpha = 0.2), ylim = c(0, 0.06),
+     ylab = "LINE-1 frequency", col = rgb(0, 0, 0, alpha = 0.1), ylim = c(0, 0.02),
      pch = 16)
 L1FreqLengthSmoothed <- supsmu(L1TotData$L1width, 
                                L1TotData$Freq/SSize, span = 0.3)
-lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, col = "red")
-lines(StartVals, ExpL1Width, lty = 4, lwd = 2, col = "red")
+#lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, col = "red")
+lines(StartVals, ExpL1Width, lwd = 2, col = "red")
 par(new = T)
 plot(StartVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", xlab = "",
+     lwd = 2,
      col = "blue")
 axis(side = 4, col = "blue")
 mtext(side = 4, line = 4, 'Selection coefficient')
 
 CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width_smoothed.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
-                 height = 6, width = 6)
+                 height = 6, width = 8)
 
 # Plot variance against width
 VarL1Width <- sapply(SVals, function(x) VarAlleleFreq(x, N = 10^4, 

@@ -39,6 +39,7 @@ GRanges_L1repMask_Hg19 <- makeGRangesFromDataFrame(L1repMask_Hg19,
 
 # Get L1HS sequences
 L1HSSeq <- getSeq(BSgenome.Hsapiens.UCSC.hg19, GRanges_L1repMask_Hg19)
+GRanges_L1repMask_Hg19[1]
 
 # Align L1HSSeq to consensus and calculate the proportion of nucleotides that differ from 
 cat("Calculating the proportion of each L1 that differs from consensus ")
@@ -69,3 +70,6 @@ names(L1HSSeqList) <- paste(L1repMask_Hg19$genoName, L1repMask_Hg19$genoStart,
 write.fasta(c(L1Consens, L1HSSeqList), c("L1consensus", names(L1HSSeqList)),
             file.out = "D:/L1polymORF/Data/L1HS_withConsens_unaligned.fas")
             
+write.fasta(list(L1Consens[[1]], tolower(s2c(as.character(L1HSSeq[1])))), 
+                 c("L1consensus", "L1fragm"),
+            file.out = "D:/L1polymORF/Data/L1HS_example.fas")

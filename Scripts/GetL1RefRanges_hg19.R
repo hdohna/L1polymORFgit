@@ -28,10 +28,6 @@
 source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
 
 # Load packages
-# library(ShortRead)
-# library(csaw)
-# library(chipseq)
-# library(BSgenome.Hsapiens.UCSC.hg19)
 library(GenomicRanges)
 library(rtracklayer)
 
@@ -67,14 +63,16 @@ NameMatch   <- match(repNChar, SubFamiliesLookUp["Name",])
 SubFamilies <- SubFamiliesLookUp["SubFam", NameMatch]
 
 # Create GRanges objects with L1 Seqences
-L1IRanges <- IRanges(start = L1Table$genoStart,
-                     end = L1Table$genoEnd)
-L1GRanges <- GRanges(seqnames = L1Table$genoName, ranges = L1IRanges,
-                     strand = L1Table$strand)
+L1GRanges <- makeGRangesFromDataFrame(L1Table, seqnames.field = "genoName",
+                                      start.field = "genoStart",
+                                      end.field = "genoEnd",
+                                      strand.field = "strand")
 
 # Get ranges of full-length L1HS
 idxL1HsFullLength <- width(L1GRanges) >= FullLength & SubFamilies == "L1HS"
 L1HSFullLength_GRanges <- L1GRanges[idxL1HsFullLength]
+
+# Get ranges of flanking regions 
 
 # Save results
 cat("*******  Saving results ...   *******\n")

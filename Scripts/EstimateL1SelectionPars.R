@@ -306,7 +306,7 @@ AddErrorBars(MidX = bp1, MidY = MeanFreqs, ErrorRange = StErr,
 CreateDisplayPdf('D:/L1polymORF/Figures/PropL1InRegions.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 7, width = 7)
-
+nrow(L1_1000G)
 ###################################################
 #                                                 #
 #   Fit effect of insertion length on selection   #

@@ -21,16 +21,15 @@ load('/labs/dflev/hzudohna/1000Genomes/GRanges_L1_1000Genomes.RData')
 # Get names of vcf files
 VcfDirs <- list.dirs("/labs/dflev/hzudohna/1000Genomes/", full.names = F)
 VcfDirs <- VcfDirs[VcfDirs %in% paste(SampleColumns, "fullGenome", sep = "_")]
-VcfDirs[1:10]
 VcfFiles <- paste("/labs/dflev/hzudohna/1000Genomes/", VcfDirs, 
                   "/LINE1.final_comp.vcf", sep = "")
 FileSizes <- file.info(VcfFiles)$size
-VcfFiles[1:10]
 cat(sum(FileSizes == 0, na.rm = T), "empty vcf files\n")
 cat(sum(!file.exists(VcfFiles)), "vcf files don't exist\n")
 
 # Read in vcf file and create genomic ranges
 L1Vcf <- NULL
+VcfFile <- VcfFiles[1]
 for (VcfFile in VcfFiles[which(file.exists(VcfFiles) & FileSizes > 0)]){
   
   ID <- strsplit(VcfFile, "/")[[1]][6]

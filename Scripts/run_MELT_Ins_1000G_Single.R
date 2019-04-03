@@ -65,7 +65,7 @@ cat(sum(blnNoResults), "genomes without results\n")
 # Run MELT for low coverage bam files
 # IndividualID = SampleColumns[blnNotAnalyzed]
 SampleColumns[blnNoResults][1:6]
-IDs2Analyze <- SampleColumns[blnNoResults][11:sum(blnNoResults)]
+IDs2Analyze <- SampleColumns[blnNoResults]
 for (IndividualID in IDs2Analyze){
 
   # Define paths
