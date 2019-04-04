@@ -177,74 +177,36 @@ while (length(idxLeft) > 0){
   idxLeft <- setdiff(idxLeft, c(idxLeft[1], TriNucMatch[idxLeft[1]]))
 }
 
-# Build data for 5' UTR
-# GRidx <- UTR5_GR@elementMetadata@listData$idx
-SeqSet <- getSeq(BSgenome.Hsapiens.UCSC.hg19, UTR5_GR)
-SNPInfo_UTR5  <- data.frame()
-TriFreq_UTR5  <- c()
-cat("Building data for 5' UTR ...\n")
-for(i in which(width(UTR5_GR) >= 3)){
-  TriFreq <- trinucleotideFrequency(SeqSet[[i]]) 
-  TriFreq <- TriFreq + TriFreq[TriNucMatch]
-  TriFreq_UTR5  <- c(TriFreq_UTR5, TriFreq[idxUnique])
-}
-
-# Build data for ORF1
-GRidx_ORF1  <- ORF1_GR@elementMetadata@listData$idx
-SeqSet <- getSeq(BSgenome.Hsapiens.UCSC.hg19, ORF1_GR)
-SNPInfo_ORF1 <- data.frame()
-TriFreq_ORF1  <- c()
-cat("Building data for ORF1 ...\n")
-for(i in which(width(ORF1_GR) >= 3)){
-  TriFreq <- trinucleotideFrequency(SeqSet[[i]]) 
-  TriFreq <- TriFreq + TriFreq[TriNucMatch]
-  TriFreq_ORF1  <- c(TriFreq_ORF1, TriFreq[idxUnique])
-}
-
-# Build data for ORF2
-GRidx  <- ORF2_GR@elementMetadata@listData$idx
-SeqSet <- getSeq(BSgenome.Hsapiens.UCSC.hg19, ORF2_GR)
-SNPInfo_ORF2 <- data.frame()
-TriFreq_ORF2  <- c()
-idxCount_ORF2 <- c()
-cat("Building data for ORF2 ...\n")
-for(i in which(width(ORF2_GR) >= 3)){
-  TriFreq <- trinucleotideFrequency(SeqSet[[i]]) 
-  TriFreq <- TriFreq + TriFreq[TriNucMatch]
-  TriFreq_ORF2  <- c(TriFreq_ORF2, TriFreq[idxUnique])
-}
-
-# Buid data for 3'UTR
-GRidx  <- UTR3_GR@elementMetadata@listData$idx
-SeqSet <- getSeq(BSgenome.Hsapiens.UCSC.hg19, UTR3_GR)
-SNPInfo_UTR3 <- data.frame()
-TriFreq_UTR3  <- c()
-idxCount_UTR3 <- c()
-cat("Building data for 3' UTR ...\n")
-for(i in which(width(UTR3_GR) >= 3)){
-  TriFreq <- trinucleotideFrequency(SeqSet[[i]]) 
-  TriFreq <- TriFreq + TriFreq[TriNucMatch]
-  TriFreq_UTR3  <- c(TriFreq_UTR3, TriFreq[idxUnique])
-}
-
 # Put the data together
-cat("Putting the three datasets together ....")
-PutDataTogether <- function(GR, TriFreq, L1Region){
-  TriNames_Unrep <- rep(names(TriFreq)[idxUnique], sum(width(GR) >= 3))
+cat("Putting the three datasets together ...\n\n")
+PutDataTogether <- function(GR, L1Region, TriNucMatch = TriNucMatch, idxUnique = idxUnique){
+  SeqSet <- getSeq(BSgenome.Hsapiens.UCSC.hg19, GR)
+  TriFreq  <- c()
+  for(i in which(width(GR) >= 3)){
+    TriFreq_local <- trinucleotideFrequency(SeqSet[[i]]) 
+    TriFreq_local <- TriFreq_local + TriFreq_local[TriNucMatch]
+    TriFreq       <- c(TriFreq, TriFreq_local[idxUnique])
+  }
   idxGR_Unrep    <- rep(GR@elementMetadata@listData$idx[width(GR) >= 3],
                              each = length(idxUnique))
   idxGR <-   rep(idxGR_Unrep, TriFreq)
-  data.frame(TriNames = rep(TriNames_Unrep, TriFreq),
+  data.frame(TriNames = rep(names(TriFreq), TriFreq),
              idxGR =    idxGR,
              blnSNP = 0,
              VarCount_Flank = L1VarCount_Flank[idxGR],
              L1Region = L1Region,
              blnFull = blnFull[idxGR])
 }
-SNPInfo_UTR5 <- PutDataTogether(UTR5_GR, TriFreq_UTR5, "UTR5")
-SNPInfo_ORF1 <- PutDataTogether(ORF1_GR, TriFreq_ORF1, "ORF1")
-SNPInfo_ORF2 <- PutDataTogether(ORF2_GR, TriFreq_ORF2, "ORF2")
-SNPInfo_UTR3 <- PutDataTogether(UTR3_GR, TriFreq_UTR3, "UTR3")
+SNPInfo_UTR5 <- PutDataTogether(GR = UTR5_GR, L1Region = "UTR5", 
+                                TriNucMatch = TriNucMatch, idxUnique = idxUnique)
+cat("Building data for ORF1 ...\n")
+SNPInfo_ORF1 <- PutDataTogether(ORF1_GR, "ORF1", 
+                                TriNucMatch = TriNucMatch, idxUnique = idxUnique)
+cat("Building data for ORF2 ...\n")
+SNPInfo_ORF2 <- PutDataTogether(ORF2_GR, "ORF2", 
+                                TriNucMatch = TriNucMatch, idxUnique = idxUnique)
+SNPInfo_UTR3 <- PutDataTogether(UTR3_GR, "UTR3", 
+                                TriNucMatch = TriNucMatch, idxUnique = idxUnique)
 SNPInfo <- rbind(SNPInfo_UTR5, SNPInfo_ORF1, SNPInfo_ORF2, SNPInfo_UTR3)
 cat("... done!\n")
 
@@ -252,22 +214,42 @@ cat("... done!\n")
 TriNuc_idx0 <- paste(SNPInfo$TriNames, SNPInfo$idxGR)
 
 # Resize variants to get trinucleotides
-L1VarGR_Tri       <- resize(L1VarGR, 3, fix = "center")
+L1VarGR_Tri        <- resize(L1VarGR, 3, fix = "center")
 L1Var_TriNucSeq    <- getSeq(BSgenome.Hsapiens.UCSC.hg19, L1VarGR_Tri)
 L1Var_TriNucSeq_RC <- reverseComplement(L1Var_TriNucSeq)
 L1Var_TriNuc       <- as.character(L1Var_TriNucSeq)
 blnNoMatch <- ! L1Var_TriNuc %in% names(TriFreq)[idxUnique]
+sum(blnNoMatch)
+length(L1Var_TriNuc)
 L1Var_TriNuc[blnNoMatch] <- as.character(L1Var_TriNucSeq_RC)[blnNoMatch]
 OL_L1Var      <- findOverlaps(L1GR, L1VarGR)
 TriNuc_idx1   <- paste(L1Var_TriNuc[OL_L1Var@to], OL_L1Var@from)
-TriNuc_idx1[is.na(TriMatch)][1:100]
 TriMatch      <- match(TriNuc_idx1, TriNuc_idx0)
-sum(is.na(TriMatch))
-sum(duplicated(TriNuc_idx1))
-length(TriNuc_idx1)
-nrow(SNPInfo)
-names(TriFreq)[idxUnique]
-unique(SNPInfo$TriNames[SNPInfo$idxGR == 2])
+TriNuc_idx1[is.na(TriMatch)][1:100]
+which(is.na(TriMatch))[1:10]
+
+sum(is.na(TriMatch)) / length(TriMatch)
+# Replace SNP indicator by one for all SNPs
+TriNuc2replace <- TriNuc_idx1[!is.na(TriMatch)]
+idx2ReplLeft   <- 1:length(TriNuc_idx0)
+idx2Replace    <- c()
+Counter <- 0
+while (any(duplicated(TriNuc2replace)) & Counter < 100){
+  cat(sum(duplicated(TriNuc2replace)), "duplicated entries\n")
+  idx2ReplaceLocal <- unique(match(TriNuc2replace, TriNuc_idx0))
+  idx2ReplaceRev   <- match(TriNuc_idx0[idx2ReplaceLocal], TriNuc2replace)
+  TriNuc2replace   <- TriNuc2replace[-unique(idx2ReplaceRev)]
+  idx2Replace <- c(idx2Replace, idx2ReplaceLocal)
+  Counter <- Counter + 1
+}
+length(idx2Replace)
+sum(!is.na(TriMatch))
+SNPInfo$blnSNP[idx2Replace] <- 1
+
+# Perform analysis
+# SNPLogReg <- glm(blnSNP ~  TriNames + VarCount_Flank + L1Region + blnFull,
+#     data = SNPInfo, family = binomial)
+
 
 # Count overlaps per region
 L1VarCount_UTR5 <- countOverlaps(GR_UTR5_full, L1VarGR)
