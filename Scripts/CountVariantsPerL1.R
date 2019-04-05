@@ -5,9 +5,13 @@
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load necessary packages
+library(biglm)
 library(Rsamtools)
 library(rtracklayer)
 library(BSgenome.Hsapiens.UCSC.hg19)
+
+# Load data with proportion mismatch
+load("D:/L1polymORF/Data/L1HS_PropMismatch.RData")
 
 # Set the start of ORF1, ORF2 and L1 width. the values below were obtained by
 # submitting L1 consensus to L1Xplorer http://l1base.charite.de/l1xplorer.php
@@ -177,79 +181,108 @@ while (length(idxLeft) > 0){
   idxLeft <- setdiff(idxLeft, c(idxLeft[1], TriNucMatch[idxLeft[1]]))
 }
 
-# Put the data together
-cat("Putting the three datasets together ...\n\n")
-PutDataTogether <- function(GR, L1Region, TriNucMatch = TriNucMatch, idxUnique = idxUnique){
-  SeqSet <- getSeq(BSgenome.Hsapiens.UCSC.hg19, GR)
-  TriFreq  <- c()
-  for(i in which(width(GR) >= 3)){
-    TriFreq_local <- trinucleotideFrequency(SeqSet[[i]]) 
-    TriFreq_local <- TriFreq_local + TriFreq_local[TriNucMatch]
-    TriFreq       <- c(TriFreq, TriFreq_local[idxUnique])
-  }
-  idxGR_Unrep    <- rep(GR@elementMetadata@listData$idx[width(GR) >= 3],
-                             each = length(idxUnique))
-  idxGR <-   rep(idxGR_Unrep, TriFreq)
-  data.frame(TriNames = rep(names(TriFreq), TriFreq),
-             idxGR =    idxGR,
-             blnSNP = 0,
-             VarCount_Flank = L1VarCount_Flank[idxGR],
-             L1Region = L1Region,
-             blnFull = blnFull[idxGR])
-}
-SNPInfo_UTR5 <- PutDataTogether(GR = UTR5_GR, L1Region = "UTR5", 
-                                TriNucMatch = TriNucMatch, idxUnique = idxUnique)
-cat("Building data for ORF1 ...\n")
-SNPInfo_ORF1 <- PutDataTogether(ORF1_GR, "ORF1", 
-                                TriNucMatch = TriNucMatch, idxUnique = idxUnique)
-cat("Building data for ORF2 ...\n")
-SNPInfo_ORF2 <- PutDataTogether(ORF2_GR, "ORF2", 
-                                TriNucMatch = TriNucMatch, idxUnique = idxUnique)
-SNPInfo_UTR3 <- PutDataTogether(UTR3_GR, "UTR3", 
-                                TriNucMatch = TriNucMatch, idxUnique = idxUnique)
-SNPInfo <- rbind(SNPInfo_UTR5, SNPInfo_ORF1, SNPInfo_ORF2, SNPInfo_UTR3)
-cat("... done!\n")
-
-# Paste combination of index and trinuclotide names to 
-TriNuc_idx0 <- paste(SNPInfo$TriNames, SNPInfo$idxGR)
-
 # Resize variants to get trinucleotides
 L1VarGR_Tri        <- resize(L1VarGR, 3, fix = "center")
 L1Var_TriNucSeq    <- getSeq(BSgenome.Hsapiens.UCSC.hg19, L1VarGR_Tri)
 L1Var_TriNucSeq_RC <- reverseComplement(L1Var_TriNucSeq)
 L1Var_TriNuc       <- as.character(L1Var_TriNucSeq)
-blnNoMatch <- ! L1Var_TriNuc %in% names(TriFreq)[idxUnique]
-sum(blnNoMatch)
-length(L1Var_TriNuc)
+blnNoMatch         <- ! L1Var_TriNuc %in% names(TriFreq)[idxUnique]
 L1Var_TriNuc[blnNoMatch] <- as.character(L1Var_TriNucSeq_RC)[blnNoMatch]
-OL_L1Var      <- findOverlaps(L1GR, L1VarGR)
-TriNuc_idx1   <- paste(L1Var_TriNuc[OL_L1Var@to], OL_L1Var@from)
-TriMatch      <- match(TriNuc_idx1, TriNuc_idx0)
-TriNuc_idx1[is.na(TriMatch)][1:100]
-which(is.na(TriMatch))[1:10]
 
-sum(is.na(TriMatch)) / length(TriMatch)
-# Replace SNP indicator by one for all SNPs
-TriNuc2replace <- TriNuc_idx1[!is.na(TriMatch)]
-idx2ReplLeft   <- 1:length(TriNuc_idx0)
-idx2Replace    <- c()
-Counter <- 0
-while (any(duplicated(TriNuc2replace)) & Counter < 100){
-  cat(sum(duplicated(TriNuc2replace)), "duplicated entries\n")
-  idx2ReplaceLocal <- unique(match(TriNuc2replace, TriNuc_idx0))
-  idx2ReplaceRev   <- match(TriNuc_idx0[idx2ReplaceLocal], TriNuc2replace)
-  TriNuc2replace   <- TriNuc2replace[-unique(idx2ReplaceRev)]
-  idx2Replace <- c(idx2Replace, idx2ReplaceLocal)
-  Counter <- Counter + 1
+# Function to put the data together
+PutDataTogether <- function(GR, L1Region, TriNucMatch = TriNucMatch, 
+                            idxUnique = idxUnique, L1VarGR = L1VarGR,
+                            L1Var_TriNuc = L1Var_TriNuc,
+                            MaxCounter = 100){
+  
+  # Get ssequences of each genomic region
+  SeqSet <- getSeq(BSgenome.Hsapiens.UCSC.hg19, GR)
+  TriFreq  <- c()
+  
+  # Count how often each trinucleotide occurs in each genomic region
+  for(i in which(width(GR) >= 3)){
+    TriFreq_local <- trinucleotideFrequency(SeqSet[[i]]) 
+    TriFreq_local <- TriFreq_local + TriFreq_local[TriNucMatch]
+    TriFreq       <- c(TriFreq, TriFreq_local[idxUnique])
+  }
+  
+  # Create one row fpr each tri-nucleotide
+  idxGRRegion_Unrep <- rep(which(width(GR) >= 3), each = length(idxUnique))
+  idxGRRegion       <- rep(idxGRRegion_Unrep, TriFreq)
+  idxGR_Unrep       <- rep(GR@elementMetadata@listData$idx[width(GR) >= 3],
+                             each = length(idxUnique))
+  idxGR             <- rep(idxGR_Unrep, TriFreq)
+  SNPData <- data.frame(TriNames = rep(names(TriFreq), TriFreq),
+               idxGR =    idxGR,
+               idxGRRegion = idxGRRegion,
+               blnSNP = 0,
+               VarCount_Flank = L1VarCount_Flank[idxGR],
+               L1Region = L1Region,
+               blnFull = blnFull[idxGR],
+               PropMismatch = PropMismatch[idxGR])
+   
+  # Create vector of trinucleotide IDs
+  TriNucIDs0 <- paste(SNPData$TriNames, SNPData$idxGRRegion)
+  
+  # Resize variants to get trinucleotides
+  OL_L1Var      <- findOverlaps(GR, L1VarGR)
+  TriNucIDs1    <- paste(L1Var_TriNuc[OL_L1Var@to], OL_L1Var@from)
+  TriMatch      <- match(TriNucIDs1, TriNucIDs0)
+
+  sum(is.na(TriMatch)) / length(TriMatch)
+  # Replace SNP indicator by one for all SNPs
+  TriNuc2replace <- TriNucIDs1[!is.na(TriMatch)]
+  idx2ReplLeft   <- 1:length(TriNucIDs0)
+  idx2Replace    <- c()
+  Counter <- 0
+  while (any(duplicated(TriNuc2replace)) & Counter < MaxCounter){
+    cat(sum(duplicated(TriNuc2replace)), "duplicated entries\n")
+    idx2ReplaceLocal <- unique(match(TriNuc2replace, TriNucIDs0))
+    idx2ReplaceRev   <- match(TriNucIDs0[idx2ReplaceLocal], TriNuc2replace)
+    TriNuc2replace   <- TriNuc2replace[-unique(idx2ReplaceRev)]
+    idx2Replace <- c(idx2Replace, idx2ReplaceLocal)
+    Counter <- Counter + 1
+  }
+  length(idx2Replace)
+  sum(!is.na(TriMatch))
+  SNPData$blnSNP[idx2Replace] <- 1
+  SNPData
+  
 }
-length(idx2Replace)
-sum(!is.na(TriMatch))
-SNPInfo$blnSNP[idx2Replace] <- 1
+cat("Building data for 5' UTR ...\n")
+SNPInfo_UTR5 <- PutDataTogether(GR = UTR5_GR, L1Region = "UTR5", 
+                                TriNucMatch = TriNucMatch, idxUnique = idxUnique,
+                                L1VarGR = L1VarGR,
+                                L1Var_TriNuc = L1Var_TriNuc)
+cat("Building data for ORF1 ...\n")
+SNPInfo_ORF1 <- PutDataTogether(ORF1_GR, "ORF1", 
+                                TriNucMatch = TriNucMatch, idxUnique = idxUnique,
+                                L1VarGR = L1VarGR,
+                                L1Var_TriNuc = L1Var_TriNuc)
+cat("Building data for ORF2 ...\n")
+SNPInfo_ORF2 <- PutDataTogether(ORF2_GR, "ORF2", 
+                                TriNucMatch = TriNucMatch, idxUnique = idxUnique,
+                                L1VarGR = L1VarGR,
+                                L1Var_TriNuc = L1Var_TriNuc)
+cat("Building data for 3' UTR ...\n")
+SNPInfo_UTR3 <- PutDataTogether(UTR3_GR, "UTR3", 
+                                TriNucMatch = TriNucMatch, idxUnique = idxUnique,
+                                L1VarGR = L1VarGR,
+                                L1Var_TriNuc = L1Var_TriNuc)
+SNPInfo <- rbind(SNPInfo_UTR5, SNPInfo_ORF1, SNPInfo_ORF2, SNPInfo_UTR3)
+cat("... done!\n")
 
 # Perform analysis
-# SNPLogReg <- glm(blnSNP ~  TriNames + VarCount_Flank + L1Region + blnFull,
-#     data = SNPInfo, family = binomial)
-
+SNPLogReg <- bigglm(blnSNP ~  TriNames + VarCount_Flank + L1Region + blnFull +
+                      PropMismatch,
+    data = SNPInfo, family = binomial(), chunksize = 3*10^4,
+    maxit = 20)
+summary(SNPLogReg)
+SNPLogRegInt <- bigglm(blnSNP ~  TriNames + VarCount_Flank + L1Region + blnFull +
+                      PropMismatch + L1Region*blnFull,
+                    data = SNPInfo, family = binomial(), chunksize = 3*10^4,
+                    maxit = 20)
+summary(SNPLogRegInt)
 
 # Count overlaps per region
 L1VarCount_UTR5 <- countOverlaps(GR_UTR5_full, L1VarGR)
@@ -277,10 +310,10 @@ L1VarCountPerRange <- rbind(
   
 par(mfrow = c(2, 2))
 boxplot(L1VarCount / width(L1GR) ~ blnFull, names = c("fragment", "full-length"),
-        ylab = "Variants/bp", main = "Comparison")
+        ylab = "SNPs/bp", main = "A")
 
-boxplot(Count/Width ~ Region, data = L1VarCountPerRange, ylab = "Variants/bp",
-        main = "Full-length L1")
+boxplot(Count/Width ~ Region, data = L1VarCountPerRange, ylab = "SNPs/bp",
+        main = "B")
 CreateDisplayPdf('D:/L1polymORF/Figures/VariantCounts.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 7, width = 7)
@@ -304,4 +337,6 @@ lines(width(L1GR)[L1widthOrder], predict(VarCountGLM)[L1widthOrder],
       col = "red")
 plot(width(L1GR), L1VarCount / width(L1GR), col = rgb(0, 0, 0, alpha = 0.2), xlab = "L1 length",
      ylab = "Number variants")
+
+save.image("D:/L1polymORF/Data/L1VariantCount.RData")
 

@@ -28,18 +28,17 @@ L1Consens <- read.fasta("D:/L1polymORF/Data/Homo_sapiens_L1_consensus.fa")
 L1ConsensDNAST <- DNAString(paste(L1Consens[[1]], collapse = ""))
 
 # Read in repeatMasker table 
-L1repMask_Hg19   <- read.csv("D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv")
+L1Table   <- read.csv("D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv")
 
 # Genomic ranges for each dataset
-GRanges_L1repMask_Hg19 <- makeGRangesFromDataFrame(L1repMask_Hg19, 
+L1GR <- makeGRangesFromDataFrame(L1Table, 
                                                    seqnames.field = "genoName", 
                                                    start.field ="genoStart", 
                                                    end.field = "genoEnd", 
                                                    strand.field = "strand")
 
 # Get L1HS sequences
-L1HSSeq <- getSeq(BSgenome.Hsapiens.UCSC.hg19, GRanges_L1repMask_Hg19)
-GRanges_L1repMask_Hg19[1]
+L1HSSeq <- getSeq(BSgenome.Hsapiens.UCSC.hg19, L1GR)
 
 # Align L1HSSeq to consensus and calculate the proportion of nucleotides that differ from 
 cat("Calculating the proportion of each L1 that differs from consensus ")
@@ -49,6 +48,8 @@ PropMismatch <- sapply(L1HSSeq, function(x){
   length(PwA@pattern@mismatch[[1]]) / length(x)
 })
 cat("done!\n")
+
+save.image(file = "D:/L1polymORF/Data/L1HS_PropMismatch.RData")
 
 # Test for correlation between proportion of mismatch and length of the L1
 cor.test(width(L1HSSeq), PropMismatch, method = "spearman")
@@ -65,8 +66,8 @@ sum((!blnFull) & blnAbove2000)
 
 # Turn sequences them into a list and write it out as fasta file
 L1HSSeqList <- lapply(L1HSSeq, function(x) tolower(s2c(as.character(x))))
-names(L1HSSeqList) <- paste(L1repMask_Hg19$genoName, L1repMask_Hg19$genoStart,
-                            L1repMask_Hg19$genoEnd, L1repMask_Hg19$strand, sep = "_")
+names(L1HSSeqList) <- paste(L1Table$genoName, L1Table$genoStart,
+                            L1Table$genoEnd, L1Table$strand, sep = "_")
 write.fasta(c(L1Consens, L1HSSeqList), c("L1consensus", names(L1HSSeqList)),
             file.out = "D:/L1polymORF/Data/L1HS_withConsens_unaligned.fas")
             
