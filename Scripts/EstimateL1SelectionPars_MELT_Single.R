@@ -34,6 +34,7 @@ L1RefRangePath      <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
 RegrOutputPath      <- "D:/L1polymORF/Data/L1RegressionResults.RData"
 SelectTabOutPath    <- "D:/L1polymORF/Data/L1SelectionResults_MELT_Single.csv"
 SelectResultOutPath <- "D:/L1polymORF/Data/L1SelectionResults_MELT_Single.RData"
+SampleInfoPath <- "D:/L1polymORF/Data/1000GenomeSampleInfo.txt"
 
 # Specify logistic rgeression coefficients for relationship between insert
 # size and detection probability
@@ -61,18 +62,9 @@ LogRegL1RefCoeff <- c(-4.706573, 9.737618)
 
 ##########################################
 #                                        #
-#     Load and process data              #
+#     Define functions                   #
 #                                        #
 ##########################################
-
-cat("\n\nLoading and processing data ...")
-
-# Read in vcf file with MELT insertion calls
-MEInsCallPerL1 <- read.table(MeltInsPath, as.is = T)
-
-# Subset to get entries with genotype
-idxWithGeno <- which(nchar(MEInsCallPerL1$Genotype) > 0)
-MEInsCallPerL1 <- MEInsCallPerL1[idxWithGeno, ]
 
 # Function to get numeric genotype and insertion length
 GetGenoNum <- function(x){
@@ -89,8 +81,6 @@ GetLength <- function(x){
     NA
   }
 }
-
-x <- MEInsCallPerL1$INFO[1]
 GetPropCovered <- function(x){
   Split1 <- strsplit(x, ";")[[1]]
   DiffPart1 <- grep("DIFF=", Split1, value = T)
@@ -115,12 +105,61 @@ GetPropDiff <- function(x){
   }
 }
 
+# Function to create MEInsCall data
+CreateMEInsCall <- function(Samples2use, MEInsCallPerL1 = MEInsCallPerL1){
+  
+  MEInsCallPerL1 <- MEInsCallPerL1[MEInsCallPerL1$SampleID %in% Samples2use, ]
+  MEInsCall <- aggregate(MEInsCallPerL1$GenoNum, 
+                         by = list(MEInsCallPerL1$X.CHROM, MEInsCallPerL1$POS), 
+                         FUN = sum)
+  colnames(MEInsCall) <- c("CHROM", "POS", "Freq")
+  MEInsCall$L1ID <- paste(MEInsCall$CHROM, MEInsCall$POS)
+  L1IDmatch <- match(MEInsCall$L1ID, MEInsCallPerL1$L1ID)
+  MEInsCall$L1width <- MEInsCallPerL1$L1width[L1IDmatch]
+  MEInsCall$L1Diff  <- sapply(MEInsCall$L1ID, function(x){
+    idxID  <- which(MEInsCallPerL1$L1ID == x)
+    idxMax <- which.max(MEInsCallPerL1$PropCovered[idxID])
+    if (length(idxMax) > 0){
+      MEInsCallPerL1$L1Diff[idxID][idxMax]
+    } else {
+      NA
+    }
+    
+  })
+  MEInsCall$L1Diff[is.infinite(MEInsCall$L1Diff)] <- NA
+  
+  # Add columns necessary for analysis 
+  MEInsCall$AF <- MEInsCall$Freq / MEInsSamplesize
+  MEInsCall$SampleSize <- 2 * MEInsSamplesize
+  MEInsCall$blnFull    <- MEInsCall$L1width >= MinLengthFullL1
+  MEInsCall
+}
+
+
+##########################################
+#                                        #
+#     Load and process data              #
+#                                        #
+##########################################
+
+cat("\n\nLoading and processing data ...")
+
+SampleInfo <- read.table(SampleInfoPath, header = T)
+
+# Read in vcf file with MELT insertion calls
+MEInsCallPerL1 <- read.table(MeltInsPath, as.is = T)
+
+# Subset to get entries with genotype
+idxWithGeno <- which(nchar(MEInsCallPerL1$Genotype) > 0)
+MEInsCallPerL1 <- MEInsCallPerL1[idxWithGeno, ]
+
 # Add columns for numeric genotype and insertion length
 MEInsCallPerL1$GenoNum <- sapply(MEInsCallPerL1$Genotype, GetGenoNum)
 MEInsCallPerL1$L1width <- sapply(MEInsCallPerL1$INFO, GetLength)
 MEInsCallPerL1$PropCovered  <- sapply(MEInsCallPerL1$INFO, GetPropCovered)
 MEInsCallPerL1$L1Diff  <- sapply(MEInsCallPerL1$INFO, GetPropDiff)
 hist(MEInsCallPerL1$L1Diff)
+
 # Get L1 ID and aggregate values per L1
 MEInsCallPerL1$L1ID <- paste(MEInsCallPerL1$X.CHROM, MEInsCallPerL1$POS)
 MEInsCall <- aggregate(MEInsCallPerL1$GenoNum, 
@@ -386,6 +425,283 @@ AICTab <- cbind(data.frame(
             stringsAsFactors = F),
             Cols2Append)
                      
+# Save table with AIC
+write.csv(AICTab, SelectTabOutPath)
+save.image(SelectResultOutPath)
+
+
+###################################################
+#                                                 #
+#   Fit effect of insertion length on selection,
+#   only using full-length and fragments below 500 bp    #
+#                                                 #
+###################################################
+
+cat("\n********   Estimating effect of insertion length    **********\n")
+
+# Create a matrix of predictor variables (L1 start and boolean variable for)
+blnSubset  <- (L1TotData$L1width <= 500 | L1TotData$L1width >= 6000) & (!is.na(L1TotData$Freq))
+PredictMat <- L1TotData[, c("L1width", "blnFull", "Freq", 
+                                            "SampleSize", "blnIns")]
+
+blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,]))) |
+  L1TotData$Freq == 0 | (!blnSubset)
+sum(blnNA)
+which(L1TotData$Freq == 0)
+max(L1TotData$Freq / L1TotData$SampleSize, na.rm = T)
+max(L1TotData$Freq, na.rm = T)
+
+# Estimate maximum likelihood for a single selection coefficient
+cat("Estimate maximum likelihood for a single selection coefficient\n")
+ML_1Par <-  constrOptim(theta = c(a = 0),
+                        f = function(x) -AlleleFreqLogLik_4Par(
+                          Freqs = round(L1TotData$Freq[!blnNA], 0),
+                          Counts = rep(1, sum(!blnNA)),
+                          Predict = PredictMat[!blnNA, 1:3],
+                          a = x[1], b = 0, c = 0, d = 0, N = PopSize,
+                          SampleSize = L1TotData$SampleSize[!blnNA],
+                          blnIns = L1TotData$blnIns[!blnNA], 
+                          LogRegCoeff = LogRegL1RefCoeff,
+                          DetectProb = L1TotData$DetectProb[!blnNA]),
+                        grad = NULL,
+                        ui = rbind(1,-1),
+                        ci = c(a = -0.003, a = -0.003),
+                        method = "Nelder-Mead")
+cat("done!\n")
+
+
+# Get maximum likelihood estimate for effect of L1 start on selection
+cat("Estimate effect of L1 start on selections ...")
+ML_L1width <-  constrOptim(theta = c(a = ML_1Par$par, b = 0),
+                           f = function(x) -AlleleFreqLogLik_4Par(
+                             Freqs = round(L1TotData$Freq[!blnNA], 0),
+                             Counts = rep(1, sum(!blnNA)),
+                             Predict = PredictMat[!blnNA, 1:3],
+                             a = x[1], b = x[2], c = 0, d = 0, N = PopSize, 
+                             SampleSize = L1TotData$SampleSize[!blnNA],
+                             blnIns = L1TotData$blnIns[!blnNA], 
+                             LogRegCoeff = LogRegL1RefCoeff,
+                             DetectProb = L1TotData$DetectProb[!blnNA]),
+                           grad = NULL,
+                           ui = rbind(c(1, 0),  c(0, 1),   
+                                      c(-1, 0), c(0, -1)),
+                           ci = c(a = -0.02, c = -10^(-6), 
+                                  a = -0.02, c = -10^(-6)),
+                           method = "Nelder-Mead")
+cat("done!\n")
+
+# Get maximum likelihood estimate for effect of full-length L1 on selection
+cat("Estimate effect of L1 full-length on selections ...")
+ML_L1full <-  constrOptim(theta = c(a = ML_1Par$par, c = 0),
+                          f = function(x) -AlleleFreqLogLik_4Par(
+                            Freqs = round(L1TotData$Freq[!blnNA], 0),
+                            Counts = rep(1, sum(!blnNA)),
+                            Predict = PredictMat[!blnNA, 1:3],
+                            a = x[1], b = 0, c = x[2], d = 0, N = PopSize, 
+                            SampleSize = L1TotData$SampleSize[!blnNA],
+                            blnIns = L1TotData$blnIns[!blnNA], 
+                            LogRegCoeff = LogRegL1RefCoeff,
+                            DetectProb = L1TotData$DetectProb[!blnNA]),
+                          grad = NULL,
+                          ui = rbind(c(1, 0),  c(0, 1),   
+                                     c(-1, 0), c(0, -1)),
+                          ci = c(a = -0.02, d = -10^(-3), 
+                                 a = -0.02, d = -10^(-3)),
+                          method = "Nelder-Mead")
+cat("done!\n")
+
+# Determine maximum likelihood with 3 parameters (selection coefficient as 
+# function of L1 start and indicator for full-length)
+cat("Maximizing likelihood for three parameters ...")
+ML_L1widthL1full <- constrOptim(theta = c(a = ML_L1width$par[1], 
+                                          b = ML_L1width$par[2], 
+                                          c = ML_L1full$par[2]),
+                                f = function(x) -AlleleFreqLogLik_4Par(
+                                  Freqs = round(L1TotData$Freq[!blnNA], 0),
+                                  Counts = rep(1, sum(!blnNA)),
+                                  Predict = PredictMat[!blnNA, 1:3],
+                                  a = x[1], b = x[2], c = x[3], d = 0, N = PopSize, 
+                                  SampleSize = L1TotData$SampleSize[!blnNA],
+                                  blnIns = L1TotData$blnIns[!blnNA], 
+                                  LogRegCoeff = LogRegL1RefCoeff,
+                                  DetectProb = L1TotData$DetectProb[!blnNA]),
+                                grad = NULL,
+                                ui = rbind(c(1, 0, 0),  c(0, 1, 0),  c(0, 0, 1), 
+                                           c(-1, 0, 0), c(0, -1, 0), c(0, 0, -1)),
+                                ci = c(a = -0.01, b = -10^(-6), d = -10^(-3), 
+                                       a = -0.02, b = -10^(-6), d = -10^(-3)),
+                                method = "Nelder-Mead")
+cat("done!\n")
+
+###################################################
+#                                                 #
+#  Summarize results                              #
+#                                                 #
+###################################################
+
+# Function to extract AIC from optim results
+GetAIC <- function(OptimResults){
+  round(2 * (length(OptimResults$par) + OptimResults$value), 2)
+}
+GetParVals <- function(OptimResults){
+  Results <- paste(names(OptimResults$par), 
+                   format(OptimResults$par, digits = 2), sep = " = ",
+                   collapse = ", ")
+}
+GetNPar <- function(OptimResults){
+  length(OptimResults$par)
+}
+
+# Get columns of AIC and parameter values
+Cols2Append <- t(sapply(list(ML_1Par, 
+                             ML_L1width, 
+                             ML_L1full, 
+                             ML_L1widthL1full), function(x){
+                               c(AIC = GetAIC(x), Pars = GetParVals(x))
+                             }))
+# Combine AIC values into one vector
+AICTab <- cbind(data.frame(
+  NrParameters = c(1, 2, 2, 3),
+  Predictor = c("none", 
+                "L1 width", 
+                "L1 full-length", 
+                "L1 width and full-length"),
+  stringsAsFactors = F),
+  Cols2Append)
+
+# Save table with AIC
+# write.csv(AICTab, SelectTabOutPath)
+# save.image(SelectResultOutPath)
+
+###################################################
+#                                                 #
+#   Fit effect of insertion length on selection
+#   without length-dependent detection            #
+#                                                 #
+###################################################
+
+cat("\n********   Estimating effect of insertion length    **********\n")
+
+# Create a matrix of predictor variables (L1 start and boolean variable for)
+PredictMat <- L1TotData[, c("L1width", "blnFull", "Freq", "SampleSize", "blnIns")]
+
+blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,]))) |
+  L1TotData$Freq == 0
+sum(!blnNA)
+which(L1TotData$Freq == 0)
+max(L1TotData$Freq / L1TotData$SampleSize, na.rm = T)
+max(L1TotData$Freq, na.rm = T)
+
+# Estimate maximum likelihood for a single selection coefficient
+cat("Estimate maximum likelihood for a single selection coefficient\n")
+ML_1Par <-  constrOptim(theta = c(a = 0),
+                        f = function(x) -AlleleFreqLogLik_4Par(
+                          Freqs = round(L1TotData$Freq[!blnNA], 0),
+                          Counts = rep(1, sum(!blnNA)),
+                          Predict = PredictMat[!blnNA, 1:3],
+                          a = x[1], b = 0, c = 0, d = 0, N = PopSize,
+                          SampleSize = L1TotData$SampleSize[!blnNA],
+                          blnIns = L1TotData$blnIns[!blnNA], 
+                          LogRegCoeff = LogRegL1RefCoeff,
+                          DetectProb = rep(mean(L1TotData$DetectProb, na.rm = T),
+                                           sum(!blnNA))),
+                        grad = NULL,
+                        ui = rbind(1,-1),
+                        ci = c(a = -0.003, a = -0.003),
+                        method = "Nelder-Mead")
+cat("done!\n")
+
+
+# Get maximum likelihood estimate for effect of L1 start on selection
+cat("Estimate effect of L1 start on selections ...")
+ML_L1width <-  constrOptim(theta = c(a = ML_1Par$par, b = 0),
+                           f = function(x) -AlleleFreqLogLik_4Par(
+                             Freqs = round(L1TotData$Freq[!blnNA], 0),
+                             Counts = rep(1, sum(!blnNA)),
+                             Predict = PredictMat[!blnNA, 1:3],
+                             a = x[1], b = x[2], c = 0, d = 0, N = PopSize, 
+                             SampleSize = L1TotData$SampleSize[!blnNA],
+                             blnIns = L1TotData$blnIns[!blnNA], 
+                             LogRegCoeff = LogRegL1RefCoeff,
+                             DetectProb = rep(mean(L1TotData$DetectProb, na.rm = T),
+                                              sum(!blnNA))),                           
+                           grad = NULL,
+                           ui = rbind(c(1, 0),  c(0, 1),   
+                                      c(-1, 0), c(0, -1)),
+                           ci = c(a = -0.02, c = -10^(-6), 
+                                  a = -0.02, c = -10^(-6)),
+                           method = "Nelder-Mead")
+cat("done!\n")
+
+# Get maximum likelihood estimate for effect of full-length L1 on selection
+cat("Estimate effect of L1 full-length on selections ...")
+ML_L1full <-  constrOptim(theta = c(a = ML_1Par$par, c = 0),
+                          f = function(x) -AlleleFreqLogLik_4Par(
+                            Freqs = round(L1TotData$Freq[!blnNA], 0),
+                            Counts = rep(1, sum(!blnNA)),
+                            Predict = PredictMat[!blnNA, 1:3],
+                            a = x[1], b = 0, c = x[2], d = 0, N = PopSize, 
+                            SampleSize = L1TotData$SampleSize[!blnNA],
+                            blnIns = L1TotData$blnIns[!blnNA], 
+                            LogRegCoeff = LogRegL1RefCoeff,
+                            DetectProb = rep(mean(L1TotData$DetectProb, na.rm = T),
+                                             sum(!blnNA))),                          
+                          grad = NULL,
+                          ui = rbind(c(1, 0),  c(0, 1),   
+                                     c(-1, 0), c(0, -1)),
+                          ci = c(a = -0.02, d = -10^(-3), 
+                                 a = -0.02, d = -10^(-3)),
+                          method = "Nelder-Mead")
+cat("done!\n")
+
+# Determine maximum likelihood with 3 parameters (selection coefficient as 
+# function of L1 start and indicator for full-length)
+cat("Maximizing likelihood for three parameters ...")
+ML_L1widthL1full <- constrOptim(theta = c(a = ML_L1width$par[1], 
+                                          b = ML_L1width$par[2], 
+                                          c = ML_L1full$par[2]),
+                                f = function(x) -AlleleFreqLogLik_4Par(
+                                  Freqs = round(L1TotData$Freq[!blnNA], 0),
+                                  Counts = rep(1, sum(!blnNA)),
+                                  Predict = PredictMat[!blnNA, 1:3],
+                                  a = x[1], b = x[2], c = x[3], d = 0, N = PopSize, 
+                                  SampleSize = L1TotData$SampleSize[!blnNA],
+                                  blnIns = L1TotData$blnIns[!blnNA], 
+                                  LogRegCoeff = LogRegL1RefCoeff,
+                                  DetectProb = rep(mean(L1TotData$DetectProb, na.rm = T),
+                                                   sum(!blnNA))),                                
+                                grad = NULL,
+                                ui = rbind(c(1, 0, 0),  c(0, 1, 0),  c(0, 0, 1), 
+                                           c(-1, 0, 0), c(0, -1, 0), c(0, 0, -1)),
+                                ci = c(a = -0.01, b = -10^(-6), d = -10^(-3), 
+                                       a = -0.02, b = -10^(-6), d = -10^(-3)),
+                                method = "Nelder-Mead")
+cat("done!\n")
+
+###################################################
+#                                                 #
+#  Summarize results                              #
+#                                                 #
+###################################################
+
+
+# Get columns of AIC and parameter values
+Cols2Append <- t(sapply(list(ML_1Par, 
+                             ML_L1width, 
+                             ML_L1full, 
+                             ML_L1widthL1full), function(x){
+                               c(AIC = GetAIC(x), Pars = GetParVals(x))
+                             }))
+# Combine AIC values into one vector
+AICTab <- cbind(data.frame(
+  NrParameters = c(1, 2, 2, 3),
+  Predictor = c("none", 
+                "L1 width", 
+                "L1 full-length", 
+                "L1 width and full-length"),
+  stringsAsFactors = F),
+  Cols2Append)
+
 # Save table with AIC
 write.csv(AICTab, SelectTabOutPath)
 save.image(SelectResultOutPath)
