@@ -17,7 +17,8 @@
 
 ##############################################
 
-ExpAlleleFreq <- function(s, N = 10^4, SampleSize = 2*2504, probIns = 0.5, DetectProb, LogRegCoeff){
+ExpAlleleFreq <- function(s, N = 10^4, SampleSize = 2*2504, probIns = 0.5, DetectProb, 
+                          LogRegCoeff){
     
     # # Calculate integration constant
     # integrate(function(x) x * SampleSize / 

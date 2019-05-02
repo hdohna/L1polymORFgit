@@ -25,7 +25,7 @@ library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 
 # Specify file paths
 DataPath            <- 'D:/L1polymORF/Data/'
-MeltInsPath         <- "D:/L1polymORF/Data/L1_SingleMELT_CombinedVcfs"
+MeltInsPath         <- "D:/L1polymORF/Data/L1_SingleMELT_fullGenome_CombinedVcfs"
 MeltDelPath         <- "D:/L1polymORF/Data/DEL.final_comp.vcf"
 ChrLPath            <- 'D:/L1polymORF/Data/ChromLengthsHg19.Rdata'
 InputPath           <- 'D:/L1polymORF/Data/SingletonAnalysis_unphased.RData'
@@ -55,7 +55,6 @@ PopSize <- 10^5
 MinLengthFullL1 <- 6000
 
 # Sample size for ME insertion calls
-MEInsSamplesize <- 2453
 
 # Coefficients for the probability to be reference, depending on L1 frequency
 LogRegL1RefCoeff <- c(-4.706573, 9.737618)
@@ -148,6 +147,8 @@ SampleInfo <- read.table(SampleInfoPath, header = T)
 
 # Read in vcf file with MELT insertion calls
 MEInsCallPerL1 <- read.table(MeltInsPath, as.is = T)
+NrSamples      <- length(unique(MEInsCallPerL1$SampleID))
+MEInsSamplesize <- 2*NrSamples
 
 # Subset to get entries with genotype
 idxWithGeno <- which(nchar(MEInsCallPerL1$Genotype) > 0)

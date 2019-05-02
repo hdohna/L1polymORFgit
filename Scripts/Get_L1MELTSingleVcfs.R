@@ -31,6 +31,8 @@ cat(sum(!file.exists(VcfFiles)), "vcf files don't exist\n")
 # Read in vcf file and create genomic ranges
 L1Vcf <- NULL
 VcfFile <- VcfFiles[1]
+cat(sum(file.exists(VcfFiles)), "Vcf files exist\n")
+cat(sum(FileSizes > 0), "Vcf files with data\n")
 for (VcfFile in VcfFiles[which(file.exists(VcfFiles) & FileSizes > 0)]){
   
   ID <- strsplit(VcfFile, "/")[[1]][6]

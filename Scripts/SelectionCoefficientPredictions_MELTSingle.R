@@ -203,10 +203,10 @@ par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2),
      cex.lab = 1)
 plot(L1TotData$L1width, 
      L1TotData$Freq/SSize, xlab = "LINE-1 length [bp]",
-     ylab = "Mean LINE-1 frequency", col = rgb(0, 0, 0, alpha = 0.2), ylim = c(0, 0.06),
+     ylab = "Mean LINE-1 frequency", col = rgb(0, 0, 0, alpha = 0.2), 
      pch = 16)
 L1FreqLengthSmoothed <- supsmu(L1TotData$L1width, 
-                               L1TotData$Freq/SSize, span = 0.3)
+                               L1TotData$Freq/SSize)
 lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, col = "red")
 lines(StartVals, ExpL1Width, lty = 4, lwd = 2, col = "red")
 par(new = T)
