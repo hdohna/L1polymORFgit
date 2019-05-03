@@ -135,7 +135,8 @@ CreateDisplayPdf('D:/L1polymORF/Figures/SelectionPerRegion_MELT.pdf',
 # Create a vector of L1 start classes
 L1TotData$InsLengthClass <- cut(L1TotData$L1width, breaks = 
                                   seq(0, 7000, 1000))
-
+min(L1TotData$Freq, na.rm = T)
+blnNoZero <- L1TotData$Freq > 0
 # Get mean L1 frequency per start
 L1WidthAggregated <- aggregate(L1TotData[,c("L1width", "Freq")], 
                                by = list(L1TotData$InsLengthClass), 
@@ -146,14 +147,14 @@ L1WidthAggregated_var <- aggregate(L1TotData[,c("L1width", "Freq")],
 L1WidthAggregated_n <- aggregate(L1TotData[,c("L1width", "Freq")], 
                                  by = list(L1TotData$InsLengthClass), 
                                  FUN = function(x) sum(!is.na(x)))
-L1WidthAggregated <- aggregate(L1TotData[L1TotData$blnIns,c("L1width", "Freq")],
-                               by = list(L1TotData$InsLengthClass[L1TotData$blnIns]),
+L1WidthAggregated <- aggregate(L1TotData[L1TotData$blnIns & blnNoZero,c("L1width", "Freq")],
+                               by = list(L1TotData$InsLengthClass[L1TotData$blnIns & blnNoZero]),
                                FUN = function(x) mean(x, na.rm = T))
-L1WidthAggregated_var <- aggregate(L1TotData[L1TotData$blnIns,c("L1width", "Freq")],
-                               by = list(L1TotData$InsLengthClass[L1TotData$blnIns]),
+L1WidthAggregated_var <- aggregate(L1TotData[L1TotData$blnIns & blnNoZero,c("L1width", "Freq")],
+                               by = list(L1TotData$InsLengthClass[L1TotData$blnIns & blnNoZero]),
                                FUN = function(x) var(x, na.rm = T))
-L1WidthAggregated_n <- aggregate(L1TotData[L1TotData$blnIns,c("L1width", "Freq")],
-                                   by = list(L1TotData$InsLengthClass[L1TotData$blnIns]),
+L1WidthAggregated_n <- aggregate(L1TotData[L1TotData$blnIns & blnNoZero,c("L1width", "Freq")],
+                                   by = list(L1TotData$InsLengthClass[L1TotData$blnIns & blnNoZero]),
                                    FUN = function(x) sum(!is.na(x)))
 # 
 # Get sample size and create a range of s-values
@@ -172,7 +173,7 @@ SVals2 <- -0.000001 - 2*10^-7*StartVals +
 
 # Calculate expected frequency per 
 ExpL1Width <- sapply(1:length(SVals), function(i) ExpAlleleFreq(s = SVals[i], N = PopSize, 
-                                                      SampleSize = 2*2504,
+                                                      SampleSize = MEInsSamplesize,
                                                       DetectProb = DetectProb[i],
                                                       blnIns = T, 
                                                       LogRegCoeff = LogRegL1Ref$coefficients))

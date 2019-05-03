@@ -69,7 +69,7 @@ ExpAlleleFreq <- function(s, N, SampleSize = 2504,
     
   CountVals  <- 1:(SampleSize - 1)
   CountProbs <- sapply(CountVals, function(i){
-    exp(AlleleFreqSample(i, s, N, SampleSize = SampleSize, blnIns = blnIns,
+    exp(AlleleFreqSample(k = i, s = s, N = N, SampleSize = SampleSize, blnIns = blnIns,
                          LogRegCoeff = LogRegCoeff,
                          DetectProb = DetectProb))
     
