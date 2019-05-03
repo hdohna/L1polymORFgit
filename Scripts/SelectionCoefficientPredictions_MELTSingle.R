@@ -146,19 +146,19 @@ L1WidthAggregated_var <- aggregate(L1TotData[,c("L1width", "Freq")],
 L1WidthAggregated_n <- aggregate(L1TotData[,c("L1width", "Freq")], 
                                  by = list(L1TotData$InsLengthClass), 
                                  FUN = function(x) sum(!is.na(x)))
-# L1WidthAggregated <- aggregate(L1TotData[L1TotData$blnIns,c("L1width", "Freq")], 
-#                                by = list(L1TotData$InsLengthClass[L1TotData$blnIns]), 
-#                                FUN = function(x) mean(x, na.rm = T))
-# L1WidthAggregated_var <- aggregate(L1TotData[L1TotData$blnIns,c("L1width", "Freq")], 
-#                                by = list(L1TotData$InsLengthClass[L1TotData$blnIns]), 
-#                                FUN = function(x) var(x, na.rm = T))
-# L1WidthAggregated_n <- aggregate(L1TotData[L1TotData$blnIns,c("L1width", "Freq")], 
-#                                    by = list(L1TotData$InsLengthClass[L1TotData$blnIns]), 
-#                                    FUN = function(x) sum(!is.na(x)))
+L1WidthAggregated <- aggregate(L1TotData[L1TotData$blnIns,c("L1width", "Freq")],
+                               by = list(L1TotData$InsLengthClass[L1TotData$blnIns]),
+                               FUN = function(x) mean(x, na.rm = T))
+L1WidthAggregated_var <- aggregate(L1TotData[L1TotData$blnIns,c("L1width", "Freq")],
+                               by = list(L1TotData$InsLengthClass[L1TotData$blnIns]),
+                               FUN = function(x) var(x, na.rm = T))
+L1WidthAggregated_n <- aggregate(L1TotData[L1TotData$blnIns,c("L1width", "Freq")],
+                                   by = list(L1TotData$InsLengthClass[L1TotData$blnIns]),
+                                   FUN = function(x) sum(!is.na(x)))
 # 
 # Get sample size and create a range of s-values
 SSize <- 2*2504
-StartVals  <- seq(0, 6100, 10)
+StartVals  <- seq(0, 6100, 1000)
 Full       <- StartVals >= 6000
 SVals <- ML_L1widthL1full$par[1] + ML_L1widthL1full$par[2]*StartVals +
   ML_L1widthL1full$par[3]*Full
@@ -170,15 +170,16 @@ DetectProb <- exp(L1SizeDetectCoeff[1] +
 SVals2 <- -0.000001 - 2*10^-7*StartVals +
   1.08*10^-3*Full
 
-# Plot expected frequency versus observed mean frequency
-ExpL1Width <- sapply(1:length(SVals), function(i) ExpAlleleFreq(SVals[i], N = PopSize, 
+# Calculate expected frequency per 
+ExpL1Width <- sapply(1:length(SVals), function(i) ExpAlleleFreq(s = SVals[i], N = PopSize, 
                                                       SampleSize = 2*2504,
                                                       DetectProb = DetectProb[i],
+                                                      blnIns = T, 
                                                       LogRegCoeff = LogRegL1Ref$coefficients))
-ExpL1Width2 <- sapply(SVals2, function(x) ExpAlleleFreq(s = x, N = 10^5, 
-                                                      SampleSize = 2*2504,
-                                                      DetectProb = 0.9,
-                                                      LogRegCoeff = LogRegL1Ref$coefficients))
+# ExpL1Width2 <- sapply(SVals2, function(x) ExpAlleleFreq(s = x, N = 10^5, 
+#                                                       SampleSize = 2*2504,
+#                                                       DetectProb = 0.9,
+#                                                       LogRegCoeff = LogRegL1Ref$coefficients))
 par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2), 
      mai = c(1, 1, 0.2, 1),
      cex.lab = 1)
