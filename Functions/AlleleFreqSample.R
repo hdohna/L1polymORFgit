@@ -12,7 +12,9 @@
 #     N: population size
 #     SampleSize: sample size
 #     DetectProb: probability to detect insertion
-#     LogRegCoeff: vector (of length 2) of regression coefficients
+#     LogRegCoeff: vector (of length 2) of regression coefficients indicationg
+#        how the probability to be on the reference genome depends on allele
+#        frequency
 #     blnIns: boolean indicator whether analyzing L1 insertions or L1 deletions 
 
 # Comment:

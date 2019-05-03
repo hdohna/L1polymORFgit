@@ -162,13 +162,18 @@ StartVals  <- seq(0, 6100, 10)
 Full       <- StartVals >= 6000
 SVals <- ML_L1widthL1full$par[1] + ML_L1widthL1full$par[2]*StartVals +
   ML_L1widthL1full$par[3]*Full
+DetectProb <- exp(L1SizeDetectCoeff[1] + 
+      L1SizeDetectCoeff[2] * StartVals) / 
+  (1 + exp(L1SizeDetectCoeff[1] + 
+             L1SizeDetectCoeff[2] * StartVals))
+
 SVals2 <- -0.000001 - 2*10^-7*StartVals +
   1.08*10^-3*Full
 
 # Plot expected frequency versus observed mean frequency
-ExpL1Width <- sapply(SVals, function(x) ExpAlleleFreq(x, N = PopSize, 
+ExpL1Width <- sapply(1:length(SVals), function(i) ExpAlleleFreq(SVals[i], N = PopSize, 
                                                       SampleSize = 2*2504,
-                                                      DetectProb = 0.9,
+                                                      DetectProb = DetectProb[i],
                                                       LogRegCoeff = LogRegL1Ref$coefficients))
 ExpL1Width2 <- sapply(SVals2, function(x) ExpAlleleFreq(s = x, N = 10^5, 
                                                       SampleSize = 2*2504,
