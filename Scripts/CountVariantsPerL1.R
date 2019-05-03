@@ -308,15 +308,17 @@ L1VarCountPerRange <- rbind(
              Width = width(GR_ORF2_full),
              stringsAsFactors = F))
   
-par(mfrow = c(2, 2))
+par(mfrow = c(1, 2),  mai = c(1, 0.5, 0.2, 0.1), 
+    oma = c( 0.2,  2,  0.2,  0.2))
 boxplot(L1VarCount / width(L1GR) ~ blnFull, names = c("fragment", "full-length"),
         ylab = "SNPs/bp", main = "A")
 
-boxplot(Count/Width ~ Region, data = L1VarCountPerRange, ylab = "SNPs/bp",
+boxplot(Count/Width ~ Region, data = L1VarCountPerRange, ylab = "",
         main = "B")
+mtext(side =2, "SNPs/bp", outer = T)
 CreateDisplayPdf('D:/L1polymORF/Figures/VariantCounts.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
-                 height = 7, width = 7)
+                 height = 4, width = 7)
 
 VarPerRegion <- lm(Count/Width ~ Region, data = L1VarCountPerRange)
 anova(VarPerRegion)

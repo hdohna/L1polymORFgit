@@ -134,7 +134,7 @@ CreateDisplayPdf('D:/L1polymORF/Figures/SelectionPerRegion_MELT.pdf',
 
 # Create a vector of L1 start classes
 L1TotData$InsLengthClass <- cut(L1TotData$L1width, breaks = 
-                                  seq(0, 7000, 1000))
+                                  seq(0, 6750, 750))
 min(L1TotData$Freq, na.rm = T)
 blnNoZero <- L1TotData$Freq > 0
 # Get mean L1 frequency per start
@@ -159,7 +159,7 @@ L1WidthAggregated_n <- aggregate(L1TotData[L1TotData$blnIns & blnNoZero,c("L1wid
 # 
 # Get sample size and create a range of s-values
 SSize <- 2*2504
-StartVals  <- seq(0, 6100, 1000)
+StartVals  <- seq(0, 6200, 200)
 Full       <- StartVals >= 6000
 SVals <- ML_L1widthL1full$par[1] + ML_L1widthL1full$par[2]*StartVals +
   ML_L1widthL1full$par[3]*Full
@@ -186,7 +186,7 @@ par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2),
      cex.lab = 1)
 plot(L1WidthAggregated$L1width, 
      L1WidthAggregated$Freq/SSize, xlab = "LINE-1 length [bp]",
-     ylab = "Mean LINE-1 frequency")
+     ylab = "Mean LINE-1 frequency", ylim = c(0.0005, 0.002))
 AddErrorBars(MidX = L1WidthAggregated$L1width, 
              MidY = L1WidthAggregated$Freq/SSize, 
              ErrorRange = sqrt(L1WidthAggregated_var$Freq/SSize^2 /
@@ -202,7 +202,7 @@ mtext(side = 4, line = 3, 'Selection coefficient')
 
 CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
-                 height = 5, width = 5)
+                 height = 4, width = 5)
 
 # Plot Individual points
 par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2), 
