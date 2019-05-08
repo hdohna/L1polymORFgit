@@ -153,11 +153,26 @@ hist(MEInsCallPerL1$L1Diff)
 
 # Get L1 ID and aggregate values per L1
 MEInsCallPerL1$L1ID <- paste(MEInsCallPerL1$X.CHROM, MEInsCallPerL1$POS)
+blnDupl    <- duplicated(MEInsCallPerL1$L1ID)
+L1IDUnique <- MEInsCallPerL1$L1ID[!blnDupl]
+
+# Join insertions that are close to each other into one
+MEInsPerL1_GR <- makeGRangesFromDataFrame(MEInsCallPerL1[!blnDupl, ],
+                                          seqnames.field = "X.CHROM",
+                                          start.field = "POS",
+                                          end.field = "POS")
+MEInsPerL1_GR_large <- resize(MEInsPerL1_GR, 400, fix = "center")
+MEInsPerL1_OL <- findOverlaps(MEInsPerL1_GR_large, MEInsPerL1_GR_large)
+L1idx <- pmin(MEInsPerL1_OL@from, MEInsPerL1_OL@to)
+L1idxMatch <- match(MEInsCallPerL1$L1ID, L1IDUnique)
+MEInsCallPerL1$L1ID <- L1IDUnique[L1idx][L1idxMatch]
+
 cat("Aggregating data per L1 ...")
 MEInsCall <- aggregate(MEInsCallPerL1$GenoNum, 
                        by = list(MEInsCallPerL1$L1ID), 
                        FUN = sum)
 cat("done!\n")
+nrow(MEInsCall)
 colnames(MEInsCall) <- c("L1ID", "Freq")
 MEInsCall$CHROM <- sapply(MEInsCall$L1ID, function(x) strsplit(x, " ")[[1]][1])
 MEInsCall$POS   <- sapply(MEInsCall$L1ID, function(x) as.numeric(strsplit(x, " ")[[1]][2]))
@@ -191,6 +206,22 @@ MEIns_GR <- makeGRangesFromDataFrame(df = MEInsCall,
                                      seqnames.field = "ChromName",
                                      start.field = "Pos",
                                      end.field = "Pos")
+
+
+
+# Read in vcf file with MELT insertion calls
+MEInsCall_MELT <- read.table("D:/L1polymORF/Data/nstd144.GRCh37.variant_call.vcf", 
+                        as.is = T,
+                        col.names = c("Chrom", "Pos", "ID", "Alt", "Type", "V6", 
+                                      "V7", "Info"))
+MEInsCall_MELT <- MEInsCall_MELT[MEInsCall_MELT$Type == "<INS:ME:LINE1>",]
+MEInsCall_MELT$ChromName <- paste("chr", MEInsCall_MELT$Chrom, sep = "")
+MEIns_GR_MELT <- makeGRangesFromDataFrame(df = MEInsCall_MELT,
+                                     seqnames.field = "ChromName",
+                                     start.field = "Pos",
+                                     end.field = "Pos")
+DistObj <- Dist2Closest(MEIns_GR, MEIns_GR_MELT)
+DistObj
 
 # Read in vcf file with MELT deletion calls
 MEDelCall <- ReadVCF(MeltDelPath)
