@@ -138,8 +138,8 @@ L1TotData$InsLengthClass <- cut(L1TotData$L1width, breaks =
 min(L1TotData$Freq, na.rm = T)
 blnNoZero <- L1TotData$Freq > 0
 # Get mean L1 frequency per start
-L1WidthAggregated <- aggregate(L1TotData[blnNoZero,c("L1width", "Freq")], 
-                               by = list(L1TotData$InsLengthClass[blnNoZero]), 
+L1WidthAggregated <- aggregate(L1TotData[which(blnNoZero),c("L1width", "Freq")], 
+                               by = list(L1TotData$InsLengthClass[which(blnNoZero)]), 
                                FUN = function(x) mean(x, na.rm = T))
 L1WidthAggregated_var <- aggregate(L1TotData[blnNoZero,c("L1width", "Freq")], 
                                    by = list(L1TotData$InsLengthClass[blnNoZero]), 
@@ -186,7 +186,7 @@ par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2),
      cex.lab = 1)
 plot(L1WidthAggregated$L1width, 
      L1WidthAggregated$Freq/SSize, xlab = "LINE-1 length [bp]",
-     ylab = "Mean LINE-1 frequency", ylim = c(0.0005, 0.004))
+     ylab = "Mean LINE-1 frequency", ylim = c(0.0005, 0.009))
 AddErrorBars(MidX = L1WidthAggregated$L1width, 
              MidY = L1WidthAggregated$Freq/SSize, 
              ErrorRange = sqrt(L1WidthAggregated_var$Freq/SSize^2 /
