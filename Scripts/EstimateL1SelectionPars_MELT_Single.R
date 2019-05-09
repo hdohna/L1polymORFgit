@@ -292,6 +292,11 @@ L1TotData$DetectProb[L1TotData$blnIns] <-
   (1 + exp(L1SizeDetectCoeff[1] + 
              L1SizeDetectCoeff[2]*L1TotData$L1width[L1TotData$blnIns]))
 
+# Remove all L1 with zero frequency
+L1TotData[L1TotData$Freq == 0, ]
+L1TotData <- L1TotData[L1TotData$Freq > 0, ]
+hist(L1TotData$Freq, breaks = 0:1000, xlim = c(0, 10))
+
 # Perform logistic regression for the probability of reference L1 as function
 # of L1 frequency
 L1TotData$blnRef <- !L1TotData$blnIns
