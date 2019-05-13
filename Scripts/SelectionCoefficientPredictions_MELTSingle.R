@@ -134,9 +134,11 @@ load(InputPath)
 
 # Create a vector of L1 start classes
 L1TotData$InsLengthClass <- cut(L1TotData$L1width, breaks = 
-                                  seq(0, 6750, 750))
+                                  seq(0, 7000, 1000))
 min(L1TotData$Freq, na.rm = T)
 blnNoZero <- L1TotData$Freq > 0
+sum(!blnNoZero, na.rm = T)
+
 # Get mean L1 frequency per start
 L1WidthAggregated <- aggregate(L1TotData[which(blnNoZero),c("L1width", "Freq")], 
                                by = list(L1TotData$InsLengthClass[which(blnNoZero)]), 
@@ -212,6 +214,7 @@ plot(L1TotData$L1width,
      L1TotData$Freq/SSize, xlab = "LINE-1 length [bp]",
      ylab = "Mean LINE-1 frequency", col = rgb(0, 0, 0, alpha = 0.2), 
      pch = 16)
+t.test(Freq ~ blnFull, data = L1TotData)
 L1FreqLengthSmoothed <- supsmu(L1TotData$L1width, 
                                L1TotData$Freq/SSize)
 lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, col = "red")
@@ -234,8 +237,8 @@ VarL1Width <- sapply(SVals, function(x) VarAlleleFreq(x, N = 10^4,
 par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2), 
      mai = c(1, 1, 0.2, 1),
      cex.lab = 1)
-plot(L1WidthAggregated$InsLength, 
-     L1WidthAggregated_var$Frequency, xlab = "LINE-1 length [bp]",
+plot(L1WidthAggregated$L1width, 
+     L1WidthAggregated_var$Freq, xlab = "LINE-1 length [bp]",
      ylab = "Variance LINE-1 frequency")
 lines(StartVals, VarL1Width)
 par(new = T)

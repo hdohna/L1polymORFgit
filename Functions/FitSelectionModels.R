@@ -138,13 +138,14 @@ FitSelectionModels <- function(PredictMat,  Freqs,
                                ML_abc), function(x){
                                  c(AIC = GetAIC(x), Pars = GetParVals(x))
                                }))
-  # Combine AIC values into a table
+
+    # Combine AIC values into a table
   AICTab <- cbind(data.frame(
          NrParameters = c(1, 2, 2, 3),
          Predictor = c("none", 
                        colnames(PredictMat)[1], 
                        colnames(PredictMat)[2], 
-                       paste(colnames(PredictMat)[1:2], sep = " and ")),
+                       paste(colnames(PredictMat)[1:2], collapse = " and ")),
          stringsAsFactors = F),
          Cols2Append)
 
