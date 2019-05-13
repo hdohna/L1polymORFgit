@@ -155,6 +155,7 @@ hist(MEInsCallPerL1$L1Diff)
 MEInsCallPerL1$L1ID <- paste(MEInsCallPerL1$X.CHROM, MEInsCallPerL1$POS)
 blnDupl    <- duplicated(MEInsCallPerL1$L1ID)
 L1IDUnique <- MEInsCallPerL1$L1ID[!blnDupl]
+MEInsCallPerL1[which(MEInsCallPerL1$GenoNum == 0)[1:10], ]
 
 # Join insertions that are close to each other into one
 MEInsPerL1_GR <- makeGRangesFromDataFrame(MEInsCallPerL1[!blnDupl, ],
@@ -163,7 +164,7 @@ MEInsPerL1_GR <- makeGRangesFromDataFrame(MEInsCallPerL1[!blnDupl, ],
                                           end.field = "POS")
 MEInsPerL1_GR_large <- resize(MEInsPerL1_GR, 400, fix = "center")
 MEInsPerL1_OL <- findOverlaps(MEInsPerL1_GR_large, MEInsPerL1_GR_large)
-L1idx <- pmin(MEInsPerL1_OL@from, MEInsPerL1_OL@to)
+L1idx      <- pmin(MEInsPerL1_OL@from, MEInsPerL1_OL@to)
 L1idxMatch <- match(MEInsCallPerL1$L1ID, L1IDUnique)
 MEInsCallPerL1$L1ID <- L1IDUnique[L1idx][L1idxMatch]
 
