@@ -65,45 +65,6 @@ LogRegL1RefCoeff <- c(-4.706573, 9.737618)
 #                                        #
 ##########################################
 
-# Function to get numeric genotype and insertion length
-GetGenoNum <- function(x){
-  Split1 <- strsplit(x, "/")[[1]]
-  Split2 <- strsplit(Split1[2], ":")[[1]][1]
-  sum(as.numeric(c(Split1[1], Split2)))
-}
-GetLength <- function(x){
-  Split1 <- strsplit(x, ";")[[1]]
-  LengthPart <- grep("SVLEN=", Split1, value = T)
-  if (length(LengthPart) > 0){
-    as.numeric(strsplit(LengthPart, "=")[[1]][2])
-  } else {
-    NA
-  }
-}
-GetPropCovered <- function(x){
-  Split1 <- strsplit(x, ";")[[1]]
-  DiffPart1 <- grep("DIFF=", Split1, value = T)
-  if (length(DiffPart1) > 0){
-    DiffPart2 <- strsplit(DiffPart1, ":")[[1]]
-    as.numeric(strsplit(DiffPart2[1], "=")[[1]][2])
-  } else {
-    NA
-  }
-}
-
-GetPropDiff <- function(x){
-  Split1 <- strsplit(x, ";")[[1]]
-  DiffPart1 <- grep("DIFF=", Split1, value = T)
-  if (length(DiffPart1) > 0){
-    DiffPart2 <- strsplit(DiffPart1, ":")[[1]]
-    DiffPart3 <- strsplit(DiffPart2[2], ",")[[1]]
-    (length(DiffPart3) - length(grep("n", DiffPart3))) / 
-      as.numeric(strsplit(DiffPart2[1], "=")[[1]][2])
-  } else {
-    NA
-  }
-}
-
 # Function to create MEInsCall data
 CreateMEInsCall <- function(Samples2use, MEInsCallPerL1 = MEInsCallPerL1){
   
@@ -145,10 +106,11 @@ idxWithGeno <- which(nchar(MEInsCallPerL1$Genotype) > 0)
 MEInsCallPerL1 <- MEInsCallPerL1[idxWithGeno, ]
 
 # Add columns for numeric genotype and insertion length
-MEInsCallPerL1$GenoNum <- sapply(MEInsCallPerL1$Genotype, GetGenoNum)
-MEInsCallPerL1$L1width <- sapply(MEInsCallPerL1$INFO, GetLength)
-MEInsCallPerL1$PropCovered  <- sapply(MEInsCallPerL1$INFO, GetPropCovered)
-MEInsCallPerL1$L1Diff  <- sapply(MEInsCallPerL1$INFO, GetPropDiff)
+MEInsCallPerL1$GenoNum <- sapply(MEInsCallPerL1$Genotype, GetFromVcfGeno_GenoNum)
+MEInsCallPerL1$L1width <- sapply(MEInsCallPerL1$INFO, GetFromVcfINFO_SVLength)
+MEInsCallPerL1$PropCovered  <- sapply(MEInsCallPerL1$INFO, 
+                                      GetFromVcfINFO_MELT_PropCovered)
+MEInsCallPerL1$L1Diff  <- sapply(MEInsCallPerL1$INFO, GetFromVcfINFO_MELT_PropDiff)
 hist(MEInsCallPerL1$L1Diff)
 
 # Get L1 ID and aggregate values per L1
