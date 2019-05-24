@@ -51,3 +51,10 @@ vcftools --vcf L1all.vcf \
 [16] "" "" "" "" "1000G_Pop_CHB"
 [21] "1000G_Pop_JPT" "1000G_Pop_LWK" "1000G_Pop_ASW" "1000G_Pop_MXL" "1000G_Pop_TSI"
 [26] "1000G_Pop_GIH"
+
+
+# Get all variants within 
+module load vcftools
+vcftools --vcf /labs/dflev/hzudohna/1000Genomes/ALL.chr1.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf \
+--bed /labs/dflev/hzudohna/1000Genomes/L1WindowSubset.bed \
+--TajimaD 100
