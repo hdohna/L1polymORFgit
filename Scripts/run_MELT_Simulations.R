@@ -269,6 +269,9 @@ if (blnRunSimAnalysis_Var){
 
 if(blnRunGroupAnalysis){
   
+  # Initiailize indicators for finished process
+  QueueIndivFinished <- F
+  
   # Get paths to bam files
   BamFiles <- list.files(Path1000G, pattern = "_sorted.bam", full.names = T)
   BamFiles <- BamFiles[-grep("_sorted.bam.", BamFiles)]
@@ -301,11 +304,11 @@ if(blnRunGroupAnalysis){
   # Check whether for bam files queue is finished, once it is finished, run group analysis
   cat("\n\n")
   Sys.sleep(10)
-  QueueBamFinished <- CheckQueue(MaxNrTrials = 50, SleepTime = 30)
+  QueuePreprocessFinished <- CheckQueue(MaxNrTrials = 100, SleepTime = 60)
 
     # Perform variant discovery for each individual bam file
   cat("\n*************    Performing MELT for individual bam files     *************\n")
-  if(QueueBamFinished){
+  if(QueuePreprocessFinished){
     for (BamFile in BamFiles){
       
       # Get ID from bam file
@@ -330,16 +333,18 @@ if(blnRunGroupAnalysis){
                                RunTime = RunTime_MELT,
                                Mem = Mem_MELT,
                                SlurmCommandLines = MELTCmds)
-    }
+    } # End of loop over bam files
+    
+    # Check whether for bam files queue is finished, once it is finished, run group analysis
+    cat("\n\n")
+    Sys.sleep(10)
+    QueueIndivFinished <- CheckQueue(MaxNrTrials = 50, SleepTime = 30)
+    
   }
   
-  # Check whether for bam files queue is finished, once it is finished, run group analysis
-  cat("\n\n")
-  Sys.sleep(10)
-  QueueBamFinished <- CheckQueue(MaxNrTrials = 50, SleepTime = 30)
   
   # Summarizing results from individual bam files
-  if (QueueBamFinished){
+  if (QueueIndivFinished){
     
     cat("\n*************   Summarizing MELT for individual bam files     *************\n")
     # Create commands to run MELT
@@ -361,6 +366,7 @@ if(blnRunGroupAnalysis){
     # Check whether queue of group analysis is finished, once it is finished, run group analysis
     Sys.sleep(10)
     QueueGroupFinished <- CheckQueue(MaxNrTrials = 50, SleepTime   = 30)
+    
     if (QueueGroupFinished){
       
       cat("\n*************   Getting genotypes for individual bam files     *************\n")
