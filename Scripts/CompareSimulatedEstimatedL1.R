@@ -98,8 +98,8 @@ for (VcfFile in VcfFiles[file.exists(VcfFiles)]){
                               L1StartTrue = NA,
                               L1EndTrue   = NA,
                               L1widthEst  = L1widthVcf[!blnPresent],
-                              L1StartEst  =  L1StartEndVcf[!blnPresent, 1]
-                              L1EndEst    =  L1StartEndVcf[!blnPresent, 2]
+                              L1StartEst  =  L1StartEndVcf[!blnPresent, 1],
+                              L1EndEst    =  L1StartEndVcf[!blnPresent, 2],
                               L1GenoEst   = L1GenoVcf[!blnPresent],
                               EstFilter   = VcfFile$FILTER[!blnPresent],
                               SampleID = SampleID)
@@ -303,11 +303,16 @@ L1WidthAgg <- merge(L1WidthAggregated, L1WidthAggregated_n)
 #                                                    #
 ######################################################
 
-VcfFile <- ReadVCF(paste(SimDir, "LINE1.final_comp.vcf", sep = ""))
+VcfFile <- ReadVCF("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/LINE1.final_comp.vcf")
 VcfGR   <- makeGRangesFromDataFrame(VcfFile, seqnames.field = "X.CHROM",
                                     start.field = "POS",
                                     end.field = "POS")
-VcfGR <- resize(VcfGR, width = 150, fix = "center")
+VcfGR <- resize(VcfGR, width = 100, fix = "center")
+
+# Get estimated L1 length and genotype from vcf file
+L1widthVcf <- sapply(VcfFile$INFO, GetFromVcfINFO_SVLength)
+L1GenoVcf  <- sapply(VcfFile[,ncol(VcfFile)], GetFromVcfGeno_GenoNum)
+L1StartEndVcf  <- t(sapply(VcfFile[,ncol(VcfFile)], GetFromVcfINFO_MELT_L1StartEnd))
 
 # Get sample ID from vcf column and get index of L1 insertions that occur in
 # that sample
@@ -318,19 +323,63 @@ L1Detect_Group <- NULL
 for (SampleID in  SampleIDs){
   cat("Processing", SampleID, "\n")
   idxL1    <- which(L1_1000G[,SampleID] > 0)
-  SampleGR <- makeGRangesFromDataFrame(L1_1000G[idxL1,], seqnames.field = "chromosome",
+  SampleGR <- makeGRangesFromDataFrame(L1_1000G[idxL1,], 
+                                       seqnames.field = "chromosome",
                                        start.field = "POS",
                                        end.field = "POS")
   
+  # Determine overlaps between simulated and detected L1
+  OLSimDetect <- findOverlaps(VcfGR, SampleGR)
+  
   # Create data.frame that keeps track of L1 width and their detection status
-  L1DetectNew <- data.frame(blnDetect = overlapsAny(SampleGR, VcfGR),
-                            L1width = L1_1000G$InsLength[idxL1])
+  L1DetectNew <- data.frame(Chrom  = L1_1000G$CHROM[idxL1],
+                            PosTrue  = L1_1000G$POS[idxL1],
+                            PosEst   = NA,
+                            blnDetect   = overlapsAny(SampleGR, VcfGR),
+                            L1GenoTrue  = L1_1000G[idxL1, SampleID],
+                            L1widthTrue = L1_1000G$InsLength[idxL1],
+                            L1StartTrue = L1_1000G$L1Start[idxL1],
+                            L1EndTrue   = L1_1000G$L1End[idxL1],
+                            L1widthEst  = NA,
+                            L1StartEst  = NA,
+                            L1EndEst  = NA,
+                            L1GenoEst   = NA,
+                            EstFilter   = NA,
+                            SampleID = SampleID)
+  L1DetectNew$PosEst[OLSimDetect@to]     <- VcfFile$POS[OLSimDetect@from]
+  L1DetectNew$L1widthEst[OLSimDetect@to] <- L1widthVcf[OLSimDetect@from]
+  L1DetectNew$L1StartEst[OLSimDetect@to] <- L1StartEndVcf[OLSimDetect@from, 1]
+  L1DetectNew$L1EndEst[OLSimDetect@to]   <- L1StartEndVcf[OLSimDetect@from, 2]
+  L1DetectNew$L1GenoEst[OLSimDetect@to]  <- L1GenoVcf[OLSimDetect@from]
+  L1DetectNew$EstFilter[OLSimDetect@to]  <- VcfFile$FILTER[OLSimDetect@from]
+  L1Detect_Group <- rbind(L1Detect_Group, L1DetectNew)
+  
+  # Create data.frame that keeps track of L1 not present in 1000 Genomes and 
+  # their detection status
+  blnPresent  <- overlapsAny(VcfGR, SampleGR)
+  if(any(!blnPresent)){
+    L1DetectNew <- data.frame(Chrom  = VcfFile$X.CHROM[!blnPresent],
+                              PosTrue  = NA,
+                              PosEst      = VcfFile$POS[!blnPresent],
+                              blnDetect   = NA,
+                              L1GenoTrue  = 0,
+                              L1widthTrue = 0,
+                              L1StartTrue = NA,
+                              L1EndTrue   = NA,
+                              L1widthEst  = L1widthVcf[!blnPresent],
+                              L1StartEst  =  L1StartEndVcf[!blnPresent, 1],
+                              L1EndEst    =  L1StartEndVcf[!blnPresent, 2],
+                              L1GenoEst   = L1GenoVcf[!blnPresent],
+                              EstFilter   = VcfFile$FILTER[!blnPresent],
+                              SampleID = SampleID)
+  }
+
   L1Detect_Group <- rbind(L1Detect_Group, L1DetectNew)
   
 }
 
 # Logistic regression for detection probability as finction of insertion length
-LogReg_DetectL1width_Group <- glm(blnDetect ~ L1width, data = L1Detect_Group,
+LogReg_DetectL1width_Group <- glm(blnDetect ~ L1widthTrue, data = L1Detect_Group,
                             family = binomial)
 summary(LogReg_DetectL1width_Group)
 

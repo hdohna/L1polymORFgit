@@ -14,14 +14,14 @@ blnRunBWA  <- F
 blnIdxBam  <- F
 blnRunMELT <- F
 blnRunSimAnalysis   <- F
-blnRunGroupAnalysis <- F
+blnRunGroupAnalysis <- T
 
 blnRunSim_Var           <- F
-blnRunBWA_Var           <- T
-blnIdxBam_Var           <- T
-blnRunMELT_Var          <- T
-blnRunSimAnalysis_Var   <- T
-blnRunGroupAnalysis_Var <- T
+blnRunBWA_Var           <- F
+blnIdxBam_Var           <- F
+blnRunMELT_Var          <- F
+blnRunSimAnalysis_Var   <- F
+blnRunGroupAnalysis_Var <- F
 
 # Specify run parameters
 RunTime      <- '24:00:00'
@@ -52,6 +52,7 @@ SimGenome <- SimGenomes[1]
 ##################################################################
 
 if (blnRunSimAnalysis){
+  cat("***********  Aligning simulated genomes    ******* \n")
   for (SimGenome in SimGenomes){
     
     # Get ID
@@ -162,6 +163,7 @@ SimGenomes <- grep("hg19Var_", SimGenomes, value = T)
 SimGenome <- SimGenomes[1]
 
 if (blnRunSimAnalysis_Var){
+  cat("***********  Running simulations for L1 with variable differences from consensus  *******\n")
   for (SimGenome in SimGenomes[1:20]){
     
     # Get ID
@@ -271,8 +273,8 @@ if(blnRunGroupAnalysis){
   BamFiles <- list.files(Path1000G, pattern = "_sorted.bam", full.names = T)
   BamFiles <- BamFiles[-grep("_sorted.bam.", BamFiles)]
   
-  # Perform variant discovery for each individual bam file
-  cat("\n*************    Performing MELT for individual bam files     *************\n")
+  # Preprocess individual bam file
+  cat("\n*************    Preprocessing individual bam files     *************\n")
   for (BamFile in BamFiles){
     
     # Get ID from bam file
@@ -282,22 +284,53 @@ if(blnRunGroupAnalysis){
     
     # Create commands to run MELT
     MELTCmds <- c("module load bowtie2",
-                  paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar IndivAnalysis",
-                        " -bamfile", BamFile, 
-                        "-c 7",
-                        "-h", RefFilePath,
-                        "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
-                        "-b MT/GL000207.1/GL000226.1/GL000229.1/GL000231.1/GL000210.1/GL000239.1/GL000235.1/GL000201.1/GL000247.1/GL000245.1/GL000197.1/GL000203.1/GL000246.1/GL000249.1/GL000196.1/GL000248.1/GL000244.1/GL000238.1/GL000202.1/GL000234.1/GL000232.1/GL000206.1/GL000240.1/GL000236.1/GL000241.1/GL000243.1/GL000242.1/GL000230.1/GL000237.1/GL000233.1/GL000204.1/GL000198.1/GL000208.1/GL000191.1/GL000227.1/GL000228.1/GL000214.1/GL000221.1/GL000209.1/GL000218.1/GL000220.1/GL000213.1/GL000211.1/GL000199.1/GL000217.1/GL000216.1/GL000215.1/GL000205.1/GL000219.1/GL000224.1/GL000223.1/GL000195.1/GL000212.1/GL000222.1/GL000200.1/GL000193.1/GL000194.1/GL000225.1/GL000192.1/NC_007605",
-                        "-w", Path1000G))
-    
+                  paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar Preprocess",
+                        "-bamfile", BamFile,
+                        "-h", RefFilePath
+                  ))
     
     # Create script name and run script
-    ScriptName <- paste("GroupInd_MELTScript", ID, sep = "_")
+    ScriptName <- paste("GroupInd_Preprocess", ID, sep = "_")
     CreateAndCallSlurmScript(file = ScriptName, 
                              RunTime = RunTime_MELT,
                              Mem = Mem_MELT,
                              SlurmCommandLines = MELTCmds)
     
+  }
+  
+  # Check whether for bam files queue is finished, once it is finished, run group analysis
+  cat("\n\n")
+  Sys.sleep(10)
+  QueueBamFinished <- CheckQueue(MaxNrTrials = 50, SleepTime = 30)
+
+    # Perform variant discovery for each individual bam file
+  cat("\n*************    Performing MELT for individual bam files     *************\n")
+  if(QueueBamFinished){
+    for (BamFile in BamFiles){
+      
+      # Get ID from bam file
+      Split1 <- strsplit(BamFile, "_")[[1]]
+      ID     <- strsplit(Split1[length(Split1) - 1], "\\.")[[1]][1]
+      cat("Analyzing", ID, "\n")
+      
+      # Create commands to run MELT
+      MELTCmds <- c("module load bowtie2",
+                    paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar IndivAnalysis",
+                          " -bamfile", BamFile, 
+                          "-c 7",
+                          "-h", RefFilePath,
+                          "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
+                          "-b MT/GL000207.1/GL000226.1/GL000229.1/GL000231.1/GL000210.1/GL000239.1/GL000235.1/GL000201.1/GL000247.1/GL000245.1/GL000197.1/GL000203.1/GL000246.1/GL000249.1/GL000196.1/GL000248.1/GL000244.1/GL000238.1/GL000202.1/GL000234.1/GL000232.1/GL000206.1/GL000240.1/GL000236.1/GL000241.1/GL000243.1/GL000242.1/GL000230.1/GL000237.1/GL000233.1/GL000204.1/GL000198.1/GL000208.1/GL000191.1/GL000227.1/GL000228.1/GL000214.1/GL000221.1/GL000209.1/GL000218.1/GL000220.1/GL000213.1/GL000211.1/GL000199.1/GL000217.1/GL000216.1/GL000215.1/GL000205.1/GL000219.1/GL000224.1/GL000223.1/GL000195.1/GL000212.1/GL000222.1/GL000200.1/GL000193.1/GL000194.1/GL000225.1/GL000192.1/NC_007605",
+                          "-w", Path1000G))
+      
+      
+      # Create script name and run script
+      ScriptName <- paste("GroupInd_MELTScript", ID, sep = "_")
+      CreateAndCallSlurmScript(file = ScriptName, 
+                               RunTime = RunTime_MELT,
+                               Mem = Mem_MELT,
+                               SlurmCommandLines = MELTCmds)
+    }
   }
   
   # Check whether for bam files queue is finished, once it is finished, run group analysis
@@ -372,7 +405,7 @@ if(blnRunGroupAnalysis){
                             "-h", RefFilePath,
                             "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
                             "-w", Path1000G,
-                            "-p", paste(Path1000G, "LINE1.pre_geno.tsv", sep = "")))
+                            "-p", Path1000G))
         
         # Create script name and run script
         ScriptName <- paste("Vcf_MELTScript")
