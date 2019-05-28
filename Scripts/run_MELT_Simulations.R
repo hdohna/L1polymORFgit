@@ -179,7 +179,7 @@ if (blnRunSimAnalysis_Var){
     # Generate a temporary simulation path
     SimGenome_tmp <- gsub(Path1000G, PathScratch, SimGenome)
 
-        # Generate output file names for simulation 
+    # Generate output file names for simulation 
     Fq1     <- gsub("_Haplo1.fa", "_1.fq", SimGenome)
     Fq11    <- gsub("_Haplo1.fa", "_11.fq", SimGenome)
     Fq12    <- gsub("_Haplo1.fa", "_12.fq", SimGenome)
@@ -304,7 +304,7 @@ if(blnRunGroupAnalysis){
   # Check whether for bam files queue is finished, once it is finished, run group analysis
   cat("\n\n")
   Sys.sleep(10)
-  QueuePreprocessFinished <- CheckQueue(MaxNrTrials = 100, SleepTime = 60)
+  QueuePreprocessFinished <- CheckQueue(MaxNrTrials = 500, SleepTime = 60)
 
     # Perform variant discovery for each individual bam file
   cat("\n*************    Performing MELT for individual bam files     *************\n")
