@@ -37,7 +37,7 @@ Path1000G   <- "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/"
 PathScratch   <- "/scratch/users/hzudohna/"
 
 # Load necessary objects
-load(paste(Path1000G, 'GRanges_L1_1000Genomes.RData', sep = ""))
+load('/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/GRanges_L1_1000Genomes.RData')
 load(paste(RefPath, 'L1RefRanges_hg19.Rdata', sep = ""))
 
 # Get all files with simulated genomes
