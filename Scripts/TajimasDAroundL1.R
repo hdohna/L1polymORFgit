@@ -31,7 +31,7 @@ StepSize   <- 10000
 FlankSize  <- 500000
 
 # Specify paths
-DataFolder     <- "/labs/dflev/hzudohna/1000Genomes/"
+DataFolder         <- "/labs/dflev/hzudohna/1000Genomes/"
 ChrLPath           <- '/labs/dflev/hzudohna/RefSeqData/ChromLengthsHg19.Rdata'
 L1TableFileName    <- "/labs/dflev/hzudohna/RefSeqData/L1HS_repeat_table_Hg19.csv"
 OutBedPath_L1Neighbor <- paste('/labs/dflev/hzudohna/RefSeqData/L1HS_Neighbor',
