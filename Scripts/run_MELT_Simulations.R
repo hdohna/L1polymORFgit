@@ -483,7 +483,7 @@ if(blnRunGroupAnalysis){
     }  else {
       stop("Job not properly launched")
     }
-    
+    cat("MakeVcf is job", RunIDs, "\n")
   } # End of checking whether genotype analysis has finished
   
 
