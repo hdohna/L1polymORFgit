@@ -1,13 +1,18 @@
+# The following script reads data of Tajima's D around reference L1 (created 
+# in script TajimasDAroundL1.R) and plots mean and median Tajima's D around
+# fragment and full-length L1
+
 # Load packages
 library(GenomicRanges)
 
+# Read in data (created in script TajimasDAroundL1.R)
 load("D:/L1polymORF/Data/L1_TajimaD.RData")
 
-# Create genomic ranges 
+# Intialize genomic ranges and matching dataframe with Tajima's D
 TajimaD_GR <- GRanges()
 TajimaD_reordered <- data.frame()
 
-# Loop over chromosomes, order 
+# Loop over chromosomes, order positions per chromosome
 for (chr in unique(TajimaData$CHROM)){
   TDataSubset <- TajimaData[TajimaData$CHROM == chr,]
   startOrder  <- order(TDataSubset$BIN_START)
@@ -30,7 +35,7 @@ TajimaD_GR <- as(TajimaD_GR, "GRanges")
 
 # Find ranges with only one L1
 TajDL1_OLcount <- countOverlaps(TajimaD_GR, L1GRanges)
-TajimaD_GR1 <- TajimaD_GR[TajDL1_OLcount == 1]
+TajimaD_GR1    <- TajimaD_GR[TajDL1_OLcount == 1]
 
 # Get indices of L1 overlapping with TajimaD_GR1
 idxL1_OL <- which(overlapsAny(L1GRanges, TajimaD_GR1))
@@ -50,6 +55,9 @@ table(sapply(TDList, length))
 
 # Create a matrix of Tajima's D values
 NrInt <- FlankSize %/% StepSize
+MidPt <- NrInt %/% 2
+DiffFromCenter <- 1:NrInt - MidPt
+AbsDiff <- abs(DiffFromCenter)
 TDMat <- sapply(TDList, function(x){
   if (length(x) < NrInt){
     rep(NA, NrInt)
@@ -69,8 +77,8 @@ idxFragm <- setdiff(1:length(unique(OL_L1TD@from)), idxFull)
 # Mean Tajima's D per fragment and full-length L1
 MeanTD_Full  <- rowMeans(TDMat[,idxFull], na.rm = T)
 MeanTD_Fragm <- rowMeans(TDMat[,idxFragm], na.rm = T)
-MedTD_Full  <- apply(TDMat[,idxFull], 1, FUN = function(x) median(x, na.rm = T))
-MedTD_Fragm <- apply(TDMat[,idxFragm], 1, FUN = function(x) median(x, na.rm = T))
+MedTD_Full   <- apply(TDMat[,idxFull], 1, FUN = function(x) median(x, na.rm = T))
+MedTD_Fragm  <- apply(TDMat[,idxFragm], 1, FUN = function(x) median(x, na.rm = T))
 
 # Plot average Tajima's D for fragment and full-length L1 
 plot(MeanTD_Full, type = "l", col = "red", xlab = "Genomic position (relative to L1)",
@@ -78,15 +86,16 @@ plot(MeanTD_Full, type = "l", col = "red", xlab = "Genomic position (relative to
 axis(1, at = seq(0, 50, 10), labels = seq(0, FlankSize, 10*StepSize) - 0.5*FlankSize)
 lines(MeanTD_Fragm, col = "blue")
 
-# Plot average Tajima's D for fragment and full-length L1 
-plot(MedTD_Full, type = "l", col = "red", xlab = "Genomic position (relative to L1)",
+# Plot median Tajima's D for fragment and full-length L1 
+plot(MedTD_Full, col = "red", xlab = "Genomic position (relative to L1)",
      ylab = "Median Tajima's D", xaxt = "n")
 axis(1, at = seq(0, 50, 10), labels = seq(0, FlankSize, 10*StepSize) - 0.5*FlankSize)
+lines(MedTD_Full, col = "red")
 lines(MedTD_Fragm, col = "blue")
+points(MedTD_Fragm, col = "blue")
 
 
 # Test for different Tajima's D between full-length and fragment at the midpoint
-MidPt  <- NrInt %/% 2
 t.test(TDMat[MidPt,idxFull], TDMat[MidPt,idxFragm])
 
 # Trend in mean Tajima's D
@@ -96,7 +105,25 @@ LMTrend_Full <- lm(MeanTD_Full[-MidPt] ~ c(1:length(MeanTD_Full))[-MidPt])
 summary(LMTrend_Full)
 
 # Trend in median Tajima's D
-LMMedTrend_Fragm <- lm(MedTD_Fragm ~ c(1:length(MedTD_Fragm)))
+LMMedTrend_Fragm <- lm(MedTD_Fragm[-c(MidPt, NrInt)] ~ 
+                         c(1:length(MedTD_Fragm))[-c(MidPt, NrInt)])
 summary(LMMedTrend_Fragm)
-LMMedTrend_Full <- lm(MedTD_Full[-MidPt] ~ c(1:length(MedTD_Full))[-MidPt])
+LMMedTrend_Full <- lm(MedTD_Full[-c(MidPt, NrInt)] ~ 
+                        c(1:length(MedTD_Full))[-c(MidPt, NrInt)])
 summary(LMMedTrend_Full)
+
+acf(MedTD_Fragm)
+acf(MedTD_Full)
+
+# Plot median Tajima's D against absolute difference from center
+plot(LMTrend_Full$residuals[(MidPt - 1):1], 
+     LMTrend_Full$residuals[(MidPt + 1):(length(MedTD_Full) - 1)])
+plot(LMMedTrend_Full$residuals[(MidPt - 1):1], 
+     LMMedTrend_Full$residuals[(MidPt + 1):(length(MedTD_Full) - 1)])
+cor.test(LMMedTrend_Full$residuals[(MidPt - 1):1], 
+     LMMedTrend_Full$residuals[(MidPt + 1):(length(MedTD_Full) - 1)])
+cor.test(LMMedTrend_Fragm$residuals[(MidPt - 1):1], 
+         LMMedTrend_Fragm$residuals[(MidPt + 1):(length(MedTD_Full) - 1)])
+cor.test(MedTD_Full[-MidPt], MedTD_Fragm[-MidPt])
+cor.test(LMMedTrend_Full$residuals, LMMedTrend_Fragm$residuals)
+plot(LMMedTrend_Full$residuals, LMMedTrend_Fragm$residuals)

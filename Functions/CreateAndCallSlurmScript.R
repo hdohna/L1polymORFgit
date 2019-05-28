@@ -37,7 +37,7 @@ CreateAndCallSlurmScript <- function(file,
    SlurmCommandLines, 
    blnSendEmails = F,
    scriptName = 'NoName', 
-   Args = "",
+   Args = "", blnIntern = TRUE,
    blnWait = F){
   
   # Replace name, time and memory in header lines
@@ -61,6 +61,6 @@ CreateAndCallSlurmScript <- function(file,
   
   # Run script
   RunCmd <- paste("sbatch", file, Args)
-  system(RunCmd, wait = blnWait)
+  system(command = RunCmd, wait = blnWait, intern = blnIntern)
   
 }

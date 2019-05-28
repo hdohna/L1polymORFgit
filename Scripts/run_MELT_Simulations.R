@@ -270,14 +270,20 @@ if (blnRunSimAnalysis_Var){
 if(blnRunGroupAnalysis){
   
   # Initiailize indicators for finished process
-  QueueIndivFinished <- F
+  QueueIndivFinished    <- F
+  QueueGroupFinished    <- F
+  QueueGenotypeFinished <- F
   
   # Get paths to bam files
   BamFiles <- list.files(Path1000G, pattern = "_sorted.bam", full.names = T)
   BamFiles <- BamFiles[-grep("_sorted.bam.", BamFiles)]
   
+  #################
   # Preprocess individual bam file
+  #################
+
   cat("\n*************    Preprocessing individual bam files     *************\n")
+  RunIDs <- NULL
   for (BamFile in BamFiles){
     
     # Get ID from bam file
@@ -294,21 +300,32 @@ if(blnRunGroupAnalysis){
     
     # Create script name and run script
     ScriptName <- paste("GroupInd_Preprocess", ID, sep = "_")
-    CreateAndCallSlurmScript(file = ScriptName, 
-                             RunTime = RunTime_MELT,
-                             Mem = Mem_MELT,
-                             SlurmCommandLines = MELTCmds)
+    RunMessage <- CreateAndCallSlurmScript(file = ScriptName, 
+                               RunTime = RunTime_MELT,
+                               Mem = Mem_MELT,
+                               SlurmCommandLines = MELTCmds)
+    if (length(grep("Submitted batch job ", RunMessage)) == 1){
+      RunIDs <- c(RunIDs, strsplit(RunMessage, "Submitted batch job ")[[1]][2])
+    } else {
+      stop("Job not properly launched")
+    }
     
   }
   
   # Check whether for bam files queue is finished, once it is finished, run group analysis
   cat("\n\n")
   Sys.sleep(10)
-  QueuePreprocessFinished <- CheckQueue(MaxNrTrials = 500, SleepTime = 60)
+  QueuePreprocessFinished <- CheckQueue(MaxNrTrials = 500, SleepTime = 60,
+                                        JobIDs = RunIDs)
 
-    # Perform variant discovery for each individual bam file
-  cat("\n*************    Performing MELT for individual bam files     *************\n")
+  #################
+  # Perform IndivAnalysis (variant discovery for each individual bam file)
+  #################
+  
+  RunIDs     <- NULL
+  RunMessage <- NULL
   if(QueuePreprocessFinished){
+    cat("\n*************    Performing MELT for individual bam files     *************\n")
     for (BamFile in BamFiles){
       
       # Get ID from bam file
@@ -329,21 +346,34 @@ if(blnRunGroupAnalysis){
       
       # Create script name and run script
       ScriptName <- paste("GroupInd_MELTScript", ID, sep = "_")
-      CreateAndCallSlurmScript(file = ScriptName, 
+      RunMessage <- CreateAndCallSlurmScript(file = ScriptName, 
                                RunTime = RunTime_MELT,
                                Mem = Mem_MELT,
                                SlurmCommandLines = MELTCmds)
+      if (length(grep("Submitted batch job ", RunMessage)) == 1){
+        RunIDs <- c(RunIDs, strsplit(RunMessage, "Submitted batch job ")[[1]][2])
+      } else {
+        stop("Job not properly launched")
+      }
+      
+      
     } # End of loop over bam files
     
     # Check whether for bam files queue is finished, once it is finished, run group analysis
     cat("\n\n")
     Sys.sleep(10)
-    QueueIndivFinished <- CheckQueue(MaxNrTrials = 50, SleepTime = 30)
+    QueueIndivFinished <- CheckQueue(MaxNrTrials = 50, SleepTime = 30,
+                                     JobIDs = RunIDs)
     
-  }
+  } # End of IndivAnalysis
   
   
-  # Summarizing results from individual bam files
+  #################
+  # Perform GroupAnalysis
+  #################
+
+  RunIDs     <- NULL
+  RunMessage <- NULL
   if (QueueIndivFinished){
     
     cat("\n*************   Summarizing MELT for individual bam files     *************\n")
@@ -358,74 +388,106 @@ if(blnRunGroupAnalysis){
     
     # Create script name and run script
     ScriptName <- paste("GroupAnalysis_MELTScript")
-    CreateAndCallSlurmScript(file = ScriptName, 
+    RunMessage <- CreateAndCallSlurmScript(file = ScriptName, 
                              RunTime = RunTime_MELT,
                              Mem = Mem_MELT,
                              SlurmCommandLines = MELTCmds)
     
+    if (length(grep("Submitted batch job ", RunMessage)) == 1){
+      RunIDs <- c(RunIDs, strsplit(RunMessage, "Submitted batch job ")[[1]][2])
+    } else {
+      stop("Job not properly launched")
+    }
+    
+    
     # Check whether queue of group analysis is finished, once it is finished, run group analysis
     Sys.sleep(10)
-    QueueGroupFinished <- CheckQueue(MaxNrTrials = 50, SleepTime   = 30)
+    QueueGroupFinished <- CheckQueue(MaxNrTrials = 50, SleepTime = 30,
+                                     JobIDs = RunIDs)
     
-    if (QueueGroupFinished){
-      
-      cat("\n*************   Getting genotypes for individual bam files     *************\n")
-      # Perform variant discovery for each individual bam file
-      for (BamFile in BamFiles){
-        
-        # Get ID from bam file
-        Split1 <- strsplit(BamFile, "_")[[1]]
-        ID     <- strsplit(Split1[length(Split1) - 1], "\\.")[[1]][1]
-        
-        # Create commands to run MELT
-        MELTCmds <- c("module load bowtie2",
-                      paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar Genotype",
-                            " -bamfile", BamFile, 
-                            "-h", RefFilePath,
-                            "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
-                            "-w", Path1000G,
-                            "-p", Path1000G))
-        
-        # Create script name and run script
-        ScriptName <- paste("Genotype_MELTScript", ID, sep = "_")
-        CreateAndCallSlurmScript(file = ScriptName, 
-                                 RunTime = RunTime_MELT,
-                                 Mem = Mem_MELT,
-                                 SlurmCommandLines = MELTCmds)
-        
-      } # End of loop over bam files to genotype
-      
-      # check whether genotyping loop has finished
-      cat("\n\n")
-      Sys.sleep(10)
-      QueueGenotypeFinished <- CheckQueue(MaxNrTrials = 30, SleepTime = 30)
-      
-      # Launch making of vcf file once genotyping loop has finished
-      if (QueueGenotypeFinished){
-        
-        cat("\n*************   Create vcf file     *************\n")
-        # Create commands to run MELT
-        MELTCmds <- c("module load bowtie2",
-                      paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar MakeVCF",
-                            "-genotypingdir", Path1000G,
-                            "-h", RefFilePath,
-                            "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
-                            "-w", Path1000G,
-                            "-p", Path1000G))
-        
-        # Create script name and run script
-        ScriptName <- paste("Vcf_MELTScript")
-        CreateAndCallSlurmScript(file = ScriptName, 
-                                 RunTime = RunTime_MELT,
-                                 Mem = Mem_MELT,
-                                 SlurmCommandLines = MELTCmds)
-      } # End of checking whether genotype analysis has finished
-      
-    } # End of checking whether group analysis has finished
+  } # End of GroupAnalysis
+  
+  #################
+  # Perform Genotype
+  #################
+  
+  RunIDs     <- NULL
+  RunMessage <- NULL
+  if (QueueGroupFinished){
     
+    cat("\n*************   Getting genotypes for individual bam files     *************\n")
+    for (BamFile in BamFiles){
+      
+      # Get ID from bam file
+      Split1 <- strsplit(BamFile, "_")[[1]]
+      ID     <- strsplit(Split1[length(Split1) - 1], "\\.")[[1]][1]
+      
+      # Create commands to run MELT
+      MELTCmds <- c("module load bowtie2",
+                    paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar Genotype",
+                          " -bamfile", BamFile, 
+                          "-h", RefFilePath,
+                          "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
+                          "-w", Path1000G,
+                          "-p", Path1000G))
+      
+      # Create script name and run script
+      ScriptName <- paste("Genotype_MELTScript", ID, sep = "_")
+      RunMessage <- CreateAndCallSlurmScript(file = ScriptName, 
+                               RunTime = RunTime_MELT,
+                               Mem = Mem_MELT,
+                               SlurmCommandLines = MELTCmds)
+      
+      if (length(grep("Submitted batch job ", RunMessage)) == 1){
+        RunIDs <- c(RunIDs, strsplit(RunMessage, "Submitted batch job ")[[1]][2])
+      }  else {
+        stop("Job not properly launched")
+      }
+      
+    } # End of loop over bam files to genotype
     
+    # check whether genotyping loop has finished
+    cat("\n\n")
+    Sys.sleep(10)
+    QueueGenotypeFinished <- CheckQueue(MaxNrTrials = 30, SleepTime = 30,
+                                        JobIDs = RunIDs)
     
-  }
+  } # End of checking whether group analysis has finished
+  
+  #################
+  # Perform MakeVCF
+  #################
+
+  RunIDs     <- NULL
+  RunMessage <- NULL
+  if (QueueGenotypeFinished){
+    
+    cat("\n*************   Create vcf file     *************\n")
+    # Create commands to run MELT
+    MELTCmds <- c("module load bowtie2",
+                  paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar MakeVCF",
+                        "-genotypingdir", Path1000G,
+                        "-h", RefFilePath,
+                        "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
+                        "-w", Path1000G,
+                        "-p", Path1000G))
+    
+    # Create script name and run script
+    ScriptName <- paste("Vcf_MELTScript")
+    RunMessage <- CreateAndCallSlurmScript(file = ScriptName, 
+                             RunTime = RunTime_MELT,
+                             Mem = Mem_MELT,
+                             SlurmCommandLines = MELTCmds)
+    if (length(grep("Submitted batch job ", RunMessage)) == 1){
+      RunIDs <- c(RunIDs, strsplit(RunMessage, "Submitted batch job ")[[1]][2])
+    }  else {
+      stop("Job not properly launched")
+    }
+    
+  } # End of checking whether genotype analysis has finished
+  
+
+  
 }
 
 

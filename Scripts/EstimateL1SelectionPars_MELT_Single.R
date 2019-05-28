@@ -120,6 +120,7 @@ L1IDUnique <- MEInsCallPerL1$L1ID[!blnDupl]
 MEInsCallPerL1[which(MEInsCallPerL1$GenoNum == 0)[1:10], ]
 MEInsCallPerL1[which(is.na(MEInsCallPerL1$GenoNum))[1:10], ]
 table(MEInsCallPerL1$X.CHROM)
+
 # Join insertions that are close to each other into one
 MEInsPerL1_GR <- makeGRangesFromDataFrame(MEInsCallPerL1[!blnDupl, ],
                                           seqnames.field = "X.CHROM",
