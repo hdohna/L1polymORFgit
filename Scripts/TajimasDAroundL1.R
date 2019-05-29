@@ -98,7 +98,7 @@ for (InFile in AllFiles){
   OutPath2    <- paste(c(InFileSplit[2], OutPrefix), collapse = "_")
   cat("Calculate Tajima's D for", InFileSplit[2], "\n")
   ScriptName <- paste("Vcftools_L1TajimaD", InFileSplit[2], FlankSize, "AllPops", sep = "_")
-  RunMessage <- CreateAndCallSlurmScript(file = paste("runVcftools_L1TajimaD", InFileSplit[2], sep = "_"), 
+  RunID <- CreateAndCallSlurmScript(file = paste("runVcftools_L1TajimaD", InFileSplit[2], sep = "_"), 
                            scriptName = ScriptName,
                            SlurmCommandLines = 
                              c("module load vcftools",
@@ -107,12 +107,7 @@ for (InFile in AllFiles){
                                      "--TajimaD", StepSize,
                                      "--out", OutPrefix)),
                            RunTime = '12:00:00',
-                           Mem = '200G')
-  if (length(grep("Submitted batch job ", RunMessage)) == 1){
-    RunID <- strsplit(RunMessage, "Submitted batch job ")[[1]][2]
-  } else {
-    RunID <- NA
-  }  
+                           Mem = '200G')$RunID
   NewData <- data.frame(RunID = RunID, Chrom = InFileSplit[2],
                         Pop = "AllPops", Range = "L1Neighborhood")
   RunOverview <- rbind(RunOverview, NewData)
@@ -129,7 +124,7 @@ for (InFile in AllFiles){
   cat("Calculate Tajima's D for", InFileSplit[2], "\n")
   OutPrefix   <- paste(c(InFileSplit[1:2],  "L1_AllPops"), collapse = "_")
   ScriptName <- paste("Vcftools_L1TajimaD", InFileSplit[2], "L1_AllPops", sep = "_")
-  RunMessage <- CreateAndCallSlurmScript(file = paste("runVcftools_L1TajimaD", InFileSplit[2], "L1", sep = "_"), 
+  RunID <- CreateAndCallSlurmScript(file = paste("runVcftools_L1TajimaD", InFileSplit[2], "L1", sep = "_"), 
                            scriptName = ScriptName,
                            SlurmCommandLines = 
                              c("module load vcftools",
@@ -138,12 +133,7 @@ for (InFile in AllFiles){
                                      "--TajimaD", 10000,
                                      "--out", OutPrefix)),
                            RunTime = '12:00:00',
-                           Mem = '200G')
-  if (length(grep("Submitted batch job ", RunMessage)) == 1){
-    RunID <- strsplit(RunMessage, "Submitted batch job ")[[1]][2]
-  } else {
-    RunID <- NA
-  }  
+                           Mem = '200G')$RunID
   NewData <- data.frame(RunID = RunID, Chrom = InFileSplit[2],
                         Pop = "AllPops", Range = "L1")
   RunOverview <- rbind(RunOverview, NewData)
@@ -168,7 +158,7 @@ for (InFile in AllFiles){
     
     cat("Calculate Tajima's D for", InFileSplit[2], Pop, "\n")
     ScriptName <- paste("Vcftools_L1TajimaD", InFileSplit[2], FlankSize, Pop, sep = "_")
-    RunMessage <- CreateAndCallSlurmScript(file = paste("runVcftools_L1TajimaD", InFileSplit[2], FlankSize, Pop, sep = "_"), 
+    RunID <- CreateAndCallSlurmScript(file = paste("runVcftools_L1TajimaD", InFileSplit[2], FlankSize, Pop, sep = "_"), 
                              scriptName = ScriptName,
                              SlurmCommandLines = 
                                c("module load vcftools",
@@ -178,12 +168,7 @@ for (InFile in AllFiles){
                                        "--TajimaD", StepSize,
                                        "--out", OutPrefix)),
                              RunTime = '12:00:00',
-                             Mem = '200G')
-    if (length(grep("Submitted batch job ", RunMessage)) == 1){
-      RunID <- strsplit(RunMessage, "Submitted batch job ")[[1]][2]
-    } else {
-      RunID <- NA
-    }  
+                             Mem = '200G')$RunID
     NewData <- data.frame(RunID = RunID, Chrom = InFileSplit[2],
                           Pop = Pop, Range = "L1Neighborhood")
     RunOverview <- rbind(RunOverview, NewData)
@@ -207,7 +192,7 @@ for (InFile in AllFiles){
     cat("Calculate Tajima's D for", InFileSplit[2], Pop, "\n")
     OutPrefix   <- paste(c(InFileSplit[1:2], "L1", Pop), collapse = "_")
     ScriptName <- paste("Vcftools_L1TajimaD", InFileSplit[2], "L1", Pop, sep = "_")
-    CreateAndCallSlurmScript(file = paste("runVcftools_L1TajimaD", InFileSplit[2],"L1", Pop, 
+    RunID <- CreateAndCallSlurmScript(file = paste("runVcftools_L1TajimaD", InFileSplit[2],"L1", Pop, 
                                           sep = "_"), 
                              scriptName = ScriptName,
                              SlurmCommandLines = 
@@ -215,34 +200,39 @@ for (InFile in AllFiles){
                                  paste("vcftools --vcf", InFile, 
                                        "--bed", OutBedPath_L1,
                                        "--keep", PopFile,
-                                       "--TajimaD", 1000,
+                                       "--TajimaD", 10000,
                                        "--out", OutPrefix)),
                              RunTime = '12:00:00',
-                             Mem = '200G')
-    if (length(grep("Submitted batch job ", RunMessage)) == 1){
-      RunID <- strsplit(RunMessage, "Submitted batch job ")[[1]][2]
-    } else {
-      RunID <- NA
-    }  
+                             Mem = '200G')$RunID
     NewData <- data.frame(RunID = RunID, Chrom = InFileSplit[2],
                           Pop = Pop, Range = "L1")
     RunOverview <- rbind(RunOverview, NewData)
-    Sys.sleep(3)
+    Sys.sleep(1)
     
   }
 }
 
 
 # Check whether queue is finished
-blnQueueFinished <- CheckQueue(MaxNrTrials = 100,
-                       SleepTime   = 30,
+blnQueueFinished <- CheckQueue(MaxNrTrials = 300,
+                       SleepTime   = 60,
                        JobIDs = RunOverview$RunID[!is.na(RunOverview$RunID)])
 
+# Add column about job completion once jobs are finished
+# if (blnQueueFinished){
+#   RunOverview$blnCompleted <- CheckJobCompletion(JobIDs = RunOverview$RunID)
+# }
+  
 # If queue is finished, combine the chromosome-level files into one combined file    
 if (blnQueueFinished){
   TajimaFiles <- list.files(DataFolder, pattern =".Tajima.D", 
                          full.names = T)
   TajimaData <- read.delim(TajimaFiles[1])
+  Split1      <- strsplit(TajimaFile[1], "\\/")[[1]]
+  FilePart    <- Split1[length(Split1)]
+  Split2      <- strsplit(FilePart, "\\.")[[1]]
+  Split3      <- strsplit(Split2[1], "\\_")[[1]]
+  TajimaData$Pop <- Split3[length(Split3)]
   for(TajimaFile in TajimaFiles){
     NewData     <- read.delim(TajimaFile)
     Split1      <- strsplit(TajimaFile, "\\/")[[1]]
@@ -255,19 +245,21 @@ if (blnQueueFinished){
   
 }
 
+save(list = "TajimaData", file = '/labs/dflev/hzudohna/1000Genomes/L1_TajimaData.RData')
+
 # Create genomic ranges 
-DiffBefore <- TajimaData$BIN_START - c(0,TajimaData$BIN_START[-nrow(TajimaData)])
-DiffAfter  <- c(TajimaData$BIN_START[-1], 0) - TajimaData$BIN_START
-idxStart   <- which(DiffBefore != StepSize)
-idxEnd     <- which(DiffAfter != StepSize)
-TajimaD_GR <- GRanges(TajimaData, seqnames.field = "CHROM",
-                                       start.field = "BIN_START",
-                                       end.field = "BIN_START")
-
-
-TajimaD_GR <- GRanges(seqnames = TajimaData$CHROM[-1], 
-                      ranges = IRanges(start = TajimaData$BIN_START))
-
-TajimaOLcount <- countOverlaps(TajimaD_GR, L1Neighborhoods)
+# DiffBefore <- TajimaData$BIN_START - c(0,TajimaData$BIN_START[-nrow(TajimaData)])
+# DiffAfter  <- c(TajimaData$BIN_START[-1], 0) - TajimaData$BIN_START
+# idxStart   <- which(DiffBefore != StepSize)
+# idxEnd     <- which(DiffAfter != StepSize)
+# TajimaD_GR <- GRanges(TajimaData, seqnames.field = "CHROM",
+#                                        start.field = "BIN_START",
+#                                        end.field = "BIN_START")
+# 
+# 
+# TajimaD_GR <- GRanges(seqnames = TajimaData$CHROM[-1], 
+#                       ranges = IRanges(start = TajimaData$BIN_START))
+# 
+# TajimaOLcount <- countOverlaps(TajimaD_GR, L1Neighborhoods)
 
 save.image('/labs/dflev/hzudohna/1000Genomes/L1_TajimaD.RData')

@@ -469,7 +469,8 @@ if(blnRunGroupAnalysis){
                         "-h", RefFilePath,
                         "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
                         "-w", Path1000G,
-                        "-p", Path1000G))
+                        "-p", Path1000G,
+                        "-o", Path1000G))
     
     # Create script name and run script
     ScriptName <- paste("Vcf_MELTScript")
@@ -479,6 +480,8 @@ if(blnRunGroupAnalysis){
                              SlurmCommandLines = MELTCmds)$RunID
     RunIDs_MakeVCF <- c(RunIDs_MakeVCF, RunID)
     cat("MakeVcf is job", RunIDs_MakeVCF, "\n")
+    QueueMakeVCFFinished <- CheckQueue(MaxNrTrials = 30, SleepTime = 30,
+                                        JobIDs = RunIDs_MakeVCF)
     blnFinished <- CheckJobCompletion(RunIDs_MakeVCF)
     NewJobInfo <- data.frame(JobID = RunIDs_MakeVCF, JobType = "MELT_MakeVCF", 
                              InputFile = NA, blnFinished  = blnFinished)
@@ -486,7 +489,12 @@ if(blnRunGroupAnalysis){
     
   } # End of MELT MELT_MakeVCF
   
-
+  # Code that can be used to check status of individual jobs
+  # JobIDs =   JobInfo$JobID[JobInfo$JobType == "MELT_MakeVCF"]
+  # SlurmFiles <- paste(JobDirectory, "slurm-", JobIDs, ".out", sep = "")
+  # lapply(SlurmFiles, function(x) readLines(x))
+  
+  # Save job info
   save(list = "JobInfo", file = paste(Path1000G, "L1simulated_MELT_Group_JobInfo.RData",
                                       sep = "")) 
 }

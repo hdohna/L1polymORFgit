@@ -84,8 +84,13 @@ L1Neighborhoods <- resize(L1GRanges, FlankSize, fix = "center")
 # Export bed ranges
 export.bed(L1Neighborhoods, con = OutBedPath_L1Neighbor)
 
-# Loop through vcf files and estimate Fst 
+# Create a vector of fst commands per population
+FstCmds <- paste("--weir-fst-pop", SamplePopFiles, collapse = " ")
+
+# Loop through chromosovcf files and estimate Fst for neighborhoods around L1
 InFile <- AllFiles[1]
+RunOverview <- data.frame()
+cat("\n**********   Fst for neighborhoods arond L1   *****\n")
 for (InFile in AllFiles){
   
   # Create and submit a script that calculates Fst for all populations
@@ -94,45 +99,62 @@ for (InFile in AllFiles){
   OutPath2    <- paste(c(InFileSplit[2], OutPrefix), collapse = "_")
   cat("Calculate Fst for", InFileSplit[2], "\n\n")
   ScriptName <- paste("L1indelL_Script", InFileSplit[2], sep = "_")
-  CreateAndCallSlurmScript(file = paste("runVcftools_L1Fst", InFileSplit[2], sep = "_"), 
+  RunID <- CreateAndCallSlurmScript(file = paste("runVcftools_L1Fst", InFileSplit[2], sep = "_"), 
                            scriptName = paste("Vcftools_L1Fst", InFileSplit[2], sep = "_"),
                            SlurmCommandLines = 
                              c("module load vcftools",
                                paste("vcftools --vcf", InFile, 
                                      "--bed", OutBedPath_L1Neighbor,
-                                     "--weir-fst-pop", 
+                                     FstCmds,
                                      "--fst-window-step", StepSize,
                                      "--out", OutPrefix)),
                            RunTime = '12:00:00',
-                           Mem = '200G')
-
-  # Loop over populations and estimate Fst for each population
-  for (PopFile in SamplePopFiles){
-    Pop         <- strsplit(PopFile, PopPrefix)[[1]][2]
-    OutPrefix   <- paste(c(InFileSplit[1:2], Pop), collapse = "_")
-    OutPath2    <- paste(c(InFileSplit[2], OutPrefix), collapse = "_")
-    cat("Calculate Fst for", InFileSplit[2], "\n\n")
-    ScriptName <- paste("L1indelL_Script", InFileSplit[2], Pop, sep = "_")
-    CreateAndCallSlurmScript(file = paste("runVcftools_L1Fst", InFileSplit[2], Pop, sep = "_"), 
-                             scriptName = paste("Vcftools_L1Fst", InFileSplit[2], Pop, sep = "_"),
-                             SlurmCommandLines = 
-                               c("module load vcftools",
-                                 paste("vcftools --vcf", InFile, 
-                                       "--bed", OutBedPath_L1Neighbor,
-                                       "--keep", PopFile,
-                                       "--weir-fst-pop", 
-                                       "--fst-window-step", StepSize,
-                                       "--out", OutPrefix)),
-                             RunTime = '12:00:00',
-                             Mem = '200G')
-    
-  }
+                           Mem = '200G')$RunID
+  NewData <- data.frame(RunID = RunID, Chrom = InFileSplit[2],
+                        Pop = "AllPops", Range = "L1Neighborhood")
+  RunOverview <- rbind(RunOverview, NewData)
+  Sys.sleep(3)
 }
 
+# Loop through vcf files and estimate Fst 
+InFile <- AllFiles[1]
+RunOverview <- data.frame()
+cat("\n**********   Fst for L1 regions    *****\n")
+for (InFile in AllFiles){
+  
+  # Create and submit a script that calculates Fst for all populations
+  InFileSplit <- strsplit(InFile, "\\.")[[1]]
+  OutPrefix   <- paste(c(InFileSplit[1:2], "AllPops"), collapse = "_")
+  OutPath2    <- paste(c(InFileSplit[2], OutPrefix), collapse = "_")
+  cat("Calculate Fst for", InFileSplit[2], "\n\n")
+  ScriptName <- paste("L1indelL_Script", InFileSplit[2], sep = "_")
+  RunID <- CreateAndCallSlurmScript(file = paste("runVcftools_L1Fst", InFileSplit[2], sep = "_"), 
+                                    scriptName = paste("Vcftools_L1Fst", InFileSplit[2], sep = "_"),
+                                    SlurmCommandLines = 
+                                      c("module load vcftools",
+                                        paste("vcftools --vcf", InFile, 
+                                              "--bed", OutBedPath_L1Neighbor,
+                                              FstCmds,
+                                              "--fst-window-step", StepSize,
+                                              "--out", OutPrefix)),
+                                    RunTime = '12:00:00',
+                                    Mem = '200G')$RunID
+  NewData <- data.frame(RunID = RunID, Chrom = InFileSplit[2],
+                        Pop = "AllPops", Range = "L1Neighborhood")
+  RunOverview <- rbind(RunOverview, NewData)
+  Sys.sleep(3)
+}
 
 # Check whether queue is finished
-blnQueueFinished <- CheckQueue(MaxNrTrials = 100,
-                       SleepTime   = 30)
+blnQueueFinished <- CheckQueue(MaxNrTrials = 200,
+                       SleepTime   = 60,
+                       JobIDs = RunOverview$RunID[!is.na(RunOverview$RunID)])
+
+# Add column about job completion once jobs are finished
+if (blnQueueFinished){
+  RunOverview$blnCompleted <- CheckJobCompletion(JobIDs = RunOverview$RunID)
+}
+
 
 # If queue is finished, combine the chromosome-level files into one combined file    
 if (blnQueueFinished){

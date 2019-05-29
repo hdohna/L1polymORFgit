@@ -124,32 +124,32 @@ cat("Sensitivity:", Sensitivity, "\n")
 cat("Specificity:", Specificity, "\n")
 
 # Plot estimated vs true L1 length
-plot(L1Detect$L1widthTrue, L1Detect$L1widthEst)
-cor.test(L1Detect$L1widthTrue, L1Detect$L1widthEst, method = "spearman")
-FullConTab <- table(L1Detect$blnFull, L1Detect$L1widthEst >= 6000)
-t(t(FullConTab) / colSums(FullConTab))
-chisq.test(L1Detect$blnFull, L1Detect$L1widthEst >= 6000)
-hist(L1Detect$L1widthEst)
-
-# Probability of false positive, given the estimated genotype (0, 1, or 2)
-GenoTrueEst <- table(L1Detect$L1GenoTrue, L1Detect$L1GenoEst)
-GenoTrueEst[1,] / colSums(GenoTrueEst)
-barplot(GenoTrueEst[1,] / colSums(GenoTrueEst), xlab = "Estimated genotype",
-        ylab = )
-
-# Plot the percentage of detected LINE-1 per length class
-# Create a vector of L1 start classes
-L1Detect$InsLengthClass <- cut(L1Detect$L1width, breaks = 
-                                  seq(0, 6500, 500))
-
-# Get mean L1 detection per L1 width
-L1WidthAggregated <- aggregate(L1Detect[,c("L1width", "blnDetect")], 
-                               by = list(L1Detect$InsLengthClass), 
-                               FUN = function(x) mean(x, na.rm = T))
-L1WidthAggregated_n <- aggregate(L1Detect$L1width, 
-                                 by = list(L1Detect$InsLengthClass), 
-                                 FUN = function(x) sum(!is.na(x)))
-L1WidthAgg <- merge(L1WidthAggregated, L1WidthAggregated_n)
+# plot(L1Detect$L1widthTrue, L1Detect$L1widthEst)
+# cor.test(L1Detect$L1widthTrue, L1Detect$L1widthEst, method = "spearman")
+# FullConTab <- table(L1Detect$blnFull, L1Detect$L1widthEst >= 6000)
+# t(t(FullConTab) / colSums(FullConTab))
+# chisq.test(L1Detect$blnFull, L1Detect$L1widthEst >= 6000)
+# hist(L1Detect$L1widthEst)
+# 
+# # Probability of false positive, given the estimated genotype (0, 1, or 2)
+# GenoTrueEst <- table(L1Detect$L1GenoTrue, L1Detect$L1GenoEst)
+# GenoTrueEst[1,] / colSums(GenoTrueEst)
+# barplot(GenoTrueEst[1,] / colSums(GenoTrueEst), xlab = "Estimated genotype",
+#         ylab = )
+# 
+# # Plot the percentage of detected LINE-1 per length class
+# # Create a vector of L1 start classes
+# L1Detect$InsLengthClass <- cut(L1Detect$L1width, breaks = 
+#                                   seq(0, 6500, 500))
+# 
+# # Get mean L1 detection per L1 width
+# L1WidthAggregated <- aggregate(L1Detect[,c("L1width", "blnDetect")], 
+#                                by = list(L1Detect$InsLengthClass), 
+#                                FUN = function(x) mean(x, na.rm = T))
+# L1WidthAggregated_n <- aggregate(L1Detect$L1width, 
+#                                  by = list(L1Detect$InsLengthClass), 
+#                                  FUN = function(x) sum(!is.na(x)))
+# L1WidthAgg <- merge(L1WidthAggregated, L1WidthAggregated_n)
 
 # Plot detection probability vs insertion size
 # pdf(file = "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/DetectVsInsertSize.pdf")

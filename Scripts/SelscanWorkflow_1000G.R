@@ -59,7 +59,7 @@ Ends   <- c(Starts[-1] - 1, sum(blnEnough))
 # for (j in 3){
 #   cat("\n******   Submitting jobs", Starts[j], "to", Ends[j], "   *********\n")
   for (idxL1 in which(blnEnough)[501:sum(blnEnough)]){
-    # Collect chromosome, position, uper and lower bund, and ID for current L1
+    # Collect chromosome, position, uper and lower bound, and ID for current L1
     Chrom <- paste("chr",  L1_1000G$CHROM[idxL1], sep = "")
     ID    <- L1_1000G$ID[idxL1]
     Pos   <- L1_1000G$POS[idxL1]

@@ -5,8 +5,19 @@
 # Load packages
 library(GenomicRanges)
 
+# Source start script
+source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
+
 # Read in data (created in script TajimasDAroundL1.R)
-load("D:/L1polymORF/Data/L1_TajimaD.RData")
+load("D:/L1polymORF/Data/L1_TajimaData.RData")
+
+# List of data objects with Tajima's D
+TDList_AllPops <- 
+
+
+# Add a column with NA for intoerval
+TajimaData$TajimaD_modified <- TajimaData$TajimaD
+TajimaData$TajimaD_modified[TajimaData$N_SNPS == 0] <- NA
 
 # Intialize genomic ranges and matching dataframe with Tajima's D
 TajimaD_GR <- GRanges()
@@ -46,18 +57,22 @@ idxUniqueL1Neighbor <- idxL1_OL[countOverlaps(L1Neighborhoods[idxL1_OL],
 
 # Find overlaps
 OL_L1TD <- findOverlaps(L1Neighborhoods[idxUniqueL1Neighbor], TajimaD_GR)
+
+# Create a list of Tajima's D values around each 
 TDList <- lapply(unique(OL_L1TD@from), function(x) {
   idxNeibhborL1 <- OL_L1TD@to[OL_L1TD@from == x]
-  TDs <- TajimaD_reordered$TajimaD[idxNeibhborL1]
-  TDs - mean(TDs[c(1, length(TDs))])
+  TDs <- TajimaD_reordered$TajimaD_modified[idxNeibhborL1]
+  EdgeMean <- mean(TDs[c(1, length(TDs))], na.rm = T)
+  if (is.na(EdgeMean)) {EdgeMean <- 0}
+  TDs - EdgeMean
 })
-table(sapply(TDList, length))
 
 # Create a matrix of Tajima's D values
 NrInt <- FlankSize %/% StepSize
 MidPt <- NrInt %/% 2
 DiffFromCenter <- 1:NrInt - MidPt
 AbsDiff <- abs(DiffFromCenter)
+sapply(TDList, length)
 TDMat <- sapply(TDList, function(x){
   if (length(x) < NrInt){
     rep(NA, NrInt)
@@ -94,6 +109,25 @@ lines(MedTD_Full, col = "red")
 lines(MedTD_Fragm, col = "blue")
 points(MedTD_Fragm, col = "blue")
 
+
+# Plot mean Tajima's D against L1 width
+L1Width <- width(L1GRanges[idxUniqueL1Neighbor][unique(OL_L1TD@from)])
+InsLengthClass <- cut(L1Width, breaks = seq(0, 7000, 1000))
+TDAggregated_mean <- aggregate(data.frame(TD = TDMat[MidPt, ], L1Width = L1Width),
+                               by = list(InsLengthClass), 
+                               FUN = function(x) mean(x, na.rm = T))
+
+# Check whether there is a relationship between L1 width and Tajima's D among fragments
+blnFull <- width(L1GRanges[idxUniqueL1Neighbor][unique(OL_L1TD@from)]) >= 5900
+LM1 <- lm(TDMat[MidPt, ] ~ 
+          width(L1GRanges[idxUniqueL1Neighbor][unique(OL_L1TD@from)]) + blnFull)
+summary(LM1)
+LM2 <- lm(TDMat[MidPt, ] ~ 
+           width(L1GRanges[idxUniqueL1Neighbor][unique(OL_L1TD@from)]))
+summary(LM2)
+LM3 <- lm(TDMat[MidPt, !blnFull] ~ 
+            width(L1GRanges[idxUniqueL1Neighbor][unique(OL_L1TD@from)])[!blnFull])
+summary(LM3)
 
 # Test for different Tajima's D between full-length and fragment at the midpoint
 t.test(TDMat[MidPt,idxFull], TDMat[MidPt,idxFragm])
