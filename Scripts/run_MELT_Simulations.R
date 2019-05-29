@@ -283,6 +283,7 @@ if(blnRunGroupAnalysis){
   #################
 
   cat("\n*************    Preprocessing individual bam files     *************\n")
+  RunID <- NA
   RunIDs_Preprocess <- NULL
   for (BamFile in BamFiles){
     
@@ -312,15 +313,19 @@ if(blnRunGroupAnalysis){
   Sys.sleep(10)
   QueuePreprocessFinished <- CheckQueue(MaxNrTrials = 500, SleepTime = 60,
                                         JobIDs = RunIDs_Preprocess)
-
+  blnFinished <- CheckJobCompletion(RunIDs_Preprocess)
+  JobInfo     <- data.frame(JobID = RunIDs_Preprocess, JobType = "MELT_Preprocess", 
+                        InputFile = BamFiles, blnFinished  = blnFinished)
+    
   #################
   # Perform IndivAnalysis (variant discovery for each individual bam file)
   #################
   
-  RunIDs     <- NULL
-  RunMessage <- NULL
+  RunIDs_IndivAnalysis  <- NULL
+  blnFinished <- NULL
+  RunID <- NA
   if(QueuePreprocessFinished){
-    cat("\n*************    Performing MELT for individual bam files     *************\n")
+    cat("\n*************    Performing MELT IndivAnalysis     *************\n")
     for (BamFile in BamFiles){
       
       # Get ID from bam file
@@ -341,16 +346,11 @@ if(blnRunGroupAnalysis){
       
       # Create script name and run script
       ScriptName <- paste("GroupInd_MELTScript", ID, sep = "_")
-      RunMessage <- CreateAndCallSlurmScript(file = ScriptName, 
+      RunID <- CreateAndCallSlurmScript(file = ScriptName, 
                                RunTime = RunTime_MELT,
                                Mem = Mem_MELT,
-                               SlurmCommandLines = MELTCmds)
-      if (length(grep("Submitted batch job ", RunMessage)) == 1){
-        RunIDs <- c(RunIDs, strsplit(RunMessage, "Submitted batch job ")[[1]][2])
-      } else {
-        stop("Job not properly launched")
-      }
-      
+                               SlurmCommandLines = MELTCmds)$RunID
+      RunIDs_IndivAnalysis <- c(RunIDs_IndivAnalysis, RunID)
       
     } # End of loop over bam files
     
@@ -358,7 +358,12 @@ if(blnRunGroupAnalysis){
     cat("\n\n")
     Sys.sleep(10)
     QueueIndivFinished <- CheckQueue(MaxNrTrials = 50, SleepTime = 30,
-                                     JobIDs = RunIDs)
+                                     JobIDs = RunIDs_IndivAnalysis)
+    blnFinished <- CheckJobCompletion(RunIDs_IndivAnalysis)
+    NewJobInfo <- data.frame(JobID = RunIDs_IndivAnalysis, JobType = "MELT_IndivAnalysis", 
+                          InputFile = BamFiles, blnFinished  = blnFinished)
+    JobInfo <- rbind(JobInfo, NewJobInfo)
+    
     
   } # End of IndivAnalysis
   
@@ -367,11 +372,11 @@ if(blnRunGroupAnalysis){
   # Perform GroupAnalysis
   #################
 
-  RunIDs     <- NULL
-  RunMessage <- NULL
+  RunID <- NA
+  RunIDs_GroupAnalysis <- NULL
   if (QueueIndivFinished){
     
-    cat("\n*************   Summarizing MELT for individual bam files     *************\n")
+    cat("\n*************   Performing MELT GroupAnalysis      *************\n")
     # Create commands to run MELT
     MELTCmds <- c("module load bowtie2",
                   paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar GroupAnalysis",
@@ -383,22 +388,21 @@ if(blnRunGroupAnalysis){
     
     # Create script name and run script
     ScriptName <- paste("GroupAnalysis_MELTScript")
-    RunMessage <- CreateAndCallSlurmScript(file = ScriptName, 
+    RunID <- CreateAndCallSlurmScript(file = ScriptName, 
                              RunTime = RunTime_MELT,
                              Mem = Mem_MELT,
-                             SlurmCommandLines = MELTCmds)
-    
-    if (length(grep("Submitted batch job ", RunMessage)) == 1){
-      RunIDs <- c(RunIDs, strsplit(RunMessage, "Submitted batch job ")[[1]][2])
-    } else {
-      stop("Job not properly launched")
-    }
-    
+                             SlurmCommandLines = MELTCmds)$RunID
+    RunIDs_GroupAnalysis <- c(RunIDs_GroupAnalysis, RunID)
     
     # Check whether queue of group analysis is finished, once it is finished, run group analysis
     Sys.sleep(10)
     QueueGroupFinished <- CheckQueue(MaxNrTrials = 50, SleepTime = 30,
-                                     JobIDs = RunIDs)
+                                     JobIDs = RunIDs_GroupAnalysis)
+    blnFinished <- CheckJobCompletion(RunIDs_GroupAnalysis)
+    NewJobInfo <- data.frame(JobID = RunIDs_GroupAnalysis, JobType = "MELT_GroupAnalysis", 
+                             InputFile = NA, blnFinished  = blnFinished)
+    JobInfo <- rbind(JobInfo, NewJobInfo)
+    
     
   } # End of GroupAnalysis
   
@@ -406,8 +410,8 @@ if(blnRunGroupAnalysis){
   # Perform Genotype
   #################
   
-  RunIDs     <- NULL
-  RunMessage <- NULL
+  RunID      <- NA
+  RunIDs_Genotype <- NULL
   if (QueueGroupFinished){
     
     cat("\n*************   Getting genotypes for individual bam files     *************\n")
@@ -416,6 +420,7 @@ if(blnRunGroupAnalysis){
       # Get ID from bam file
       Split1 <- strsplit(BamFile, "_")[[1]]
       ID     <- strsplit(Split1[length(Split1) - 1], "\\.")[[1]][1]
+      cat("Analyzing", ID, "\n")
       
       # Create commands to run MELT
       MELTCmds <- c("module load bowtie2",
@@ -428,16 +433,11 @@ if(blnRunGroupAnalysis){
       
       # Create script name and run script
       ScriptName <- paste("Genotype_MELTScript", ID, sep = "_")
-      RunMessage <- CreateAndCallSlurmScript(file = ScriptName, 
+      RunID <- CreateAndCallSlurmScript(file = ScriptName, 
                                RunTime = RunTime_MELT,
                                Mem = Mem_MELT,
-                               SlurmCommandLines = MELTCmds)
-      
-      if (length(grep("Submitted batch job ", RunMessage)) == 1){
-        RunIDs <- c(RunIDs, strsplit(RunMessage, "Submitted batch job ")[[1]][2])
-      }  else {
-        stop("Job not properly launched")
-      }
+                               SlurmCommandLines = MELTCmds)$RunID
+      RunIDs_Genotype <- c(RunIDs_Genotype, RunID)
       
     } # End of loop over bam files to genotype
     
@@ -445,19 +445,23 @@ if(blnRunGroupAnalysis){
     cat("\n\n")
     Sys.sleep(10)
     QueueGenotypeFinished <- CheckQueue(MaxNrTrials = 30, SleepTime = 30,
-                                        JobIDs = RunIDs)
+                                        JobIDs = RunIDs_Genotype)
+    blnFinished <- CheckJobCompletion(RunIDs_Genotype)
+    NewJobInfo <- data.frame(JobID = RunIDs_Genotype, JobType = "MELT_Genotype", 
+                             InputFile = BamFiles, blnFinished  = blnFinished)
+    JobInfo <- rbind(JobInfo, NewJobInfo)
     
-  } # End of checking whether group analysis has finished
+  } # End of MELT Genotype
   
   #################
   # Perform MakeVCF
   #################
 
-  RunIDs     <- NULL
-  RunMessage <- NULL
+  RunID     <- NA
+  RunIDs_MakeVCF <- NULL
   if (QueueGenotypeFinished){
     
-    cat("\n*************   Create vcf file     *************\n")
+    cat("\n*************   Run MELT MakeVCF     *************\n")
     # Create commands to run MELT
     MELTCmds <- c("module load bowtie2",
                   paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar MakeVCF",
@@ -469,20 +473,22 @@ if(blnRunGroupAnalysis){
     
     # Create script name and run script
     ScriptName <- paste("Vcf_MELTScript")
-    RunMessage <- CreateAndCallSlurmScript(file = ScriptName, 
+    RunID <- CreateAndCallSlurmScript(file = ScriptName, 
                              RunTime = RunTime_MELT,
                              Mem = Mem_MELT,
-                             SlurmCommandLines = MELTCmds)
-    if (length(grep("Submitted batch job ", RunMessage)) == 1){
-      RunIDs <- c(RunIDs, strsplit(RunMessage, "Submitted batch job ")[[1]][2])
-    }  else {
-      stop("Job not properly launched")
-    }
-    cat("MakeVcf is job", RunIDs, "\n")
-  } # End of checking whether genotype analysis has finished
+                             SlurmCommandLines = MELTCmds)$RunID
+    RunIDs_MakeVCF <- c(RunIDs_MakeVCF, RunID)
+    cat("MakeVcf is job", RunIDs_MakeVCF, "\n")
+    blnFinished <- CheckJobCompletion(RunIDs_MakeVCF)
+    NewJobInfo <- data.frame(JobID = RunIDs_MakeVCF, JobType = "MELT_MakeVCF", 
+                             InputFile = NA, blnFinished  = blnFinished)
+    JobInfo <- rbind(JobInfo, NewJobInfo)
+    
+  } # End of MELT MELT_MakeVCF
   
 
-  
+  save(list = "JobInfo", file = paste(Path1000G, "L1simulated_MELT_Group_JobInfo.RData",
+                                      sep = "")) 
 }
 
 
