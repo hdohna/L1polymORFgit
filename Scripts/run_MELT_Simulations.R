@@ -9,10 +9,10 @@ library(Rsamtools)
 library(rtracklayer)
 
 # Boolean variables for different parts of the workflow
-blnRunSim  <- F
-blnRunBWA  <- F
-blnIdxBam  <- F
-blnRunMELT <- F
+blnRunSim           <- F
+blnRunBWA           <- F
+blnIdxBam           <- F
+blnRunMELT          <- F
 blnRunSimAnalysis   <- F
 blnRunGroupAnalysis <- T
 
@@ -283,7 +283,7 @@ if(blnRunGroupAnalysis){
   #################
 
   cat("\n*************    Preprocessing individual bam files     *************\n")
-  RunIDs <- NULL
+  RunIDs_Preprocess <- NULL
   for (BamFile in BamFiles){
     
     # Get ID from bam file
@@ -300,23 +300,18 @@ if(blnRunGroupAnalysis){
     
     # Create script name and run script
     ScriptName <- paste("GroupInd_Preprocess", ID, sep = "_")
-    RunMessage <- CreateAndCallSlurmScript(file = ScriptName, 
+    RunID <- CreateAndCallSlurmScript(file = ScriptName, 
                                RunTime = RunTime_MELT,
                                Mem = Mem_MELT,
-                               SlurmCommandLines = MELTCmds)
-    if (length(grep("Submitted batch job ", RunMessage)) == 1){
-      RunIDs <- c(RunIDs, strsplit(RunMessage, "Submitted batch job ")[[1]][2])
-    } else {
-      stop("Job not properly launched")
-    }
-    
+                               SlurmCommandLines = MELTCmds)$RunID
+    RunIDs_Preprocess <- c(RunIDs_Preprocess, RunID)
   }
   
   # Check whether for bam files queue is finished, once it is finished, run group analysis
   cat("\n\n")
   Sys.sleep(10)
   QueuePreprocessFinished <- CheckQueue(MaxNrTrials = 500, SleepTime = 60,
-                                        JobIDs = RunIDs)
+                                        JobIDs = RunIDs_Preprocess)
 
   #################
   # Perform IndivAnalysis (variant discovery for each individual bam file)

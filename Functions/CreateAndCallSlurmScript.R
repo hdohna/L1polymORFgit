@@ -38,7 +38,8 @@ CreateAndCallSlurmScript <- function(file,
    blnSendEmails = F,
    scriptName = 'NoName', 
    Args = "", blnIntern = TRUE,
-   blnWait = F){
+   blnWait = F,
+   blnStopIfNotSubmitted = F){
   
   # Replace name, time and memory in header lines
   SlurmHeaderLines[grep("--job-name=", SlurmHeaderLines)] <- 
@@ -61,6 +62,15 @@ CreateAndCallSlurmScript <- function(file,
   
   # Run script
   RunCmd <- paste("sbatch", file, Args)
-  system(command = RunCmd, wait = blnWait, intern = blnIntern)
+  RunMessage <- system(command = RunCmd, wait = blnWait, intern = blnIntern)
   
+  if (length(grep("Submitted batch job ", RunMessage)) == 1){
+    RunID <- strsplit(RunMessage, "Submitted batch job ")[[1]][2]
+  } else {
+    RunID <- NA
+    if(blnStopIfNotSubmitted){
+      stop("Job not properly launched")
+    }
+  }
+  list(RunMessage = RunMessage, RunID = RunID)
 }
