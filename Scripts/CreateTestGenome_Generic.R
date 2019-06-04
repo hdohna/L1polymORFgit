@@ -70,7 +70,9 @@ idxList <- list()
   GenCon2 <- file(FastaPath2, open = "a")
   
   # Index of L1 in current genome and all chromosomes with L1
-  idxL1   <- which(L1_1000G[,x] > 0)
+  idxL1   <- which(L1_1000G[,x] > 0 & 
+                     (!is.na(L1_1000G$L1StartNum)) &
+                     (!is.na(L1_1000G$L1EndNum)) )
   ChrNrs <- L1_1000G$CHROM[idxL1]
   Chroms <- paste("chr", ChrNrs, sep = "")
   UniqueChroms <- unique(Chroms)
