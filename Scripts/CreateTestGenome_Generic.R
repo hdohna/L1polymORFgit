@@ -2,7 +2,7 @@
 # genome to test LINE-1 detection
 
 # GenericID has to be replaced to run the script
-x <- GenericID
+x <- "GenericID"
 
 library(BSgenome.Hsapiens.UCSC.hg19)
 library(seqinr)
