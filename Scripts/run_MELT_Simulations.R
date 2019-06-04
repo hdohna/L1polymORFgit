@@ -9,11 +9,11 @@ library(Rsamtools)
 library(rtracklayer)
 
 # Boolean variables for different parts of the workflow
-blnRunSim           <- F
-blnRunBWA           <- F
-blnIdxBam           <- F
-blnRunMELT          <- F
-blnRunSimAnalysis   <- F
+blnRunSim           <- T
+blnRunBWA           <- T
+blnIdxBam           <- T
+blnRunMELT          <- T
+blnRunSimAnalysis   <- T
 blnRunGroupAnalysis <- T
 
 blnRunSim_Var           <- F

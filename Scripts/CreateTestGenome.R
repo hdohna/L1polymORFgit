@@ -10,7 +10,7 @@ load('/labs/dflev/hzudohna/RefSeqData/GRanges_L1_1000Genomes.RData')
 
 # Loop through the first sample columns and generate reference genomes
 # with the same insertions as the current
-Samples2Use <- SampleColumns[21:50]
+Samples2Use <- SampleColumns[1:50]
 ScriptPathGeneric <- "/scratch/users/hzudohna/CreateTestGenome_Generic.R"
 
 for (x in Samples2Use){
@@ -31,70 +31,17 @@ for (x in Samples2Use){
 #                                                                #                             
 ##################################################################
 
-# Load the previously created list
-load("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/HaploIdxList.RData")
-
-# Read in L1HS consensus
-L1HSconsensus <- read.fasta("/labs/dflev/hzudohna/RefSeqData/Homo_sapiens_L1_consensus.fas")
-L1HS_DNAString <- DNAString(paste(L1HSconsensus[[1]], collapse = ""))
-L1Length <- length(L1HS_DNAString)
+Samples2Use <- SampleColumns[1:50]
+ScriptPathGeneric <- "/scratch/users/hzudohna/CheckTestGenome_Generic.R"
 
 for (x in Samples2Use){
-  
-  cat("******   Reading simulated genome", x, "   **********\n")
-
-  # Path for genome fasta file path
-  FastaPath1 <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_",
-                      x, "_Haplo1.fa", sep = "")
-  FastaPath2 <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_",
-                      x, "_Haplo2.fa", sep = "")
-  
-  # Index of L1 in current genome and all chromosomes with L1
-  idxL1   <- which(L1_1000G[,x] > 0)
-  ChrNrs <- L1_1000G$CHROM[idxL1]
-  Chroms <- paste("chr", ChrNrs, sep = "")
-  UniqueChroms <- unique(Chroms)
-  
-  # Loop over chromosomes and generate insertions
-  for (Chr in AllChrs){
-    cat("Processing", Chr, "\n")
-    Line2Read <- which(AllChrs == Chr)
-    CurrentChrom  <- paste('BSgenome.Hsapiens.UCSC.hg19[["', Chr, '"]]', sep = "")
-    NewDNASt_txt1 <- CurrentChrom
-    NewDNASt_txt2 <- CurrentChrom
-    if(Chr %in% UniqueChroms){
-      idxChr     <- idxL1[Chr == Chroms]
-      Count      <- L1_1000G[idxChr,x]
-      bln2       <- Count == 2
-      
-      # Create indices for both homologous chromosomes
-      idx1       <- idxChr[bln2]
-      idx2       <- idxChr[bln2]
-      HaploSample <- sample(c(T, F), sum(!bln2), replace = T)
-      idx1 <- c(idx1, idxChr[which(!bln2)[HaploSample]])
-      idx2 <- c(idx2, idxChr[which(!bln2)[!HaploSample]])
-      
-      # Add indices of haplotypes to list that keeps track of them
-      idxList[[idxLevel1]][[idxLevel2]] <- list(idx1 = idx1, idx2 = idx2)
-      ListNames <- c(ListNames, Chr)
-      
-      # Create insertion patterns for both homologous chromosomes
-      if (length(idx1) > 0) NewDNASt_txt1 <- CreateInsertTxt(idx1, 
-                                                             ChromLengthsHg19[Chr])
-      if (length(idx2) > 0) NewDNASt_txt2 <- CreateInsertTxt(idx2, 
-                                                             ChromLengthsHg19[Chr])
-    }
-    NewDNASt1     <- eval(parse(text = NewDNASt_txt1))
-    NewDNASt2     <- eval(parse(text = NewDNASt_txt2))
-    NewDNASt_char1 <- as.character(NewDNASt1)
-    NewDNASt_char2 <- as.character(NewDNASt2)
-    ChromName <- paste(">", substr(Chr, 4, nchar(Chr)), sep = "")
-    writeLines(text = c(ChromName, NewDNASt_char1), con = GenCon1)
-    writeLines(text = c(ChromName, NewDNASt_char2), con = GenCon2)
-  }
-  
-  
-  
+  cat("******   Simulating genome", x, "   **********\n")
+  ScriptLines <- readLines('/home/hzudohna/L1polymORFgit/Scripts/CheckTestGenome_Generic.R')
+  ScriptLines <- gsub("GenericID", x, ScriptLines)
+  OutPath     <- gsub("Generic", x, ScriptPathGeneric)
+  writeLines(ScriptLines, con = OutPath)
+  Cmd <- paste("sbatch sb_R", OutPath)
+  system(Cmd)
 }
 
 ##################################################################

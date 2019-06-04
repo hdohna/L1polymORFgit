@@ -135,11 +135,14 @@ idxList <- list()
       idxList[[idxLevel2]] <- list(idx1 = idx1, idx2 = idx2)
       ListNames <- c(ListNames, Chr)
       
-      # Create insertion patterns for both homologous chromosomes
-      if (length(idx1) > 0) NewDNASt_txt1 <- CreateInsertTxt(idx1, 
-                                                             ChromLengthsHg19[Chr])
-      if (length(idx2) > 0) NewDNASt_txt2 <- CreateInsertTxt(idx2, 
-                                                             ChromLengthsHg19[Chr])
+      # # Create insertion patterns for both homologous chromosomes
+      # if (length(idx1) > 0) NewDNASt_txt1 <- CreateInsertTxt(idx1, 
+      #                                                        ChromLengthsHg19[Chr])
+      # if (length(idx2) > 0) NewDNASt_txt2 <- CreateInsertTxt(idx2, 
+      #                                                        ChromLengthsHg19[Chr])
+      # Create insertion patterns for both homologous chromosome
+      if (length(idx1) > 0) NewDNASt_txt1 <- CreateInsertTxtVar(idx1)
+      if (length(idx2) > 0) NewDNASt_txt2 <- CreateInsertTxtVar(idx2)
     }
     NewDNASt1     <- eval(parse(text = NewDNASt_txt1))
     NewDNASt2     <- eval(parse(text = NewDNASt_txt2))
@@ -154,7 +157,7 @@ idxList <- list()
   names(idxList) <- ListNames
   
 # Save idxList
-OutPath <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/HaploIdxList_", 
+OutPath <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/HaploIdxListVar_", 
                  x, ".RData", sep = "")
 save(list = "idxList", file = OutPath)
 
