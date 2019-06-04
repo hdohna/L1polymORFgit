@@ -1,0 +1,11 @@
+chr=$1
+pos=$2
+file=$3
+mystart=$(( pos - 1000 ))
+myend=$(( pos + 1000 ))
+
+samtools view $file  "${chr}:${mystart}-${myend}"
+
+If you are interested only in split reads, try this change (following Edgar suggestion)
+
+samtools view $file  "${chr}:${mystart}-${myend}" | awk  '$0 !~ /OC:/ && $0 !~ /OE:/ {printf sample"/%s ", $1} '

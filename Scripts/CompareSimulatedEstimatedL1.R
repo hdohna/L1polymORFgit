@@ -47,8 +47,8 @@ for (VcfFile in VcfFiles[file.exists(VcfFiles)]){
   # Get estimated L1 length and genotype from vcf file
   L1widthVcf <- sapply(VcfFile$INFO, GetFromVcfINFO_SVLength)
   L1GenoVcf  <- sapply(VcfFile[,ncol(VcfFile)], GetFromVcfGeno_GenoNum)
-  L1StartEndVcf  <- t(sapply(VcfFile[,ncol(VcfFile)], GetFromVcfINFO_MELT_L1StartEnd))
-  
+  L1StartEndVcf  <- t(sapply(VcfFile$INFO, GetFromVcfINFO_MELT_L1StartEnd))
+
   # Get sample ID from vcf column and get index of L1 insertions that occur in
   # that sample
   SampleID <- strsplit(colnames(VcfFile)[ncol(VcfFile)], "_")[[1]][2]

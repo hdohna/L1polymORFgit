@@ -12,7 +12,9 @@ source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 load("D:/L1polymORF/Data/L1_TajimaData.RData")
 
 # List of data objects with Tajima's D
-TDList_AllPops <- 
+TDList_AllPops <- ProcessTajimaDData(L1GRanges = L1GRanges,
+                                     StepSize = StepSize,
+                                     FlankSize = FlankSize)
 
 
 # Add a column with NA for intoerval
