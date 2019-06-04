@@ -1,0 +1,22 @@
+#!/bin/bash
+#SBATCH --account=dflev
+# Set job time to 1 day.
+#SBATCH --time=1-00:00:00
+
+# Set a name for the job, visible in `squeue`
+#SBATCH --job-name="BedtoolsIntersect"
+
+# One node.
+#SBATCH --nodes=1
+
+# One task
+#SBATCH --ntasks=1
+
+# One CPU/core per task
+#SBATCH --cpus-per-task=1
+
+# 40GB of RAM
+#SBATCH --mem=100G
+module load bedtools
+bedtools intersect -a $1 -b $2 -wa > $3
+echo 'bedtools intersect completed' 

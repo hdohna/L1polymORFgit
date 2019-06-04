@@ -1,0 +1,19 @@
+# Set job time to 1 day.
+#SBATCH --time=1-00:00:00
+
+# Set a name for the job, visible in `squeue`
+#SBATCH --job-name="BWAalign_sampe"
+
+# One node.
+#SBATCH --nodes=1
+
+# One task
+#SBATCH --ntasks=1
+
+# One CPU/core per task
+#SBATCH --cpus-per-task=1
+
+# 100GB of RAM
+#SBATCH --mem=100G
+module load bwa
+bwa sampe $1 $2 $3 > $4
