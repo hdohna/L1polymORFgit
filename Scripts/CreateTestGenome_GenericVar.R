@@ -45,7 +45,43 @@ CreateInsertTxt <- function(idx, ChrLength){
                         ")")
 }
 
-# Generate reference genomes with the same insertions as x
+
+# Create a list of L1HS with specified deviations from consensus
+cat("Creating variable L1HS ...")
+L1HSList <- lapply(L1_1000G$PropDiff, function(x){
+    NrDiff  <- round(x * L1Length);
+    DiffPos <- sample.int(L1Length, NrDiff);
+    NewNuc  <- sample(c("A", "C", "G", "T"), size = NrDiff,
+                      replace = T);
+    NewL1Hs <- L1HS_DNAString;
+    NewL1Hs[DiffPos] <- DNAString(paste(NewNuc, collapse = ""));
+    STCompare     <- compareStrings(NewL1Hs[DiffPos], L1HS_DNAString[DiffPos]);
+    STCompareVect <- s2c(STCompare);
+    idxSame       <- which(STCompareVect != "?")
+    for (Nuc in c("A", "C", "G", "T")){
+      blnRepl <- STCompareVect == Nuc
+      ReplaceNucs <- sample(setdiff(c("A", "C", "G", "T"), Nuc), sum(blnRepl),
+                            replace = T)
+      NewL1Hs[DiffPos][blnRepl] <- DNAString(paste(ReplaceNucs, collapse = ""))
+
+    }
+  NewL1Hs
+})
+cat("done!\n")
+
+# Define function to create text for DNAString with insertions
+# with deviations from consensus
+CreateInsertTxtVar <- function(idx){
+  Pos        <- L1_1000G$POS[idx]
+  GenRanges  <- paste(c(1, Pos[-length(Pos)] + 1), Pos, sep = ":")
+  L1Parts    <- paste(paste("L1HSList[[", idx), "]]")
+  ChromParts <- paste(paste(CurrentChrom, "[", GenRanges), "]")
+  NewDNASt_txt <- paste("c(", paste(paste(ChromParts, L1Parts, sep = ", "), collapse = ", "),
+                        ")")
+}
+
+# Loop through the first sample columns and generate reference genomes
+# with the same insertions as the current
 idxList <- list()
 
   cat("******   Simulating genome", x, "   **********\n")
@@ -120,7 +156,5 @@ idxList <- list()
 # Save idxList
 OutPath <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/HaploIdxList_", 
                  x, ".RData", sep = "")
-cat("Saving index list to", OutPath, " ... ")
 save(list = "idxList", file = OutPath)
-cat("done!")
 

@@ -1,78 +1,5 @@
 # The following script creates a reference genome to test LINE-1 detection
-# library(BSgenome.Hsapiens.UCSC.hg19)
-# library(seqinr)
-# #load('D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData')
 load('/labs/dflev/hzudohna/RefSeqData/GRanges_L1_1000Genomes.RData')
-# load('/labs/dflev/hzudohna/RefSeqData/ChromLengthsHg19.Rdata')
-# 
-# # Read in L1HS consensus
-# #L1HSconsensus <- read.fasta("D:/L1polymORF/Data/Homo_sapiens_L1_consensus.fas")
-# L1HSconsensus <- read.fasta("/labs/dflev/hzudohna/RefSeqData/Homo_sapiens_L1_consensus.fas")
-# L1HS_DNAString <- DNAString(paste(L1HSconsensus[[1]], collapse = ""))
-# L1Length <- length(L1HS_DNAString)
-# 
-# # Add numeric columns for L1 start and end
-# L1_1000G$L1StartNum <- as.numeric(as.character(L1_1000G$L1Start))
-# L1_1000G$L1EndNum   <- as.numeric(as.character(L1_1000G$L1End))
-# 
-# # Create a column for proportion different from consensus
-# L1_1000G$PropDiff   <- runif(nrow(L1_1000G), max = 0.2)
-# 
-# # Get all chromosome number
-# AllChrs <- paste("chr", c(1:22, "X", "Y"), sep = "")
-# 
-# 
-# # Define function to create text for DNAString with insertions
-# CreateInsertTxt <- function(idx, ChrLength){
-#   Pos        <- L1_1000G$POS[idx]
-#   L1Starts   <- L1_1000G$L1StartNum[idx]
-#   L1Ends     <- L1_1000G$L1EndNum[idx]
-#   PosOrder   <- order(Pos)
-#   Pos        <- Pos[PosOrder]
-#   L1Starts   <- L1Starts[PosOrder]
-#   L1Ends     <- L1Ends[PosOrder]
-#   GenRanges  <- paste(c(1, Pos + 1), c(Pos, ChrLength), sep = ":")
-#   L1Ranges   <- paste(L1Starts, L1Ends, sep = ":")
-#   L1Parts    <- paste(paste("L1HS_DNAString[", L1Ranges), "]")
-#   ChromParts <- paste(paste(CurrentChrom, "[", GenRanges), "]")
-#   NewDNASt_txt <- paste("c(", paste(paste(ChromParts, L1Parts, sep = ", "), 
-#                                     collapse = ", "),
-#                         ")")
-# }
-# 
-# # Create a list of L1HS with specified deviations from consensus
-# cat("Creating variable L1HS ...")
-# L1HSList <- lapply(L1_1000G$PropDiff, function(x){
-#     NrDiff  <- round(x * L1Length);
-#     DiffPos <- sample.int(L1Length, NrDiff);
-#     NewNuc  <- sample(c("A", "C", "G", "T"), size = NrDiff,
-#                       replace = T);
-#     NewL1Hs <- L1HS_DNAString;
-#     NewL1Hs[DiffPos] <- DNAString(paste(NewNuc, collapse = ""));
-#     STCompare     <- compareStrings(NewL1Hs[DiffPos], L1HS_DNAString[DiffPos]);
-#     STCompareVect <- s2c(STCompare);
-#     idxSame       <- which(STCompareVect != "?")
-#     for (Nuc in c("A", "C", "G", "T")){
-#       blnRepl <- STCompareVect == Nuc
-#       ReplaceNucs <- sample(setdiff(c("A", "C", "G", "T"), Nuc), sum(blnRepl),
-#                             replace = T)
-#       NewL1Hs[DiffPos][blnRepl] <- DNAString(paste(ReplaceNucs, collapse = ""))
-#       
-#     }
-#   NewL1Hs
-# })
-# cat("done!\n")
-# 
-# # Define function to create text for DNAString with insertions
-# # with deviations from consensus
-# CreateInsertTxtVar <- function(idx){
-#   Pos        <- L1_1000G$POS[idx]
-#   GenRanges  <- paste(c(1, Pos[-length(Pos)] + 1), Pos, sep = ":")
-#   L1Parts    <- paste(paste("L1HSList[[", idx), "]]")
-#   ChromParts <- paste(paste(CurrentChrom, "[", GenRanges), "]")
-#   NewDNASt_txt <- paste("c(", paste(paste(ChromParts, L1Parts, sep = ", "), collapse = ", "),
-#                         ")")
-# }
 
 ##################################################################
 #                                                                #                             
@@ -83,12 +10,10 @@ load('/labs/dflev/hzudohna/RefSeqData/GRanges_L1_1000Genomes.RData')
 
 # Loop through the first sample columns and generate reference genomes
 # with the same insertions as the current
-idxList <- list()
-Samples2Use <- SampleColumns[1:20]
+Samples2Use <- SampleColumns[21:50]
 ScriptPathGeneric <- "/scratch/users/hzudohna/CreateTestGenome_Generic.R"
 
 for (x in Samples2Use){
-  
   cat("******   Simulating genome", x, "   **********\n")
   ScriptLines <- readLines('/home/hzudohna/L1polymORFgit/Scripts/CreateTestGenome_Generic.R')
   ScriptLines <- gsub("GenericID", x, ScriptLines)
@@ -96,12 +21,8 @@ for (x in Samples2Use){
   writeLines(ScriptLines, con = OutPath)
   Cmd <- paste("sbatch sb_R", OutPath)
   system(Cmd)
-
 }
 
-# Save idxList
-save(list = "idxList", 
-     file = "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/HaploIdxList.RData")
 
 ##################################################################
 #                                                                #                             
