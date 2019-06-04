@@ -52,7 +52,6 @@ idxList <- list()
 
   cat("******   Simulating genome", x, "   **********\n")
   ListNames <- NULL
-  idxLevel1 <- which(Samples2Use == x)
 
   # Path for genome fasta file path
   FastaPath1 <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_",
@@ -77,9 +76,10 @@ idxList <- list()
   UniqueChroms <- unique(Chroms)
 
   # Loop over chromosomes and generate insertions
+  idxLevel2 <- 0
   for (Chr in AllChrs){
     cat("Processing", Chr, "\n")
-    idxLevel2 <- which(AllChrs == Chr)
+    idxLevel2 <- idxLevel2 + 1
     CurrentChrom  <- paste('BSgenome.Hsapiens.UCSC.hg19[["', Chr, '"]]', sep = "")
     NewDNASt_txt1 <- CurrentChrom
     NewDNASt_txt2 <- CurrentChrom
@@ -96,7 +96,7 @@ idxList <- list()
       idx2 <- c(idx2, idxChr[which(!bln2)[!HaploSample]])
       
       # Add indices of haplotypes to list that keeps track of them
-      idxList[[idxLevel1]][[idxLevel2]] <- list(idx1 = idx1, idx2 = idx2)
+      idxList[[idxLevel2]] <- list(idx1 = idx1, idx2 = idx2)
       ListNames <- c(ListNames, Chr)
       
       # Create insertion patterns for both homologous chromosomes
