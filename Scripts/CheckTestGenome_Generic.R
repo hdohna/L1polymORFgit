@@ -53,16 +53,18 @@ load(ListPath)
 
 cat("******   Checking genome", x, "   **********\n")
 
-# Index of L1 in current genome x all chromosomes with L1
+# Index of L1 in current genome x with L1 start and end values
 idxL1   <- which(L1_1000G[,x] > 0 & 
                    (!is.na(L1_1000G$L1StartNum)) &
                    (!is.na(L1_1000G$L1EndNum)) )
 ChrNrs <- L1_1000G$CHROM[idxL1]
 Chroms <- paste("chr", ChrNrs, sep = "")
 UniqueChroms <- unique(Chroms)
-length(idxList)
+idxMismatchList <- list()
 for (i in 1:length(idxList)){
   CurrentChrom <- names(idxList)[i]
+  
+  # Analyze haplotype 1
   cat("\n**********   Analyzing", CurrentChrom, "     ***********\n")
   ChrIdx <- which(AllChrs == CurrentChrom)
   Chr1   <- scan(FastaPath1, skip = 2*ChrIdx - 1, what = character(), nlines = 1)
@@ -70,17 +72,32 @@ for (i in 1:length(idxList)){
   cat("Checked", length(blnCheck1), "L1 in haplotype 1\n")
   if (all(blnCheck1)){
     cat("All L1 have correct sequences!\n")
+    idxMismatchList[[i]][[1]] <- NULL
   } else {
     cat("Warning:", sum(!blnCheck1), "L1 sequences not correct!\n")
+    idxMismatchList[[i]][[1]] <- idxList[[i]]$idx1[!blnCheck1]
   }
+  
+  # Analyze haplotype 2
   Chr2 <- scan(FastaPath2, skip = 2*ChrIdx - 1, what = character(), nlines = 1)
   blnCheck2 <- CheckL1(idxList[[i]]$idx2, Chr2)
   cat("Checked", length(blnCheck2), "L1 in haplotype 2\n")
   if (all(blnCheck2)){
     cat("All L1 have correct sequences!\n")
+    idxMismatchList[[i]][[2]] <- NULL
   } else {
     cat("Warning:", sum(!blnCheck2), "L1 sequences not correct!\n")
+    idxMismatchList[[i]][[2]] <- idxList[[i]]$idx2[!blnCheck2]
   }
+  names(idxMismatchList[[i]]) <- c("idx1", "idx2")
 }
+names(idxMismatchList) <- names(idxList)
+rm(list = c("Chr1", "Chr2"))
+
+# Save idxList
+OutPath <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/L1MismatchInfo_", 
+                 x, ".RData", sep = "")
+cat("Saving imismatch to", OutPath, " ... ")
+save(list = "idxList", file = OutPath)
 cat("done!")
 
