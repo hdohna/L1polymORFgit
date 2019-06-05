@@ -62,6 +62,8 @@ ChrNrs <- L1_1000G$CHROM[idxL1]
 Chroms <- paste("chr", ChrNrs, sep = "")
 UniqueChroms <- unique(Chroms)
 idxMismatchList <- list()
+TotalL1Match    <- 0
+TotalL1MisMatch <- 0
 for (i in 1:length(idxList)){
   CurrentChrom <- names(idxList)[i]
   idxMismatchList[[i]] <- list()
@@ -77,6 +79,8 @@ for (i in 1:length(idxList)){
     cat("L1 checked in haplotype 1:", length(blnCheck1), "\n")
     cat("Correct L1 sequences:", sum(blnCheck1), "\n")
     cat("Incorrect L1 sequences:", sum(!blnCheck1), "\n")
+    TotalL1Match    <- TotalL1Match + sum(blnCheck1)
+    TotalL1MisMatch <- TotalL1MisMatch + sum(!blnCheck1)
     if(sum(!blnCheck1) > 0){
       idxMismatchList[[i]][[1]] <- idxList[[i]]$idx1[!blnCheck1]
       names(idxMismatchList[[i]][[1]]) <- "idx1"
@@ -93,6 +97,8 @@ for (i in 1:length(idxList)){
     cat("L1 checked in haplotype 2:", length(blnCheck2), "\n")
     cat("Correct L1 sequences:", sum(blnCheck2), "\n")
     cat("Incorrect L1 sequences:", sum(!blnCheck2), "\n")
+    TotalL1Match    <- TotalL1Match + sum(blnCheck2)
+    TotalL1MisMatch <- TotalL1MisMatch + sum(!blnCheck2)
     if(sum(!blnCheck2) > 0){
       idxMismatchList[[i]][[2]] <- idxList[[i]]$idx2[!blnCheck2]
       names(idxMismatchList[[i]][[2]]) <- "idx2"
@@ -101,13 +107,21 @@ for (i in 1:length(idxList)){
     cat("No L1 in haplotype 2\n")
   }
 }
-names(idxMismatchList) <- names(idxList)
-rm(list = c("Chr1", "Chr2"))
+# names(idxMismatchList) <- names(idxList)
+# rm(list = c("Chr1", "Chr2"))
+cat("\n**************************************************************\n")
+cat("*                                                            *\n")
+cat("*   Total match:", TotalL1Match, "                           *\n")
+cat("*   Total mismatch:", TotalL1MisMatch, "                       *\n")
+cat("*                                                            *\n")
+cat("**************************************************************\n")
+
+
 
 # Save idxList
-OutPath <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/L1MismatchInfo_", 
-                 x, ".RData", sep = "")
-cat("Saving imismatch to", OutPath, " ... ")
-save(list = "idxList", file = OutPath)
-cat("done!")
+# OutPath <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/L1MismatchInfo_", 
+#                  x, ".RData", sep = "")
+# cat("Saving imismatch to", OutPath, " ... ")
+# save(list = "idxList", file = OutPath)
+# cat("done!")
 
