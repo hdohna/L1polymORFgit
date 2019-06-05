@@ -26,6 +26,8 @@ AllChrs <- paste("chr", c(1:22, "X", "Y"), sep = "")
 
 # Function to Check whether L1 along the chromosome
 CheckL1 <- function(idx, ChrSeq){
+  L1PosOrder <- order(L1_1000G$POS[idx])
+  idx <- idx[L1PosOrder]
   L1Start   <- L1_1000G$L1StartNum[idx]
   L1End     <- L1_1000G$L1EndNum[idx]
   L1Widths  <- c(0, L1End - L1Start + 1)
@@ -38,7 +40,6 @@ CheckL1 <- function(idx, ChrSeq){
     
   })
 }
-
 
 # Path for genome fasta file path
 FastaPath1 <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_",
@@ -63,33 +64,42 @@ UniqueChroms <- unique(Chroms)
 idxMismatchList <- list()
 for (i in 1:length(idxList)){
   CurrentChrom <- names(idxList)[i]
-  
+  idxMismatchList[[i]] <- list()
+  idxMismatchList[[i]][[1]] <- NULL
+  idxMismatchList[[i]][[2]] <- NULL
   # Analyze haplotype 1
   cat("\n**********   Analyzing", CurrentChrom, "     ***********\n")
   ChrIdx <- which(AllChrs == CurrentChrom)
-  Chr1   <- scan(FastaPath1, skip = 2*ChrIdx - 1, what = character(), nlines = 1)
-  blnCheck1 <- CheckL1(idxList[[i]]$idx1, Chr1)
-  cat("Checked", length(blnCheck1), "L1 in haplotype 1\n")
-  if (all(blnCheck1)){
-    cat("All L1 have correct sequences!\n")
-    idxMismatchList[[i]][[1]] <- NULL
+  if (length(idxList[[i]]$idx1) > 0) {
+    Chr1   <- scan(FastaPath1, skip = 2*ChrIdx - 1, what = character(), nlines = 1)
+    cat("Read haplotype 1 of length", nchar(Chr1), "\n")
+    blnCheck1 <- CheckL1(idxList[[i]]$idx1, Chr1)
+    cat("L1 checked in haplotype 1:", length(blnCheck1), "\n")
+    cat("Correct L1 sequences:", sum(blnCheck1), "\n")
+    cat("Incorrect L1 sequences:", sum(!blnCheck1), "\n")
+    if(sum(!blnCheck1) > 0){
+      idxMismatchList[[i]][[1]] <- idxList[[i]]$idx1[!blnCheck1]
+      names(idxMismatchList[[i]][[1]]) <- "idx1"
+    }
   } else {
-    cat("Warning:", sum(!blnCheck1), "L1 sequences not correct!\n")
-    idxMismatchList[[i]][[1]] <- idxList[[i]]$idx1[!blnCheck1]
+    cat("No L1 in haplotype 1\n")
   }
-  
+
   # Analyze haplotype 2
-  Chr2 <- scan(FastaPath2, skip = 2*ChrIdx - 1, what = character(), nlines = 1)
-  blnCheck2 <- CheckL1(idxList[[i]]$idx2, Chr2)
-  cat("Checked", length(blnCheck2), "L1 in haplotype 2\n")
-  if (all(blnCheck2)){
-    cat("All L1 have correct sequences!\n")
-    idxMismatchList[[i]][[2]] <- NULL
+  if (length(idxList[[i]]$idx2) > 0) {
+    Chr2 <- scan(FastaPath2, skip = 2*ChrIdx - 1, what = character(), nlines = 1)
+    cat("Read haplotype 2 of length", nchar(Chr2), "\n")
+    blnCheck2 <- CheckL1(idxList[[i]]$idx2, Chr2)
+    cat("L1 checked in haplotype 2:", length(blnCheck2), "\n")
+    cat("Correct L1 sequences:", sum(blnCheck2), "\n")
+    cat("Incorrect L1 sequences:", sum(!blnCheck2), "\n")
+    if(sum(!blnCheck2) > 0){
+      idxMismatchList[[i]][[2]] <- idxList[[i]]$idx2[!blnCheck2]
+      names(idxMismatchList[[i]][[2]]) <- "idx2"
+    }
   } else {
-    cat("Warning:", sum(!blnCheck2), "L1 sequences not correct!\n")
-    idxMismatchList[[i]][[2]] <- idxList[[i]]$idx2[!blnCheck2]
+    cat("No L1 in haplotype 2\n")
   }
-  names(idxMismatchList[[i]]) <- c("idx1", "idx2")
 }
 names(idxMismatchList) <- names(idxList)
 rm(list = c("Chr1", "Chr2"))

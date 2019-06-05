@@ -35,7 +35,7 @@ Samples2Use <- SampleColumns[1:50]
 ScriptPathGeneric <- "/scratch/users/hzudohna/CheckTestGenome_Generic.R"
 
 for (x in Samples2Use){
-  cat("******   Simulating genome", x, "   **********\n")
+  cat("******   Checking genome", x, "   **********\n")
   ScriptLines <- readLines('/home/hzudohna/L1polymORFgit/Scripts/CheckTestGenome_Generic.R')
   ScriptLines <- gsub("GenericID", x, ScriptLines)
   OutPath     <- gsub("Generic", x, ScriptPathGeneric)
