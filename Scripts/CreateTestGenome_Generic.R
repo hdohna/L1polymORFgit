@@ -49,9 +49,9 @@ cat("******   Simulating genome", x, "   **********\n")
 ListNames <- NULL
 
 # Path for genome fasta file path
-FastaPath1 <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_",
+FastaPath1 <- paste("/scratch/users/hzudohna/hg19_",
                      x, "_Haplo1.fa", sep = "")
-FastaPath2 <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_",
+FastaPath2 <- paste("/scratch/users/hzudohna/hg19_",
                       x, "_Haplo2.fa", sep = "")
 if (file.exists(FastaPath1)){
     file.remove(FastaPath1)

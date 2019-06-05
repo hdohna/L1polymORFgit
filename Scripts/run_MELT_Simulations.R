@@ -14,7 +14,7 @@ blnRunBWA           <- T
 blnIdxBam           <- T
 blnRunMELT          <- T
 blnRunSimAnalysis   <- T
-blnRunGroupAnalysis <- T
+blnRunGroupAnalysis <- F
 
 blnRunSim_Var           <- F
 blnRunBWA_Var           <- F
@@ -52,9 +52,10 @@ SimGenome <- SimGenomes[1]
 ##################################################################
 
 if (blnRunSimAnalysis){
-  cat("***********  Aligning simulated genomes    ******* \n")
+  cat("***********  Analyzing simulated genomes    ******* \n")
   for (SimGenome in SimGenomes){
     
+    cat("Analyzing simulated genomes", SimGenome, "\n")
     # Get ID
     Split1 <- strsplit(SimGenome, "_")[[1]]
     ID     <- strsplit(Split1[length(Split1) - 1], "\\.")[[1]][1]
