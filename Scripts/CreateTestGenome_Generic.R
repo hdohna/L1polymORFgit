@@ -100,16 +100,18 @@ for (Chr in AllChrs){
       ListNames <- c(ListNames, Chr)
       
       # Create insertion patterns for both homologous chromosomes
-      if (length(idx1) > 0) NewDNASt_txt1 <- CreateInsertTxt(idx1, 
-                                                        ChromLengthsHg19[Chr])
-      if (length(idx2) > 0) NewDNASt_txt2 <- CreateInsertTxt(idx2, 
-                                                        ChromLengthsHg19[Chr])
-    }
-    NewDNASt1     <- eval(parse(text = NewDNASt_txt1))
-    NewDNASt2     <- eval(parse(text = NewDNASt_txt2))
-    NewDNASt_char1 <- as.character(NewDNASt1)
-    NewDNASt_char2 <- as.character(NewDNASt2)
-    ChromName <- paste(">", substr(Chr, 4, nchar(Chr)), sep = "")
+      if (length(idx1) > 0) {
+        NewDNASt_txt1 <- CreateInsertTxt(idx1, ChromLengthsHg19[Chr])
+      }
+      if (length(idx2) > 0) {
+        NewDNASt_txt2 <- CreateInsertTxt(idx2, ChromLengthsHg19[Chr])
+      }
+  }
+  NewDNASt1     <- eval(parse(text = NewDNASt_txt1))
+  NewDNASt2     <- eval(parse(text = NewDNASt_txt2))
+  NewDNASt_char1 <- as.character(NewDNASt1)
+  NewDNASt_char2 <- as.character(NewDNASt2)
+  ChromName <- paste(">", substr(Chr, 4, nchar(Chr)), sep = "")
     writeLines(text = c(ChromName, NewDNASt_char1), con = GenCon1)
     writeLines(text = c(ChromName, NewDNASt_char2), con = GenCon2)
 }
