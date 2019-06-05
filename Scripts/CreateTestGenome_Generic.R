@@ -45,48 +45,48 @@ CreateInsertTxt <- function(idx, ChrLength){
                         ")")
 }
 
+cat("******   Simulating genome", x, "   **********\n")
+ListNames <- NULL
+
+# Path for genome fasta file path
+FastaPath1 <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_",
+                     x, "_Haplo1.fa", sep = "")
+FastaPath2 <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_",
+                      x, "_Haplo2.fa", sep = "")
+if (file.exists(FastaPath1)){
+    file.remove(FastaPath1)
+}
+if (file.exists(FastaPath2)){
+    file.remove(FastaPath2)
+}
+  
+# Open connections for fasta file to write chromosomes
+GenCon1 <- file(FastaPath1, open = "a")
+GenCon2 <- file(FastaPath2, open = "a")
+  
+# Index of L1 in current genome and all chromosomes with L1
+idxL1   <- which(L1_1000G[,x] > 0 & 
+                     (!is.na(L1_1000G$L1StartNum)) &
+                     (!is.na(L1_1000G$L1EndNum)) )
+ChrNrs <- L1_1000G$CHROM[idxL1]
+Chroms <- paste("chr", ChrNrs, sep = "")
+UniqueChroms <- unique(Chroms)
+
 # Generate reference genomes with the same insertions as x
 idxList <- list()
 
-  cat("******   Simulating genome", x, "   **********\n")
-  ListNames <- NULL
-
-  # Path for genome fasta file path
-  FastaPath1 <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_",
-                     x, "_Haplo1.fa", sep = "")
-  FastaPath2 <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/hg19_",
-                      x, "_Haplo2.fa", sep = "")
-  if (file.exists(FastaPath1)){
-    file.remove(FastaPath1)
-  }
-  if (file.exists(FastaPath2)){
-    file.remove(FastaPath2)
-  }
-  
-  # Open connections for fasta file to write chromosomes
-  GenCon1 <- file(FastaPath1, open = "a")
-  GenCon2 <- file(FastaPath2, open = "a")
-  
-  # Index of L1 in current genome and all chromosomes with L1
-  idxL1   <- which(L1_1000G[,x] > 0 & 
-                     (!is.na(L1_1000G$L1StartNum)) &
-                     (!is.na(L1_1000G$L1EndNum)) )
-  ChrNrs <- L1_1000G$CHROM[idxL1]
-  Chroms <- paste("chr", ChrNrs, sep = "")
-  UniqueChroms <- unique(Chroms)
-
-  # Loop over chromosomes and generate insertions
-  idxLevel2 <- 0
-  for (Chr in AllChrs){
-    cat("Processing", Chr, "\n")
-    idxLevel2 <- idxLevel2 + 1
-    CurrentChrom  <- paste('BSgenome.Hsapiens.UCSC.hg19[["', Chr, '"]]', sep = "")
-    NewDNASt_txt1 <- CurrentChrom
-    NewDNASt_txt2 <- CurrentChrom
-    if(Chr %in% UniqueChroms){
-      idxChr     <- idxL1[Chr == Chroms]
-      Count      <- L1_1000G[idxChr,x]
-      bln2       <- Count == 2
+# Loop over chromosomes and generate insertions
+idxLevel2 <- 0
+for (Chr in AllChrs){
+  cat("Processing", Chr, "\n")
+  CurrentChrom  <- paste('BSgenome.Hsapiens.UCSC.hg19[["', Chr, '"]]', sep = "")
+  NewDNASt_txt1 <- CurrentChrom
+  NewDNASt_txt2 <- CurrentChrom
+  if(Chr %in% UniqueChroms){
+      idxLevel2     <- idxLevel2 + 1
+      idxChr <- idxL1[Chr == Chroms]
+      Count  <- L1_1000G[idxChr, x]
+      bln2   <- Count == 2
       
       # Create indices for both homologous chromosomes
       idx1       <- idxChr[bln2]
@@ -101,9 +101,9 @@ idxList <- list()
       
       # Create insertion patterns for both homologous chromosomes
       if (length(idx1) > 0) NewDNASt_txt1 <- CreateInsertTxt(idx1, 
-                                                             ChromLengthsHg19[Chr])
+                                                        ChromLengthsHg19[Chr])
       if (length(idx2) > 0) NewDNASt_txt2 <- CreateInsertTxt(idx2, 
-                                                             ChromLengthsHg19[Chr])
+                                                        ChromLengthsHg19[Chr])
     }
     NewDNASt1     <- eval(parse(text = NewDNASt_txt1))
     NewDNASt2     <- eval(parse(text = NewDNASt_txt2))
@@ -112,10 +112,10 @@ idxList <- list()
     ChromName <- paste(">", substr(Chr, 4, nchar(Chr)), sep = "")
     writeLines(text = c(ChromName, NewDNASt_char1), con = GenCon1)
     writeLines(text = c(ChromName, NewDNASt_char2), con = GenCon2)
-  }
-  close(GenCon1)  
-  close(GenCon2)  
-  names(idxList) <- ListNames
+}
+close(GenCon1)  
+close(GenCon2)  
+names(idxList) <- ListNames
   
 # Save idxList
 OutPath <- paste("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/HaploIdxList_", 
