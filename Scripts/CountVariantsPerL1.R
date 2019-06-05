@@ -77,6 +77,7 @@ L1Var_Right$chromosome <- paste("chr", L1Var_Right$X.CHROM, sep = "")
 L1GR <- makeGRangesFromDataFrame(L1Table, seqnames.field = "genoName",
                                       start.field = "genoStart",
                                       end.field = "genoEnd")
+L1Width <- width(L1GR)
 blnFull <- width(L1GR) >= 6000
 blnPlus <- as.vector(strand(L1GR) == "+")
 blnPlusFull <- blnPlus[blnFull]
@@ -219,6 +220,7 @@ PutDataTogether <- function(GR, L1Region, TriNucMatch = TriNucMatch,
                VarCount_Flank = L1VarCount_Flank[idxGR],
                L1Region = L1Region,
                blnFull = blnFull[idxGR],
+               L1Width = L1Width[idxGR],
                PropMismatch = PropMismatch[idxGR])
    
   # Create vector of trinucleotide IDs

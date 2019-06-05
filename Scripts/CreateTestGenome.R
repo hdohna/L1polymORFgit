@@ -70,9 +70,11 @@ if (QueueCreateGenomesFinished){
 cat("**********   Checking whether checking of genomes has finished     *********\n")
 QueueCheckGenomesFinished <- CheckQueue(MaxNrTrials = 100, SleepTime = 30,
                                          JobIDs = RunIDs_CheckGenomes)
+
 if (QueueCheckGenomesFinished){
   JobDirectory <- getwd()
   SlurmFiles <- paste(JobDirectory, "/slurm-", RunIDs_CheckGenomes, ".out", sep = "")
+  SlurmFiles <- SlurmFiles[file.exists(SlurmFiles)]
   L1Status <- sapply(SlurmFiles, function(x){
     FileLines <- readLines(x)
     c(grep("Total match:", FileLines, value = T),
