@@ -41,7 +41,7 @@ load('/labs/dflev/hzudohna/1000Genomes/GRanges_L1_1000Genomes.RData')
 load(paste(RefPath, 'L1RefRanges_hg19.Rdata', sep = ""))
 
 # Get all files with simulated genomes
-SimGenomes <- list.files(Path1000G, pattern = "_Haplo1.fa", full.names = T)
+SimGenomes <- list.files(PathScratch, pattern = "_Haplo1.fa", full.names = T)
 SimGenome <- SimGenomes[1]
 
 ##################################################################
@@ -50,6 +50,8 @@ SimGenome <- SimGenomes[1]
 #             run single MELT on them                            #
 #                                                                #                             
 ##################################################################
+
+RunIDs_SimMELT <- NULL
 
 if (blnRunSimAnalysis){
   cat("***********  Analyzing simulated genomes    ******* \n")
@@ -61,13 +63,14 @@ if (blnRunSimAnalysis){
     ID     <- strsplit(Split1[length(Split1) - 1], "\\.")[[1]][1]
     
     # Create folder for MELT
-    NewDir <- paste(Path1000G, Split1[4], sep = "")
-    
+    NewDir <- paste(Path1000G, ID, sep = "")
+    NewDir
     # Generate output file names for simulation 
     SimGenome2  <- gsub("1.fa", "2.fa", SimGenome)
     
     # Generate a temporary simulation path
-    SimGenome_tmp <- gsub(Path1000G, PathScratch, SimGenome)
+#    SimGenome_tmp <- gsub(Path1000G, PathScratch, SimGenome)
+    SimGenome_tmp <- SimGenome
     
     # Generate output file names for simulation 
     Fq1     <- gsub("_Haplo1.fa", "_1.fq", SimGenome_tmp)
@@ -119,7 +122,7 @@ if (blnRunSimAnalysis){
     # Construct command to make directory
     MkDirCmd <- NULL
     if (!dir.exists(NewDir)){
-      paste("mkdir", NewDir)
+      MkDirCmd <- paste("mkdir", NewDir)
     }
     
     # Construct MELT command
@@ -138,16 +141,21 @@ if (blnRunSimAnalysis){
     # Create a list of all commands
     CmdList <- list(wgsimCmds, c(BWACmds, SamBamCmds), SamIdxCmds, MELTCmds)
     AllCmds <- unlist(CmdList[c(blnRunSim, blnRunBWA, blnIdxBam, blnRunMELT)])
-    
+
     # Create script name and run script
     ScriptName <- paste("Sim_Bwa_MELTScript", ID, sep = "_")
-    CreateAndCallSlurmScript(file = ScriptName, 
+    RunList <- CreateAndCallSlurmScript(file = ScriptName, 
                              RunTime = RunTime,
                              Mem = Mem,
                              SlurmCommandLines = AllCmds)
-    
+    cat(RunList$RunMessage, "\n")
+    RunIDs_SimMELT <- c(RunIDs_SimMELT, RunList$RunID)
   }
   
+  cat("Saving run IDs ...")
+  save(list = "RunIDs_SimMELT", 
+       file = "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/L1simRunIDs.RData")
+  cat("done!\n")
 }
 
 ##################################################################

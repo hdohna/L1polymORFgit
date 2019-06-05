@@ -44,6 +44,7 @@ for (x in Samples2Use){
 
 # Check whether creating genomes has finished and if so, check the L1
 # sequences
+cat("**********   Checking whether creation of genomes has finished     *********\n")
 QueueCreateGenomesFinished <- CheckQueue(MaxNrTrials = 100, SleepTime = 30,
                                       JobIDs = RunIDs_CreateGenomes)
 ScriptPathGeneric <- "/scratch/users/hzudohna/CheckTestGenome_Generic.R"
@@ -66,6 +67,7 @@ if (QueueCreateGenomesFinished){
 }
 
 # Check whether checking has finished and if so, return the status
+cat("**********   Checking whether checking of genomes has finished     *********\n")
 QueueCheckGenomesFinished <- CheckQueue(MaxNrTrials = 100, SleepTime = 30,
                                          JobIDs = RunIDs_CheckGenomes)
 if (QueueCheckGenomesFinished){
@@ -85,7 +87,10 @@ OverviewTable <- data.frame(SampleID = Samples2Use,
                             GCheckID    = RunIDs_CheckGenomes,
                             L1Match = L1Status[1, ],
                             L1MisMatch = L1Status[2, ])
-write.csv("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/SimGenomesOverview.csv")
+outPath <- "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/SimGenomesOverview.csv"
+cat("Writing overview table to", outPath, ".....")
+write.csv(OverviewTable, outPath)
+cat("done!\n")
 
 ##################################################################
 #                                                                #                             
