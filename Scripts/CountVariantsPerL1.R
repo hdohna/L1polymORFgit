@@ -127,8 +127,8 @@ UTR3_GR <- makeGRangesFromDataFrame(
   
 # Get UTR5, ORF1, ORF2, and UTR3, of full-length L1
 GR_UTR5_full <- L1GR[blnFull]
-GR_UTR5_full[blnPlusFull]  <- resize(L1GR[blnFull & blnPlus], 908)
-GR_UTR5_full[!blnPlusFull] <- resize(L1GR[blnFull & (!blnPlus)], 908, fix = "end")
+GR_UTR5_full[blnPlusFull]  <- resize(L1GR[blnFull & blnPlus], startORF1)
+GR_UTR5_full[!blnPlusFull] <- resize(L1GR[blnFull & (!blnPlus)], startORF1, fix = "end")
 
 GR_ORF1_full <- L1GR[blnFull]
 GR_ORF1_full[blnPlusFull]  <- narrow(L1GR[blnFull & blnPlus], start = 909, 
@@ -137,16 +137,16 @@ GR_ORF1_full[!blnPlusFull] <- narrow(L1GR[blnFull & (!blnPlus)], start = 4126,
                                      end = -909)
 
 GR_ORF2_full <- L1GR[blnFull]
-GR_ORF2_full[blnPlusFull]  <- narrow(L1GR[blnFull & blnPlus], start = 1988, 
+GR_ORF2_full[blnPlusFull]  <- narrow(L1GR[blnFull & blnPlus], start = startORF2, 
                                      end = -236)
 GR_ORF2_full[!blnPlusFull] <- narrow(L1GR[blnFull & (!blnPlus)], start = 236, 
-                                     end = -1988)
+                                     end = -startORF2)
 
 GR_UTR3_full <- L1GR[blnFull]
 GR_UTR3_full[blnPlusFull]  <- resize(L1GR[blnFull & blnPlus], 235, fix = "end")
 GR_UTR3_full[!blnPlusFull] <- resize(L1GR[blnFull & (!blnPlus)], 235)
 
-# Create a GRanges object
+# Create a GRanges object of variants inside L1s and their flanking regions
 L1VarGR <- makeGRangesFromDataFrame(L1Variants, 
                                       start.field = "POS",
                                       end.field = "POS")
@@ -207,7 +207,7 @@ PutDataTogether <- function(GR, L1Region, TriNucMatch = TriNucMatch,
     TriFreq       <- c(TriFreq, TriFreq_local[idxUnique])
   }
   
-  # Create one row fpr each tri-nucleotide
+  # Create one row for each tri-nucleotide
   idxGRRegion_Unrep <- rep(which(width(GR) >= 3), each = length(idxUnique))
   idxGRRegion       <- rep(idxGRRegion_Unrep, TriFreq)
   idxGR_Unrep       <- rep(GR@elementMetadata@listData$idx[width(GR) >= 3],
@@ -242,8 +242,8 @@ PutDataTogether <- function(GR, L1Region, TriNucMatch = TriNucMatch,
     idx2ReplaceLocal <- unique(match(TriNuc2replace, TriNucIDs0))
     idx2ReplaceRev   <- match(TriNucIDs0[idx2ReplaceLocal], TriNuc2replace)
     TriNuc2replace   <- TriNuc2replace[-unique(idx2ReplaceRev)]
-    idx2Replace <- c(idx2Replace, idx2ReplaceLocal)
-    Counter <- Counter + 1
+    idx2Replace      <- c(idx2Replace, idx2ReplaceLocal)
+    Counter          <- Counter + 1
   }
   length(idx2Replace)
   sum(!is.na(TriMatch))
@@ -276,7 +276,7 @@ cat("... done!\n")
 
 # Perform analysis
 SNPLogReg <- bigglm(blnSNP ~  TriNames + VarCount_Flank + L1Region + blnFull +
-                      PropMismatch,
+                      L1Width + PropMismatch,
     data = SNPInfo, family = binomial(), chunksize = 3*10^4,
     maxit = 20)
 summary(SNPLogReg)
