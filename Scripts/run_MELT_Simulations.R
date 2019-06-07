@@ -9,7 +9,7 @@ library(Rsamtools)
 library(rtracklayer)
 
 # Boolean variables for different parts of the workflow
-blnRunSim           <- T
+blnRunSim           <- F
 blnRunBWA           <- T
 blnIdxBam           <- T
 blnRunMELT          <- T
@@ -24,7 +24,7 @@ blnRunSimAnalysis_Var   <- F
 blnRunGroupAnalysis_Var <- F
 
 # Specify run parameters
-RunTime      <- '24:00:00'
+RunTime      <- '76:00:00'
 Mem          <- '200G'
 RunTime_MELT <- '2:00:00'
 Mem_MELT     <- '50G'
@@ -154,7 +154,7 @@ if (blnRunSimAnalysis){
   
   cat("Saving run IDs ...")
   save(list = "RunIDs_SimMELT", 
-       file = "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/L1simRunIDs.RData")
+       file = "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/L1simRunIDs2.RData")
   cat("done!\n")
 }
 

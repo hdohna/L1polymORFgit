@@ -35,8 +35,14 @@ CheckQueue <- function(MaxNrTrials = 10,
     if(!is.null(JobIDs)){
       QueueStatus <- sapply(JobIDs, function(x) grep(x, QueueStatus, value = T))
     }
+    idxRunning    <- grep(" R ", QueueStatus)
+    idxPending    <- grep(" PD ", QueueStatus)
     QueueFinished <- length(grep("batch", QueueStatus)) == 0
-    if (!QueueFinished) cat("queue not yet finished!\n")
+    if (!QueueFinished) cat("queue not yet finished!", 
+                            length(idxRunning),
+                            "jobs are running and",
+                            length(idxPending),
+                            "jobs are pending.\n")
     Sys.sleep(SleepTime)
   }
   if (!QueueFinished){
