@@ -40,8 +40,8 @@ load(L1RefRangePath)
 load(L1GRPath)
 
 # Indicator for minimum frequency
-blnAboveMinFreq <- log(L1_1000G_reduced$Frequency) > -3
-
+blnAboveMinFreq <- L1_1000G_reduced$Frequency > 1/2504
+log(10/2504)
 # Read repeat table and subset to get only L1HS rows with fragment size below 
 # MaxFragLength
 RepeatTable      <- read.csv("D:/L1polymORF/Data/repeatsHg38_L1HS.csv")
@@ -195,6 +195,13 @@ for (i in 2:length(LoopGRList)){
 #                                        #
 ##########################################
 
+# Fst as function of insertion length and 
+LMF <- lm(L1Fst_matched$WEIR_AND_COCKERHAM_FST ~ L1_1000G$InsLength + blnFull)
+summary(LMF)
+LMF_minFreq <- lm(L1Fst_matched$WEIR_AND_COCKERHAM_FST[blnAboveMinFreq] ~ 
+                    L1_1000G$InsLength[blnAboveMinFreq] + blnFull[blnAboveMinFreq])
+summary(LMF_minFreq)
+
 # Summarize Fst per insertion length 
 InsLengthCut <- cut(L1_1000G_reduced$InsLength, breaks = seq(0, 6500, 500))
 FstPerInsL   <- aggregate(cbind(L1Fst_matched$WEIR_AND_COCKERHAM_FST,
@@ -245,15 +252,11 @@ Dist2ClosestGene <- Dist2Closest(L1_1000G_GR_hg19, GRgenes_hg19)
 blnFull <- L1_1000G_reduced$InsLength >= 6000
 
 # Correlation between distance and frequency
-LMF <- lm(L1_1000G_reduced$Frequency[blnFull & blnAboveMinFreq] ~ 
-            Dist2ClosestGene[blnFull & blnAboveMinFreq])
+LMF <- lm(L1_1000G_reduced$Frequency[blnFull] ~ Dist2ClosestGene[blnFull])
 summary(LMF)
 cor.test(L1_1000G_reduced$Frequency[blnFull], Dist2ClosestGene[blnFull], method = "kendall")
 
-# Correlation between distance and Fst
-LMF <- lm(L1Fst_matched$WEIR_AND_COCKERHAM_FST[blnFull& blnAboveMinFreq] ~ 
-            Dist2ClosestGene[blnFull & blnAboveMinFreq])
-summary(LMF)
+
 cor.test(L1Fst_matched$WEIR_AND_COCKERHAM_FST[blnFull], 
          Dist2ClosestGene[blnFull], method = "kendall")
 plot(L1Fst_matched$WEIR_AND_COCKERHAM_FST[blnFull] ~ Dist2ClosestGene[blnFull])
@@ -303,3 +306,4 @@ LMF <- lm(L1Fst_matched$WEIR_AND_COCKERHAM_FST[idx1000GMatchCat] ~
 summary(LMF)
 
 plot(log(L1_1000G_reduced$Frequency), L1Fst_matched$WEIR_AND_COCKERHAM_FST)
+plot(L1_1000G_reduced$Frequency, L1Fst_matched$WEIR_AND_COCKERHAM_FST)
