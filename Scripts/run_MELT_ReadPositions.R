@@ -9,7 +9,7 @@ library(Rsamtools)
 library(rtracklayer)
 
 # Path to reference data and for 1000 genomes
-PathL1simulated <- "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT_single/"
+PathL1simulated <- "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/"
 OutSuffix       <- "LINE1.hum.readpositions"
 
 # Load necessary objects
@@ -46,10 +46,12 @@ for (SimDir in SimDirs){
 #                                                                #                             
 ##################################################################
 
+VcfFiles <- paste(SimDirs, "/LINE1.final_comp.vcf", sep = "")
+
 # Loop over directories
 SimDir <- SimDirs[2]
 L1Detect <- NULL
-for (SimDir in SimDirs[2:5]){
+for (SimDir in SimDirs[file.exists(VcfFiles)]){
 
   DirSplit <- strsplit(SimDir, "/")[[1]]
   SampleID <- DirSplit[length(DirSplit)]

@@ -20,7 +20,7 @@ load('/labs/dflev/hzudohna/1000Genomes/GRanges_L1_1000Genomes.RData')
 #############################################
 
 # Specify simulation directory
-SimDir <- "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT_single/"
+SimDir <- "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/"
 #SimDir <- "D:/L1polymORF/Data/SimulatedL1/"
 
 # Get names of vcf files
