@@ -303,7 +303,7 @@ cat("Specificity:", Specificity, "\n")
 #                                                    #
 ######################################################
 
-VcfFile <- ReadVCF("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/LINE1.final_comp.vcf")
+VcfFile <- ReadVCF("/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT_Group/LINE1.final_comp.vcf")
 VcfGR   <- makeGRangesFromDataFrame(VcfFile, seqnames.field = "X.CHROM",
                                     start.field = "POS",
                                     end.field = "POS")
@@ -320,6 +320,7 @@ SampleIDs <- sapply(10:ncol(VcfFile), function(x) {
   strsplit(colnames(VcfFile)[x], "_")[[1]][2]
 })
 L1Detect_Group <- NULL
+SampleID <- SampleIDs[1]
 for (SampleID in  SampleIDs){
   cat("Processing", SampleID, "\n")
   idxL1    <- which(L1_1000G[,SampleID] > 0)

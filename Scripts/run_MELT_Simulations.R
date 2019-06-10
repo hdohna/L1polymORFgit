@@ -10,11 +10,11 @@ library(rtracklayer)
 
 # Boolean variables for different parts of the workflow
 blnRunSim           <- F
-blnRunBWA           <- T
-blnIdxBam           <- T
-blnRunMELT          <- T
-blnRunSimAnalysis   <- T
-blnRunGroupAnalysis <- F
+blnRunBWA           <- F
+blnIdxBam           <- F
+blnRunMELT          <- F
+blnRunSimAnalysis   <- F
+blnRunGroupAnalysis <- T
 
 blnRunSim_Var           <- F
 blnRunBWA_Var           <- F
@@ -34,6 +34,7 @@ Mem_MELT     <- '50G'
 RefPath     <- "/labs/dflev/hzudohna/RefSeqData/"
 RefFilePath <- "/labs/dflev/hzudohna/RefSeqData/hg19.fa"
 Path1000G   <- "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT/"
+PathGroupMELT   <- "/labs/dflev/hzudohna/1000Genomes/L1_simulation_MELT_Group/"
 PathScratch   <- "/scratch/users/hzudohna/"
 
 # Load necessary objects
@@ -284,7 +285,7 @@ if(blnRunGroupAnalysis){
   QueueGenotypeFinished <- F
   
   # Get paths to bam files
-  BamFiles <- list.files(Path1000G, pattern = "_sorted.bam", full.names = T)
+  BamFiles <- list.files(PathScratch, pattern = "_sorted.bam", full.names = T)
   BamFiles <- BamFiles[-grep("_sorted.bam.", BamFiles)]
   
   #################
@@ -350,7 +351,7 @@ if(blnRunGroupAnalysis){
                           "-h", RefFilePath,
                           "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
                           "-b MT/GL000207.1/GL000226.1/GL000229.1/GL000231.1/GL000210.1/GL000239.1/GL000235.1/GL000201.1/GL000247.1/GL000245.1/GL000197.1/GL000203.1/GL000246.1/GL000249.1/GL000196.1/GL000248.1/GL000244.1/GL000238.1/GL000202.1/GL000234.1/GL000232.1/GL000206.1/GL000240.1/GL000236.1/GL000241.1/GL000243.1/GL000242.1/GL000230.1/GL000237.1/GL000233.1/GL000204.1/GL000198.1/GL000208.1/GL000191.1/GL000227.1/GL000228.1/GL000214.1/GL000221.1/GL000209.1/GL000218.1/GL000220.1/GL000213.1/GL000211.1/GL000199.1/GL000217.1/GL000216.1/GL000215.1/GL000205.1/GL000219.1/GL000224.1/GL000223.1/GL000195.1/GL000212.1/GL000222.1/GL000200.1/GL000193.1/GL000194.1/GL000225.1/GL000192.1/NC_007605",
-                          "-w", Path1000G))
+                          "-w", PathGroupMELT))
       
       
       # Create script name and run script
@@ -376,6 +377,27 @@ if(blnRunGroupAnalysis){
     
   } # End of IndivAnalysis
   
+  #################
+  # Remove files for failed IndivAnalysis 
+  #################
+  
+  cat("\n*************    Removing files with failes IndivAnalysis    *************\n")
+  
+  # Check for breaks bam files of size 0 and remove all associated files if
+  # there are bam files of size 0
+  BrkBamFiles <- list.files(PathGroupMELT, full.names = T,
+                            pattern = "_sorted.LINE1.hum_breaks.sorted.bam")
+  BrkBamFiles <- BrkBamFiles[-grep("bam.bai", BrkBamFiles)]
+  BrkBam2Remove <- BrkBamFiles[file.size(BrkBamFiles) == 0]
+  for (x in  BrkBam2Remove){
+    cat("Removing files associated with", BrkBam2Remove, "\n")
+    Split1 <- strsplit(x, "\\/")[[1]]
+    RemovePattern <- strsplit(Split1[length(Split1)], "\\.")[[1]][1]
+    Files2Remove <- list.files(PathGroupMELT, full.names = T, pattern = RemovePattern)
+    file.remove(Files2Remove)
+    
+  }
+  
   
   #################
   # Perform GroupAnalysis
@@ -389,11 +411,11 @@ if(blnRunGroupAnalysis){
     # Create commands to run MELT
     MELTCmds <- c("module load bowtie2",
                   paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar GroupAnalysis",
-                        "-discoverydir", Path1000G,
+                        "-discoverydir", PathGroupMELT,
                         "-h", RefFilePath,
                         "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
                         "-n /labs/dflev/hzudohna/MELTv2.1.5/add_bed_files/1KGP_Hg19/hg19.genes.bed",
-                         "-w", Path1000G))
+                         "-w", PathGroupMELT))
     
     # Create script name and run script
     ScriptName <- paste("GroupAnalysis_MELTScript")
@@ -414,7 +436,7 @@ if(blnRunGroupAnalysis){
     
     
   } # End of GroupAnalysis
-  
+
   #################
   # Perform Genotype
   #################
@@ -437,8 +459,8 @@ if(blnRunGroupAnalysis){
                           " -bamfile", BamFile, 
                           "-h", RefFilePath,
                           "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
-                          "-w", Path1000G,
-                          "-p", Path1000G))
+                          "-w", PathGroupMELT,
+                          "-p", PathGroupMELT))
       
       # Create script name and run script
       ScriptName <- paste("Genotype_MELTScript", ID, sep = "_")
@@ -474,12 +496,12 @@ if(blnRunGroupAnalysis){
     # Create commands to run MELT
     MELTCmds <- c("module load bowtie2",
                   paste("java -Xmx2g -jar /labs/dflev/hzudohna/MELTv2.1.5/MELT.jar MakeVCF",
-                        "-genotypingdir", Path1000G,
+                        "-genotypingdir", PathGroupMELT,
                         "-h", RefFilePath,
                         "-t /labs/dflev/hzudohna/MELTv2.1.5/me_refs/1KGP_Hg19/LINE1_MELT.zip",
-                        "-w", Path1000G,
-                        "-p", Path1000G,
-                        "-o", Path1000G))
+                        "-w", PathGroupMELT,
+                        "-p", PathGroupMELT,
+                        "-o", PathGroupMELT))
     
     # Create script name and run script
     ScriptName <- paste("Vcf_MELTScript")
@@ -504,7 +526,7 @@ if(blnRunGroupAnalysis){
   # lapply(SlurmFiles, function(x) readLines(x))
   
   # Save job info
-  save(list = "JobInfo", file = paste(Path1000G, "L1simulated_MELT_Group_JobInfo.RData",
+  save(list = "JobInfo", file = paste(PathGroupMELT, "L1simulated_MELT_Group_JobInfo.RData",
                                       sep = "")) 
 }
 

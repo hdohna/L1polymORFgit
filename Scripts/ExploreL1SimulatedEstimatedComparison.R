@@ -4,10 +4,26 @@ load("D:/L1polymORF/Data/L1Simulated_MELT.RData")
 L1_1000G$L1StartNum <- as.numeric(as.character(L1_1000G$L1Start))
 L1_1000G$L1EndNum   <- as.numeric(as.character(L1_1000G$L1End))
 
+# Add additional columns to L1Detect
+L1Detect$L1StartTrueNum <- as.numeric(as.character(L1Detect$L1StartTrue))
+L1Detect$L1EndTrueNum   <- as.numeric(as.character(L1Detect$L1EndTrue))
+L1Detect$blnPass        <- L1Detect$EstFilter == "PASS"
+
+
 plot  (L1_1000G$InsLength, L1_1000G$L1EndNum  - L1_1000G$L1StartNum)
 lines (c(0, 6000), c(0, 6000), col = "red", lwd = 2)
 plot  (L1Detect$L1widthTrue, L1Detect$L1widthEst)
-plot  (L1Detect$L1StartEst, L1Detect$L1StartEst_DiscReads)
+lines (c(0, 6000), c(0, 6000), col = "red", lwd = 2)
+
+# Plot estimated start vs estimated start from discorant read pairs
+plot  (L1Detect$L1StartEst, L1Detect$L1StartEst_DiscReads,
+       xlab = "Estimated L1 start", ylab = "L1 start estimated from disc. reads")
+lines (c(0, 6000), c(0, 6000), col = "red", lwd = 2)
+
+# Plot estimated start vs estimated start from discorant read pairs
+plot  (L1Detect$L1StartTrueNum, L1Detect$L1StartEst_DiscReads,
+       xlab = "True L1 start", ylab = "L1 start estimated from disc. reads")
+lines (c(0, 6000), c(0, 6000), col = "red", lwd = 2)
 
 # Proportion of L1s with properly estimated length
 L1Length_DiffTrueEst <- abs(L1Detect$L1widthTrue - L1Detect$L1widthEst)
@@ -18,12 +34,31 @@ sum(L1Detect$L1widthTrue <= 1000 & L1Detect$L1widthEst >= 6000, na.rm = T) /
   sum(L1Detect$L1widthTrue <= 1000, na.rm = T)
 
 # Proportion of estimated full-length that are full-length
+# (i) all
 sum(L1Detect$L1widthTrue >= 6000 & L1Detect$L1widthEst >= 6000, na.rm = T) /
   sum(L1Detect$L1widthEst >= 6000, na.rm = T)
+# (ii) PASS only
+sum(L1Detect$L1widthTrue >= 6000 & L1Detect$L1widthEst >= 6000 
+    & blnPass, na.rm = T) /
+  sum(L1Detect$L1widthEst >= 6000 & blnPass, na.rm = T)
+
+
+# Logistic regression for detection probability as finction of insertion length
+LogReg_DetectL1width <- glm(blnDetect ~ L1widthTrue + blnFull, data = L1Detect,
+                            family = binomial)
+summary(LogReg_DetectL1width)
+
+# Return some summaries
+Sensitivity_all <- mean(L1Detect$blnDetect, na.rm = T)
+blnL1Estimated  <- !is.na(L1Detect$L1GenoEst)
+Specificity_all <- sum(blnL1Estimated & L1Detect$blnDetect, na.rm = T) / 
+  sum(blnL1Estimated)
+cat("Sensitivity:", Sensitivity, "\n")
+cat("Specificity:", Specificity, "\n")
 
 # Proportion that over -and underestimates L1 length
-mean(L1Detect$L1widthTrue < L1Detect$L1widthEst, na.rm = T)
-mean(L1Detect$L1widthTrue > L1Detect$L1widthEst, na.rm = T)
+mean(L1Detect$L1widthTrue < L1Detect$L1widthEst - 100, na.rm = T)
+mean(L1Detect$L1widthTrue > L1Detect$L1widthEst + 100 , na.rm = T)
 
 
 plot  (L1Detect_Group$L1widthTrue, L1Detect_Group$L1widthEst)
