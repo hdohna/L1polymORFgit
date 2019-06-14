@@ -15,17 +15,20 @@ AddCols2L1Detect <- function(L1DetectDF){
   L1DetectDF$L1StartTrue    <- as.numeric(as.character(L1DetectDF$L1StartTrue))
   L1DetectDF$L1EndTrue      <- as.numeric(as.character(L1DetectDF$L1EndTrue))
   L1DetectDF$blnPass        <- L1DetectDF$EstFilter == "PASS"
+  L1DetectDF$blnDetectPass       <- L1DetectDF$blnDetect & L1DetectDF$blnPass
   L1DetectDF$L1WidthFromStartEnd <- L1DetectDF$L1EndEst - L1DetectDF$L1StartEst
-  L1DetectDF$L1WidthAbsDiff <- abs(L1DetectDF$L1widthTrue - L1DetectDF$L1widthEst)
-  L1DetectDF$L1WidthStEAbsDiff <- abs(L1DetectDF$L1widthTrue - L1DetectDF$L1WidthFromStartEnd)
-  L1DetectDF$L1StartAbsDiff <- abs(L1DetectDF$L1StartTrue - L1DetectDF$L1StartEst)
+  L1DetectDF$L1WidthAbsDiff      <- abs(L1DetectDF$L1widthTrue - 
+                                        L1DetectDF$L1widthEst)
+  L1DetectDF$L1WidthStEAbsDiff   <- abs(L1DetectDF$L1widthTrue - 
+                                        L1DetectDF$L1WidthFromStartEnd)
+  L1DetectDF$L1StartAbsDiff      <- abs(L1DetectDF$L1StartTrue - 
+                                          L1DetectDF$L1StartEst)
   L1DetectDF$L1EndAbsDiff   <- abs(L1DetectDF$L1EndTrue - L1DetectDF$L1EndEst)
   L1DetectDF$L1PosAbsDiff   <- abs(L1DetectDF$PosTrue - L1DetectDF$PosEst)
   L1DetectDF$blnFullTrue    <- L1DetectDF$L1widthTrue >= 6000
   L1DetectDF$blnFullEst     <- L1DetectDF$L1widthEst >= 6000
   L1DetectDF
 }
-
 
 ##########################################
 #                                        #
@@ -37,9 +40,6 @@ AddCols2L1Detect <- function(L1DetectDF){
 load("D:/L1polymORF/Data/L1Simulated_MELT.RData")
 L1Detect       <- AddCols2L1Detect(L1Detect)
 L1Detect_Group <- AddCols2L1Detect(L1Detect_Group)
-
-which(substr(L1Detect$Chrom, 1, 3) == "chr")
-L1Detect[163,]
 
 # Add numeric columns for L1 start and end
 L1_1000G$L1StartNum <- as.numeric(as.character(L1_1000G$L1Start))
@@ -58,77 +58,36 @@ L1PosRange = 30
 # Subset to retain only entries with estimated L1 position
 L1DetectDF <- L1Detect[!is.na(L1Detect$PosEst),]
 
-# Create an ID per L1
-L1DetectDF$L1ID <- paste(L1DetectDF$Chrom, L1DetectDF$PosEst)
-blnDupl    <- duplicated(L1DetectDF$L1ID)
-L1IDUnique <- L1DetectDF$L1ID[!blnDupl]
+# Create an ID per L1 insertion (close insertions are considered one)
+L1DetectDF$L1ID  <- CollapseClosePos_idx(DF = L1DetectDF, 
+                                       ChromCol = "Chrom", 
+                                       PosCol = "PosEst", 
+                                       OLRange = L1PosRange, 
+                                       blnPairwise = F)
 
-# Create genomic ranges for unique positions
-L1Detect_GR <- makeGRangesFromDataFrame(L1DetectDF[!blnDupl, ],
-                                        seqnames.field = "Chrom",
-                                        start.field = "PosEst",
-                                        end.field = "PosEst")
-# Resize genomic ranges for unique positions and find overlaps with
-# itself
-L1Detect_GR_large <- resize(L1Detect_GR, 2*L1PosRange, fix = "center")
-L1Detect_OL <- findOverlaps(L1Detect_GR_large, L1Detect_GR_large)
+# Aggregate by L1 ID
+L1DetectAgg <- AggDataFrame(L1DetectDF, 
+                            GroupCol = "L1ID", 
+                            MeanCols = c("L1widthEst", "L1StartEst", "L1EndEst"),
+                            SumCols = "L1GenoEst",
+                            MedCols = c("L1widthEst", "L1StartEst", "L1EndEst"),
+                            MaxCols = "L1EndEst",
+                            MinCols = "L1StartEst",
+                            LengthCols = "L1widthEst",
+                            Addcols = c("Chrom", "PosTrue", "L1widthTrue", 
+                                        "L1StartTrue", "L1EndTrue"))
+L1DetectAgg$L1Width_minmax     <- L1DetectAgg$L1EndEst_max - 
+                                    L1DetectAgg$L1StartEst_min
+L1DetectAgg$L1Width_mix        <- L1DetectAgg$L1Width_minmax
+L1DetectAgg$L1Width_mix[L1DetectAgg$L1Width_minmax < 1000] <- 
+  L1DetectAgg$L1widthEst_med[L1DetectAgg$L1Width_minmax < 1000]
+L1DetectAgg$L1WidthAbsDiff_med    <- abs(L1DetectAgg$L1widthTrue - 
+                                           L1DetectAgg$L1widthEst_med)
+L1DetectAgg$L1WidthAbsDiff_minmax <- abs(L1DetectAgg$L1widthTrue - 
+                                           L1DetectAgg$L1Width_minmax)
+L1DetectAgg$L1WidthAbsDiff_mix <- abs(L1DetectAgg$L1widthTrue - 
+                                        L1DetectAgg$L1Width_mix)
 
-# Assign to all overlapping ranges the smallest index
-L1idx <- sapply(1:length(L1IDUnique), function(x){
-           blnOL <- L1Detect_OL@from ==x | L1Detect_OL@to == x
-           min(c(L1Detect_OL@from[blnOL], L1Detect_OL@to[blnOL]))
-         })
-L1idxMatch  <- match(L1DetectDF$L1ID, L1IDUnique)
-L1DetectDF$L1ID <- L1IDUnique[L1idx][L1idxMatch]
-
-# Remove "chr" from IDs that start with "chr" [FIGURE OUT WHY]
-blnChr <- substr(L1DetectDF$L1ID, 1, 3) == "chr"
-any(blnChr)
-L1DetectDF$L1ID[blnChr] <- substr(L1DetectDF$L1ID[blnChr], 4, 
-                                  nchar(L1DetectDF$L1ID[blnChr]))
-
-# Get L1 frequency, mean and medium start, end and width
-L1DetectAgg_Geno <- aggregate(L1DetectDF$L1GenoEst, by = list(L1DetectDF$L1ID), 
-                              FUN = sum)
-colnames(L1DetectAgg_Geno) <- c("L1ID", "Freq")
-L1DetectAgg_StartMean <- aggregate(L1DetectDF$L1StartEst, by = list(L1DetectDF$L1ID), 
-                                   FUN = mean)
-colnames(L1DetectAgg_StartMean) <- c("L1ID", "StartMean")
-L1DetectAgg_StartMed <- aggregate(L1DetectDF$L1StartEst, by = list(L1DetectDF$L1ID), 
-                                  FUN = median)
-colnames(L1DetectAgg_StartMed) <- c("L1ID", "StartMed")
-L1DetectAgg_EndMean <- aggregate(L1DetectDF$L1EndEst, by = list(L1DetectDF$L1ID), 
-                                 FUN = mean)
-colnames(L1DetectAgg_EndMean) <- c("L1ID", "EndMean")
-L1DetectAgg_EndMed <- aggregate(L1DetectDF$L1EndEst, by = list(L1DetectDF$L1ID), 
-                                FUN = median)
-colnames(L1DetectAgg_EndMed) <- c("L1ID", "EndMed")
-L1DetectAgg_EndMax <- aggregate(L1DetectDF$L1EndEst, by = list(L1DetectDF$L1ID), 
-                                FUN = max)
-colnames(L1DetectAgg_EndMax) <- c("L1ID", "EndMax")
-L1DetectAgg_widthMean <- aggregate(L1DetectDF$L1widthEst, by = list(L1DetectDF$L1ID), 
-                                   FUN = mean)
-colnames(L1DetectAgg_widthMean) <- c("L1ID", "widthMean")
-L1DetectAgg_widthMed <- aggregate(L1DetectDF$L1widthEst, by = list(L1DetectDF$L1ID), 
-                                  FUN = median)
-colnames(L1DetectAgg_widthMed) <- c("L1ID", "widthMed")
-
-L1DetectAgg <- merge(L1DetectAgg_Geno, L1DetectAgg_StartMean)
-L1DetectAgg <- merge(L1DetectAgg, L1DetectAgg_StartMed)
-L1DetectAgg <- merge(L1DetectAgg, L1DetectAgg_EndMean)
-L1DetectAgg <- merge(L1DetectAgg, L1DetectAgg_EndMed)
-L1DetectAgg <- merge(L1DetectAgg, L1DetectAgg_widthMean)
-L1DetectAgg <- merge(L1DetectAgg, L1DetectAgg_widthMed)
-L1DetectAgg <- merge(L1DetectAgg, L1DetectAgg_EndMax)
-L1DetectAgg$Chrom  <- sapply(L1DetectAgg$L1ID, function(x) strsplit(x, " ")[[1]][1])
-L1DetectAgg$Pos    <- sapply(L1DetectAgg$L1ID, function(x) as.numeric(strsplit(x, " ")[[1]][2]))
-L1IDmatch          <- match(L1DetectAgg$L1ID, L1DetectDF$L1ID)
-L1DetectAgg$L1widthEst <- L1DetectDF$L1widthEst[L1IDmatch]
-L1DetectAgg$L1widthTrue <- L1DetectDF$L1widthTrue[L1IDmatch]
-L1DetectAgg$L1StartTrue <- L1DetectDF$L1StartTrue[L1IDmatch]
-L1DetectAgg$L1EndTrue <- L1DetectDF$L1EndTrue[L1IDmatch]
-
-L1DetectAgg$L1WidthAbsDiff <- abs(L1DetectAgg$L1widthTrue - L1DetectAgg$widthMed)
 
 ##########################################
 #                                        #
@@ -141,13 +100,16 @@ plot(L1Detect$L1StartTrue, L1Detect$L1StartEst)
 plot(L1Detect$L1EndTrue,   L1Detect$L1EndEst)
 plot(L1Detect_Group$L1StartTrue, L1Detect_Group$L1StartEst)
 plot(L1Detect_Group$L1EndTrue,   L1Detect_Group$L1EndEst)
-plot(L1DetectAgg$L1StartTrue, L1DetectAgg$StartMean)
-plot(L1DetectAgg$L1StartTrue, L1DetectAgg$StartMed)
-plot(L1DetectAgg$L1EndTrue, L1DetectAgg$EndMed)
-plot(L1DetectAgg$L1EndTrue, L1DetectAgg$EndMean)
-plot(L1DetectAgg$L1EndTrue, L1DetectAgg$EndMax)
-plot  (L1DetectAgg$L1widthTrue, L1DetectAgg$widthMean)
-plot  (L1DetectAgg$L1widthTrue, L1DetectAgg$widthMed)
+plot(L1DetectAgg$L1StartTrue, L1DetectAgg$L1StartEst_mean)
+plot(L1DetectAgg$L1StartTrue, L1DetectAgg$L1StartEst_med)
+plot(L1DetectAgg$L1StartTrue, L1DetectAgg$L1StartEst_min)
+plot(L1DetectAgg$L1EndTrue, L1DetectAgg$L1EndEst_med)
+plot(L1DetectAgg$L1EndTrue, L1DetectAgg$L1EndEst_mean)
+plot(L1DetectAgg$L1EndTrue, L1DetectAgg$L1EndEst_max)
+plot  (L1DetectAgg$L1widthTrue, L1DetectAgg$L1widthEst_mean)
+plot  (L1DetectAgg$L1widthTrue, L1DetectAgg$L1widthEst_med)
+plot  (L1DetectAgg$L1widthTrue, L1DetectAgg$L1Width_minmax)
+plot  (L1DetectAgg$L1widthTrue, L1DetectAgg$L1Width_mix)
 
 plot(L1Detect$L1EndTrue,   L1Detect$L1EndEst)
 plot(L1Detect$L1EndEst - L1Detect$L1StartEst, L1Detect$L1widthEst)
@@ -197,6 +159,10 @@ mean(L1Detect_Group$L1StartAbsDiff[!blnGen0_G]    < 100, na.rm = T) *
   mean(L1Detect_Group$L1EndAbsDiff[!blnGen0_G]    < 100, na.rm = T)
 
 mean(L1DetectAgg$L1WidthAbsDiff < 100, na.rm = T)
+mean(L1DetectAgg$L1WidthAbsDiff_med    < 100)
+mean(L1DetectAgg$L1WidthAbsDiff_minmax < 100)
+mean(L1DetectAgg$L1WidthAbsDiff_mix < 100)
+
 
 # Proportion of estimated full-length that are full-length
 blnTrueFull <- L1Detect$L1widthTrue  >= 6000
@@ -244,14 +210,16 @@ sum(L1Detect$L1widthTrue <= 1000 & L1Detect$L1widthEst >= 6000, na.rm = T) /
   sum(L1Detect$L1widthTrue <= 1000, na.rm = T)
 
 # Get info of L1s that are estimated to be full-length but are not
-L1Detect$L1EstINFO[which(L1Detect$L1widthTrue <= 1000 & L1Detect$L1widthEst >= 6000)]
-L1FalseFull <- L1Detect[which(L1Detect$L1widthTrue <= 1000 & L1Detect$L1widthEst >= 6000),
-                        c("L1StartTrue", "L1EndTrue", "L1widthTrue", "L1widthEst", "L1EstINFO")]
+L1Detect$L1EstINFO[which(L1Detect$L1widthTrue <= 1000 & 
+                           L1Detect$L1widthEst >= 6000)]
+L1FalseFull <- L1Detect[which(L1Detect$L1widthTrue <= 1000 & 
+                                L1Detect$L1widthEst >= 6000),
+                c("L1StartTrue", "L1EndTrue", "L1widthTrue", "L1widthEst", "L1EstINFO")]
 
 # Sensitivity and specificity
-Sensitivity_all <- mean(L1Detect$blnDetect * (!blnGen0), na.rm = T)
+Sensitivity_all <- mean(L1Detect$blnDetectPass, na.rm = T)
 blnL1Estimated  <- !is.na(L1Detect$L1GenoEst)
-Specificity_all <- sum(blnL1Estimated & L1Detect$blnDetect, na.rm = T) / 
+Specificity_all <- sum(blnL1Estimated & L1Detect$blnDetectPass, na.rm = T) / 
   sum(blnL1Estimated)
 cat("Sensitivity:", Sensitivity_all, "\n")
 cat("Specificity:", Specificity_all, "\n")
@@ -267,7 +235,6 @@ cat("Group specificity:", Specificity_all, "\n")
 # Proportion that over -and underestimates L1 length
 mean(L1Detect$L1widthTrue < L1Detect$L1widthEst - 100, na.rm = T)
 mean(L1Detect$L1widthTrue > L1Detect$L1widthEst + 100 , na.rm = T)
-
 
 ##########################################
 #                                        #
@@ -312,6 +279,7 @@ summary(LM_BiasL1Width)
 
 LM_RelBiasL1Width <- lm(RelFreqDiff ~ L1widthTrue, data = L1DetectAgg)
 summary(LM_BiasL1Width)
+
 ##########################################
 #                                        #
 #        Logistic regression             #
@@ -320,8 +288,8 @@ summary(LM_BiasL1Width)
 ##########################################
 
 # Detection as function of predictors
-LogReg_DetectL1widthTrue <- glm(blnDetect ~ L1widthTrue + blnFullTrue, 
-                                data = L1Detect,
+LogReg_DetectL1widthTrue <- glm(blnDetectPass ~ L1widthTrue + blnFullTrue, 
+                                data = L1Detect[L1Detect$L1GenoTrue == 1,],
                                family = binomial)
 summary(LogReg_DetectL1widthTrue)
 

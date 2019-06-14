@@ -20,18 +20,25 @@
 
 GetFromVcfINFO_MELT_L1StartEnd <- function(x, L1Length = 6019){
   Split1 <- strsplit(x, ";")[[1]]
-  Split2 <- strsplit(grep("DIFF=", Split1, value = T), ":")[[1]][2]
-  Split3 <- strsplit(Split2, ",")[[1]]
-  if (substr(Split3[1], 1, 1) == "n") {
-    Start <- as.numeric(strsplit(Split3[1], "-")[[1]][2]) + 1
+  idxDiff <- grep("DIFF=", Split1)
+  if (length(idxDiff) == 0){
+    Start <- NA
+    End   <- NA
   } else {
-    Start <- 0
-  }
-  if (substr(Split3[length(Split3)], 1, 1) == "n") {
-    Split4 <- strsplit(Split3[length(Split3)], "-")[[1]][1]
-    End    <- as.numeric(substr(Split4, 2, nchar(Split4))) - 1
-  } else {
-    End <- L1Length
+    Split2 <- strsplit(grep("DIFF=", Split1, value = T), ":")[[1]][2]
+    Split3 <- strsplit(Split2, ",")[[1]]
+    if (substr(Split3[1], 1, 1) == "n") {
+      Start <- as.numeric(strsplit(Split3[1], "-")[[1]][2]) + 1
+    } else {
+      Start <- 0
+    }
+    if (substr(Split3[length(Split3)], 1, 1) == "n") {
+      Split4 <- strsplit(Split3[length(Split3)], "-")[[1]][1]
+      End    <- as.numeric(substr(Split4, 2, nchar(Split4))) - 1
+    } else {
+      End <- L1Length
+    }
+    
   }
   c(Start, End)
 }

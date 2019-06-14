@@ -13,7 +13,6 @@ source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load packages
 library(GenomicRanges)
-library(pracma)
 library(rtracklayer)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 
@@ -39,14 +38,16 @@ SampleInfoPath <- "D:/L1polymORF/Data/1000GenomeSampleInfo.txt"
 # Specify logistic regression coefficients for relationship between insert
 # size and detection probability
 load("D:/L1polymORF/Data/L1Simulated_MELT.RData")
+L1Detect$blnDetectPass <- L1Detect$blnDetect & L1Detect$EstFilter == "PASS"
+LogReg_DetectL1width <- glm(blnDetectPass ~ L1widthTrue, 
+                                data = L1Detect[L1Detect$L1GenoTrue == 1,],
+                                family = binomial)
+summary(LogReg_DetectL1width)
 L1SizeDetectCoeff <- c(a = LogReg_DetectL1width$coefficients[1], 
                        b = LogReg_DetectL1width$coefficients[2])
 
 # False discovery rate for selected L1
 FDR <- 0.1
-
-# Specify range width for DNAse analysis
-RangeWidth <- 10^6
 
 # Human effective population size
 PopSize <- 10^5
@@ -66,24 +67,24 @@ LogRegL1RefCoeff <- c(-4.706573, 9.737618)
 ##########################################
 
 # Function to create MEInsCall data
-CreateMEInsCall <- function(Samples2use, MEInsCallPerL1 = MEInsCallPerL1){
-  
-  MEInsCallPerL1 <- MEInsCallPerL1[MEInsCallPerL1$SampleID %in% Samples2use, ]
-  MEInsCall <- aggregate(MEInsCallPerL1$GenoNum, 
-                         by = list(MEInsCallPerL1$L1ID), 
-                         FUN = sum)
-  colnames(MEInsCall) <- c("L1ID", "Freq")
-  MEInsCall$CHROM <- sapply(MEInsCall$L1ID, function(x) strsplit(x, " ")[[1]][1])
-  MEInsCall$POS   <- sapply(MEInsCall$L1ID, function(x) as.numeric(strsplit(x, " ")[[1]][2]))
-  L1IDmatch       <- match(MEInsCall$L1ID, MEInsCallPerL1$L1ID)
-  MEInsCall$L1width <- MEInsCallPerL1$L1width[L1IDmatch]
-  
-  # Add columns necessary for analysis 
-  MEInsCall$AF <- MEInsCall$Freq / MEInsSamplesize
-  MEInsCall$SampleSize <- 2 * MEInsSamplesize
-  MEInsCall$blnFull    <- MEInsCall$L1width >= MinLengthFullL1
-  MEInsCall
-}
+# CreateMEInsCall <- function(Samples2use, MEInsCallPerL1 = MEInsCallPerL1){
+#   
+#   MEInsCallPerL1 <- MEInsCallPerL1[MEInsCallPerL1$SampleID %in% Samples2use, ]
+#   MEInsCall <- aggregate(MEInsCallPerL1$GenoNum, 
+#                          by = list(MEInsCallPerL1$L1ID), 
+#                          FUN = sum)
+#   colnames(MEInsCall) <- c("L1ID", "Freq")
+#   MEInsCall$CHROM <- sapply(MEInsCall$L1ID, function(x) strsplit(x, " ")[[1]][1])
+#   MEInsCall$POS   <- sapply(MEInsCall$L1ID, function(x) as.numeric(strsplit(x, " ")[[1]][2]))
+#   L1IDmatch       <- match(MEInsCall$L1ID, MEInsCallPerL1$L1ID)
+#   MEInsCall$L1width <- MEInsCallPerL1$L1width[L1IDmatch]
+#   
+#   # Add columns necessary for analysis 
+#   MEInsCall$AF <- MEInsCall$Freq / MEInsSamplesize
+#   MEInsCall$SampleSize <- 2 * MEInsSamplesize
+#   MEInsCall$blnFull    <- MEInsCall$L1width >= MinLengthFullL1
+#   MEInsCall
+# }
 
 
 ##########################################
@@ -97,73 +98,51 @@ cat("\n\nLoading and processing data ...\n")
 SampleInfo <- read.table(SampleInfoPath, header = T)
 
 # Read in vcf file with MELT insertion calls
-MEInsCallPerL1 <- read.table(MeltInsPath, as.is = T)
-NrSamples      <- length(unique(MEInsCallPerL1$SampleID))
+MEInsCallPerL1  <- read.table(MeltInsPath, as.is = T)
+NrSamples       <- length(unique(MEInsCallPerL1$SampleID))
 MEInsSamplesize <- 2*NrSamples
 
 # Subset to get entries with genotype
-idxWithGeno <- which(nchar(MEInsCallPerL1$Genotype) > 0)
+idxWithGeno    <- which(nchar(MEInsCallPerL1$Genotype) > 0)
 MEInsCallPerL1 <- MEInsCallPerL1[idxWithGeno, ]
 
-# Add columns for numeric genotype and insertion length
+# Add columns for numeric genotype, insertion length
+cat("Adding L1 info ...")
 MEInsCallPerL1$GenoNum <- sapply(MEInsCallPerL1$Genotype, GetFromVcfGeno_GenoNum)
 MEInsCallPerL1$L1width <- sapply(MEInsCallPerL1$INFO, GetFromVcfINFO_SVLength)
 MEInsCallPerL1$PropCovered  <- sapply(MEInsCallPerL1$INFO, 
                                       GetFromVcfINFO_MELT_PropCovered)
 MEInsCallPerL1$L1Diff  <- sapply(MEInsCallPerL1$INFO, GetFromVcfINFO_MELT_PropDiff)
-hist(MEInsCallPerL1$L1Diff)
-
-# Get L1 ID and aggregate values per L1
-MEInsCallPerL1$L1ID <- paste(MEInsCallPerL1$X.CHROM, MEInsCallPerL1$POS)
-blnDupl    <- duplicated(MEInsCallPerL1$L1ID)
-L1IDUnique <- MEInsCallPerL1$L1ID[!blnDupl]
-MEInsCallPerL1[which(MEInsCallPerL1$GenoNum == 0)[1:10], ]
-MEInsCallPerL1[which(is.na(MEInsCallPerL1$GenoNum))[1:10], ]
-table(MEInsCallPerL1$X.CHROM)
-
-# Join insertions that are close to each other into one
-MEInsPerL1_GR <- makeGRangesFromDataFrame(MEInsCallPerL1[!blnDupl, ],
-                                          seqnames.field = "X.CHROM",
-                                          start.field = "POS",
-                                          end.field = "POS")
-MEInsPerL1_GR_large <- resize(MEInsPerL1_GR, 400, fix = "center")
-MEInsPerL1_OL <- findOverlaps(MEInsPerL1_GR_large, MEInsPerL1_GR_large)
-L1idx      <- pmin(MEInsPerL1_OL@from, MEInsPerL1_OL@to)
-L1idxMatch <- match(MEInsCallPerL1$L1ID, L1IDUnique)
-MEInsCallPerL1$L1ID <- L1IDUnique[L1idx][L1idxMatch]
-
-cat("Aggregating data per L1 ...")
-MEInsCall <- aggregate(MEInsCallPerL1$GenoNum, 
-                       by = list(MEInsCallPerL1$L1ID), 
-                       FUN = sum)
+L1StartEnd  <- t(sapply(MEInsCallPerL1$INFO, GetFromVcfINFO_MELT_L1StartEnd))
+colnames(L1StartEnd) <- c("L1Start", "L1End")
+MEInsCallPerL1 <- cbind(MEInsCallPerL1, L1StartEnd)
 cat("done!\n")
-nrow(MEInsCall)
-colnames(MEInsCall) <- c("L1ID", "Freq")
-MEInsCall$CHROM <- sapply(MEInsCall$L1ID, function(x) strsplit(x, " ")[[1]][1])
-MEInsCall$POS   <- sapply(MEInsCall$L1ID, function(x) as.numeric(strsplit(x, " ")[[1]][2]))
-L1IDmatch       <- match(MEInsCall$L1ID, MEInsCallPerL1$L1ID)
-MEInsCall$L1width <- MEInsCallPerL1$L1width[L1IDmatch]
-# MEInsCall$L1Diff  <- sapply(MEInsCall$L1ID, function(x){
-#   idxID  <- which(MEInsCallPerL1$L1ID == x)
-#   idxMax <- which.max(MEInsCallPerL1$PropCovered[idxID])
-#   if (length(idxMax) > 0){
-#     MEInsCallPerL1$L1Diff[idxID][idxMax]
-#   } else {
-#     NA
-#   }
-#     
-# })
-# MEInsCall$L1Diff[is.infinite(MEInsCall$L1Diff)] <- NA
+
+# Get L1 ID and a
+MEInsCallPerL1$L1ID <- CollapseClosePos_idx(MEInsCallPerL1, 
+                                            ChromCol = "X.CHROM", 
+                                            PosCol = "POS",
+                                            OLRange = 10)
+
+# Aggregate values per L1  
+cat("Aggregating data per L1 ...")
+MEInsCall <- AggDataFrame(MEInsCallPerL1, GroupCol = "L1ID", 
+                          MeanCols = "L1Diff", 
+                          SumCols = "GenoNum",
+                          MedCols = "L1width", 
+                          LengthCols = "L1Diff",
+                          MinCols = "L1Start",
+                          MaxCols = "L1End", Addcols = c("X.CHROM", "POS"))
+colnames(MEInsCall)[colnames(MEInsCall) == "GenoNum_sum"] <- "Freq"
+colnames(MEInsCall)[colnames(MEInsCall) == "X.CHROM"]     <- "CHROM"
+colnames(MEInsCall)[colnames(MEInsCall) == "L1width_med"] <- "L1width"
+
+cat("done!\n")
 
 # Add columns necessary for analysis 
-MEInsCall$AF <- MEInsCall$Freq / MEInsSamplesize
+MEInsCall$AF         <- MEInsCall$Freq / MEInsSamplesize
 MEInsCall$SampleSize <- 2 * MEInsSamplesize
 MEInsCall$blnFull    <- MEInsCall$L1width >= MinLengthFullL1
-# cor.test(MEInsCall$AF[MEInsCall$blnFull], MEInsCall$L1Diff[MEInsCall$blnFull])
-# L1Diff_LM <- lm(L1Diff ~ blnFull + L1width + Freq*blnFull, data = MEInsCall)
-# summary(L1Diff_LM)
-# hist( MEInsCall$L1Diff)
-# plot(L1Diff ~ L1width, data = MEInsCall, col = rgb(0, 0, 0, alpha = 0.2))
 
 # Create GRanges object for MEInsCall
 MEInsCall$ChromName <- paste("chr", MEInsCall$CHROM, sep = "")
