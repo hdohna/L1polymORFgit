@@ -399,9 +399,6 @@ AICTab <- cbind(data.frame(
             stringsAsFactors = F),
             Cols2Append)
                      
-# Save table with AIC
-write.csv(AICTab, SelectTabOutPath)
-save.image(SelectResultOutPath)
 
 nrow(PredictMat)
 ModelFit1 <- FitSelectionModels(PredictMat[!blnNA, 1:3],  
@@ -413,10 +410,15 @@ ModelFit1 <- FitSelectionModels(PredictMat[!blnNA, 1:3],
                                LogRegCoeff = LogRegL1Ref$coefficients,
                                DetectProb = L1TotData$DetectProb[!blnNA],
                                aBorder = 0.003, 
-                               bBorder = 10^(-6), 
-                               cBorder = 10^(-6)
+                               bBorder = 10^(-5), 
+                               cBorder = 10^(-2)
                                
 )
+ModelFit1$AICTab
+
+# Save table with AIC
+write.csv(AICTab, SelectTabOutPath)
+save.image(SelectResultOutPath)
 
 ###################################################
 #                                                 #
