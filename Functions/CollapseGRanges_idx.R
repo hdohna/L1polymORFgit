@@ -39,7 +39,7 @@ CollapseGRanges_idx <- function(GR, NewSize = NULL, blnPairwise = F){
     })
     
   } else {
-    GRUnion <- union(GR, GR)
+    GRUnion <- GenomicRanges::union(GR, GR)
     OL  <- findOverlaps(GR, GRUnion)
     if(length(OL@from) != length(GR)) {
       warning("No 1:1 match between original and collapsed ranges!\n")

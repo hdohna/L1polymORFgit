@@ -314,22 +314,23 @@ VcfGR   <- makeGRangesFromDataFrame(VcfFile, seqnames.field = "X.CHROM",
 VcfGR <- resize(VcfGR, width = 100, fix = "center")
 
 # Get estimated L1 length and genotype from vcf file
-L1widthVcf <- sapply(VcfFile$INFO, GetFromVcfINFO_SVLength)
+L1widthVcf     <- sapply(VcfFile$INFO, GetFromVcfINFO_SVLength)
 L1StartEndVcf  <- t(sapply(VcfFile$INFO, GetFromVcfINFO_MELT_L1StartEnd))
 
 # Get sample ID from vcf column and get index of L1 insertions that occur in
 # that sample
-SampleIDs <- sapply(10:ncol(VcfFile), function(x) {
-  strsplit(colnames(VcfFile)[x], "_")[[1]][2]
-})
+# SampleIDs <- sapply(10:ncol(VcfFile), function(x) {
+#   strsplit(colnames(VcfFile)[x], "_")[[1]][2]
+# })
+SampleIDs <- unique(L1Detect$SampleID)
 L1Detect_Group <- NULL
 SampleID <- SampleIDs[1]
 for (SampleID in  SampleIDs){
   cat("Processing", SampleID, "\n")
-  idxL1    <- which(L1_1000G[,SampleID] > 0)
-  vcfCol   <- grep(SampleID, colnames(VcfFile))
-  L1GenoVcf  <- sapply(VcfFile[,vcfCol], GetFromVcfGeno_GenoNum)
-  SampleGR <- makeGRangesFromDataFrame(L1_1000G[idxL1,], 
+  idxL1     <- which(L1_1000G[,SampleID] > 0)
+  vcfCol    <- grep(SampleID, colnames(VcfFile))
+  L1GenoVcf <- sapply(VcfFile[,vcfCol], GetFromVcfGeno_GenoNum)
+  SampleGR  <- makeGRangesFromDataFrame(L1_1000G[idxL1,], 
                                        seqnames.field = "chromosome",
                                        start.field = "POS",
                                        end.field = "POS")
@@ -387,13 +388,48 @@ for (SampleID in  SampleIDs){
   
 }
 
-# Add column for full-length L1
-L1Detect_Group$blnFull <- L1Detect_Group$L1widthTrue >= 6000
-
 # Logistic regression for detection probability as finction of insertion length
 LogReg_DetectL1width_Group <- glm(blnDetect ~ L1widthTrue + blnFull, data = L1Detect_Group,
-                            family = binomial)
+                                  family = binomial)
 summary(LogReg_DetectL1width_Group)
+
+
+######################################################
+#                                                    #
+#      Create an aggrgegated file of                 #
+#     L1 detection from group analysis of            #
+#          simulated files                           #
+#                                                    #
+######################################################
+
+# Create the file
+L1DetectAgg_Group <- VcfFile
+
+L1DetectAgg_Group$L1widthEst <- sapply(VcfFile$INFO, GetFromVcfINFO_SVLength)
+L1StartEndVcf  <- t(sapply(VcfFile$INFO, GetFromVcfINFO_MELT_L1StartEnd))
+L1DetectAgg_Group$L1StartEst <- L1StartEndVcf[,1]
+L1DetectAgg_Group$L1EndEst   <- L1StartEndVcf[,2]
+
+# Determine overlaps between simulated and detected L1
+OLSimDetect <- findOverlaps(VcfGR, L1_1000G_GR_hg19)
+L1DetectAgg_Group$PosTrue[OLSimDetect@from]   <- L1_1000G$POS[OLSimDetect@to]
+L1DetectAgg_Group$blnDetect[OLSimDetect@from] <- 
+  overlapsAny(L1_1000G_GR_hg19[OLSimDetect@to], VcfGR)
+L1DetectAgg_Group$L1GenoTrue[OLSimDetect@from]  <- L1_1000G$POS[OLSimDetect@to]
+L1DetectAgg_Group$L1widthTrue[OLSimDetect@from] <- L1_1000G$InsLength[OLSimDetect@to]
+L1DetectAgg_Group$L1StartTrue[OLSimDetect@from] <- L1_1000G$L1Start[OLSimDetect@to]
+L1DetectAgg_Group$L1EndTrue[OLSimDetect@from]   <- L1_1000G$L1End[OLSimDetect@to]
+
+# Add column for full-length L1
+L1DetectAgg_Group$blnFull <- L1DetectAgg_Group$L1widthTrue >= 6000
+
+# Add columns for true genotypes
+TrueGeno <- matrix(nrow = nrow(L1DetectAgg_Group), ncol = length(SampleIDs))
+colnames(TrueGeno) <- SampleIDs
+for (SampleID in SampleIDs){
+  TrueGeno[OLSimDetect@from, SampleID] <- L1_1000G[OLSimDetect@to, SampleID]
+}
+L1DetectAgg_Group <- cbind(L1DetectAgg_Group, TrueGeno)
 
 
 ######################################################
