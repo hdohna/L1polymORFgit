@@ -40,6 +40,7 @@ SampleTrueL1Width <- function(SimL1widthTrue,
   SimL1widthTrueCut <- cut(SimL1widthTrue, breaks = L1widthBreaks)
   SimL1widthEstCut  <- cut(SimL1widthEst, breaks  = L1widthBreaks)
   EstL1widthEstCut  <- cut(EstL1width, breaks  = L1widthBreaks)
+  EstL1width[is.na(EstL1widthEstCut)]
   
   # Create boolean indicator for estimated and true L1 width to be in the same 
   # bin
@@ -64,7 +65,7 @@ SampleTrueL1Width <- function(SimL1widthTrue,
   
   # Index matching vector of estimated L1 length to matrix L1TrueGivenEst
   idxRow <- match(EstL1widthEstCut, rownames(L1TrueGivenEst))
-  
+
   # Create sample matrix: rows = true L1 width, column = observed estimated
   # L1 width, entries = probability of true L1 width given estimated
   SampleMat <- sapply(1:length(EstL1widthEstCut), function(x){
@@ -72,12 +73,6 @@ SampleTrueL1Width <- function(SimL1widthTrue,
     Prob[idxRow[x]] <- ProbSame[x]
     Prob
   })
-  
-  # Plot observed vs expected L1 width counts to check whether expected 
-  # counts are close to true counts
-  plot(rowSums(SampleMat), table(SimL1widthTrueCut), 
-       ylab = "True L1 width counts")
-  lines(c(0, 1000), c(0, 1000))
   
   # Plot true frequency, estimated frequency, and reconstructed frequency
   # per length bin
