@@ -84,4 +84,6 @@ SampleTrueL1Width <- function(SimL1widthTrue,
   ObsL1Freq_Est    <- aggregate(ObsL1Freq ~ EstL1widthEstCut,     FUN = mean)
   SimL1Freq_True   <- aggregate(SimL1Freq ~ SimL1widthTrueCut, FUN = mean)
   SampledTrueL1idx <- apply(SampleMat, 2, function(x) sample(nrow(SampleMat), 1, prob = x))
+  L1MidPts <- 0.5 * (L1widthBreaks[-1] + L1widthBreaks[-length(L1widthBreaks)])
+  L1MidPts[SampledTrueL1idx]
 }
