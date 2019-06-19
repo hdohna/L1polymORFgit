@@ -25,7 +25,7 @@ GetFromVcfINFO_MELT_L1StartEnd <- function(x, L1Length = 6019){
     Start <- NA
     End   <- NA
   } else {
-    Split2 <- strsplit(grep("DIFF=", Split1, value = T), ":")[[1]][2]
+    Split2 <- strsplit(Split1[idxDiff], ":")[[1]][2]
     Split3 <- strsplit(Split2, ",")[[1]]
     if (substr(Split3[1], 1, 1) == "n") {
       Start <- as.numeric(strsplit(Split3[1], "-")[[1]][2]) + 1
