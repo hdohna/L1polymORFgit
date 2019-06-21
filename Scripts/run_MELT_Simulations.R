@@ -89,7 +89,7 @@ if (blnRunSimAnalysis){
     OutBamSorted <- gsub("_Haplo1.fa", "_sorted.bam", SimGenome_tmp)
     OutVcf <- gsub("_Haplo1.fa", "_sorted.vcf", SimGenome)
     
-    # Construct command to simulate genome
+    # Construct command to simulate genome (TO DO: CHECK PARAMETER OPTIONS)
     wgsimCmds <- c(paste("/home/hzudohna/wgsim/wgsim -h -e 0.004 -d 379.5 -s 21.6 -1 100 -2 100 -N 70000000",
                          SimGenome, Fq11, Fq12, ">", OutSim1),
                    paste("/home/hzudohna/wgsim/wgsim -h -e 0.004 -d 379.5 -s 21.6 -1 100 -2 100 -N 70000000",
@@ -385,9 +385,9 @@ if(blnRunGroupAnalysis){
   
   # Check for breaks bam files of size 0 and remove all associated files if
   # there are bam files of size 0
-  BrkBamFiles <- list.files(PathGroupMELT, full.names = T,
+  BrkBamFiles   <- list.files(PathGroupMELT, full.names = T,
                             pattern = "_sorted.LINE1.hum_breaks.sorted.bam")
-  BrkBamFiles <- BrkBamFiles[-grep("bam.bai", BrkBamFiles)]
+  BrkBamFiles   <- BrkBamFiles[-grep("bam.bai", BrkBamFiles)]
   BrkBam2Remove <- BrkBamFiles[file.size(BrkBamFiles) == 0]
   for (x in  BrkBam2Remove){
     cat("Removing files associated with", BrkBam2Remove, "\n")
