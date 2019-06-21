@@ -210,6 +210,30 @@ L1TotData$L1width_sample4[!blnL1widthNA] <- SampleTrueL1Width(
   ObsL1Freq = L1TotData$Freq[!blnL1widthNA],
   L1widthBreaks = seq(0, 6500, 500))
 
+L1TotData$L1width_sample5[!blnL1widthNA] <- SampleTrueL1Width(
+  SimL1widthTrue = L1DetectAgg_withL1$L1widthTrue, 
+  SimL1widthEst  = L1DetectAgg_withL1$L1widthEst,
+  SimL1Freq = L1DetectAgg_withL1$EstFreq,
+  EstL1width = L1TotData$L1width[!blnL1widthNA],
+  ObsL1Freq = L1TotData$Freq[!blnL1widthNA],
+  L1widthBreaks = seq(0, 6500, 500))
+
+L1TotData$L1width_sample6[!blnL1widthNA] <- SampleTrueL1Width(
+  SimL1widthTrue = L1DetectAgg_withL1$L1widthTrue, 
+  SimL1widthEst  = L1DetectAgg_withL1$L1widthEst,
+  SimL1Freq = L1DetectAgg_withL1$EstFreq,
+  EstL1width = L1TotData$L1width[!blnL1widthNA],
+  ObsL1Freq = L1TotData$Freq[!blnL1widthNA],
+  L1widthBreaks = seq(0, 6500, 500))
+
+L1TotData$L1width_sample7[!blnL1widthNA] <- SampleTrueL1Width(
+  SimL1widthTrue = L1DetectAgg_withL1$L1widthTrue, 
+  SimL1widthEst  = L1DetectAgg_withL1$L1widthEst,
+  SimL1Freq = L1DetectAgg_withL1$EstFreq,
+  EstL1width = L1TotData$L1width[!blnL1widthNA],
+  ObsL1Freq = L1TotData$Freq[!blnL1widthNA],
+  L1widthBreaks = seq(0, 6500, 500))
+
 cat("done!\n")
 
 ###################################################
@@ -234,8 +258,8 @@ ModelFit1 <- FitSelectionModels(PredictMat[!blnNA, 1:3],
                                 LogRegCoeff = LogRegL1Ref$coefficients,
                                 DetectProb = L1TotData$DetectProb[!blnNA],
                                 aBorder = 0.003, 
-                                bBorder = 10^(-5), 
-                                cBorder = 10^(-2))
+                                bBorder = 10^(-2), 
+                                cBorder = 10^(-5))
 
 cat("\n********   Estimating effect of insertion length: sampled length 1   **********\n")
 ModelFit2 <- FitSelectionModels(PredictMat[!blnNA, c(1, 3, 4)],  
@@ -247,8 +271,8 @@ ModelFit2 <- FitSelectionModels(PredictMat[!blnNA, c(1, 3, 4)],
                                 LogRegCoeff = LogRegL1Ref$coefficients,
                                 DetectProb = L1TotData$DetectProb[!blnNA],
                                 aBorder = 0.003, 
-                                bBorder = 10^(-5), 
-                                cBorder = 10^(-2))
+                                bBorder = 10^(-2), 
+                                cBorder = 10^(-5))
 
 cat("\n********   Estimating effect of insertion length: sampled length 2   **********\n")
 ModelFit3 <- FitSelectionModels(PredictMat[!blnNA, c(1, 4, 5)],  
@@ -260,8 +284,8 @@ ModelFit3 <- FitSelectionModels(PredictMat[!blnNA, c(1, 4, 5)],
                                 LogRegCoeff = LogRegL1Ref$coefficients,
                                 DetectProb = L1TotData$DetectProb[!blnNA],
                                 aBorder = 0.003, 
-                                bBorder = 10^(-5), 
-                                cBorder = 10^(-2))
+                                bBorder = 10^(-2), 
+                                cBorder = 10^(-5))
 
 cat("\n********   Estimating effect of insertion length: sampled length 3   **********\n")
 ModelFit4 <- FitSelectionModels(PredictMat[!blnNA, c(1, 5, 6)],  
@@ -273,8 +297,8 @@ ModelFit4 <- FitSelectionModels(PredictMat[!blnNA, c(1, 5, 6)],
                                 LogRegCoeff = LogRegL1Ref$coefficients,
                                 DetectProb = L1TotData$DetectProb[!blnNA],
                                 aBorder = 0.003, 
-                                bBorder = 10^(-5), 
-                                cBorder = 10^(-2))
+                                bBorder = 10^(-2), 
+                                cBorder = 10^(-5))
 
 cat("\n********   Estimating effect of insertion length: sampled length 4   **********\n")
 ModelFit5 <- FitSelectionModels(PredictMat[!blnNA, c(1, 6, 2)],  
@@ -286,8 +310,8 @@ ModelFit5 <- FitSelectionModels(PredictMat[!blnNA, c(1, 6, 2)],
                                 LogRegCoeff = LogRegL1Ref$coefficients,
                                 DetectProb = L1TotData$DetectProb[!blnNA],
                                 aBorder = 0.003, 
-                                bBorder = 10^(-5), 
-                                cBorder = 10^(-2))
+                                bBorder = 10^(-2), 
+                                cBorder = 10^(-5))
 
 # Save everything
 save.image(SelectResultOutPath)
