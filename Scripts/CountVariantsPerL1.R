@@ -190,8 +190,15 @@ SNPLogRegInt <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + blnUTR5 + blnORF1 +
                       L1Width + PropMismatch + blnORF1*blnFull + blnORF2*blnFull,
                     data = L1CoverTable, family = binomial(), chunksize = 3*10^4,
                     maxit = 20)
-summary(SNPLogRegInt)
 cat("done!\n")
+
+# Export data frame with regression results
+SNPLogRegInt_Summary <- summary(SNPLogRegInt)
+SNPLogRegInt_SumDF   <- as.data.frame(SNPLogRegInt_Summary$mat)
+SNPLogRegInt_SumDF$ExpCoef <- exp(SNPLogRegInt_SumDF$Coef) 
+ResultPath <- "D:/L1polymORF/Data/L1VariantRegrResults.csv"
+cat("Writing regression results to", ResultPath, "\n")
+write.csv(SNPLogRegInt_SumDF, ResultPath)
 
 # Count overlaps per region
 L1VarCount_UTR5 <- countOverlaps(GR_UTR5_full, L1VarGR)
@@ -397,5 +404,5 @@ CreateDisplayPdf('D:/L1polymORF/Figures/VariantCounts.pdf',
 # plot(width(L1GR), L1VarCount / width(L1GR), col = rgb(0, 0, 0, alpha = 0.2), xlab = "L1 length",
 #      ylab = "Number variants")
 # 
-# save.image("D:/L1polymORF/Data/L1VariantCount.RData")
+save.image("D:/L1polymORF/Data/L1VariantCount.RData")
 # 

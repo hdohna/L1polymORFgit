@@ -1,6 +1,5 @@
 # The script below estimates selection coefficients of L1 from the 
 # 1000 genome data 
-# 
 
 ##########################################
 #                                        #
@@ -31,7 +30,7 @@ L1RefRangePath      <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
 RegrOutputPath      <- "D:/L1polymORF/Data/L1RegressionResults.RData"
 SelectTabOutPath    <- "D:/L1polymORF/Data/L1SelectionResults_MELT.csv"
 SelectGenTabOutPath <- "D:/L1polymORF/Data/L1SelectionGeneResults_MELT.csv"
-SelectResultOutPath <- "D:/L1polymORF/Data/L1SelectionResults_MELT.RData"
+SelectResultOutPath <- "D:/L1polymORF/Data/L1SelectionResults_MELT_GroupwithSim.RData"
 SelectWithinGenTabOutPath <- "D:/L1polymORF/Data/L1SelectionWithinGeneResults_MELT.csv"
 SelectSingletonTabOutPath <- "D:/L1polymORF/Data/L1SelectionSingletonResults_MELT.csv"
 
@@ -177,62 +176,6 @@ Nnf <- nrow(L1TotData)
 L1DetectAgg_withL1 <- L1DetectAgg_Group[
   which(L1DetectAgg_Group$L1widthTrue > 0 & L1DetectAgg_Group$L1widthEst > 0 ),]
 blnL1widthNA <- is.na(L1TotData$L1width)
-L1TotData$L1width_sample1 <- NA
-L1TotData$L1width_sample2 <- NA
-L1TotData$L1width_sample3 <- NA
-L1TotData$L1width_sample4 <- NA
-L1TotData$L1width_sample1[!blnL1widthNA] <- SampleTrueL1Width(
-    SimL1widthTrue = L1DetectAgg_withL1$L1widthTrue, 
-    SimL1widthEst  = L1DetectAgg_withL1$L1widthEst,
-    SimL1Freq = L1DetectAgg_withL1$EstFreq,
-    EstL1width = L1TotData$L1width[!blnL1widthNA],
-    ObsL1Freq = L1TotData$Freq[!blnL1widthNA],
-    L1widthBreaks = seq(0, 6500, 500))
-L1TotData$L1width_sample2[!blnL1widthNA] <- SampleTrueL1Width(
-  SimL1widthTrue = L1DetectAgg_withL1$L1widthTrue, 
-  SimL1widthEst  = L1DetectAgg_withL1$L1widthEst,
-  SimL1Freq = L1DetectAgg_withL1$EstFreq,
-  EstL1width = L1TotData$L1width[!blnL1widthNA],
-  ObsL1Freq = L1TotData$Freq[!blnL1widthNA],
-  L1widthBreaks = seq(0, 6500, 500))
-L1TotData$L1width_sample3[!blnL1widthNA] <- SampleTrueL1Width(
-  SimL1widthTrue = L1DetectAgg_withL1$L1widthTrue, 
-  SimL1widthEst  = L1DetectAgg_withL1$L1widthEst,
-  SimL1Freq = L1DetectAgg_withL1$EstFreq,
-  EstL1width = L1TotData$L1width[!blnL1widthNA],
-  ObsL1Freq = L1TotData$Freq[!blnL1widthNA],
-  L1widthBreaks = seq(0, 6500, 500))
-L1TotData$L1width_sample4[!blnL1widthNA] <- SampleTrueL1Width(
-  SimL1widthTrue = L1DetectAgg_withL1$L1widthTrue, 
-  SimL1widthEst  = L1DetectAgg_withL1$L1widthEst,
-  SimL1Freq = L1DetectAgg_withL1$EstFreq,
-  EstL1width = L1TotData$L1width[!blnL1widthNA],
-  ObsL1Freq = L1TotData$Freq[!blnL1widthNA],
-  L1widthBreaks = seq(0, 6500, 500))
-
-L1TotData$L1width_sample5[!blnL1widthNA] <- SampleTrueL1Width(
-  SimL1widthTrue = L1DetectAgg_withL1$L1widthTrue, 
-  SimL1widthEst  = L1DetectAgg_withL1$L1widthEst,
-  SimL1Freq = L1DetectAgg_withL1$EstFreq,
-  EstL1width = L1TotData$L1width[!blnL1widthNA],
-  ObsL1Freq = L1TotData$Freq[!blnL1widthNA],
-  L1widthBreaks = seq(0, 6500, 500))
-
-L1TotData$L1width_sample6[!blnL1widthNA] <- SampleTrueL1Width(
-  SimL1widthTrue = L1DetectAgg_withL1$L1widthTrue, 
-  SimL1widthEst  = L1DetectAgg_withL1$L1widthEst,
-  SimL1Freq = L1DetectAgg_withL1$EstFreq,
-  EstL1width = L1TotData$L1width[!blnL1widthNA],
-  ObsL1Freq = L1TotData$Freq[!blnL1widthNA],
-  L1widthBreaks = seq(0, 6500, 500))
-
-L1TotData$L1width_sample7[!blnL1widthNA] <- SampleTrueL1Width(
-  SimL1widthTrue = L1DetectAgg_withL1$L1widthTrue, 
-  SimL1widthEst  = L1DetectAgg_withL1$L1widthEst,
-  SimL1Freq = L1DetectAgg_withL1$EstFreq,
-  EstL1width = L1TotData$L1width[!blnL1widthNA],
-  ObsL1Freq = L1TotData$Freq[!blnL1widthNA],
-  L1widthBreaks = seq(0, 6500, 500))
 
 cat("done!\n")
 
@@ -243,9 +186,7 @@ cat("done!\n")
 ###################################################
 
 # Create a matrix of predictor variables (L1 start and boolean variable for)
-PredictMat <- L1TotData[, c("blnFull", "L1width", "L1width_sample1", 
-                            "L1width_sample2", "L1width_sample3", 
-                            "L1width_sample4")]
+PredictMat <- L1TotData[, c("blnFull", "L1width", "Freq")]
 blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
 
 cat("\n********   Estimating effect of insertion length: true length   **********\n")
@@ -261,57 +202,48 @@ ModelFit1 <- FitSelectionModels(PredictMat[!blnNA, 1:3],
                                 bBorder = 10^(-2), 
                                 cBorder = 10^(-5))
 
-cat("\n********   Estimating effect of insertion length: sampled length 1   **********\n")
-ModelFit2 <- FitSelectionModels(PredictMat[!blnNA, c(1, 3, 4)],  
-                                Freqs = round(L1TotData$Freq[!blnNA], 0), 
-                                Counts = rep(1, sum(!blnNA)), 
-                                PopSize = PopSize, 
-                                SampleSize = L1TotData$SampleSize[!blnNA],
-                                blnIns = L1TotData$blnIns[!blnNA], 
-                                LogRegCoeff = LogRegL1Ref$coefficients,
-                                DetectProb = L1TotData$DetectProb[!blnNA],
-                                aBorder = 0.003, 
-                                bBorder = 10^(-2), 
-                                cBorder = 10^(-5))
+ModelFitSamples <- lapply(1:10, function(x) {
+  
+  cat("\n********   Estimating effect of insertion length: sample", x, "   **********\n")
+  blnL1widthNA <- is.na(L1TotData$L1width)
+  L1TotData$L1width_sample <- NA
+  L1TotData$L1width_sample[!blnL1widthNA] <- SampleTrueL1Width(
+    SimL1widthTrue = L1DetectAgg_withL1$L1widthTrue, 
+    SimL1widthEst  = L1DetectAgg_withL1$L1widthEst,
+    SimL1Freq = L1DetectAgg_withL1$EstFreq,
+    EstL1width = L1TotData$L1width[!blnL1widthNA],
+    ObsL1Freq = L1TotData$Freq[!blnL1widthNA],
+    L1widthBreaks = seq(0, 6500, 500))
+   
+  # Create a matrix of predictor variables (L1 start and boolean variable for)
+  PredictMat <- L1TotData[, c("blnFull", "L1width_sample", "Freq")]
+  blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
+  
+  FitSelectionModels(PredictMat[!blnNA, ],  
+                                  Freqs = round(L1TotData$Freq[!blnNA], 0), 
+                                  Counts = rep(1, sum(!blnNA)), 
+                                  PopSize = PopSize, 
+                                  SampleSize = L1TotData$SampleSize[!blnNA],
+                                  blnIns = L1TotData$blnIns[!blnNA], 
+                                  LogRegCoeff = LogRegL1Ref$coefficients,
+                                  DetectProb = L1TotData$DetectProb[!blnNA],
+                                  aBorder = 0.003, 
+                                  bBorder = 10^(-2), 
+                                  cBorder = 10^(-5))
+  
+})
 
-cat("\n********   Estimating effect of insertion length: sampled length 2   **********\n")
-ModelFit3 <- FitSelectionModels(PredictMat[!blnNA, c(1, 4, 5)],  
-                                Freqs = round(L1TotData$Freq[!blnNA], 0), 
-                                Counts = rep(1, sum(!blnNA)), 
-                                PopSize = PopSize, 
-                                SampleSize = L1TotData$SampleSize[!blnNA],
-                                blnIns = L1TotData$blnIns[!blnNA], 
-                                LogRegCoeff = LogRegL1Ref$coefficients,
-                                DetectProb = L1TotData$DetectProb[!blnNA],
-                                aBorder = 0.003, 
-                                bBorder = 10^(-2), 
-                                cBorder = 10^(-5))
-
-cat("\n********   Estimating effect of insertion length: sampled length 3   **********\n")
-ModelFit4 <- FitSelectionModels(PredictMat[!blnNA, c(1, 5, 6)],  
-                                Freqs = round(L1TotData$Freq[!blnNA], 0), 
-                                Counts = rep(1, sum(!blnNA)), 
-                                PopSize = PopSize, 
-                                SampleSize = L1TotData$SampleSize[!blnNA],
-                                blnIns = L1TotData$blnIns[!blnNA], 
-                                LogRegCoeff = LogRegL1Ref$coefficients,
-                                DetectProb = L1TotData$DetectProb[!blnNA],
-                                aBorder = 0.003, 
-                                bBorder = 10^(-2), 
-                                cBorder = 10^(-5))
-
-cat("\n********   Estimating effect of insertion length: sampled length 4   **********\n")
-ModelFit5 <- FitSelectionModels(PredictMat[!blnNA, c(1, 6, 2)],  
-                                Freqs = round(L1TotData$Freq[!blnNA], 0), 
-                                Counts = rep(1, sum(!blnNA)), 
-                                PopSize = PopSize, 
-                                SampleSize = L1TotData$SampleSize[!blnNA],
-                                blnIns = L1TotData$blnIns[!blnNA], 
-                                LogRegCoeff = LogRegL1Ref$coefficients,
-                                DetectProb = L1TotData$DetectProb[!blnNA],
-                                aBorder = 0.003, 
-                                bBorder = 10^(-2), 
-                                cBorder = 10^(-5))
+# Summarize samples
+x <- ModelFitSamples[[1]]
+SampleSummary <- t(sapply(ModelFitSamples, function(x){
+  AIC       <- as.numeric(as.character(x$AICTab$AIC))
+  Predictor <- as.character(x$AICTab$Predictor)
+  Pars      <- as.character(x$AICTab$Pars)
+  SortedDiffs <- sort(AIC - min(AIC))
+  c(BestModelPredict =  Predictor[which.min(AIC)],
+    BestModelPars    =  Pars[which.min(AIC)],
+    DeltaAIC = SortedDiffs[2])
+}))
 
 # Save everything
 save.image(SelectResultOutPath)
