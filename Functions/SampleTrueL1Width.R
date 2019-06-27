@@ -55,7 +55,8 @@ SampleTrueL1Width <- function(SimL1widthTrue,
   b <- LogReg$coefficients[2]
   ExpPart  <- exp(LogReg$coefficients[1] + LogReg$coefficients[2] * ObsL1Freq)
   ProbSame <- ExpPart / (1 + ExpPart)
-  plot(ObsL1Freq, ProbSame, col = rgb(0, 0, 0, 0.1), pch = 16)
+  plot(ObsL1Freq, ProbSame, col = rgb(0, 0, 0, 0.1), pch = 16,
+       xlab = "Sample frequency", ylab = "P(est. L1 width = true L1 width)")
   if (! is.null(PlotPath)){
     dev.copy2pdf(file = PlotPath)
   }

@@ -176,7 +176,13 @@ Nnf <- nrow(L1TotData)
 L1DetectAgg_withL1 <- L1DetectAgg_Group[
   which(L1DetectAgg_Group$L1widthTrue > 0 & L1DetectAgg_Group$L1widthEst > 0 ),]
 blnL1widthNA <- is.na(L1TotData$L1width)
-
+SampleTrueL1Width(
+  SimL1widthTrue = L1DetectAgg_withL1$L1widthTrue, 
+  SimL1widthEst  = L1DetectAgg_withL1$L1widthEst,
+  SimL1Freq = L1DetectAgg_withL1$EstFreq,
+  EstL1width = L1TotData$L1width[!blnL1widthNA],
+  ObsL1Freq = L1TotData$Freq[!blnL1widthNA],
+  L1widthBreaks = seq(0, 6500, 500), PlotPath = "D:/L1polymORF/Figures/PL1TrueWidthVsFreq.pdf")
 cat("done!\n")
 
 ###################################################
