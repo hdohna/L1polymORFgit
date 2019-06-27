@@ -33,7 +33,8 @@ SampleTrueL1Width <- function(SimL1widthTrue,
                               SimL1Freq,
                               EstL1width,
                               ObsL1Freq,
-                              L1widthBreaks = seq(0, 6500, 500)
+                              L1widthBreaks = seq(0, 6500, 500),
+                              PlotPath = NULL
 ){
   
   # Cut true and estimated L1 width into bins
@@ -55,7 +56,9 @@ SampleTrueL1Width <- function(SimL1widthTrue,
   ExpPart  <- exp(LogReg$coefficients[1] + LogReg$coefficients[2] * ObsL1Freq)
   ProbSame <- ExpPart / (1 + ExpPart)
   plot(ObsL1Freq, ProbSame, col = rgb(0, 0, 0, 0.1), pch = 16)
-  
+  if (! is.null(PlotPath)){
+    dev.copy2pdf(file = PlotPath)
+  }
   # Get combinations of L1 width classes among estimated 
   L1combos <- table(SimL1widthEstCut, SimL1widthTrueCut)
   diag(L1combos) <- 0

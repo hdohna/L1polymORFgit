@@ -152,7 +152,7 @@ TrueL1P <- TrueL1exp / (1 + TrueL1exp)
 plot(FreqVals, TrueL1P, type = "l",
      xlab = "Sample frequency", ylab = "P(true length)")
 
-LM3 <- glm(L1WidthAbsDiff < 50 ~ TrueFreq, data = L1DetectAgg_Group,
+LM3 <- glm(L1WidthAbsDiff < 500 ~ TrueFreq, data = L1DetectAgg_Group,
            family = binomial)
 summary(LM3)
 FreqVals <- 1:100
