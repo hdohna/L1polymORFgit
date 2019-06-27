@@ -34,6 +34,7 @@ AlleleFreqLogLik_4Par <- function(Freqs, Counts, Predict, a, b, c, d, SD = NULL,
   if ((length(Freqs) != length(Counts)) | (length(Freqs) != nrow(Predict)) |
       (nrow(Predict) != length(Counts)) | (length(Freqs) != length(blnIns)) |
       length(Counts) != length(DetectProb)){
+    browser()
     stop("Freqs, Counts and Predict vector have to have the same length\n")
   }
   if (length(SampleSize) == 1){
@@ -59,7 +60,7 @@ AlleleFreqLogLik_4Par <- function(Freqs, Counts, Predict, a, b, c, d, SD = NULL,
   }
 
   blnInf       <- is.infinite(LogLikVals)
-#  LogLikVals[blnInf] <- MinFactor*min(LogLikVals[!blnInf])
+  LogLikVals[blnInf] <- MinFactor*min(LogLikVals[!blnInf])
 
   if (verbose){
     cat("parameter values: a =", a, "b =", b, "c = ", c, "d = ", d,

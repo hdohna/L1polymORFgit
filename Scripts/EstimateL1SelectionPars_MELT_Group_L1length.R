@@ -165,7 +165,7 @@ L1TotData$DetectProb[L1TotData$blnIns] <- 0.9
 L1TotData$blnRef <- !L1TotData$blnIns
 LogRegL1Ref <- glm(blnRef ~ L1Freq, family = binomial, data = L1TotData)
 LogRegL1Ref$coefficients
-
+L1TotData$L1Freq
 # Combine genomic ranges
 L1TotGR <- c(MEIns_GR, L1GRanges)
 
