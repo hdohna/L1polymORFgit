@@ -42,7 +42,7 @@ load(InputPath)
 
 # Create a vector of L1 start classes
 L1TotData$InsLengthClass <- cut(L1TotData$L1width, breaks = 
-                                  seq(0, 6500, 5000))
+                                  seq(0, 6750, 750))
 
 # Get mean L1 frequency per start
 L1WidthAggregated <- AggDataFrame(L1TotData, 
@@ -53,39 +53,30 @@ L1WidthAggregated <- AggDataFrame(L1TotData,
                                               
 # Get sample size and create a range of s-values
 SSize      <- 2*2504
-StartVals  <- seq(0, 6200, 200)
-Full       <- StartVals >= 6000
-ModelFit1
-SVals <- ML_L1widthL1full$par[1] + ML_L1widthL1full$par[2]*StartVals +
-  ML_L1widthL1full$par[3]*Full
-DetectProb <- exp(L1SizeDetectCoeff[1] + 
-      L1SizeDetectCoeff[2] * StartVals) / 
-  (1 + exp(L1SizeDetectCoeff[1] + 
-             L1SizeDetectCoeff[2] * StartVals))
+LengthVals  <- seq(0, 6200, 200)
+Full       <- LengthVals >= 6000
+ModelFit1$ML_abc$par
+SVals <- ModelFit1$ML_abc$par[1] + ModelFit1$ML_abc$pa[2]*Full +
+  ModelFit1$ML_abc$par[3]*LengthVals
+  
+DetectProb <- 0.8
 
-SVals2 <- -0.000001 - 2*10^-7*StartVals +
-  1.08*10^-3*Full
-
-# Calculate expected frequency per 
-ExpL1Width <- sapply(1:length(SVals), function(i) ExpAlleleFreq(s = SVals[i], N = PopSize, 
-                                                      SampleSize = MEInsSamplesize,
-                                                      DetectProb = DetectProb[i],
-                                                      blnIns = T, 
-                                                      LogRegCoeff = LogRegL1Ref$coefficients))
-# ExpL1Width2 <- sapply(SVals2, function(x) ExpAlleleFreq(s = x, N = 10^5, 
-#                                                       SampleSize = 2*2504,
-#                                                       DetectProb = 0.9,
+# Calculate expected frequency per selection coefficient
+# ExpL1Width <- sapply(1:length(SVals), function(i) ExpAlleleFreq(s = SVals[i], N = PopSize, 
+#                                                       SampleSize = MEInsSamplesize,
+#                                                       DetectProb = DetectProb,
+#                                                       blnIns = T, 
 #                                                       LogRegCoeff = LogRegL1Ref$coefficients))
 par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2), 
-     mai = c(1, 1, 0.2, 1),
+     mai = c(1, 1, 0.2, 1.5),
      cex.lab = 1)
-plot(L1WidthAggregated$L1width, 
-     L1WidthAggregated$Freq/SSize, xlab = "LINE-1 length [bp]",
-     ylab = "Mean LINE-1 frequency", ylim = c(0.0005, 0.009))
-AddErrorBars(MidX = L1WidthAggregated$L1width, 
-             MidY = L1WidthAggregated$Freq/SSize, 
-             ErrorRange = sqrt(L1WidthAggregated_var$Freq/SSize^2 /
-                                 L1WidthAggregated_n$Freq),
+plot(L1WidthAggregated$L1width_mean, 
+     L1WidthAggregated$Freq_mean/SSize, xlab = "LINE-1 length [bp]",
+     ylab = "Mean LINE-1 frequency", ylim = c(0, 0.03))
+AddErrorBars(MidX = L1WidthAggregated$L1width_mean, 
+             MidY = L1WidthAggregated$Freq_mean/SSize, 
+             ErrorRange = sqrt(L1WidthAggregated$Freq_var/SSize^2 /
+                                 L1WidthAggregated$Freq_N),
              TipWidth = 20)
 #lines(StartVals, ExpL1Width2)
 lines(StartVals, ExpL1Width)
