@@ -28,11 +28,7 @@ InputPath           <- 'D:/L1polymORF/Data/SingletonAnalysis_unphased.RData'
 L1RefPath           <- 'D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
 L1RefRangePath      <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
 RegrOutputPath      <- "D:/L1polymORF/Data/L1RegressionResults.RData"
-SelectTabOutPath    <- "D:/L1polymORF/Data/L1SelectionResults_MELT.csv"
-SelectGenTabOutPath <- "D:/L1polymORF/Data/L1SelectionGeneResults_MELT.csv"
 SelectResultOutPath <- "D:/L1polymORF/Data/L1SelectionResults_MELT_GroupwithSim.RData"
-SelectWithinGenTabOutPath <- "D:/L1polymORF/Data/L1SelectionWithinGeneResults_MELT.csv"
-SelectSingletonTabOutPath <- "D:/L1polymORF/Data/L1SelectionSingletonResults_MELT.csv"
 
 # False discovery rate for selected L1
 FDR <- 0.1
@@ -83,7 +79,7 @@ GetLength <- function(x){
 MEInsCall$AF <- sapply(MEInsCall$Info, GetAF)
 MEInsCall <- MEInsCall[!is.na(MEInsCall$AF), ]
 MEInsCall$L1width <- sapply(MEInsCall$Info, GetLength)
-MEInsCall$SampleSize <- 1/min(MEInsCall$AF)
+MEInsCall$SampleSize <- 1/min(MEInsCall$AF) 
 # MEInsCall$SampleSize <- 2 * MEInsSamplesize
 MEInsCall$Freq <- ceiling(MEInsCall$SampleSize * MEInsCall$AF) # TODO: Figure out why not integers!
 MEInsCall$blnFull <- MEInsCall$L1width >= MinLengthFullL1
@@ -240,7 +236,6 @@ ModelFitSamples <- lapply(1:10, function(x) {
 })
 
 # Summarize samples
-x <- ModelFitSamples[[1]]
 SampleSummary <- t(sapply(ModelFitSamples, function(x){
   AIC       <- as.numeric(as.character(x$AICTab$AIC))
   Predictor <- as.character(x$AICTab$Predictor)

@@ -87,14 +87,14 @@ blnNA      <- sapply(1:nrow(PredictMat), function(x) any(is.na(PredictMat[x,])))
 PredictMat <- PredictMat[!blnNA, ]
 
 cat("\n********   Estimating effect of insertion length: Europeans    **********\n")
-blnEur      <- PredictMat$EUR > 0
+blnEur      <- PredictMat$EUR > 0 & PredictMat$EUR < sum(blnEur)
 ModelFitEUR <- FitSelectionModels(PredictMat[blnEur,1:3],  
                                 Freqs = round(PredictMat$EUR[blnEur], 0), 
                                 Counts = rep(1, sum(blnEur)), 
                                 PopSize = PopSize, 
                                 SampleSize = sum(SampleInfo$super_pop == "EUR"),
                                 blnIns = rep(T, sum(blnEur)), 
-                                LogRegCoeff = c(-4.706691, 9.736755),
+                                LogRegCoeff = c(-4.706691, 5),
                                 DetectProb = rep(0.8, sum(blnEur)),
                                 aBorder = 0.002, 
                                 bBorder = 10^(-2), 

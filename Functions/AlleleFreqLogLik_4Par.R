@@ -60,7 +60,7 @@ AlleleFreqLogLik_4Par <- function(Freqs, Counts, Predict, a, b, c, d, SD = NULL,
   }
 
   blnInf       <- is.infinite(LogLikVals)
-  LogLikVals[blnInf] <- MinFactor*min(LogLikVals[!blnInf])
+#  LogLikVals[blnInf] <- MinFactor*min(LogLikVals[!blnInf])
 
   if (verbose){
     cat("parameter values: a =", a, "b =", b, "c = ", c, "d = ", d,
