@@ -56,12 +56,16 @@ cat("\n\nLoading and processing data ...")
 # Load simulation results
 load("D:/L1polymORF/Data/L1Simulated_AdditionalInfo_MELT.RData")
 
+# Source start script again
+source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
+
 # Read in vcf file with MELT insertion calls
 MEInsCall <- read.table(MeltInsPath, 
                         as.is = T,
                         col.names = c("Chrom", "Pos", "ID", "Alt", "Type", "V6", 
                                       "V7", "Info"))
 MEInsCall <- MEInsCall[MEInsCall$Type == "<INS:ME:LINE1>",]
+grep("L1Ta1", MEInsCall$Info)
 
 # Extract allele frequency from info column
 GetAF <- function(x){
@@ -124,6 +128,9 @@ load(L1RefRangePath)
 load(RegrOutputPath)
 load("D:/L1polymORF/Data/DelVsL1Length.RData")
 
+# Load table with L1 reference data
+L1RefTable <- read.csv(L1RefPath, as.is = T)
+
 # Create genomic ranges of reference L1 with 100 bp added on each side
 L1NeighborRanges <- GRanges(seqnames = seqnames(L1GRanges), 
                             IRanges(start = start(L1GRanges) - 100,
@@ -136,6 +143,7 @@ OL_MEDelRefL1 <- findOverlaps(L1NeighborRanges, MEDel_GR)
 RefL1Data$Freq[OL_MEDelRefL1@from] <- MEDelCall$Freq[OL_MEDelRefL1@to]
 RefL1Data$SampleSize[OL_MEDelRefL1@from] <- MEDelCall$SampleSize[OL_MEDelRefL1@to]
 RefL1Data$blnFull <- RefL1Data$L1width >= MinLengthFullL1
+RefL1Data$Info    <- NA
 
 # Number of L1 that are fixed at proportion 1
 N1 <- length(L1GRanges) - length(OL_MEDelRefL1@from)
@@ -145,7 +153,8 @@ L1GRanges <- L1GRanges[OL_MEDelRefL1@from]
 
 # Put data of non-reference L1 (insertions) and reference L1 (deletions) 
 # together
-L1TotData <- rbind(MEInsCall[ ,c("L1width", "Freq", "SampleSize", "blnFull")],
+L1TotData <- rbind(MEInsCall[ ,c("L1width", "Freq", "SampleSize", "blnFull",
+                                 "Info")],
                    RefL1Data)
 L1TotData$blnIns <- c(rep(T, nrow(MEInsCall)), rep(F, nrow(RefL1Data)))
 L1TotData$L1Freq <- NA
@@ -181,6 +190,13 @@ SampleTrueL1Width(
   L1widthBreaks = seq(0, 6500, 500), PlotPath = "D:/L1polymORF/Figures/PL1TrueWidthVsFreq.pdf")
 cat("done!\n")
 
+# Test for frequency difference between L1 labelled Ta and not Ta
+t.test(L1TotData$Freq[grep("L1Ta", L1TotData$Info)],
+       L1TotData$Freq[-grep("L1Ta", L1TotData$Info)])
+wilcox.test(L1TotData$Freq[grep("L1Ta", L1TotData$Info)],
+       L1TotData$Freq[-grep("L1Ta", L1TotData$Info)])
+
+
 ###################################################
 #                                                 #
 #   Fit effect of insertion length on selection   #
@@ -188,7 +204,7 @@ cat("done!\n")
 ###################################################
 
 # Create a matrix of predictor variables (L1 start and boolean variable for)
-PredictMat <- L1TotData[, c("blnFull", "L1width", "Freq")]
+PredictMat <- L1TotData[, c("blnFull", "L1width", "Freq", "Info")]
 blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
 
 cat("\n********   Estimating effect of insertion length: true length   **********\n")
@@ -204,7 +220,115 @@ ModelFit1 <- FitSelectionModels(PredictMat[!blnNA, 1:3],
                                 bBorder = 10^(-2), 
                                 cBorder = 10^(-5))
 
-ModelFitSamples <- lapply(1:10, function(x) {
+# Fit model using only L1 Ta-1 
+PredictMat <- L1TotData[grep("L1Ta1", L1TotData$Info), c("blnFull", "L1width", "Freq", "Info")]
+blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
+
+cat("\n********   Estimating effect of insertion length: true length for TA1   **********\n")
+ModelFit_Ta1 <- FitSelectionModels(PredictMat[!blnNA, 1:3],  
+                                Freqs = round(L1TotData$Freq[!blnNA], 0), 
+                                Counts = rep(1, sum(!blnNA)), 
+                                PopSize = PopSize, 
+                                SampleSize = L1TotData$SampleSize[!blnNA],
+                                blnIns = L1TotData$blnIns[!blnNA], 
+                                LogRegCoeff = LogRegL1Ref$coefficients,
+                                DetectProb = L1TotData$DetectProb[!blnNA],
+                                aBorder = 0.003, 
+                                bBorder = 10^(-2), 
+                                cBorder = 10^(-5))
+
+# Fit model using only L1 Ta-1 
+idxNoTa1 <- setdiff(grep("L1Ta", L1TotData$Info), grep("L1Ta1", L1TotData$Info))
+PredictMat <- L1TotData[idxNoTa1, c("blnFull", "L1width", "Freq", "Info")]
+blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
+
+cat("\n********   Estimating effect of insertion length: true length for TA1   **********\n")
+ModelFit_noTa1 <- FitSelectionModels(PredictMat[!blnNA, 1:3],  
+                                   Freqs = round(L1TotData$Freq[!blnNA], 0), 
+                                   Counts = rep(1, sum(!blnNA)), 
+                                   PopSize = PopSize, 
+                                   SampleSize = L1TotData$SampleSize[!blnNA],
+                                   blnIns = L1TotData$blnIns[!blnNA], 
+                                   LogRegCoeff = LogRegL1Ref$coefficients,
+                                   DetectProb = L1TotData$DetectProb[!blnNA],
+                                   aBorder = 0.003, 
+                                   bBorder = 10^(-2), 
+                                   cBorder = 10^(-5))
+# Fit model using only L1 Ta 
+PredictMat <- L1TotData[grep("L1Ta", L1TotData$Info), c("blnFull", "L1width", "Freq", "Info")]
+blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
+
+cat("\n********   Estimating effect of insertion length: true length for Ta   **********\n")
+ModelFit_Ta <- FitSelectionModels(PredictMat[!blnNA, 1:3],  
+                                   Freqs = round(L1TotData$Freq[!blnNA], 0), 
+                                   Counts = rep(1, sum(!blnNA)), 
+                                   PopSize = PopSize, 
+                                   SampleSize = L1TotData$SampleSize[!blnNA],
+                                   blnIns = L1TotData$blnIns[!blnNA], 
+                                   LogRegCoeff = LogRegL1Ref$coefficients,
+                                   DetectProb = L1TotData$DetectProb[!blnNA],
+                                   aBorder = 0.003, 
+                                   bBorder = 10^(-2), 
+                                   cBorder = 10^(-5))
+
+# Fit model using only L1 non-Ta 
+PredictMat <- L1TotData[-grep("L1Ta", L1TotData$Info), c("blnFull", "L1width", "Freq", "Info")]
+blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
+
+cat("\n********   Estimating effect of insertion length: true length for Ta   **********\n")
+ModelFit_nonTa <- FitSelectionModels(PredictMat[!blnNA, 1:3],  
+                                  Freqs = round(L1TotData$Freq[!blnNA], 0), 
+                                  Counts = rep(1, sum(!blnNA)), 
+                                  PopSize = PopSize, 
+                                  SampleSize = L1TotData$SampleSize[!blnNA],
+                                  blnIns = L1TotData$blnIns[!blnNA], 
+                                  LogRegCoeff = LogRegL1Ref$coefficients,
+                                  DetectProb = L1TotData$DetectProb[!blnNA],
+                                  aBorder = 0.003, 
+                                  bBorder = 10^(-2), 
+                                  cBorder = 10^(-5))
+
+# Fit model including  an effect of full-length L1 that differs between Ta and non-Ta
+blnTa <- 1:nrow(L1TotData) %in% grep("L1Ta", L1TotData$Info)
+L1TotData$blnFull_Ta <- L1TotData$blnFull & blnTa
+L1TotData$blnFull_nonTa <- L1TotData$blnFull & (!blnTa)
+PredictMat <- L1TotData[, c("blnFull_Ta", "blnFull_nonTa", "L1width", "Freq")]
+blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
+
+cat("Estimate effect of L1 width and blnFull, spearated by Ta and non-Ta on selection ...\n")
+
+ML_L1WidthFullTa_nonTa <- constrOptim(theta = c(a = ModelFit1$ML_abc$`par`[1], 
+                                b = ModelFit1$ML_abc$`par`[2], 
+                                c = ModelFit1$ML_abc$`par`[2],
+                                d = ModelFit1$ML_abc$`par`[3]),
+                                
+                                f = function(x) -AlleleFreqLogLik_4Par(
+                                  Freqs = round(L1TotData$Freq[!blnNA], 0), 
+                                  Counts = rep(1, sum(!blnNA)), 
+                                  Predict = PredictMat[!blnNA, 1:3],
+                                  a = x[1], b = x[2], c = x[3], d = x[4], N = PopSize, 
+                                  SampleSize = L1TotData$SampleSize[!blnNA],
+                                  blnIns = L1TotData$blnIns[!blnNA], 
+                                  LogRegCoeff = LogRegL1Ref$coefficients,
+                                  DetectProb = L1TotData$DetectProb[!blnNA]),
+                                
+                      grad = NULL,
+                      ui = rbind(c(1, 0, 0, 0),  c(0, 1, 0, 0),  c(0, 0, 1, 0), c(0, 0, 0, 1),
+                                 c(-1, 0, 0, 0),  c(0, -1, 0, 0),  c(0, 0,- 1, 0), c(0, 0, 0, -1)),
+                      ci = c(a = -0.003, b1 = -10^(-2), b2 = -10^(-2), c = -10^(-5), 
+                             a = -0.003, b1 = -10^(-2), b2 = -10^(-2), c = -10^(-5)),
+                      method = "Nelder-Mead")
+# Function to extract AIC from optim results
+ModelFit1
+GetAIC <- function(OptimResults){
+  round(2 * (length(OptimResults$par) + OptimResults$value), 2)
+}
+GetAIC(ML_L1WidthFullTa_nonTa)
+cat("done!\n")
+
+
+# Fit model for various samples
+ModelFitSamples <- lapply(1:50, function(x) {
   
   cat("\n********   Estimating effect of insertion length: sample", x, "   **********\n")
   blnL1widthNA <- is.na(L1TotData$L1width)

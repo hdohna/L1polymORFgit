@@ -28,7 +28,7 @@
 
 ##############################################
 
-SampleTrueL1Width <- function(SimL1widthTrue, 
+SampleMatTrueL1Width <- function(SimL1widthTrue, 
                               SimL1widthEst,
                               SimL1Freq,
                               EstL1width,
