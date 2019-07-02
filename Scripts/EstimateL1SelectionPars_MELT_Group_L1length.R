@@ -298,7 +298,7 @@ blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
 cat("Estimate effect of L1 width and blnFull, spearated by Ta and non-Ta on selection ...\n")
 
 ML_L1WidthFullTa_nonTa <- constrOptim(theta = c(a = ModelFit1$ML_abc$`par`[1], 
-                                b = ModelFit1$ML_abc$`par`[2], 
+                                b = 0.1*ModelFit1$ML_abc$`par`[2], 
                                 c = ModelFit1$ML_abc$`par`[2],
                                 d = ModelFit1$ML_abc$`par`[3]),
                                 
@@ -327,6 +327,39 @@ GetAIC(ML_L1WidthFullTa_nonTa)
 cat("done!\n")
 
 
+# Fit model including  an effect of full-length L1 that differs between Ta1 and non-Ta1
+blnTa1 <- 1:nrow(L1TotData) %in% grep("L1Ta1", L1TotData$Info)
+L1TotData$blnFull_Ta1 <- L1TotData$blnFull & blnTa1
+L1TotData$blnFull_nonTa1 <- L1TotData$blnFull & (!blnTa1)
+PredictMat <- L1TotData[, c("blnFull_Ta1", "blnFull_nonTa1", "L1width", "Freq")]
+blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
+
+cat("Estimate effect of L1 width and blnFull, spearated by Ta1 and non-Ta1 on selection ...\n")
+
+ML_L1WidthFullTa1_nonTa1 <- constrOptim(theta = c(a = ModelFit1$ML_abc$`par`[1], 
+                                                b = ModelFit1$ML_abc$`par`[2], 
+                                                c = ModelFit1$ML_abc$`par`[2],
+                                                d = ModelFit1$ML_abc$`par`[3]),
+                                      
+                                      f = function(x) -AlleleFreqLogLik_4Par(
+                                        Freqs = round(L1TotData$Freq[!blnNA], 0), 
+                                        Counts = rep(1, sum(!blnNA)), 
+                                        Predict = PredictMat[!blnNA, 1:3],
+                                        a = x[1], b = x[2], c = x[3], d = x[4], N = PopSize, 
+                                        SampleSize = L1TotData$SampleSize[!blnNA],
+                                        blnIns = L1TotData$blnIns[!blnNA], 
+                                        LogRegCoeff = LogRegL1Ref$coefficients,
+                                        DetectProb = L1TotData$DetectProb[!blnNA]),
+                                      
+                                      grad = NULL,
+                                      ui = rbind(c(1, 0, 0, 0),  c(0, 1, 0, 0),  c(0, 0, 1, 0), c(0, 0, 0, 1),
+                                                 c(-1, 0, 0, 0),  c(0, -1, 0, 0),  c(0, 0,- 1, 0), c(0, 0, 0, -1)),
+                                      ci = c(a = -0.003, b1 = -10^(-2), b2 = -10^(-2), c = -10^(-5), 
+                                             a = -0.003, b1 = -10^(-2), b2 = -10^(-2), c = -10^(-5)),
+                                      method = "Nelder-Mead")
+GetAIC(ML_L1WidthFullTa1_nonTa1)
+ML_L1WidthFullTa1_nonTa1$par
+ML_L1WidthFullTa_nonTa$par
 # Fit model for various samples
 ModelFitSamples <- lapply(1:50, function(x) {
   
