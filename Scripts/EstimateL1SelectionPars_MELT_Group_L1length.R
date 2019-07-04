@@ -324,6 +324,8 @@ GetAIC <- function(OptimResults){
   round(2 * (length(OptimResults$par) + OptimResults$value), 2)
 }
 GetAIC(ML_L1WidthFullTa_nonTa)
+ML_L1WidthFullTa_nonTa$par
+ML_L1WidthFullTa1_nonTa1$par
 cat("done!\n")
 
 
