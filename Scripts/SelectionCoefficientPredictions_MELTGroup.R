@@ -22,7 +22,6 @@ source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 # Specify file paths
 InputPath <- "D:/L1polymORF/Data/L1SelectionResults_MELT_GroupwithSim.RData"
 
-
 ##########################################
 #                                        #
 #     Load and process data              #
@@ -40,34 +39,46 @@ load(InputPath)
 #                                                 #
 ###################################################
 
-# Create a vector of L1 start classes
+# TODO: Find out why expected frequency value based on estimated selection 
+# coefficient is always higher than observed frequency value
+
+# Create a matrix of predictor variables (L1 width and boolean variable for
+# for full-length L1)
+XMat  <- as.matrix(cbind(1, L1TotData[, c("L1width", "blnFull")]))
+
+# Create a vector of selection coefficients per L1
+L1TotData$sVals <- XMat %*% ModelFit1$ML_abc$par
+
+# Get sample size and create a range of s-values
+SSize      <- L1TotData$SampleSize[1]
+LengthVals <- seq(0, 6200, 200)
+Full      <- LengthVals >= 6000
+SVals <- ModelFit1$ML_abc$par[1] + ModelFit1$ML_abc$pa[2]*Full +
+  ModelFit1$ML_abc$par[3]*LengthVals
+DetectProb <- L1TotData$DetectProb[1]
+
+# Calculate expected frequency per L1 width
+ExpL1Width <- sapply(1:length(SVals), function(i) {
+  ExpAlleleFreq(s = SVals[i], N = PopSize, SampleSize = MEInsSamplesize,
+                DetectProb = DetectProb, blnIns = T, 
+                LogRegCoeff = LogRegL1Ref$coefficients)
+  })
+
+# Create a vector of L1 length classes
 L1TotData$InsLengthClass <- cut(L1TotData$L1width, breaks = 
                                   seq(0, 6750, 750))
 
-# Get mean L1 frequency per start
+# Get mean L1 frequency per length
 L1WidthAggregated <- AggDataFrame(L1TotData, 
                                   GroupCol = "InsLengthClass", 
-                                  MeanCols = c("L1width", "Freq"), 
+                                  MeanCols = c("L1width", "Freq", "blnFull", "sVals"), 
                                   LengthCols = "Freq",
                                   VarCols = "Freq")
-                                              
-# Get sample size and create a range of s-values
-SSize      <- 2*2504
-LengthVals  <- seq(0, 6200, 200)
-Full       <- LengthVals >= 6000
-ModelFit1$ML_abc$par
-SVals <- ModelFit1$ML_abc$par[1] + ModelFit1$ML_abc$pa[2]*Full +
-  ModelFit1$ML_abc$par[3]*LengthVals
+idxL1LengthMatch <- match(L1TotData$InsLengthClass, 
+                          L1WidthAggregated$InsLengthClass)                                              
   
-DetectProb <- 0.8
-
-# Calculate expected frequency per selection coefficient
-# ExpL1Width <- sapply(1:length(SVals), function(i) ExpAlleleFreq(s = SVals[i], N = PopSize, 
-#                                                       SampleSize = MEInsSamplesize,
-#                                                       DetectProb = DetectProb,
-#                                                       blnIns = T, 
-#                                                       LogRegCoeff = LogRegL1Ref$coefficients))
-par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2), 
+# Plot mean frequency, expected frequency
+par(mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2), 
      mai = c(1, 1, 0.2, 1.5),
      cex.lab = 1)
 plot(L1WidthAggregated$L1width_mean, 
@@ -78,19 +89,18 @@ AddErrorBars(MidX = L1WidthAggregated$L1width_mean,
              ErrorRange = sqrt(L1WidthAggregated$Freq_var/SSize^2 /
                                  L1WidthAggregated$Freq_N),
              TipWidth = 20)
-#lines(StartVals, ExpL1Width2)
-lines(StartVals, ExpL1Width)
+lines(LengthVals, ExpL1Width)
 par(new = T)
-plot(StartVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", xlab = "",
+plot(LengthVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", xlab = "",
      lty = 2)
 axis(side = 4)
 mtext(side = 4, line = 3, 'Selection coefficient')
 
-CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width.pdf',
+CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width_Group.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 4, width = 5)
 
-# Plot Individual points
+# Plot individual points (length and frequency values)
 par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2), 
      mai = c(1, 1, 0.2, 1),
      cex.lab = 1)
@@ -102,9 +112,9 @@ t.test(Freq ~ blnFull, data = L1TotData)
 L1FreqLengthSmoothed <- supsmu(L1TotData$L1width, 
                                L1TotData$Freq/SSize)
 lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, col = "red")
-lines(StartVals, ExpL1Width, lty = 4, lwd = 2, col = "red")
+lines(LengthVals, ExpL1Width, lty = 4, lwd = 2, col = "red")
 par(new = T)
-plot(StartVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", xlab = "",
+plot(LengthVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", xlab = "",
      col = "blue")
 axis(side = 4, col = "blue")
 mtext(side = 4, line = 4, 'Selection coefficient')
@@ -115,23 +125,23 @@ CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width_smoothed.pdf',
 
 # Plot variance against width
 VarL1Width <- sapply(SVals, function(x) VarAlleleFreq(x, N = 10^4, 
-                                                      SampleSize = 2*2504,
+                                                      SampleSize = SSize,
                                                       DetectProb = 0.9,
                                                       LogRegCoeff = LogRegL1Ref$coefficients))
 par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2), 
      mai = c(1, 1, 0.2, 1),
      cex.lab = 1)
 plot(L1WidthAggregated$L1width, 
-     L1WidthAggregated_var$Freq, xlab = "LINE-1 length [bp]",
-     ylab = "Variance LINE-1 frequency")
-lines(StartVals, VarL1Width)
+     L1WidthAggregated$Freq_var / SSize^2, xlab = "LINE-1 length [bp]",
+     ylab = "Variance LINE-1 frequency", ylim = c(0, 0.01))
+lines(LengthVals, VarL1Width)
 par(new = T)
-plot(StartVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", xlab = "",
+plot(LengthVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", xlab = "",
      lty = 2)
 axis(side = 4)
 mtext(side = 4, line = 3, 'Selection coefficient')
 
-CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width.pdf',
+CreateDisplayPdf('D:/L1polymORF/Figures/FreqVarVsL1Width_Group.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 5, width = 5)
 
@@ -142,33 +152,37 @@ CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width.pdf',
 #                                                             #
 ###############################################################
 
-# Create a matrix of predictor variables (L1 width and boolean variable for
-# for full-length L1)
-XMat <- as.matrix(cbind(1, L1TotData[, c("L1width", "blnFull")]))
-blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(XMat[x,])))
 
+# Create a vector of population frequencies
+freqVals <- seq(1, SSize + 1, 100)
 
-sVals <- XMat %*% ML_L1widthL1full$par
-sVals <- sVals[!is.na(sVals)]
-
-freqVals <- seq(1, SSize, 100)
-
-ExpFreqMat <- sapply(sVals, function(x){
-  sapply(freqVals, function(y) {
-    AlleleFreqSample(k = y, s = x, N = 10^4,
-                     SampleSize = SSize, 
-                     DetectProb = 0.9,
-                     LogRegCoeff = LogRegL1Ref$coefficients, 
-                     blnIns = T)
+# Create a matrix of log probabilities of combinations of population 
+# frequencies (rows) and selection coefficients (columns)  
+cat("Calculating log probabilities of combinations of selection coefficients\n",
+ "and population frequencies ...")
+LogProbMat <- sapply(1:nrow(L1WidthAggregated), function(x){
+  L1WidthAggregated$Freq_N[x]*
+  sapply(1:50, function(y) {
+    exp(AlleleFreqSample(k = y, s = L1WidthAggregated$sVals_mean[x], N = PopSize,
+                     SampleSize = SSize,
+                     DetectProb = 0.8,
+                     LogRegCoeff = LogRegL1Ref$coefficients,
+                     blnIns = T))
   })
 })
-dim(ExpFreqMat)
-ExpFreq <- rowSums(exp(ExpFreqMat))
-LogFreq <- log(ExpFreq)
-plot(ExpFreq, type = "l")
-plot(LogFreq, type = "l")
-plot(LogFreq, type = "l", ylim = c(-10, 5))
+cat("done!\n")
 
-HF <- hist(L1_1000G$Frequency)
+
+# Sum probabilities per frequency value to get expected frequencies
+ExpFreq <- rowSums(LogProbMat, na.rm = T)
+plot(ExpFreq)
+
+# Plot histogram of frequencies 
+freqValsHist <- freqVals
+freqValsHist[1] <- 0
+HF <- hist(L1_1000G$Frequency * SSize, breaks = 0:5000,
+           xlim = c(0, 50))
+lines(freqVals[-length(freqVals)], ExpFreq / sum(ExpFreq)/SSize * 50)
+
 plot(HF$counts)
 plot(log(HF$counts))
