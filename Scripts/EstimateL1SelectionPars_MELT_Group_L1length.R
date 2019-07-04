@@ -12,6 +12,7 @@ source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load packages
 library(GenomicRanges)
+library(pracma)
 
 ##########################################
 #                                        #
@@ -206,6 +207,19 @@ wilcox.test(L1TotData$Freq[grep("L1Ta", L1TotData$Info)],
 # Create a matrix of predictor variables (L1 start and boolean variable for)
 PredictMat <- L1TotData[, c("blnFull", "L1width", "Freq", "Info")]
 blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
+
+cat("\n********   Estimating effect of insertion length: true length   **********\n")
+ModelFit_pracma <- FitSelectionModels_pracma(PredictMat[!blnNA, 1:3],  
+                                Freqs = round(L1TotData$Freq[!blnNA], 0), 
+                                Counts = rep(1, sum(!blnNA)), 
+                                PopSize = PopSize, 
+                                SampleSize = L1TotData$SampleSize[!blnNA],
+                                blnIns = L1TotData$blnIns[!blnNA], 
+                                LogRegCoeff = LogRegL1Ref$coefficients,
+                                DetectProb = L1TotData$DetectProb[!blnNA],
+                                aBorder = 0.003, 
+                                bBorder = 10^(-2), 
+                                cBorder = 10^(-5))
 
 cat("\n********   Estimating effect of insertion length: true length   **********\n")
 ModelFit1 <- FitSelectionModels(PredictMat[!blnNA, 1:3],  

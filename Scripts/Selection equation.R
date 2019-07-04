@@ -27,7 +27,7 @@ fa <- function(x, y) -(exp(-x)*(exp(x)-1)*(exp(2*n*x)-exp(2*n*y*x)))/(n*(y-1)*y*
 fa(0.1, 0.5)
 
 # Integrate y from 1/2N to 1
-integrate(fa(s, x), lower = 
+#integrate(fa(s, x), lower = 
 
 
 # First derivative:

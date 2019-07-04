@@ -5,7 +5,11 @@ library(expint)
 
 # x < 1/2N
 (e^(-s)*(e^s - e^(2*N*s))*(e^(2*N*s*x) - 1))/((e^(2*N*s) - 1)*N*s*(x - 1)*x) 
-# Result integral (https://www.integral-calculator.com/)
+
+# Result of integral from 0 to 1/(2n) (https://www.integral-calculator.com/)
+(e^(-s)*(e^(2*n*s)-e^s)*(ln(abs(x-1)/abs(x))+expintegral_ei(2*n*s*x)-e^(2*n*s)*expintegral_ei(2*n*s*(x-1))))/(n*s*(e^(2*n*s)-1))
+
+# Result of integral from 0 to 1/(2n) multiplied with ((https://www.integral-calculator.com/)
 (e^(-s)*(e^(2*n*s)-e^s)*(ln(abs(x-1)/abs(x))+expintegral_ei(2*n*s*x)-e^(2*n*s)*expintegral_ei(2*n*s*(x-1))))/(n*s*(e^(2*n*s)-1))
 
 # First derivative of numerator with respect to s:
@@ -34,6 +38,7 @@ n*(x-1)*x*(1-1) = 0 # s=0
     
 # x > 1/2N
 (-e^(-s)*(e^s - 1)*(e^(2*N*s) - e^(2*N*s*x)))/((e^(2*N*s) - 1)*N*s*(x - 1)*x) 
+
 # Result (https://www.integral-calculator.com/)
 (e^(-s)*(e^s-1)*(e^(2*n*s)*(ln(abs(x))+expintegral_ei(2*n*s*(x-1))-ln(abs(x-1)))-expintegral_ei(2*n*s*x)))/(n*s*(e^(n*s)-1)*(e^(n*s)+1))
 
