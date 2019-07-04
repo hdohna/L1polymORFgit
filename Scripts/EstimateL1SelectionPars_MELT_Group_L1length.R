@@ -316,7 +316,7 @@ ML_L1WidthFullTa_nonTa <- constrOptim(theta = c(a = ModelFit1$ML_abc$`par`[1],
                                 c = ModelFit1$ML_abc$`par`[2],
                                 d = ModelFit1$ML_abc$`par`[3]),
                                 
-                                f = function(x) -AlleleFreqLogLik_4Par(
+                                f = function(x) -AlleleFreqLogLik_4Par_pracma(
                                   Freqs = round(L1TotData$Freq[!blnNA], 0), 
                                   Counts = rep(1, sum(!blnNA)), 
                                   Predict = PredictMat[!blnNA, 1:3],

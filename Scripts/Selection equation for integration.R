@@ -9,7 +9,7 @@ library(expint)
 # Result of integral from 0 to 1/(2n) (https://www.integral-calculator.com/)
 (e^(-s)*(e^(2*n*s)-e^s)*(ln(abs(x-1)/abs(x))+expintegral_ei(2*n*s*x)-e^(2*n*s)*expintegral_ei(2*n*s*(x-1))))/(n*s*(e^(2*n*s)-1))
 
-# Result of integral from 0 to 1/(2n) multiplied with ((https://www.integral-calculator.com/)
+# Result of integral from 0 to 1/(2n) multiplied with (1-p*x)^r
 (e^(-s)*(e^(2*n*s)-e^s)*(ln(abs(x-1)/abs(x))+expintegral_ei(2*n*s*x)-e^(2*n*s)*expintegral_ei(2*n*s*(x-1))))/(n*s*(e^(2*n*s)-1))
 
 # First derivative of numerator with respect to s:

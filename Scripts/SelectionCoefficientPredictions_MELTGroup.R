@@ -59,7 +59,7 @@ DetectProb <- L1TotData$DetectProb[1]
 
 # Calculate expected frequency per L1 width
 ExpL1Width <- sapply(1:length(SVals), function(i) {
-  ExpAlleleFreq(s = SVals[i], N = PopSize, SampleSize = MEInsSamplesize,
+  ExpAlleleFreq_pracma(s = SVals[i], N = PopSize, SampleSize = MEInsSamplesize,
                 DetectProb = DetectProb, blnIns = T, 
                 LogRegCoeff = LogRegL1Ref$coefficients)
   })
