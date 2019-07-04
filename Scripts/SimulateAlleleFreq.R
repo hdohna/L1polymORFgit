@@ -14,7 +14,7 @@ n = 10^4
 SelCoeff <- seq(-0.1, 0.1, 0.01)
 
 # Set the number of replicates per selection coefficient
-NrRep <- 10000
+NrRep <- 1000
 
 # Set the number of generations
 NrGen <- 10000
@@ -42,8 +42,48 @@ for (i in 1:NrGen){
   AlleleFreq  <- pmax(1/(2*n), AlleleFreq)
 }
 cat("done!\n")
-hist(AlleleFreq, seq(0, 1, 0.001))
-hist(AlleleFreq[SelCoeff == 0], seq(0, 1, 0.01))
+hist(AlleleFreq, seq(0, 1, 1/n))
+hist(AlleleFreq[SelCoeff == 0], seq(0, 1, 1/n))
+hist(AlleleFreq[abs(SelCoeff - 0.01) < 10^-10], seq(0, 1, 1/n))
+hist(AlleleFreq[abs(SelCoeff + 0.01) < 10^-10], seq(0, 1, 1/n))
+
+##########################################
+#                                        #
+#           Alternative simulation                  #
+#                                        #
+##########################################
+
+# Number to be added per generation
+NAdd <- 100
+
+# Initialize vector of allele frequencies
+PCoeff <- 1 + 10^-3
+AlleleFreqStart <- rep(1/(2*n), NAdd)
+AlleleFreq      <- AlleleFreqStart
+NDropOut        <- 0
+MeanFreq        <- 0
+NrAlleles       <- length(AlleleFreq)
+# Loop over generations and calculate new allele frequencies
+cat("Running simulation ... ")
+for (i in 1:10000){
+  SampleProbs <- AlleleFreq * PCoeff / (1 + AlleleFreq * (PCoeff - 1) )
+  AlleleFreq  <- c(rbinom(length(SampleProbs), 2*n, SampleProbs) / (2*n), AlleleFreqStart)
+  blnDrop     <- AlleleFreq == 0 | AlleleFreq == 1
+  NDropOut    <- c(NDropOut, sum(blnDrop))
+  AlleleFreq  <- AlleleFreq[!blnDrop]
+  MeanFreq    <- c(MeanFreq, mean(AlleleFreq))
+  NrAlleles    <- c(NrAlleles, length(AlleleFreq))
+}
+cat("done!\n")
+# hist(AlleleFreq, seq(0, 1, 1/n))
+# hist(AlleleFreq[SelCoeff == 0], seq(0, 1, 1/n))
+# hist(AlleleFreq[abs(SelCoeff - 0.01) < 10^-10], seq(0, 1, 1/n))
+# hist(AlleleFreq[abs(SelCoeff + 0.01) < 10^-10], seq(0, 1, 1/n))
+# plot(NDropOut, type = "l")
+# plot(MeanFreq, type = "l")
+plot(NrAlleles, type = "l")
+# dbinom(1, 5000, AlleleFreq)
+plot(sapply(1:50, function(x) sum(dbinom(x, 5000, AlleleFreq))))
 
 # Function to calculate the mean frequency above a particular threshold 
 # frequency, given the mean and variance of a normal selection
