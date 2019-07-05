@@ -47,14 +47,14 @@ load(InputPath)
 XMat  <- as.matrix(cbind(1, L1TotData[, c("L1width", "blnFull")]))
 
 # Create a vector of selection coefficients per L1
-L1TotData$sVals <- XMat %*% ModelFit1$ML_abc$par
+L1TotData$sVals <- XMat %*% ModelFit_pracma$ML_abc$par
 
 # Get sample size and create a range of s-values
 SSize      <- L1TotData$SampleSize[1]
 LengthVals <- seq(0, 6200, 200)
 Full      <- LengthVals >= 6000
-SVals <- ModelFit1$ML_abc$par[1] + ModelFit1$ML_abc$pa[2]*Full +
-  ModelFit1$ML_abc$par[3]*LengthVals
+SVals <- ModelFit_pracma$ML_abc$par[1] + ModelFit_pracma$ML_abc$pa[2]*Full +
+  ModelFit_pracma$ML_abc$par[3] * LengthVals
 DetectProb <- L1TotData$DetectProb[1]
 
 # Calculate expected frequency per L1 width
@@ -66,7 +66,7 @@ ExpL1Width <- sapply(1:length(SVals), function(i) {
 
 # Create a vector of L1 length classes
 L1TotData$InsLengthClass <- cut(L1TotData$L1width, breaks = 
-                                  seq(0, 6750, 750))
+                                  seq(0, 6500, 500))
 
 # Get mean L1 frequency per length
 L1WidthAggregated <- AggDataFrame(L1TotData, 
@@ -162,8 +162,8 @@ cat("Calculating log probabilities of combinations of selection coefficients\n",
  "and population frequencies ...")
 LogProbMat <- sapply(1:nrow(L1WidthAggregated), function(x){
   L1WidthAggregated$Freq_N[x]*
-  sapply(1:50, function(y) {
-    exp(AlleleFreqSample(k = y, s = L1WidthAggregated$sVals_mean[x], N = PopSize,
+  sapply(1:30, function(y) {
+    exp(AlleleFreqSample_pracma(k = y, s = L1WidthAggregated$sVals_mean[x], N = PopSize,
                      SampleSize = SSize,
                      DetectProb = 0.8,
                      LogRegCoeff = LogRegL1Ref$coefficients,
@@ -181,7 +181,8 @@ plot(ExpFreq)
 freqValsHist <- freqVals
 freqValsHist[1] <- 0
 HF <- hist(L1_1000G$Frequency * SSize, breaks = 0:5000,
-           xlim = c(0, 50))
+           xlim = c(0, 30))
+lines(HF$mids[1:30], ExpFreq)
 lines(freqVals[-length(freqVals)], ExpFreq / sum(ExpFreq)/SSize * 50)
 
 plot(HF$counts)
