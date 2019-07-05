@@ -57,7 +57,7 @@ hist(AlleleFreq[abs(SelCoeff + 0.01) < 10^-10], seq(0, 1, 1/n))
 NAdd <- 100
 
 # Initialize vector of allele frequencies
-PCoeff <- 1 + 10^-3
+PCoeff <- 1 - 10^-3
 AlleleFreqStart <- rep(1/(2*n), NAdd)
 AlleleFreq      <- AlleleFreqStart
 NDropOut        <- 0
@@ -75,15 +75,19 @@ for (i in 1:10000){
   NrAlleles    <- c(NrAlleles, length(AlleleFreq))
 }
 cat("done!\n")
-# hist(AlleleFreq, seq(0, 1, 1/n))
+hist(AlleleFreq, seq(0, 1, 1/n))
 # hist(AlleleFreq[SelCoeff == 0], seq(0, 1, 1/n))
 # hist(AlleleFreq[abs(SelCoeff - 0.01) < 10^-10], seq(0, 1, 1/n))
 # hist(AlleleFreq[abs(SelCoeff + 0.01) < 10^-10], seq(0, 1, 1/n))
-# plot(NDropOut, type = "l")
-# plot(MeanFreq, type = "l")
+plot(NDropOut, type = "l")
+plot(MeanFreq, type = "l")
 plot(NrAlleles, type = "l")
 # dbinom(1, 5000, AlleleFreq)
-plot(sapply(1:50, function(x) sum(dbinom(x, 5000, AlleleFreq))))
+AlleleFreqCount    <- table(AlleleFreq)
+AlleleFreqRelCount <- AlleleFreqCount / sum(AlleleFreqCount)
+AlleleFreqVals     <- as.numeric(names(AlleleFreqCount))
+plot(sapply(1:50, function(x) AlleleFreqRelCount %*% dbinom(x, 5000, AlleleFreqVals)))
+plot(sapply(1:50, function(x) sum(dbinom(x, 5000, AlleleFreqRel))))
 
 # Function to calculate the mean frequency above a particular threshold 
 # frequency, given the mean and variance of a normal selection
