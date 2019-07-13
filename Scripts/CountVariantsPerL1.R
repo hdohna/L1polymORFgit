@@ -41,6 +41,9 @@ startORF2 <- 1988
 start3UTR <- 5812
 endL1     <- 6047
 
+StartSeqORF1 <- "ATGGGGAAA"
+StartSeqORF2 <- "ATGACAGGA"
+
 # Read repeat masker table for L1HS
 L1Table <- read.csv("D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv", as.is = T)
 L1Table$ChrNr <- substr(L1Table$genoName, 4, nchar(L1Table$genoName))
@@ -62,6 +65,20 @@ L1Table$endORF2   <- pmin(L1Table$genoStart + start3UTR - L1Table$repStart,
 L1Table$start3UTR <- L1Table$genoStart + pmax(0, start3UTR - L1Table$repStart)
 L1Table$end3UTR   <- pmin(L1Table$genoStart + start3UTR - L1Table$repStart, 
                          L1Table$genoEnd)
+
+# Determine start of ORF1 and 
+L1Table$start5UTR <- L1Table$genoStart
+L1Table$end5UTR   <- pmin(L1Table$genoStart + startORF1 - L1Table$repStart, 
+                          L1Table$genoEnd)
+L1Table$startORF1 <- L1Table$genoStart + pmax(0, startORF1 - L1Table$repStart)
+L1Table$endORF1   <- pmin(L1Table$genoStart + startORF2 - L1Table$repStart, 
+                          L1Table$genoEnd)
+L1Table$startORF2 <- L1Table$genoStart + pmax(0, startORF2 - L1Table$repStart)
+L1Table$endORF2   <- pmin(L1Table$genoStart + start3UTR - L1Table$repStart, 
+                          L1Table$genoEnd)
+L1Table$start3UTR <- L1Table$genoStart + pmax(0, start3UTR - L1Table$repStart)
+L1Table$end3UTR   <- pmin(L1Table$genoStart + start3UTR - L1Table$repStart, 
+                          L1Table$genoEnd)
 
 # Determine genomic start and end for each feature of L1 (5'UTR, ORF1, ORF2 and
 # 3' UTR) on L1 on the minus strand

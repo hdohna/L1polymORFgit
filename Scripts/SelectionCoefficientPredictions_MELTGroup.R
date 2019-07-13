@@ -11,7 +11,7 @@
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load packages
-#library(pracma)
+library(pracma)
 
 ##########################################
 #                                        #
@@ -107,7 +107,7 @@ par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2),
 plot(L1TotData$L1width, 
      L1TotData$Freq/SSize, xlab = "LINE-1 length [bp]",
      ylab = "Mean LINE-1 frequency", col = rgb(0, 0, 0, alpha = 0.2), 
-     pch = 16)
+     pch = 16, ylim = c(0, 0.04))
 t.test(Freq ~ blnFull, data = L1TotData)
 L1FreqLengthSmoothed <- supsmu(L1TotData$L1width, 
                                L1TotData$Freq/SSize)
@@ -116,7 +116,7 @@ lines(LengthVals, ExpL1Width, lty = 4, lwd = 2, col = "red")
 par(new = T)
 plot(LengthVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", xlab = "",
      col = "blue")
-axis(side = 4, col = "blue")
+axis(side = 4)
 mtext(side = 4, line = 4, 'Selection coefficient')
 
 CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width_smoothed.pdf',
@@ -152,17 +152,33 @@ CreateDisplayPdf('D:/L1polymORF/Figures/FreqVarVsL1Width_Group.pdf',
 #                                                             #
 ###############################################################
 
+FreqCountV <- 1:30
 
-# Create a vector of population frequencies
-freqVals <- seq(1, SSize + 1, 100)
+# Get per L1 width bin the site-frequency spectrum (SFS) and calculate a 
+# multinomial probability per SFS
+LBinsUnique <- unique(L1TotData$InsLengthClass)
+LBinsUnique <- LBinsUnique[!is.na(LBinsUnique)]
+SFS_list <- lapply(LBinsUnique, function(x){
+  blnX   <- L1TotData$InsLengthClass == x
+  Counts <- L1TotData$Freq[blnX]
+  Counts <- Counts[!is.na(Counts)]
+  if (length(Counts) > 0){
+    SFS <- sapply(FreqCountV, function(y) sum(Counts == y))
+  }
+})
+names(SFS_list) <- LBinsUnique
 
+# Match data fram to SFS_list
+binMatch <- match(L1WidthAggregated$InsLengthClass, names(SFS_list))
+SFS_list <- SFS_list[binMatch]
+length(SFS_list)
 # Create a matrix of log probabilities of combinations of population 
 # frequencies (rows) and selection coefficients (columns)  
 cat("Calculating log probabilities of combinations of selection coefficients\n",
  "and population frequencies ...")
-LogProbMat <- sapply(1:nrow(L1WidthAggregated), function(x){
+ExpMat <- sapply(1:nrow(L1WidthAggregated), function(x){
   L1WidthAggregated$Freq_N[x]*
-  sapply(1:30, function(y) {
+  sapply(FreqCountV, function(y) {
     exp(AlleleFreqSample_pracma(k = y, s = L1WidthAggregated$sVals_mean[x], N = PopSize,
                      SampleSize = SSize,
                      DetectProb = 0.8,
@@ -174,16 +190,32 @@ cat("done!\n")
 
 
 # Sum probabilities per frequency value to get expected frequencies
-ExpFreq <- rowSums(LogProbMat, na.rm = T)
+ExpFreq <- rowSums(ExpMat, na.rm = T)
 plot(ExpFreq)
 
-# Plot histogram of frequencies 
-freqValsHist <- freqVals
-freqValsHist[1] <- 0
-HF <- hist(L1_1000G$Frequency * SSize, breaks = 0:5000,
-           xlim = c(0, 30))
-lines(HF$mids[1:30], ExpFreq)
-lines(freqVals[-length(freqVals)], ExpFreq / sum(ExpFreq)/SSize * 50)
 
-plot(HF$counts)
-plot(log(HF$counts))
+# Plot expected and observed frequency per length class
+par(mfrow = c(4, 4), oma = c(5,  5,  0.2,  0.2), 
+    mai = c(0.1, 0.1, 0.5, 0.2), cex.main = 0.75)
+
+# Plot histogram of frequencies for all width class 
+HF <- hist(L1_1000G$Frequency * SSize, breaks = 0:5000,
+           xlim = c(0, 30), main = "All", xlab = "",
+           ylab = "")
+lines(HF$mids[1:30], ExpFreq)
+for (i in 1:nrow(L1WidthAggregated)){
+  x <- L1WidthAggregated$InsLengthClass[i]
+  blnX   <- L1TotData$InsLengthClass == x
+  Counts <- L1TotData$Freq[blnX]
+  HF <- hist(Counts, breaks = 0:5000,
+             xlim = c(0, 30), main = x, xlab = "",
+             ylab = "")
+  lines(HF$mids[1:30], ExpMat[,i])
+  
+}
+mtext(side = 1, line = 3, 'Population frequency', outer = T)
+mtext(side = 2, line = 3, 'Number of LINE-1', outer = T)
+
+CreateDisplayPdf('D:/L1polymORF/Figures/ObsExpFreq.pdf',
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+                 height = 5, width = 5)
