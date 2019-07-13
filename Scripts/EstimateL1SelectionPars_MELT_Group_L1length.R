@@ -205,8 +205,20 @@ wilcox.test(L1TotData$Freq[grep("L1Ta", L1TotData$Info)],
 ###################################################
 
 # Create a matrix of predictor variables (L1 start and boolean variable for)
-PredictMat <- L1TotData[, c("blnFull", "L1width", "Freq", "Info")]
+PredictMat <- L1TotData[, c("blnFull", "L1width", "Freq")]
 blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
+sum(blnNA)
+
+AlleleFreqLogLik_4Par_pracma(
+  Freqs = round(L1TotData$Freq[!blnNA], 0), 
+  Counts = rep(1, sum(!blnNA)), 
+  Predict = PredictMat[!blnNA, 1:3],
+  a =  ModelFit_pracma$ML_abc$`par`[1], b = ModelFit_pracma$ML_abc$`par`[2], 
+  c = ModelFit_pracma$ML_abc$`par`[3], d = 0, N = PopSize, 
+  SampleSize = L1TotData$SampleSize[!blnNA],
+  blnIns = L1TotData$blnIns[!blnNA], 
+  LogRegCoeff = LogRegL1Ref$coefficients,
+  DetectProb = L1TotData$DetectProb[!blnNA])
 
 cat("\n********   Estimating effect of insertion length: true length   **********\n")
 ModelFit_pracma <- FitSelectionModels_pracma(PredictMat[!blnNA, 1:3],  
@@ -304,10 +316,13 @@ ModelFit1 <- FitSelectionModels(PredictMat[!blnNA, 1:3],
 
 # Fit model including  an effect of full-length L1 that differs between Ta and non-Ta
 blnTa <- 1:nrow(L1TotData) %in% grep("L1Ta", L1TotData$Info)
-L1TotData$blnFull_Ta <- L1TotData$blnFull & blnTa
+L1TotData$blnFull_Ta    <- L1TotData$blnFull & blnTa
 L1TotData$blnFull_nonTa <- L1TotData$blnFull & (!blnTa)
+L1TotData$blnFull_Ta    <- L1TotData$blnFull 
+L1TotData$blnFull_nonTa <- 0
 PredictMat <- L1TotData[, c("blnFull_Ta", "blnFull_nonTa", "L1width", "Freq")]
 blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
+sum(blnNA)
 
 cat("Estimate effect of L1 width and blnFull, spearated by Ta and non-Ta on selection ...\n")
 
@@ -339,6 +354,45 @@ GetAIC <- function(OptimResults){
   round(2 * (length(OptimResults$par) + OptimResults$value), 2)
 }
 GetAIC(ML_L1WidthFullTa_nonTa)
+
+
+# Fit model including  an effect of full-length L1 that differs between Ta1 and non-Ta1
+blnTa1 <- 1:nrow(L1TotData) %in% grep("L1Ta1", L1TotData$Info)
+L1TotData$blnFull_Ta1    <- L1TotData$blnFull & blnTa1
+L1TotData$blnFull_nonTa1 <- L1TotData$blnFull & (!blnTa1)
+L1TotData$blnFull_Ta1    <- L1TotData$blnFull 
+L1TotData$blnFull_nonTa1 <- 0
+PredictMat <- L1TotData[, c("blnFull_Ta1", "blnFull_nonTa1", "L1width", "Freq")]
+blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
+sum(blnNA)
+
+cat("Estimate effect of L1 width and blnFull, spearated by Ta1 and non-Ta1 on selection ...\n")
+ML_L1WidthFullTa1_nonTa1 <- constrOptim(theta = c(a = ModelFit_pracma$ML_abc$`par`[1], 
+                                                b = ModelFit_pracma$ML_abc$`par`[2], 
+                                                c = ModelFit_pracma$ML_abc$`par`[2],
+                                                d = ModelFit_pracma$ML_abc$`par`[3]),
+                                      
+                                      f = function(x) -AlleleFreqLogLik_4Par_pracma(
+                                        Freqs = round(L1TotData$Freq[!blnNA], 0), 
+                                        Counts = rep(1, sum(!blnNA)), 
+                                        Predict = PredictMat[!blnNA, 1:3],
+                                        a = x[1], b = x[2], c = x[3], d = x[4], N = PopSize, 
+                                        SampleSize = L1TotData$SampleSize[!blnNA],
+                                        blnIns = L1TotData$blnIns[!blnNA], 
+                                        LogRegCoeff = LogRegL1Ref$coefficients,
+                                        DetectProb = L1TotData$DetectProb[!blnNA]),
+                                      
+                                      grad = NULL,
+                                      ui = rbind(c(1, 0, 0, 0),  c(0, 1, 0, 0),  c(0, 0, 1, 0), c(0, 0, 0, 1),
+                                                 c(-1, 0, 0, 0),  c(0, -1, 0, 0),  c(0, 0,- 1, 0), c(0, 0, 0, -1)),
+                                      ci = c(a = -0.003, b1 = -10^(-2), b2 = -10^(-2), c = -10^(-5), 
+                                             a = -0.003, b1 = -10^(-2), b2 = -10^(-2), c = -10^(-5)),
+                                      method = "Nelder-Mead")
+# Function to extract AIC from optim results
+cat("done!\n")
+
+# Get AIC
+GetAIC(ML_L1WidthFullTa1_nonTa1)
 
 
 # # Fit model including  an effect of full-length L1 that differs between Ta1 and non-Ta1
@@ -376,7 +430,7 @@ GetAIC(ML_L1WidthFullTa_nonTa)
 # ML_L1WidthFullTa_nonTa$par
 
 # Fit model for various samples
-ModelFitSamples <- lapply(1:10, function(x) {
+ModelFitSamples_pracma <- lapply(1:10, function(x) {
   
   cat("\n********   Estimating effect of insertion length: sample", x, "   **********\n")
   blnL1widthNA <- is.na(L1TotData$L1width)
@@ -393,7 +447,7 @@ ModelFitSamples <- lapply(1:10, function(x) {
   PredictMat <- L1TotData[, c("blnFull", "L1width_sample", "Freq")]
   blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
   
-  FitSelectionModels(PredictMat[!blnNA, ],  
+  FitSelectionModels_pracma(PredictMat[!blnNA, ],  
                                   Freqs = round(L1TotData$Freq[!blnNA], 0), 
                                   Counts = rep(1, sum(!blnNA)), 
                                   PopSize = PopSize, 

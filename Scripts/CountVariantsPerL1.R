@@ -34,15 +34,20 @@ TriNuc_RCChar       <- as.character(TriNuc_RC)
 TriNucChar          <- pmin(TriNucChar, TriNuc_RCChar)
 L1CoverTable$TriNuc <- TriNucChar
 
-# Set the start of ORF1, ORF2 and L1 width. the values below were obtained by
+# Set the start of ORF1, ORF2 and L1 width. The values below were obtained by
 # submitting L1 consensus to L1Xplorer http://l1base.charite.de/l1xplorer.php
 startORF1 <- 908
 startORF2 <- 1988
 start3UTR <- 5812
 endL1     <- 6047
 
+# Get the start of non-synonymous
+StartsNonSynORF1 <- seq(0, 1011, 3)
+StartsNonSynORF2 <- seq(0, 3822, 3)
+
 StartSeqORF1 <- "ATGGGGAAA"
 StartSeqORF2 <- "ATGACAGGA"
+
 
 # Read repeat masker table for L1HS
 L1Table <- read.csv("D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv", as.is = T)
@@ -119,6 +124,44 @@ L1Width <- width(L1GR)
 blnFull <- width(L1GR) >= 6000
 blnPlus <- as.vector(strand(L1GR) == "+")
 blnPlusFull <- blnPlus[blnFull]
+L1FullStart <- start(L1GR[blnFull])
+L1FullEnd   <- end(L1GR[blnFull])
+
+# Get start positions of ORF1 and ORF2
+L1FullSeq     <- getSeq(BSgenome.Hsapiens.UCSC.hg19, L1GR[blnFull])
+ORF1StartList <- vmatchPattern(StartSeqORF1, L1FullSeq, max.mismatch = 1)
+ORF1Starts    <- sapply(ORF1StartList@ends, function(x) x[1] - 8)
+ORF2StartList <- vmatchPattern(StartSeqORF2, L1FullSeq, max.mismatch = 1)
+ORF2Starts    <- sapply(ORF2StartList@ends, function(x) x[1] - 8)
+
+# Create genomic ranges for non-synonymous and synonymous coding positions
+idxFull     <- which(blnFull)
+StartNonSyn <- NULL
+StartSyn    <- NULL
+ChrVCode    <- NULL
+ChrVFull    <- as.vector(seqnames(L1GR)[idxFull])
+for (i in 1:length(idxFull)){
+  if (blnPlusFull[i]){
+    NewStartNonSyn <- L1FullStart[i] + c(ORF1Starts[i] - 1 + StartsNonSynORF1,
+                        ORF2Starts[i] - 1 + StartsNonSynORF2)
+    StartNonSyn <- c(StartNonSyn, NewStartNonSyn)
+    StartSyn <- c(StartSyn, NewStartNonSyn + 2)
+  } else {
+    NewStartNonSyn <- L1FullEnd[i] - c(ORF1Starts[i] - 1 + StartsNonSynORF1,
+                         ORF2Starts[i] - 1 + StartsNonSynORF2)
+    StartNonSyn <- c(StartNonSyn, NewStartNonSyn)
+    StartSyn    <- c(StartSyn, NewStartNonSyn - 1)
+  }
+  ChrVCode <- c(ChrVCode, rep(ChrVFull[i], length(NewStartNonSyn)))
+}
+GRNonSyn <- GRanges(seqnames = ChrVCode, IRanges(start = StartNonSyn,
+                                                 end = StartNonSyn + 1))
+GRSyn    <- GRanges(seqnames = ChrVCode, IRanges(start = StartSyn,
+                                                 end = StartSyn))
+
+# Check that the first three letters are AT, G
+getSeq(BSgenome.Hsapiens.UCSC.hg19, GRNonSyn[1])
+getSeq(BSgenome.Hsapiens.UCSC.hg19, GRSyn[1])
 
 # Get ranges of L1s and their flanks
 L1GR_left <- makeGRangesFromDataFrame(L1Table, 
@@ -174,7 +217,7 @@ L1VarCount_Right <- countOverlaps(L1GR_right, L1VarGR_Right)
 L1VarCount_Flank <- L1VarCount_Left + L1VarCount_Right
 cor.test(L1VarCount_Left, L1VarCount_Right) 
 
-# Overlaps between individual bp and 
+# Overlaps between individual bp and L1
 OL_bpL1 <- findOverlaps(L1Cover_GR, L1GR)
 
 # Add columns with different info
@@ -191,20 +234,27 @@ L1CoverTable$L1Width <- NA
 L1CoverTable$L1Width[OL_bpL1@from] <- L1Width[OL_bpL1@to]
 L1CoverTable$blnFull <- NA
 L1CoverTable$blnFull[OL_bpL1@from] <- blnFull[OL_bpL1@to]
+#L1CoverTable$CodeType <- "NonCode" 
+L1CoverTable$Coding <- overlapsAny(L1Cover_GR, c(GRSyn, GRNonSyn))
+L1CoverTable$NonSyn    <- overlapsAny(L1Cover_GR, GRNonSyn)
+table(L1CoverTable$CodeType)
 
-# Perform analysis
+# Perform analysis without interaction
 cat("Performing regression analysis without interaction ... ")
 SNPLogReg <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + blnUTR5 + blnORF1 + 
                       blnORF2 + blnFull + CoverMean +
-                      L1Width + PropMismatch,
+                      L1Width + PropMismatch + NonSyn + Coding,
                     data = L1CoverTable, family = binomial(), chunksize = 3*10^4,
                     maxit = 20)
 summary(SNPLogReg)
 cat("done!\n")
+
+# Perform analysis with interaction
 cat("Performing regression analysis with interaction ... ")
 SNPLogRegInt <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + blnUTR5 + blnORF1 + 
                       blnORF2 + blnFull + CoverMean +
-                      L1Width + PropMismatch + blnORF1*blnFull + blnORF2*blnFull,
+                      L1Width + PropMismatch + blnORF1*blnFull + blnORF2*blnFull +
+                        NonSyn + Coding,
                     data = L1CoverTable, family = binomial(), chunksize = 3*10^4,
                     maxit = 20)
 cat("done!\n")
