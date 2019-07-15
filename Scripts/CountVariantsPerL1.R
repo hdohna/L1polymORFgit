@@ -147,8 +147,8 @@ for (i in 1:length(idxFull)){
     StartNonSyn <- c(StartNonSyn, NewStartNonSyn)
     StartSyn <- c(StartSyn, NewStartNonSyn + 2)
   } else {
-    NewStartNonSyn <- L1FullEnd[i] - c(ORF1Starts[i] - 1 + StartsNonSynORF1,
-                         ORF2Starts[i] - 1 + StartsNonSynORF2)
+    NewStartNonSyn <- L1FullEnd[i] - c(ORF1Starts[i] + StartsNonSynORF1,
+                         ORF2Starts[i] + StartsNonSynORF2)
     StartNonSyn <- c(StartNonSyn, NewStartNonSyn)
     StartSyn    <- c(StartSyn, NewStartNonSyn - 1)
   }
@@ -246,7 +246,12 @@ SNPLogReg <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + blnUTR5 + blnORF1 +
                       L1Width + PropMismatch + NonSyn + Coding,
                     data = L1CoverTable, family = binomial(), chunksize = 3*10^4,
                     maxit = 20)
-summary(SNPLogReg)
+SNPLogReg_Summary <- summary(SNPLogReg)
+SNPLogReg_SumDF   <- as.data.frame(SNPLogReg_Summary$mat)
+SNPLogReg_SumDF$ExpCoef <- exp(SNPLogReg_SumDF$Coef) 
+ResultPath <- "D:/L1polymORF/Data/L1VariantRegrResults2019-07-15.csv"
+cat("Writing regression results to", ResultPath, "\n")
+write.csv(SNPLogReg_SumDF, ResultPath)
 cat("done!\n")
 
 # Perform analysis with interaction
@@ -263,9 +268,6 @@ cat("done!\n")
 SNPLogRegInt_Summary <- summary(SNPLogRegInt)
 SNPLogRegInt_SumDF   <- as.data.frame(SNPLogRegInt_Summary$mat)
 SNPLogRegInt_SumDF$ExpCoef <- exp(SNPLogRegInt_SumDF$Coef) 
-ResultPath <- "D:/L1polymORF/Data/L1VariantRegrResults.csv"
-cat("Writing regression results to", ResultPath, "\n")
-write.csv(SNPLogRegInt_SumDF, ResultPath)
 
 # Count overlaps per region
 L1VarCount_UTR5 <- countOverlaps(GR_UTR5_full, L1VarGR)

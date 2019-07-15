@@ -32,15 +32,13 @@ cat("\n\nLoading and processing data ...")
 
 # Load previously generated objects
 load(InputPath)
+cat("done!\n")
 
 ###################################################
 #                                                 #
 #   Plot frequency vs. insertion length           #
 #                                                 #
 ###################################################
-
-# TODO: Find out why expected frequency value based on estimated selection 
-# coefficient is always higher than observed frequency value
 
 # Create a matrix of predictor variables (L1 width and boolean variable for
 # for full-length L1)
@@ -50,26 +48,42 @@ XMat  <- as.matrix(cbind(1, L1TotData[, c("L1width", "blnFull")]))
 L1TotData$sVals <- XMat %*% ModelFit_pracma$ML_abc$par
 
 # Get sample size and create a range of s-values
+max(1 / L1TotData$L1Freq)
 SSize      <- L1TotData$SampleSize[1]
 LengthVals <- seq(0, 6200, 200)
 Full      <- LengthVals >= 6000
 SVals <- ModelFit_pracma$ML_abc$par[1] + ModelFit_pracma$ML_abc$pa[2]*Full +
   ModelFit_pracma$ML_abc$par[3] * LengthVals
+SValsTa <- ML_L1WidthFullTa_nonTa$par[1] + ML_L1WidthFullTa_nonTa$pa[2]*Full +
+  ML_L1WidthFullTa_nonTa$par[4] * LengthVals
+SValsnonTa <-ML_L1WidthFullTa_nonTa$par[1] + ML_L1WidthFullTa_nonTa$pa[3]*Full +
+  ML_L1WidthFullTa_nonTa$par[4] * LengthVals
 DetectProb <- L1TotData$DetectProb[1]
-
+ML_L1WidthFullTa_nonTa
+plot(SVals, SValsTa)
+plot(SVals, SValsnonTa)
+lines(c(-10, 10), c(-10, 10))
 # Calculate expected frequency per L1 width
-ExpL1Width <- sapply(1:length(SVals), function(i) {
-  ExpAlleleFreq_pracma(s = SVals[i], N = PopSize, SampleSize = MEInsSamplesize,
+cat("\nCalculate expected frequency per L1 width ...")
+ExpL1WidthTa <- sapply(1:length(SVals), function(i) {
+  ExpAlleleFreq_pracma(s = SValsTa[i], N = PopSize, SampleSize = SSize,
                 DetectProb = DetectProb, blnIns = T, 
                 LogRegCoeff = LogRegL1Ref$coefficients)
   })
+ExpL1Width_nonTa <- ExpL1WidthTa
+ExpL1Width_nonTa[Full] <- sapply(which(Full), function(i) {
+  ExpAlleleFreq_pracma(s = SValsnonTa[i], N = PopSize, SampleSize = SSize,
+                       DetectProb = DetectProb, blnIns = T, 
+                       LogRegCoeff = LogRegL1Ref$coefficients)
+})
+cat("done!\n")
 
 # Create a vector of L1 length classes
 L1TotData$InsLengthClass <- cut(L1TotData$L1width, breaks = 
                                   seq(0, 6500, 500))
 
 # Get mean L1 frequency per length
-L1WidthAggregated <- AggDataFrame(L1TotData, 
+L1WidthAggregated <- AggDataFrame(L1TotData[L1TotData$blnIns,], 
                                   GroupCol = "InsLengthClass", 
                                   MeanCols = c("L1width", "Freq", "blnFull", "sVals"), 
                                   LengthCols = "Freq",
@@ -89,7 +103,8 @@ AddErrorBars(MidX = L1WidthAggregated$L1width_mean,
              ErrorRange = sqrt(L1WidthAggregated$Freq_var/SSize^2 /
                                  L1WidthAggregated$Freq_N),
              TipWidth = 20)
-lines(LengthVals, ExpL1Width)
+lines(LengthVals, ExpL1WidthTa)
+lines(LengthVals, ExpL1Width_nonTa)
 par(new = T)
 plot(LengthVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", xlab = "",
      lty = 2)
@@ -101,7 +116,7 @@ CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width_Group.pdf',
                  height = 4, width = 5)
 
 # Plot individual points (length and frequency values)
-par( mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2), 
+par( mfrow = c(1, 1), oma = c(0.2,  0.2,  0.2,  0.2), 
      mai = c(1, 1, 0.2, 1),
      cex.lab = 1)
 plot(L1TotData$L1width, 
@@ -110,18 +125,19 @@ plot(L1TotData$L1width,
      pch = 16, ylim = c(0, 0.04))
 t.test(Freq ~ blnFull, data = L1TotData)
 L1FreqLengthSmoothed <- supsmu(L1TotData$L1width, 
-                               L1TotData$Freq/SSize)
-lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, col = "red")
-lines(LengthVals, ExpL1Width, lty = 4, lwd = 2, col = "red")
+                               L1TotData$Freq/SSize, bass = 5)
+lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, lwd = 2, col = "green")
+lines(LengthVals, ExpL1WidthTa, lwd = 2, col = "red")
+lines(LengthVals, ExpL1Width_nonTa, lwd = 2, col = "red")
 par(new = T)
-plot(LengthVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", xlab = "",
-     col = "blue")
+plot(LengthVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", 
+     xlab = "", lwd = 2,col = "blue")
 axis(side = 4)
 mtext(side = 4, line = 4, 'Selection coefficient')
 
 CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width_smoothed.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
-                 height = 6, width = 6)
+                 height = 4, width = 4)
 
 # Plot variance against width
 VarL1Width <- sapply(SVals, function(x) VarAlleleFreq(x, N = 10^4, 
