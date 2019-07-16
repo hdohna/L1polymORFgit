@@ -47,6 +47,8 @@ StartsNonSynORF2 <- seq(0, 3822, 3)
 
 StartSeqORF1 <- "ATGGGGAAA"
 StartSeqORF2 <- "ATGACAGGA"
+EndSeqORF1 <- "GCCAAAATGTAA"
+EndSeqORF2 <- "GGTGGGAATTGA"
 
 
 # Read repeat masker table for L1HS
@@ -70,6 +72,11 @@ L1Table$endORF2   <- pmin(L1Table$genoStart + start3UTR - L1Table$repStart,
 L1Table$start3UTR <- L1Table$genoStart + pmax(0, start3UTR - L1Table$repStart)
 L1Table$end3UTR   <- pmin(L1Table$genoStart + start3UTR - L1Table$repStart, 
                          L1Table$genoEnd)
+
+# Boolean vector whether end of ORF2 is included
+blnORF2EndIncluded <- L1Table$genoEnd > L1Table$genoStart + start3UTR - 
+  L1Table$repStart + 10
+
 
 # Determine start of ORF1 and 
 L1Table$start5UTR <- L1Table$genoStart
@@ -121,43 +128,105 @@ L1GR <- makeGRangesFromDataFrame(L1Table, seqnames.field = "genoName",
                                       start.field = "genoStart",
                                       end.field = "genoEnd")
 L1Width <- width(L1GR)
-blnFull <- width(L1GR) >= 6000
+blnFull <- width(L1GR) >= 5900
 blnPlus <- as.vector(strand(L1GR) == "+")
 blnPlusFull <- blnPlus[blnFull]
 L1FullStart <- start(L1GR[blnFull])
 L1FullEnd   <- end(L1GR[blnFull])
+min(L1Width)
 
 # Get start positions of ORF1 and ORF2
-L1FullSeq     <- getSeq(BSgenome.Hsapiens.UCSC.hg19, L1GR[blnFull])
-ORF1StartList <- vmatchPattern(StartSeqORF1, L1FullSeq, max.mismatch = 1)
-ORF1Starts    <- sapply(ORF1StartList@ends, function(x) x[1] - 8)
-ORF2StartList <- vmatchPattern(StartSeqORF2, L1FullSeq, max.mismatch = 1)
-ORF2Starts    <- sapply(ORF2StartList@ends, function(x) x[1] - 8)
+L1Seq       <- getSeq(BSgenome.Hsapiens.UCSC.hg19, L1GR)
+ORF1EndList <- vmatchPattern(EndSeqORF1, L1Seq, max.mismatch = 2)
+blnORF1End  <- sapply(ORF1EndList, function(x) length(x) > 0)
+ORF2EndList <- vmatchPattern(EndSeqORF2, L1Seq, max.mismatch = 2)
+blnORF2End  <- sapply(ORF2EndList, function(x) length(x) > 0)
+
+# Check that all full-length LINE-1 have ends of ORF1 and 2
+all(blnORF1End[blnFull])
+all(blnORF2End[blnFull])
+
+# Get ends of ORF1 and ORF2 within L1
+ORf1Ends <- sapply(ORF1EndList@ends[blnORF1End], function(x) x[length(x)])
+plot(ORf1Ends[which(blnORF1End) %in% which(blnFull)])
+ORf2Ends <- sapply(ORF2EndList@ends[blnORF2End], function(x) x[length(x)])
+plot(ORf2Ends[which(blnORF2End) %in% which(blnFull)])
 
 # Create genomic ranges for non-synonymous and synonymous coding positions
-idxFull     <- which(blnFull)
+idxORFEnd    <- which(blnORF1End | blnORF2End)
+idxORF1End   <- which(blnORF1End)
+idxORF2End   <- which(blnORF2End)
 StartNonSyn <- NULL
 StartSyn    <- NULL
 ChrVCode    <- NULL
-ChrVFull    <- as.vector(seqnames(L1GR)[idxFull])
-for (i in 1:length(idxFull)){
-  if (blnPlusFull[i]){
-    NewStartNonSyn <- L1FullStart[i] + c(ORF1Starts[i] - 1 + StartsNonSynORF1,
-                        ORF2Starts[i] - 1 + StartsNonSynORF2)
+ChrV        <- as.vector(seqnames(L1GR))
+L1Start      <- start(L1GR)
+L1End       <- end(L1GR)
+cat("Getting genomic ranges of synonymous and nonsynonymous coding positions ...")
+i <- 1
+for (i in idxORFEnd){
+  j <- which(idxORF1End == i)
+  k <- which(idxORF2End == i)
+  if (blnPlus[i]){
+    NewStartNonSyn <- L1Start[i] + c(ORf1Ends[j] - StartsNonSynORF1,
+                                     ORf2Ends[k] - StartsNonSynORF2) - 3
     StartNonSyn <- c(StartNonSyn, NewStartNonSyn)
-    StartSyn <- c(StartSyn, NewStartNonSyn + 2)
+    StartSyn    <- c(StartSyn, NewStartNonSyn + 2)
   } else {
-    NewStartNonSyn <- L1FullEnd[i] - c(ORF1Starts[i] + StartsNonSynORF1,
-                         ORF2Starts[i] + StartsNonSynORF2)
+    NewStartNonSyn <- L1End[i] - c(ORf1Ends[j] + StartsNonSynORF1 - 2,
+                                       ORf2Ends[k] + StartsNonSynORF2 - 2)
     StartNonSyn <- c(StartNonSyn, NewStartNonSyn)
     StartSyn    <- c(StartSyn, NewStartNonSyn - 1)
   }
-  ChrVCode <- c(ChrVCode, rep(ChrVFull[i], length(NewStartNonSyn)))
+#  if(any(is.na(NewStartNonSyn))) browser()
+  ChrVCode <- c(ChrVCode, rep(ChrV[i], length(NewStartNonSyn)))
 }
+
+# Create genomic ranges
 GRNonSyn <- GRanges(seqnames = ChrVCode, IRanges(start = StartNonSyn,
                                                  end = StartNonSyn + 1))
 GRSyn    <- GRanges(seqnames = ChrVCode, IRanges(start = StartSyn,
                                                  end = StartSyn))
+cat("done!\n")
+
+# Check that the first three letters are AA, T
+getSeq(BSgenome.Hsapiens.UCSC.hg19, GRNonSyn[1])
+getSeq(BSgenome.Hsapiens.UCSC.hg19, GRSyn[1])
+EndSeqORF1 <- "GCCAAAATGTAA"
+EndSeqORF2 <- "GGTGGGAATTGA"
+
+
+# Below is the old way to get coding sequences 
+# L1FullSeq     <- getSeq(BSgenome.Hsapiens.UCSC.hg19, L1GR[blnFull])
+# ORF1StartList <- vmatchPattern(StartSeqORF1, L1FullSeq, max.mismatch = 1)
+# ORF1Starts    <- sapply(ORF1StartList@ends, function(x) x[1] - 8)
+# ORF2StartList <- vmatchPattern(StartSeqORF2, L1FullSeq, max.mismatch = 1)
+# ORF2Starts    <- sapply(ORF2StartList@ends, function(x) x[1] - 8)
+# 
+# Create genomic ranges for non-synonymous and synonymous coding positions
+# idxFull     <- which(blnFull)
+# StartNonSyn <- NULL
+# StartSyn    <- NULL
+# ChrVCode    <- NULL
+# ChrVFull    <- as.vector(seqnames(L1GR)[idxFull])
+# for (i in 1:length(idxFull)){
+#   if (blnPlusFull[i]){
+#     NewStartNonSyn <- L1FullStart[i] + c(ORF1Starts[i] - 1 + StartsNonSynORF1,
+#                         ORF2Starts[i] - 1 + StartsNonSynORF2)
+#     StartNonSyn <- c(StartNonSyn, NewStartNonSyn)
+#     StartSyn <- c(StartSyn, NewStartNonSyn + 2)
+#   } else {
+#     NewStartNonSyn <- L1FullEnd[i] - c(ORF1Starts[i] + StartsNonSynORF1,
+#                          ORF2Starts[i] + StartsNonSynORF2)
+#     StartNonSyn <- c(StartNonSyn, NewStartNonSyn)
+#     StartSyn    <- c(StartSyn, NewStartNonSyn - 1)
+#   }
+#   ChrVCode <- c(ChrVCode, rep(ChrVFull[i], length(NewStartNonSyn)))
+# }
+# GRNonSyn <- GRanges(seqnames = ChrVCode, IRanges(start = StartNonSyn,
+#                                                  end = StartNonSyn + 1))
+# GRSyn    <- GRanges(seqnames = ChrVCode, IRanges(start = StartSyn,
+#                                                  end = StartSyn))
 
 # Check that the first three letters are AT, G
 getSeq(BSgenome.Hsapiens.UCSC.hg19, GRNonSyn[1])
@@ -237,7 +306,7 @@ L1CoverTable$blnFull[OL_bpL1@from] <- blnFull[OL_bpL1@to]
 #L1CoverTable$CodeType <- "NonCode" 
 L1CoverTable$Coding <- overlapsAny(L1Cover_GR, c(GRSyn, GRNonSyn))
 L1CoverTable$NonSyn    <- overlapsAny(L1Cover_GR, GRNonSyn)
-table(L1CoverTable$CodeType)
+
 
 # Perform analysis without interaction
 cat("Performing regression analysis without interaction ... ")
@@ -256,9 +325,8 @@ cat("done!\n")
 
 # Perform analysis with interaction
 cat("Performing regression analysis with interaction ... ")
-SNPLogRegInt <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + blnUTR5 + blnORF1 + 
-                      blnORF2 + blnFull + CoverMean +
-                      L1Width + PropMismatch + blnORF1*blnFull + blnORF2*blnFull +
+SNPLogRegInt <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + blnFull + CoverMean +
+                      L1Width + PropMismatch + Coding*blnFull + NonSyn*blnFull +
                         NonSyn + Coding,
                     data = L1CoverTable, family = binomial(), chunksize = 3*10^4,
                     maxit = 20)
