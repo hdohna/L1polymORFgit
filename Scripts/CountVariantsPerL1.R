@@ -128,7 +128,7 @@ L1GR <- makeGRangesFromDataFrame(L1Table, seqnames.field = "genoName",
                                       start.field = "genoStart",
                                       end.field = "genoEnd")
 L1Width <- width(L1GR)
-blnFull <- width(L1GR) >= 5900
+blnFull <- width(L1GR) >= 5000
 blnPlus <- as.vector(strand(L1GR) == "+")
 blnPlusFull <- blnPlus[blnFull]
 L1FullStart <- start(L1GR[blnFull])
@@ -306,6 +306,8 @@ L1CoverTable$blnFull[OL_bpL1@from] <- blnFull[OL_bpL1@to]
 #L1CoverTable$CodeType <- "NonCode" 
 L1CoverTable$Coding <- overlapsAny(L1Cover_GR, c(GRSyn, GRNonSyn))
 L1CoverTable$NonSyn    <- overlapsAny(L1Cover_GR, GRNonSyn)
+
+# check how SNP density on non-synonymous site changes with L1 length
 
 
 # Perform analysis without interaction
