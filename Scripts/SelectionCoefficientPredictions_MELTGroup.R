@@ -50,7 +50,7 @@ L1TotData$sVals <- XMat %*% ModelFit_pracma$ML_abc$par
 # Get sample size and create a range of s-values
 max(1 / L1TotData$L1Freq)
 SSize      <- L1TotData$SampleSize[1]
-LengthVals <- seq(0, 6200, 200)
+LengthVals <- seq(0, 6400, 200)
 Full      <- LengthVals >= 6000
 SVals <- ModelFit_pracma$ML_abc$par[1] + ModelFit_pracma$ML_abc$pa[2]*Full +
   ModelFit_pracma$ML_abc$par[3] * LengthVals
@@ -92,8 +92,8 @@ idxL1LengthMatch <- match(L1TotData$InsLengthClass,
                           L1WidthAggregated$InsLengthClass)                                              
   
 # Plot mean frequency, expected frequency
-par(mfrow = c(1, 1), oma = c( 0.2,  0.2,  0.2,  0.2), 
-     mai = c(1, 1, 0.2, 1.5),
+par(mfrow = c(1, 1), oma = c(0.2,  0.2,  0.2,  0.2), 
+     mai = c(1, 1, 0.2, 1),
      cex.lab = 1)
 plot(L1WidthAggregated$L1width_mean, 
      L1WidthAggregated$Freq_mean/SSize, xlab = "LINE-1 length [bp]",
@@ -133,11 +133,11 @@ par(new = T)
 plot(LengthVals, SVals, type = "l", xaxt = "n", yaxt = "n", ylab = "", 
      xlab = "", lwd = 2,col = "blue")
 axis(side = 4)
-mtext(side = 4, line = 4, 'Selection coefficient')
+mtext(side = 4, line = 3, 'Selection coefficient')
 
 CreateDisplayPdf('D:/L1polymORF/Figures/FreqVsL1Width_smoothed.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
-                 height = 4, width = 4)
+                 height = 4, width = 5)
 
 # Plot variance against width
 VarL1Width <- sapply(SVals, function(x) VarAlleleFreq(x, N = 10^4, 
