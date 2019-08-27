@@ -1,0 +1,9 @@
+# The following awk command replaces in sam files the MAPQ value of unmapped
+# reads by 0
+awk '{
+        if(int(($2 % 8) / 4) == 1){
+          print $1, $2, $3, $4, 0, $6, $7, $8, $9, $10, $11;
+        } else {
+          print $0; 
+        }
+    }' SamTestFile
