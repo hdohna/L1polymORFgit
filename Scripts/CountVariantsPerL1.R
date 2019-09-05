@@ -476,6 +476,8 @@ sum(blnORFFull) / sum(blnORFProper)
 sum(L1CoverTable$Coding_Full)
 sum(L1CoverTable$NonSyn_Full)
 sum(blnORFFull)
+mean(L1CoverTable$blnSNP)
+
 # Perform analysis with interaction
 cat("Performing regression analysis with interaction ... ")
 SNPLogRegInt <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean +
@@ -501,6 +503,52 @@ SNPLogRegInt_SumDF$ExpCoef <- exp(SNPLogRegInt_SumDF$Coef)
 ResultPath <- "D:/L1polymORF/Data/L1VariantRegrResults2019-07-17.csv"
 cat("Writing regression results to", ResultPath, "\n")
 write.csv(SNPLogRegInt_SumDF, ResultPath)
+
+######################################################
+#                                                    #
+#     Plot SNP probability along full-length L1      #
+#                                                    #
+######################################################
+
+# Get difference between position and L1 start
+L1CoverTable$PosFromL1Start <- NA
+L1CoverTable$PosFromL1Start[OL_bpL1@from] <- 
+   start(L1Cover_GR)[OL_bpL1@from] - start(L1GR)[OL_bpL1@to]
+blnNegStr <- as.vector(strand(L1GR))[OL_bpL1@to] == "-"
+L1CoverTable$PosFromL1Start[OL_bpL1@from[blnNegStr]] <- 
+  end(L1GR)[OL_bpL1@to[blnNegStr]] - end(L1Cover_GR)[OL_bpL1@from[blnNegStr]]
+max(L1CoverTable$PosFromL1Start)
+sum(width(L1GR) >= 6000)
+hist(L1CoverTable$PosFromL1Start[L1CoverTable$blnFull],
+     breaks = 0:6500)
+
+# Get mean number of SNPs per L1 position of full-length L1
+MeanSNPPerPos <- aggregate(L1CoverTable$blnSNP[L1CoverTable$blnFull],
+                           by = list(L1CoverTable$PosFromL1Start[L1CoverTable$blnFull]),
+                           FUN = mean)
+
+plot(MeanSNPPerPos$x, type = "l")
+segments(x0 = c(startORF1, startORF2, start3UTR),
+         y0=0, y1 = 1, col = "red")
+plot(MeanSNPPerPos$x, type = "l", xlim = c(1, 500),
+     ylim =c(0, 0.3))
+plot(MeanSNPPerPos$x, type = "l", xlim = c(500, 1500),
+     ylim =c(0, 0.03))
+segments(x0 = c(startORF1, startORF2, start3UTR),
+         y0=0, y1 = 1, col = "red")
+plot(MeanSNPPerPos$x, xlim = c(startORF1, startORF1 + 100),
+     ylim =c(0, 0.03))
+ThirdPosORF1 <- seq(startORF1 + 1, startORF2, 3)
+blnThirdPosORF1 <- as.numeric(MeanSNPPerPos$Group.1) %in% ThirdPosORF1
+points(as.numeric(MeanSNPPerPos$Group.1)[blnThirdPosORF1],
+       MeanSNPPerPos$x[blnThirdPosORF1], pch = 16)
+
+MeanPerPosSmoothed <- supsmu(as.numeric(MeanSNPPerPos$Group.1), 
+                             MeanSNPPerPos$x)
+plot(MeanPerPosSmoothed$x, MeanPerPosSmoothed$y,
+     type = "l")
+segments(x0 = c(startORF1, startORF2, start3UTR),
+      y0=0, y1 = 1, col = "red")
 
 # Analyze the proportion of SNPs on non-synonymous sites 
 NonsynEffect <- sapply(1:length(L1GR), function(i){
