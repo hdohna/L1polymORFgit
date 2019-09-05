@@ -811,9 +811,9 @@ cor.test(L1DistLoop_1000GFull,GRL1Ins1000G_Full@elementMetadata@listData$Frequen
 ##############################
 
 # Calculate quantiles for distance to genes and loops
-qqGD <- QQDistPlot(L1DistGene_Fragm, L1DistGene_CatRef, 
-                   L1DistGene_FullnotCat, Plot = F)
-qqGD2 <- QQDistPlot(L1DistGene_FullnotCat, L1DistGene_CatRef)
+qqGD <- QQDistPlot(L1DistGene_Fragm_hg19, L1DistGene_CatRef_hg19, 
+                   L1DistGene_FullnotCat_hg19, Plot = F)
+qqGD2 <- QQDistPlot(L1DistGene_FullnotCat_hg19, L1DistGene_CatRef_hg19)
 qqGD2$Pvalue
 qqLD <- QQDistPlot(L1DistLoopIntersect_Fragm, L1DistLoopIntersect_CatRef, 
                    L1DistLoopIntersect_FullnotCat, Plot = F)
