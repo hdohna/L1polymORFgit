@@ -12,10 +12,10 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 
 # Load data with proportion mismatch
-load("D:/L1polymORF/Data/L1HS_PropMismatch.RData")
+load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1HS_PropMismatch.RData")
 
 # Load data on L1 coverage
-load("D:/L1polymORF/Data/L1CoverageResults.RData")
+load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1CoverageResults.RData")
 # load("D:/FantomData/Data/hg19.cage_peak_phase1and2combined_tpm.osc_GRanges.RData")
 
 # Create genomic ranges
@@ -39,13 +39,16 @@ L1CoverTable$TriNuc <- TriNucChar
 # Set the start of ORF1, ORF2 and L1 width. The values below were obtained by
 # submitting L1 consensus to L1Xplorer http://l1base.charite.de/l1xplorer.php
 startORF1 <- 908
+endORF1   <- 1921
 startORF2 <- 1988
-start3UTR <- 5812
+start3UTR <- 5813
 endL1     <- 6047
 
 # Get the start of non-synonymous
 StartsNonSynORF1 <- seq(0, 1011, 3)
+StartsNonSynORF1 <- seq(0, 1022, 3)
 StartsNonSynORF2 <- seq(0, 3822, 3)
+StartsNonSynORF2 <- seq(0, 3842, 3)
 
 StartSeqORF1 <- "ATGGGGAAA"
 StartSeqORF2 <- "ATGACAGGA"
@@ -53,7 +56,7 @@ EndSeqORF1   <- "GCCAAAATGTAA"
 EndSeqORF2   <- "GGTGGGAATTGA"
 
 # Read repeat masker table for L1HS
-L1Table <- read.csv("D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv", as.is = T)
+L1Table <- read.csv("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1HS_repeat_table_Hg19.csv", as.is = T)
 L1Table$ChrNr <- substr(L1Table$genoName, 4, nchar(L1Table$genoName))
 L1Table$genoStartMinus1000 <- L1Table$genoStart - 1000
 L1Table$genoEndPlus1000    <- L1Table$genoEnd + 1000
@@ -116,9 +119,9 @@ L1Table$bln5UTRPresent <- L1Table$repStart <= 300
 L1Table$bln5UTRPresent[blnMinus] <- (L1Table$repLeft <= 300)[blnMinus]
 
 # Read vcf with variants in LINE-1s 
-L1Variants  <- ReadVCF("D:/L1polymORF/Data/VariantsInL1.recode.vcf")
-L1Var_Left  <- ReadVCF("D:/L1polymORF/Data/VariantsInL1_leftFlank.recode.vcf")
-L1Var_Right <- ReadVCF("D:/L1polymORF/Data/VariantsInL1_rightFlank.recode.vcf")
+L1Variants  <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1.recode.vcf")
+L1Var_Left  <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_leftFlank.recode.vcf")
+L1Var_Right <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_rightFlank.recode.vcf")
 L1Variants$chromosome <- paste("chr", L1Variants$X.CHROM, sep = "")
 L1Var_Left$chromosome <- paste("chr", L1Var_Left$X.CHROM, sep = "")
 L1Var_Right$chromosome <- paste("chr", L1Var_Right$X.CHROM, sep = "")
@@ -127,9 +130,7 @@ L1Var_Right$chromosome <- paste("chr", L1Var_Right$X.CHROM, sep = "")
 L1GR <- makeGRangesFromDataFrame(L1Table, seqnames.field = "genoName",
                                       start.field = "genoStart",
                                       end.field = "genoEnd")
-# FantomGR_1000 <- resize(FantomGR, 1000, fix = "center")
-# blnOLFantom <- overlapsAny(L1GR, FantomGR_1000, ignore.strand = T)
-# sum(blnOLFantom)
+sum(width(L1GR) >= 6000)
 ChrV <- as.vector(seqnames(L1GR))
 Diff <- NULL
 for(chr in unique(ChrV)){
@@ -156,6 +157,7 @@ L1Seq            <- getSeq(BSgenome.Hsapiens.UCSC.hg19, L1GR)
 ORF1StartList    <- vmatchPattern(StartSeqORF1, L1Seq, max.mismatch = 1)
 ORF1EndList      <- vmatchPattern(EndSeqORF1, L1Seq, max.mismatch = 2)
 blnORF1Start     <- sapply(ORF1StartList, function(x) length(x) > 0)
+blnORF1Start_2   <- sapply(ORF1StartList, function(x) length(x) > 1)
 blnORF1End       <- sapply(ORF1EndList, function(x) length(x) > 0)
 blnORF1StartEnd  <- blnORF1Start & blnORF1End
 ORF2StartList    <- vmatchPattern(StartSeqORF2, L1Seq, max.mismatch = 1)
@@ -163,12 +165,16 @@ ORF2EndList      <- vmatchPattern(EndSeqORF2, L1Seq, max.mismatch = 2)
 blnORF2Start     <- sapply(ORF2StartList, function(x) length(x) > 0)
 blnORF2End       <- sapply(ORF2EndList, function(x) length(x) > 0)
 blnORF2StartEnd  <- blnORF2Start & blnORF2End
+
+# Return summaries of ORF starts and ends
 cat(sum(blnORF1Start), "L1 with ORF1 start motif\n")
-cat(sum(blnORF1End), "L1 with ORF1 end motif\n")
+cat(sum(blnORF1Start_2), "L1 with 2 ORF1 start motifs\n")
+cat(sum(blnORF1End),   "L1 with ORF1 end motif\n")
 cat(sum(blnORF1StartEnd), "L1 with ORF1 start and end motif\n")
 cat(sum(blnORF1StartEnd & blnFull), "full-length L1 with ORF1 start and end motif\n")
-cat(sum(blnORF2Start), "L1 with ORF2 start motif\n")
-cat(sum(blnORF2End), "L1 with ORF2 end motif\n")
+cat(sum(blnORF1Start_2 & blnFull), "full-length L1 with 2 ORF1 start motifs\n")
+cat(sum(blnORF2Start),  "L1 with ORF2 start motif\n")
+cat(sum(blnORF2End),    "L1 with ORF2 end motif\n")
 cat(sum(blnORF2StartEnd), "L1 with ORF2 start and end motif\n")
 cat(sum(blnORF2StartEnd & blnFull), "full-length L1 with ORF2 start and end motif\n")
 
@@ -183,16 +189,36 @@ ORF1Starts    <- sapply(ORF1StartList@ends[blnORF1Start], function(x) x[1] - 8)
 ORF2Starts    <- sapply(ORF2StartList@ends[blnORF2Start], function(x) x[1] - 8)
 ORf1Ends      <- sapply(ORF1EndList@ends[blnORF1End], function(x) x[length(x)])
 ORf2Ends      <- sapply(ORF2EndList@ends[blnORF2End], function(x) x[length(x)])
+i <- 6
+i <- 21
+i <- 23
+i <- 24
+
 ORf1StartEnds <- sapply(which(blnORF1StartEnd), function(i) {
-                   x <- ORF1StartList@ends[[i]]
+                   x <- ORF1StartList@ends[[i]] - 8
                    y <- ORF1EndList@ends[[i]]
-                        c(x[1] - 8, y[length(y)])
-                 })
+                   c(x[1], y[length(y)])
+                   Xrep <- rep(x, each = length(y))
+                   Yrep <- rep(y, length(x))
+                   Diff <- Yrep - Xrep
+                   idxMin <- which.min(abs(Diff - 1016))
+
+                   idxX <- 0:(length(Xrep) - 1) %/% length(y) + 1
+                   idxY <- 0:(length(Xrep) - 1) %% length(x) + 1
+                   c(x[idxX[idxMin]], y[idxY[idxMin]])
+})
 ORf2StartEnds <- sapply(which(blnORF2StartEnd), function(i) {
-                  x <- ORF2StartList@ends[[i]]
+                  x <- ORF2StartList@ends[[i]] - 8
                   y <- ORF2EndList@ends[[i]]
-                       c(x[1] - 8, y[length(y)])
-                 })
+                  c(x[1], y[length(y)])
+                       # Xrep <- rep(x, each = length(y))
+                       # Yrep <- rep(y, length(x))
+                       # Diff <- Yrep - Xrep
+                       # idxMin <- which.min(abs(Diff - 3827))
+                       # idxX <- 0:(length(Xrep) - 1) %/% length(y) + 1
+                       # idxY <- 0:(length(Xrep) - 1) %% length(x) + 1
+                       # c(x[idxX[idxMin]], y[idxY[idxMin]])
+})
 plot(ORf1Ends[which(blnORF1End) %in% which(blnFull)])
 plot(ORF1Starts[which(blnORF1Start) %in% which(blnFull)])
 plot(ORF1Starts[blnStartEndFull], ORf1Ends[blnStartEndFull])
@@ -209,115 +235,153 @@ idxProperORF2 <- which(blnORF2StartEnd)[ORF2Length %in% c(3821, 3824, 3827, 3830
 idxORFEnd     <- which((blnORF1End | blnORF2End))
 idxORF1End    <- which(blnORF1End)
 idxORF2End    <- which(blnORF2End)
-idxORF1Start  <- which(blnORF1End)
-idxORF2End    <- which(blnORF2End)
+idxORF1Start  <- which(blnORF1Start)
+idxORF2Start  <- which(blnORF2Start)
 blnBothORFs   <- blnORF1End & blnORF2End
-# blnORF2End[blnBothORFs]  <- sapply(which(blnBothORFs), function(x){
-#   j <- which(idxORF1End == x)
-#   k <- which(idxORF2End == x)
-#   ORf2Ends[k] > ORf1Ends[j]
-# })
-# idxORF2End   <- which(blnORF2End)
-StartNonSyn  <- NULL
-StartSyn     <- NULL
-ChrVCode     <- NULL
-ChrV         <- as.vector(seqnames(L1GR))
-blnORFFull   <- NULL
-blnORFProper <- NULL
-ORFType      <- NULL
-L1Start      <- start(L1GR)
-L1End        <- end(L1GR)
+
+# Initialize objects needed for loop that defines non-synonymous positions
+StartNonSyn    <- NULL
+StartSyn       <- NULL
+StartNonSynInt <- NULL
+StartSynInt    <- NULL
+StrandV        <- NULL
+ChrVCode       <- NULL
+ChrVCodeInt    <- NULL
+ChrV           <- as.vector(seqnames(L1GR))
+blnORFFull     <- NULL
+blnORFProper   <- NULL
+blnORFProperInt <- NULL
+ORFType        <- NULL
+ORFTypeInt     <- NULL
+ORFPosInt      <- NULL
+ORFPos0Int      <- NULL
+L1Start        <- start(L1GR)
+L1End          <- end(L1GR)
 cat("Getting genomic ranges of synonymous and nonsynonymous coding positions ...")
+i <- 1
 for (i in idxORFEnd){
 #for (i in union(idxProperORF1, idxProperORF2)){
   j <- which(idxORF1End == i)
   k <- which(idxORF2End == i)
+  l <- which(idxORF1Start == i)
+  m <- which(idxORF2Start == i)
   if (blnPlus[i]){ # L1 on positive strand
-    ORF1Pos <- ORf1Ends[j] - StartsNonSynORF1 - 3
-    ORF2Pos <- ORf2Ends[k] - StartsNonSynORF2 - 3
-    blnNeg1 <- ORF1Pos < 0
-    blnNeg2 <- ORF2Pos < 0
-    ORF1Pos <- ORF1Pos[!blnNeg1]
-    ORF2Pos <- ORF2Pos[!blnNeg2]
-    NewStartNonSyn <- L1Start[i] + c(ORF1Pos, ORF2Pos)
-    StartNonSyn    <- c(StartNonSyn, NewStartNonSyn)
-    StartSyn       <- c(StartSyn, NewStartNonSyn + 2)
-  } else { # L1 on negative strand
+    ORF1Pos_st <- ORF1Starts[l] + StartsNonSynORF1
+    ORF2Pos_st <- ORF2Starts[m] + StartsNonSynORF2
     ORF1Pos <- ORf1Ends[j] - StartsNonSynORF1 - 2
     ORF2Pos <- ORf2Ends[k] - StartsNonSynORF2 - 2
     blnNeg1 <- ORF1Pos < 0
     blnNeg2 <- ORF2Pos < 0
     ORF1Pos <- ORF1Pos[!blnNeg1]
     ORF2Pos <- ORF2Pos[!blnNeg2]
-    NewStartNonSyn <- L1End[i] - c(ORF1Pos, ORF2Pos)
-    StartNonSyn    <- c(StartNonSyn, NewStartNonSyn)
-    StartSyn       <- c(StartSyn, NewStartNonSyn - 1)
+    ORF1PosInt <- intersect(ORF1Pos_st, ORF1Pos)
+    ORF2PosInt <- intersect(ORF2Pos_st, ORF2Pos)
+    ORF1PosIntMatch <- match(ORF1PosInt, ORF1Pos_st)
+    ORF2PosIntMatch <- match(ORF2PosInt, ORF2Pos_st)
+    ORF1Pos0Int     <- StartsNonSynORF1[ORF1PosIntMatch]
+    ORF2Pos0Int     <- StartsNonSynORF2[ORF2PosIntMatch]
+    NewStartNonSyn    <- L1Start[i] + c(ORF1Pos, ORF2Pos) - 1
+    NewStartNonSynInt <- L1Start[i] + c(ORF1PosInt, ORF2PosInt) - 1
+  } else { # L1 on negative strand
+    ORF1Pos_st <- ORF1Starts[l] + StartsNonSynORF1 + 1
+    ORF2Pos_st <- ORF2Starts[m] + StartsNonSynORF2 + 1
+    ORF1Pos    <- ORf1Ends[j] - StartsNonSynORF1 - 1
+    ORF2Pos    <- ORf2Ends[k] - StartsNonSynORF2 - 1
+    blnNeg1    <- ORF1Pos < 0
+    blnNeg2    <- ORF2Pos < 0
+    ORF1Pos    <- ORF1Pos[!blnNeg1]
+    ORF2Pos    <- ORF2Pos[!blnNeg2]
+    ORF1PosInt <- intersect(ORF1Pos_st, ORF1Pos)
+    ORF2PosInt <- intersect(ORF2Pos_st, ORF2Pos)
+    ORF1PosIntMatch <- match(ORF1PosInt, ORF1Pos_st)
+    ORF2PosIntMatch <- match(ORF2PosInt, ORF2Pos_st)
+    ORF1Pos0Int     <- StartsNonSynORF1[ORF1PosIntMatch]
+    ORF2Pos0Int     <- StartsNonSynORF2[ORF2PosIntMatch]
+    NewStartNonSyn    <- L1End[i] - c(ORF1Pos, ORF2Pos) + 1
+    NewStartNonSynInt <- L1End[i] - c(ORF1PosInt, ORF2PosInt) + 1
   }
+  
+  # Update vectors
+  ORFPosInt  <- c(ORFPosInt, c(ORF1PosInt, ORF2PosInt))
+  ORFPos0Int <- c(ORFPos0Int, c(ORF1Pos0Int, ORF2Pos0Int))
+  StartNonSyn    <- c(StartNonSyn, NewStartNonSyn)
+  StartNonSynInt <- c(StartNonSynInt, NewStartNonSynInt)
+  StartSyn       <- c(StartSyn, NewStartNonSyn - 1)
+  
   
   # Update info whether ORF is complete (blnORFFull), type of ORF and chromosome
   blnORFFull  <- c(blnORFFull, rep(all(!blnNeg1), length(ORF1Pos)),
                   rep(all(!blnNeg2), length(ORF2Pos)))
   blnORFProper <- c(blnORFProper, rep(i %in% idxProperORF1, length(ORF1Pos)),
                    rep(i %in% idxProperORF2, length(ORF2Pos)))
+  blnORFProperInt <- c(blnORFProper, rep(i %in% idxProperORF1, length(ORF1Pos)),
+                      rep(i %in% idxProperORF2, length(ORF2Pos)))
   ORFType  <- c(ORFType, rep("ORF1", length(ORF1Pos)),
                 rep("ORF2", length(ORF2Pos)))
+  ORFTypeInt  <- c(ORFTypeInt, rep("ORF1", length(ORF1PosInt)),
+                rep("ORF2", length(ORF2PosInt)))
   ChrVCode <- c(ChrVCode, rep(ChrV[i], length(NewStartNonSyn)))
+  ChrVCodeInt <- c(ChrVCodeInt, rep(ChrV[i], length(NewStartNonSynInt)))
+  StrandV     <- c(StrandV, rep(c("-", "+")[1 + blnPlus[i]], length(NewStartNonSynInt)))
+  
 }
+sum(blnORFFull)
+sum(blnORFProper)
 
 # Create genomic ranges
 GRNonSyn <- GRanges(seqnames = ChrVCode, IRanges(start = StartNonSyn,
                                                  end = StartNonSyn + 1))
 GRSyn    <- GRanges(seqnames = ChrVCode, IRanges(start = StartSyn,
                                                  end = StartSyn))
+GRNonSynInt <- GRanges(seqnames = ChrVCodeInt, IRanges(start = StartNonSynInt,
+                                                 end = StartNonSynInt + 1),
+                       strand = StrandV,
+                       mcols = data.frame(ORFPos = ORFPosInt,
+                                          ORFPos0 = ORFPos0Int,
+                                          ORFType = ORFTypeInt))
+GRSynInt <- GRanges(seqnames = ChrVCodeInt, IRanges(start = StartNonSynInt + 2,
+                                                       end = StartNonSynInt + 2),
+                    strand = StrandV,
+                    mcols = data.frame(ORFPos = ORFPosInt,
+                                       ORFPos0 = ORFPos0Int,
+                                       ORFType = ORFTypeInt))
 
+# Check what proportion of position is discovered by forming intersection
+# or checking for appropriate ORF length
+length(GRNonSynInt) / length(GRNonSyn)
+sum(blnORFFull) / length(GRNonSyn)
+sum(blnORFProper) / length(GRNonSyn)
+
+# Check that all first two nucleotides are AT (start codon = ATG)
+getSeq(BSgenome.Hsapiens.UCSC.hg19, 
+       GRNonSynInt[GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == 0
+         & GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF1"])
+getSeq(BSgenome.Hsapiens.UCSC.hg19, 
+       GRNonSynInt[GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == 0
+                    & GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF2"])
+
+# Check that all next two nucleotides are GG for ORF1 and AC for ORF2
+getSeq(BSgenome.Hsapiens.UCSC.hg19, 
+       GRNonSynInt[GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == 3
+                   & GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF1"])
+getSeq(BSgenome.Hsapiens.UCSC.hg19, 
+       GRNonSynInt[GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == 3
+                   & GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF2"])
+
+# Plot how often a particular position within L1 is counted among non-
+# synymous positions
+ORFPosCount <- table(GRNonSynInt@elementMetadata@listData$mcols.ORFPos)
+plot(as.numeric(names(ORFPosCount)), ORFPosCount)
+plot(table(GRNonSynInt@elementMetadata@listData$mcols.ORFPos[
+  GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF1"]
+))
+plot(table(GRNonSynInt@elementMetadata@listData$mcols.ORFPos[
+  GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF2"]
+))
 cat("done!\n")
 
-# Check that the first three letters are AA, T
-getSeq(BSgenome.Hsapiens.UCSC.hg19, GRNonSyn[1])
-getSeq(BSgenome.Hsapiens.UCSC.hg19, GRSyn[1])
-EndSeqORF1 <- "GCCAAAATGTAA"
-EndSeqORF2 <- "GGTGGGAATTGA"
 
-getSeq(BSgenome.Hsapiens.UCSC.hg19, GRanges(seqnames = "chr1",
-                                            IRanges(10^4 + 1, 10^4 + 4), strand = "+"))
-getSeq(BSgenome.Hsapiens.UCSC.hg19, GRanges(seqnames = "chr1",
-                                            IRanges(10^4 + 1, 10^4 + 4), strand = "-"))
-# Below is the old way to get coding sequences 
-L1FullSeq     <- getSeq(BSgenome.Hsapiens.UCSC.hg19, L1GR[blnFull])
-ORF1StartList <- vmatchPattern(StartSeqORF1, L1FullSeq, max.mismatch = 1)
-ORF1Starts    <- sapply(ORF1StartList@ends, function(x) x[1] - 8)
-ORF2StartList <- vmatchPattern(StartSeqORF2, L1FullSeq, max.mismatch = 1)
-ORF2Starts    <- sapply(ORF2StartList@ends, function(x) x[1] - 8)
-
-# Create genomic ranges for non-synonymous and synonymous coding positions
-# idxFull     <- which(blnFull)
-# StartNonSyn <- NULL
-# StartSyn    <- NULL
-# ChrVCode    <- NULL
-# ChrVFull    <- as.vector(seqnames(L1GR)[idxFull])
-# for (i in 1:length(idxFull)){
-#   if (blnPlusFull[i]){
-#     NewStartNonSyn <- L1FullStart[i] + c(ORF1Starts[i] - 1 + StartsNonSynORF1,
-#                         ORF2Starts[i] - 1 + StartsNonSynORF2)
-#     StartNonSyn <- c(StartNonSyn, NewStartNonSyn)
-#     StartSyn <- c(StartSyn, NewStartNonSyn + 2)
-#   } else {
-#     NewStartNonSyn <- L1FullEnd[i] - c(ORF1Starts[i] + StartsNonSynORF1,
-#                          ORF2Starts[i] + StartsNonSynORF2)
-#     StartNonSyn <- c(StartNonSyn, NewStartNonSyn)
-#     StartSyn    <- c(StartSyn, NewStartNonSyn - 1)
-#   }
-#   ChrVCode <- c(ChrVCode, rep(ChrVFull[i], length(NewStartNonSyn)))
-# }
-# GRNonSyn_Full <- GRanges(seqnames = ChrVCode, IRanges(start = StartNonSyn,
-#                                                  end = StartNonSyn + 1))
-# GRSyn_Full     <- GRanges(seqnames = ChrVCode, IRanges(start = StartSyn,
-#                                                  end = StartSyn))
-# 
-# GRNonSyn <- c(GRNonSyn_Fragm, GRNonSyn_Full)
-# GRSyn    <- c(GRSyn_Fragm, GRSyn_Full)
-
-
+# Get ranges of genes, exons' coding sequences, etc.
 Exons <- exons(TxDb.Hsapiens.UCSC.hg19.knownGene)
 Genes <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
 Cds <- cds(TxDb.Hsapiens.UCSC.hg19.knownGene)
@@ -441,11 +505,10 @@ L1CoverTable$L1Width <- NA
 L1CoverTable$L1Width[OL_bpL1@from] <- L1Width[OL_bpL1@to]
 L1CoverTable$blnFull <- NA
 L1CoverTable$blnFull[OL_bpL1@from] <- blnFull[OL_bpL1@to]
-# L1CoverTable$blnOLFantom <- NA
-# L1CoverTable$blnOLFantom[OL_bpL1@from] <- blnOLFantom[OL_bpL1@to]
-#L1CoverTable$CodeType <- "NonCode" 
 L1CoverTable$Coding <- overlapsAny(L1Cover_GR, c(GRSyn, GRNonSyn))
-L1CoverTable$NonSyn <- overlapsAny(L1Cover_GR, GRNonSyn) 
+#L1CoverTable$NonSyn <- overlapsAny(L1Cover_GR, GRNonSyn) 
+L1CoverTable$NonSyn <- overlapsAny(L1Cover_GR, GRNonSynInt) 
+L1CoverTable$Syn <- overlapsAny(L1Cover_GR, GRSynInt) 
 L1CoverTable$NonSyn_Full <- overlapsAny(L1Cover_GR, GRNonSyn[blnORFFull])
 L1CoverTable$Coding_Full <- overlapsAny(L1Cover_GR, c(GRSyn[blnORFFull], 
                                                       GRNonSyn[blnORFFull]))
@@ -459,50 +522,49 @@ L1CoverTable$bln5UTRPresent <- NA
 L1CoverTable$bln5UTRPresent[OL_bpL1@from] <- L1Table$bln5UTRPresent[OL_bpL1@to]
 
 sum(blnORFFull) / sum(blnORFProper)
-# L1CoverTable$NonSyn <- L1CoverTable$NonSyn & (!L1CoverTable$NonSyn_Gene) 
-# L1CoverTable$Coding <- L1CoverTable$Coding & (!L1CoverTable$Coding_Gene) 
-
-# Perform analysis without interaction
-# cat("Performing regression analysis without interaction ... ")
-# SNPLogReg <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + blnUTR5 + blnORF1 + 
-#                       blnORF2 + blnFull + CoverMean +
-#                       L1Width + PropMismatch + NonSyn + Coding,
-#                     data = L1CoverTable, family = binomial(), chunksize = 3*10^4,
-#                     maxit = 20)
-# SNPLogReg_Summary <- summary(SNPLogReg)
-# SNPLogReg_SumDF   <- as.data.frame(SNPLogReg_Summary$mat)
-# SNPLogReg_SumDF$ExpCoef <- exp(SNPLogReg_SumDF$Coef) 
-# cat("done!\n")
 sum(L1CoverTable$Coding_Full)
 sum(L1CoverTable$NonSyn_Full)
 sum(blnORFFull)
 mean(L1CoverTable$blnSNP)
 
+######################################################
+#                                                    #
+#           Perform logistic regression              #
+#                                                    #
+######################################################
+
 # Perform analysis with interaction
 cat("Performing regression analysis with interaction ... ")
 SNPLogRegInt <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean +
-                      L1Width + PropMismatch + Genes + Exons + Promoters +
-                        blnFull + 
-                        # NonSyn + Coding + Coding_Gene + NonSyn_Gene + 
-                        Coding_Full + NonSyn_Full +
-                        # Coding_Proper + NonSyn_Proper +
-                        # Coding*Exons +
-                      #Coding*Genes + #  + Coding*Promoters +
-                      #NonSyn*Exons +
-                      #NonSyn*Genes + # NonSyn*Promoters + 
-                      Coding_Full*blnFull, # + NonSyn_Full*blnFull,
-                      # Coding_Proper*blnFull + NonSyn_Proper*blnFull,
-                    data = L1CoverTable, family = binomial(), chunksize = 3*10^4,
-                    maxit = 20)
+                         L1Width + PropMismatch + Genes + Exons + Promoters +
+                         blnFull + NonSyn + Coding +
+                         Coding*blnFull + NonSyn*blnFull,
+                       data = L1CoverTable, 
+                       family = binomial(), chunksize = 3*10^4,
+                       maxit = 20)
 cat("done!\n")
+SNPLogRegInt_CodeOnly <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean +
+                      L1Width + PropMismatch + Genes + Promoters +
+                        blnFull + #NonSyn +
+                        NonSyn:blnFull,
+                    data = L1CoverTable[L1CoverTable$Syn | L1CoverTable$NonSyn, ], 
+                    family = binomial(), chunksize = 3*10^4,
+                    maxit = 20)
+
 
 # Export data frame with regression results
 SNPLogRegInt_Summary <- summary(SNPLogRegInt)
-SNPLogRegInt_SumDF   <- as.data.frame(SNPLogRegInt_Summary$mat)
+SNPLogRegInt_CodeOnly_Summary <- summary(SNPLogRegInt_CodeOnly)
+SNPLogRegInt_CodeOnly_Summary
+SNPLogRegInt_SumDF  <- as.data.frame(SNPLogRegInt_Summary$mat)
+SNPLogRegInt_CodeOnlyDF  <- as.data.frame(SNPLogRegInt_CodeOnly_Summary$mat)
 SNPLogRegInt_SumDF$ExpCoef <- exp(SNPLogRegInt_SumDF$Coef) 
-ResultPath <- "D:/L1polymORF/Data/L1VariantRegrResults2019-07-17.csv"
-cat("Writing regression results to", ResultPath, "\n")
-write.csv(SNPLogRegInt_SumDF, ResultPath)
+SNPLogRegInt_CodeOnlyDF$ExpCoef <- exp(SNPLogRegInt_CodeOnlyDF$Coef) 
+ResultPathAll <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_all_2019-09-22.csv"
+ResultPathCodeOnly <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_CodeOnly_2019-09-22.csv"
+cat("Writing regression results to", ResultPathAll, "\n")
+write.csv(SNPLogRegInt_SumDF, ResultPathAll)
+write.csv(SNPLogRegInt_CodeOnlyDF, ResultPathCodeOnly)
 
 ######################################################
 #                                                    #
@@ -545,10 +607,19 @@ points(as.numeric(MeanSNPPerPos$Group.1)[blnThirdPosORF1],
 
 MeanPerPosSmoothed <- supsmu(as.numeric(MeanSNPPerPos$Group.1), 
                              MeanSNPPerPos$x)
-plot(MeanPerPosSmoothed$x, MeanPerPosSmoothed$y,
-     type = "l")
-segments(x0 = c(startORF1, startORF2, start3UTR),
-      y0=0, y1 = 1, col = "red")
+par(mfrow = c(1, 1))
+plot(MeanSNPPerPos$x, type = "l", xlab = "Position on L1", 
+     ylab = "SNP probability per bp", col = rgb(0, 0, 0, 0.3),
+     ylim = c(0, max(MeanPerPosSmoothed$y)))
+rect(xleft = c(startORF1, startORF2), ybottom = 0, 
+     xright = c(endORF1, start3UTR - 1), ytop = max(MeanPerPosSmoothed$y), 
+     col = rgb(0, 0, 0, 0.1))
+lines(MeanPerPosSmoothed$x, MeanPerPosSmoothed$y)
+# segments(x0 = c(startORF1, endORF1, startORF2, start3UTR),
+#       y0=0, y1 = 1, col = "red")
+CreateDisplayPdf('D:/L1polymORF/Figures/SNPsPerFullL1.pdf',
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+                 height = 4, width = 7)
 
 # Analyze the proportion of SNPs on non-synonymous sites 
 NonsynEffect <- sapply(1:length(L1GR), function(i){
@@ -788,5 +859,5 @@ CreateDisplayPdf('D:/L1polymORF/Figures/VariantCounts.pdf',
 # plot(width(L1GR), L1VarCount / width(L1GR), col = rgb(0, 0, 0, alpha = 0.2), xlab = "L1 length",
 #      ylab = "Number variants")
 # 
-save.image("D:/L1polymORF/Data/L1VariantCount.RData")
+save.image("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantCount.RData")
 # 
