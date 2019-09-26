@@ -11,6 +11,24 @@ library(rtracklayer)
 library(BSgenome.Hsapiens.UCSC.hg19)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 
+# Load data with HWE values
+load("D:/OneDrive - American University of Beirut/L1polymORF/Data/HWE_L1_and Flanks.RData")
+
+# Make genomic ranges
+HWE_L1$chrom <- paste("chr", HWE_L1$CHR, sep = "")
+HWEGR <- makeGRangesFromDataFrame(HWE_L1, seqnames.field = "chrom",
+                                  start.field = "POS",
+                                  end.field = "POS")
+
+# Get observed and expected heterozygotes
+ObsExpHet <- as.data.frame(t(sapply(1:nrow(HWE_L1), function(i){
+  ObsHetChar <- strsplit(as.character(HWE_L1$OBS.HOM1.HET.HOM2.[i]), "/")[[1]][2]
+  ExpHetChar <- strsplit(as.character(HWE_L1$E.HOM1.HET.HOM2.[i]), "/")[[1]][2]
+  c(ObsHet = as.numeric(ObsHetChar), ExpHet = as.numeric(ExpHetChar))
+})))
+
+GR_HWE <- HWEGR[HWE_L1$P > 0.1 | ObsExpHet$ObsHet < ObsExpHet$ExpHet]
+
 # Load data with proportion mismatch
 load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1HS_PropMismatch.RData")
 
@@ -333,17 +351,26 @@ GRNonSyn <- GRanges(seqnames = ChrVCode, IRanges(start = StartNonSyn,
                                                  end = StartNonSyn + 1))
 GRSyn    <- GRanges(seqnames = ChrVCode, IRanges(start = StartSyn,
                                                  end = StartSyn))
-GRNonSynInt <- GRanges(seqnames = ChrVCodeInt, IRanges(start = StartNonSynInt,
-                                                 end = StartNonSynInt + 1),
+GRNonSynInt1 <- GRanges(seqnames = ChrVCodeInt, 
+                       IRanges(start = StartNonSynInt,
+                               end = StartNonSynInt),
                        strand = StrandV,
                        mcols = data.frame(ORFPos = ORFPosInt,
-                                          ORFPos0 = ORFPos0Int,
+                                          ORFPos0 = ORFPos0Int + (StrandV == "-"),
                                           ORFType = ORFTypeInt))
+GRNonSynInt2 <- GRanges(seqnames = ChrVCodeInt, 
+                        IRanges(start = StartNonSynInt + 1,
+                                end = StartNonSynInt + 1),
+                        strand = StrandV,
+                        mcols = data.frame(ORFPos = ORFPosInt,
+                                           ORFPos0 = ORFPos0Int + (StrandV == "+"),
+                                           ORFType = ORFTypeInt))
+GRNonSynInt <- c(GRNonSynInt1, GRNonSynInt2)
 GRSynInt <- GRanges(seqnames = ChrVCodeInt, IRanges(start = StartNonSynInt + 2,
-                                                       end = StartNonSynInt + 2),
+                                                    end = StartNonSynInt + 2),
                     strand = StrandV,
                     mcols = data.frame(ORFPos = ORFPosInt,
-                                       ORFPos0 = ORFPos0Int,
+                                       ORFPos0 = ORFPos0Int + 2,
                                        ORFType = ORFTypeInt))
 
 # Check what proportion of position is discovered by forming intersection
@@ -354,10 +381,10 @@ sum(blnORFProper) / length(GRNonSyn)
 
 # Check that all first two nucleotides are AT (start codon = ATG)
 getSeq(BSgenome.Hsapiens.UCSC.hg19, 
-       GRNonSynInt[GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == 0
+       GRNonSynInt[GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == 1
          & GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF1"])
 getSeq(BSgenome.Hsapiens.UCSC.hg19, 
-       GRNonSynInt[GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == 0
+       GRNonSynInt[GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == 1
                     & GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF2"])
 
 # Check that all next two nucleotides are GG for ORF1 and AC for ORF2
@@ -486,17 +513,19 @@ L1VarCount_Flank <- L1VarCount_Left + L1VarCount_Right
 cor.test(L1VarCount_Left, L1VarCount_Right) 
 
 # Overlaps between individual bp and L1
-OL_bpL1 <- findOverlaps(L1Cover_GR, L1GR)
+OL_bpL1  <- findOverlaps(L1Cover_GR, L1GR)
+OL_bpHWE <- findOverlaps(L1Cover_GR, GR_HWE)
 
 # Add columns with different info
-L1CoverTable$blnSNP  <- overlapsAny(L1Cover_GR, L1VarGR)
-L1CoverTable$blnUTR5 <- overlapsAny(L1Cover_GR, UTR5_GR)
-L1CoverTable$blnORF1 <- overlapsAny(L1Cover_GR, ORF1_GR)
-L1CoverTable$blnORF2 <- overlapsAny(L1Cover_GR, ORF2_GR)
-L1CoverTable$blnUTR3 <- overlapsAny(L1Cover_GR, UTR3_GR)
-L1CoverTable$Exons   <- overlapsAny(L1Cover_GR, Exons)
-L1CoverTable$Genes   <- overlapsAny(L1Cover_GR, Genes)
-L1CoverTable$Promoters   <- overlapsAny(L1Cover_GR, Promoters)
+L1CoverTable$blnSNP    <- overlapsAny(L1Cover_GR, L1VarGR)
+L1CoverTable$blnSNPHWE <- overlapsAny(L1Cover_GR, GR_HWE)
+L1CoverTable$blnUTR5   <- overlapsAny(L1Cover_GR, UTR5_GR)
+L1CoverTable$blnORF1   <- overlapsAny(L1Cover_GR, ORF1_GR)
+L1CoverTable$blnORF2   <- overlapsAny(L1Cover_GR, ORF2_GR)
+L1CoverTable$blnUTR3   <- overlapsAny(L1Cover_GR, UTR3_GR)
+L1CoverTable$Exons     <- overlapsAny(L1Cover_GR, Exons)
+L1CoverTable$Genes     <- overlapsAny(L1Cover_GR, Genes)
+L1CoverTable$Promoters <- overlapsAny(L1Cover_GR, Promoters)
 L1CoverTable$L1VarCount_Flank <- NA
 L1CoverTable$L1VarCount_Flank[OL_bpL1@from] <- L1VarCount_Flank[OL_bpL1@to]
 L1CoverTable$PropMismatch <- NA
@@ -508,7 +537,7 @@ L1CoverTable$blnFull[OL_bpL1@from] <- blnFull[OL_bpL1@to]
 L1CoverTable$Coding <- overlapsAny(L1Cover_GR, c(GRSyn, GRNonSyn))
 #L1CoverTable$NonSyn <- overlapsAny(L1Cover_GR, GRNonSyn) 
 L1CoverTable$NonSyn <- overlapsAny(L1Cover_GR, GRNonSynInt) 
-L1CoverTable$Syn <- overlapsAny(L1Cover_GR, GRSynInt) 
+L1CoverTable$Syn    <- overlapsAny(L1Cover_GR, GRSynInt) 
 L1CoverTable$NonSyn_Full <- overlapsAny(L1Cover_GR, GRNonSyn[blnORFFull])
 L1CoverTable$Coding_Full <- overlapsAny(L1Cover_GR, c(GRSyn[blnORFFull], 
                                                       GRNonSyn[blnORFFull]))
@@ -526,6 +555,9 @@ sum(L1CoverTable$Coding_Full)
 sum(L1CoverTable$NonSyn_Full)
 sum(blnORFFull)
 mean(L1CoverTable$blnSNP)
+mean(L1CoverTable$blnSNPHWE)
+sum(L1CoverTable$blnSNP)
+sum(L1CoverTable$blnSNPHWE)
 
 ######################################################
 #                                                    #
@@ -543,6 +575,15 @@ SNPLogRegInt <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean +
                        family = binomial(), chunksize = 3*10^4,
                        maxit = 20)
 cat("done!\n")
+cat("Performing regression analysis with interaction ... ")
+SNPLogRegInt <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean +
+                         L1Width + PropMismatch + Genes + Exons + Promoters +
+                         blnFull + NonSyn + Coding +
+                         Coding*blnFull + NonSyn*blnFull,
+                       data = L1CoverTable, 
+                       family = binomial(), chunksize = 3*10^4,
+                       maxit = 20)
+cat("done!\n")
 SNPLogRegInt_CodeOnly <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean +
                       L1Width + PropMismatch + Genes + Promoters +
                         blnFull + #NonSyn +
@@ -550,11 +591,20 @@ SNPLogRegInt_CodeOnly <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean 
                     data = L1CoverTable[L1CoverTable$Syn | L1CoverTable$NonSyn, ], 
                     family = binomial(), chunksize = 3*10^4,
                     maxit = 20)
+SNPLogRegInt_CodeOnlyHWE <- bigglm(blnSNPHWE ~  TriNuc + L1VarCount_Flank + CoverMean +
+                                  L1Width + PropMismatch + Genes + Promoters +
+                                  blnFull + #NonSyn +
+                                  NonSyn:blnFull,
+                                  data = L1CoverTable[L1CoverTable$Syn | L1CoverTable$NonSyn, ], 
+                                  family = binomial(), chunksize = 3*10^4,
+                                  maxit = 20)
 
 
 # Export data frame with regression results
-SNPLogRegInt_Summary <- summary(SNPLogRegInt)
-SNPLogRegInt_CodeOnly_Summary <- summary(SNPLogRegInt_CodeOnly)
+SNPLogRegInt_Summary             <- summary(SNPLogRegInt)
+SNPLogRegInt_CodeOnly_Summary    <- summary(SNPLogRegInt_CodeOnly)
+SNPLogRegInt_CodeOnlyHWE_Summary <- summary(SNPLogRegInt_CodeOnlyHWE)
+SNPLogRegInt_CodeOnlyHWE_Summary 
 SNPLogRegInt_CodeOnly_Summary
 SNPLogRegInt_SumDF  <- as.data.frame(SNPLogRegInt_Summary$mat)
 SNPLogRegInt_CodeOnlyDF  <- as.data.frame(SNPLogRegInt_CodeOnly_Summary$mat)
@@ -620,6 +670,41 @@ lines(MeanPerPosSmoothed$x, MeanPerPosSmoothed$y)
 CreateDisplayPdf('D:/L1polymORF/Figures/SNPsPerFullL1.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 4, width = 7)
+
+# Overlaps between individual bp and L1
+OL_bpL1NonSyn <- findOverlaps(L1Cover_GR, GRNonSynInt)
+OL_bpL1Syn    <- findOverlaps(L1Cover_GR, GRSynInt)
+
+# Add column for position from ORF start
+L1CoverTable$PosFromORFStart <- NA
+L1CoverTable$PosFromORFStart[OL_bpL1NonSyn@from] <- 
+  GRNonSynInt@elementMetadata@listData$mcols.ORFPos0[OL_bpL1NonSyn@to]
+L1CoverTable$PosFromORFStart[OL_bpL1Syn@from] <- 
+  GRSynInt@elementMetadata@listData$mcols.ORFPos0[OL_bpL1Syn@to]
+
+# Get mean number of SNPs per ORF position of full-length L1
+MeanSNPPerORF1Pos <- aggregate(L1CoverTable$blnSNP[L1CoverTable$blnFull & L1CoverTable$blnORF1],
+                           by = list(L1CoverTable$PosFromORFStart[L1CoverTable$blnFull &
+                                                                    L1CoverTable$blnORF1]),
+                           FUN = mean)
+MeanSNPPerORF2Pos <- aggregate(L1CoverTable$blnSNP[L1CoverTable$blnFull & L1CoverTable$blnORF2],
+                               by = list(L1CoverTable$PosFromORFStart[L1CoverTable$blnFull &
+                                                                        L1CoverTable$blnORF2]),
+                               FUN = mean)
+MeanSNPPerNonSyn <- aggregate(L1CoverTable$blnSNP[L1CoverTable$blnFull],
+                               by = list(L1CoverTable$NonSyn[L1CoverTable$blnFull]),
+                               FUN = mean)
+barplot(MeanSNPPerNonSyn$x)
+MeanSNPPerNonSynORF <- aggregate(L1CoverTable$blnSNP[L1CoverTable$blnFull],
+                              by = list(L1CoverTable$NonSyn[L1CoverTable$blnFull]),
+                              FUN = mean)
+
+
+plot(MeanSNPPerORF1Pos$Group.1[1:200], MeanSNPPerORF1Pos$x[1:200])
+idx3ORF1 <- (MeanSNPPerORF1Pos$Group.1 + 1) %in% seq(3, 6000, 3)
+points(MeanSNPPerORF1Pos$Group.1[idx3ORF1], MeanSNPPerORF1Pos$x[idx3ORF1],
+       pch = 16)
+
 
 # Analyze the proportion of SNPs on non-synonymous sites 
 NonsynEffect <- sapply(1:length(L1GR), function(i){

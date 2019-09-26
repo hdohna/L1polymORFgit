@@ -123,3 +123,84 @@ CreateAndCallSlurmScript(file = "runVcftools_L1Right",
                          RunTime = '12:00:00',
                          Mem = '200G')
 
+#######################################
+#                                     #
+#      Calculate HWE p-values         #
+#                                     #
+#######################################
+
+# Get file names, loop over files and do the filtering
+# Example file name: ALL.chr2.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf
+DataFolder <- "/labs/dflev/hzudohna/1000Genomes/"
+FilePrefix <- "HWE"
+AllFiles <- list.files(DataFolder, pattern = "phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf", 
+                       full.names = T)
+AllFiles <- AllFiles[-grep("vcf.", AllFiles)]
+PopFiles <- list.files(DataFolder, pattern = "1000G_SuperPop", 
+                       full.names = T)
+AllFiles
+InFile <- AllFiles[11]
+PopFile <- PopFiles[1]
+HWEOutFilesL1    <- c()
+HWEOutFilesLeft  <- c()
+HWEOutFilesRight <- c()
+for (InFile in AllFiles){
+  InFileSplit  <- strsplit(InFile, "\\.")[[1]]
+  OutFile      <- paste(InFileSplit[1:2], collapse = "")
+  OutFileLeft  <- gsub("ALL", "HWE_LeftFlank_", OutFile)
+  OutFileRight <- gsub("ALL", "HWE_RightFlank_", OutFile)
+  cat("*****   Calculating HWE for", InFileSplit[2], "    ****************\n\n")
+  for (PopFile in PopFiles){
+    PopFileSplit  <- strsplit(PopFile, "\\_")[[1]]
+    OutFileL1     <- gsub("ALL", paste("HWE_L1_Pop", PopFileSplit[3], sep = "_"), OutFile)
+    cat("HWE for", PopFileSplit[3], "\n")
+    FileName <- paste("vcfHWE", PopFileSplit[3], sep = "_")
+    CreateAndCallSlurmScript(file = FileName, 
+                             scriptName = FileName,
+                             SlurmCommandLines = 
+                               c("module load vcftools",
+                                 paste("vcftools --vcf", InFile, 
+                                       "--bed", OutBedPath_L1, 
+                                       "--keep", PopFile,
+                                       "--hardy --out",
+                                       OutFileL1)),
+                             RunTime = '12:00:00',
+                             Mem = '200G')
+    
+  }
+}
+
+# Get all files with HWE for L1 and concatenate them
+HWEOutFilesL1 <- list.files(DataFolder, pattern = "HWE_L1_Pop", 
+                            full.names = T)
+HWE_L1 <- read.table(HWEOutFilesL1[1], header = T)
+for (i in 2:length(HWEOutFilesL1)){
+  HWE_Local <- read.table(HWEOutFilesL1[i], header = T)
+  HWE_L1    <- rbind(HWE_L1, HWE_Local)
+}
+
+# # Get all files with HWE for left flank and concatenate them
+# HWEOutFilesLeft <- list.files(DataFolder, pattern = "HWE_Left", 
+#                             full.names = T)
+# HWE_Left <- read.table(HWEOutFilesLeft[1], header = T)
+# for (i in 2:length(HWEOutFilesLeft)){
+#   HWE_Local <- read.table(HWEOutFilesLeft[i], header = T)
+#   HWE_Left <- rbind(HWE_Left, HWE_Local)
+# }
+# 
+# # Get all files with HWE for rigth flank and concatenate them
+# HWEOutFilesRight <- list.files(DataFolder, pattern = "HWE_Right", 
+#                               full.names = T)
+# HWE_Right <- read.table(HWEOutFilesRight[1], header = T)
+# for (i in 2:length(HWEOutFilesRight)){
+#   HWE_Local <- read.table(HWEOutFilesRight[i], header = T)
+#   HWE_Right <- rbind(HWE_Right, HWE_Local)
+# }
+
+Explanation <- c("This R workspace contains the following dataframes",
+                 "HWE_L1: Hardy Weinberg equilibrium of SNPs within reference L1",
+                 "HWE_Left: Hardy Weinberg equilibrium of SNPs 1000 bp left of reference L1",
+                 "HWE_Right: Hardy Weinberg equilibrium of SNPs 1000 bp right of reference L1")
+save(list = c("HWE_L1", "HWE_Left", "HWE_Right", "Explanation"), 
+     file = paste(DataFolder, "HWE_L1_and Flanks.RData", sep = ""))
+                 

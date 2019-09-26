@@ -20,13 +20,23 @@ vcftools --vcf /labs/dflev/hzudohna/1000Genomes/ALL.chr1.phase3_shapeit2_mvncall
 --out /labs/dflev/hzudohna/1000Genomes/chr1.L1Windowsubset.vcf
 
 
-# Get all variants within 
+# Get all variants within L1s
 module load vcftools
 vcftools --gzvcf  /reference/1KGenomes/Variants/release/20130502/ALL.wgs.phase3_shapeit2_mvncall_integrated_v5.20130502.sites.vcf.gz \
 --bed /labs/dflev/hzudohna/RefSeqData/L1Ranges.bed \
 --recode \
 --out /labs/dflev/hzudohna/1000Genomes/VariantsInL1.vcf
 
+# Get genotypes of all variants within L1s
+module load vcftools
+vcftools --gzvcf /reference/1KGenomes/Variants/release/20130502/ALL.wgs.phase3_shapeit2_mvncall_integrated_v5.20130502.sites.vcf.gz \
+--bed /labs/dflev/hzudohna/RefSeqData/L1Ranges.bed \
+--012 \
+--out /labs/dflev/hzudohna/1000Genomes/VariantsInL1_geno
+
+vcftools --vcf /labs/dflev/hzudohna/1000Genomes/ALL.chr1.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf \
+--bed /labs/dflev/hzudohna/RefSeqData/L1Ranges.bed \
+--hardy
 
 # Calculate Fst according to populations
 vcftools --vcf L1all.vcf \
