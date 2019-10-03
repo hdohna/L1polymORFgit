@@ -27,7 +27,7 @@
 # library(ape)
 
 # Source all functions from GeneralRFunctions folder
-AllFunctions <- list.files(path = "D:/GeneralRFunctions/", 
+AllFunctions <- list.files(path = "D:/OneDrive - American University of Beirut/GeneralRFunctions/", 
                            pattern = ".[rR]", full.names = T)
 sapply(AllFunctions, source)
 

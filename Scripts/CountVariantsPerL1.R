@@ -12,22 +12,9 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 
 # Load data with HWE values
-load("D:/OneDrive - American University of Beirut/L1polymORF/Data/HWE_L1_and Flanks.RData")
 
-# Make genomic ranges
-HWE_L1$chrom <- paste("chr", HWE_L1$CHR, sep = "")
-HWEGR <- makeGRangesFromDataFrame(HWE_L1, seqnames.field = "chrom",
-                                  start.field = "POS",
-                                  end.field = "POS")
-
-# Get observed and expected heterozygotes
-ObsExpHet <- as.data.frame(t(sapply(1:nrow(HWE_L1), function(i){
-  ObsHetChar <- strsplit(as.character(HWE_L1$OBS.HOM1.HET.HOM2.[i]), "/")[[1]][2]
-  ExpHetChar <- strsplit(as.character(HWE_L1$E.HOM1.HET.HOM2.[i]), "/")[[1]][2]
-  c(ObsHet = as.numeric(ObsHetChar), ExpHet = as.numeric(ExpHetChar))
-})))
-
-GR_HWE <- HWEGR[HWE_L1$P > 0.1 | ObsExpHet$ObsHet < ObsExpHet$ExpHet]
+# Load genomic ranges 
+load("D:/OneDrive - American University of Beirut/L1polymORF/Data/SNPsDifferFromHWE.RData")
 
 # Load data with proportion mismatch
 load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1HS_PropMismatch.RData")
@@ -239,7 +226,6 @@ ORf2StartEnds <- sapply(which(blnORF2StartEnd), function(i) {
 })
 plot(ORf1Ends[which(blnORF1End) %in% which(blnFull)])
 plot(ORF1Starts[which(blnORF1Start) %in% which(blnFull)])
-plot(ORF1Starts[blnStartEndFull], ORf1Ends[blnStartEndFull])
 plot(ORf2Ends[which(blnORF2End) %in% which(blnFull)])
 plot(ORf1StartEnds[2,] - ORf1StartEnds[1,], ylim = c(1000, 1030))
 table(ORf1StartEnds[2,] - ORf1StartEnds[1,])
@@ -512,6 +498,9 @@ L1VarCount_Right <- countOverlaps(L1GR_right, L1VarGR_Right)
 L1VarCount_Flank <- L1VarCount_Left + L1VarCount_Right
 cor.test(L1VarCount_Left, L1VarCount_Right) 
 
+# Get GRanges of SNPs that do not deviate from HWE and are 
+GR_HWE <- L1VarGR[!overlapsAny(L1VarGR, HWEGR)]
+
 # Overlaps between individual bp and L1
 OL_bpL1  <- findOverlaps(L1Cover_GR, L1GR)
 OL_bpHWE <- findOverlaps(L1Cover_GR, GR_HWE)
@@ -528,11 +517,11 @@ L1CoverTable$Genes     <- overlapsAny(L1Cover_GR, Genes)
 L1CoverTable$Promoters <- overlapsAny(L1Cover_GR, Promoters)
 L1CoverTable$L1VarCount_Flank <- NA
 L1CoverTable$L1VarCount_Flank[OL_bpL1@from] <- L1VarCount_Flank[OL_bpL1@to]
-L1CoverTable$PropMismatch <- NA
+L1CoverTable$PropMismatch     <- NA
 L1CoverTable$PropMismatch[OL_bpL1@from] <- PropMismatch[OL_bpL1@to]
-L1CoverTable$L1Width <- NA
+L1CoverTable$L1Width          <- NA
 L1CoverTable$L1Width[OL_bpL1@from] <- L1Width[OL_bpL1@to]
-L1CoverTable$blnFull <- NA
+L1CoverTable$blnFull          <- NA
 L1CoverTable$blnFull[OL_bpL1@from] <- blnFull[OL_bpL1@to]
 L1CoverTable$Coding <- overlapsAny(L1Cover_GR, c(GRSyn, GRNonSyn))
 #L1CoverTable$NonSyn <- overlapsAny(L1Cover_GR, GRNonSyn) 
@@ -566,7 +555,7 @@ sum(L1CoverTable$blnSNPHWE)
 ######################################################
 
 # Perform analysis with interaction
-cat("Performing regression analysis with interaction ... ")
+cat("Performing regression analysis with all SNPs... ")
 SNPLogRegInt <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean +
                          L1Width + PropMismatch + Genes + Exons + Promoters +
                          blnFull + NonSyn + Coding +
@@ -575,8 +564,8 @@ SNPLogRegInt <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean +
                        family = binomial(), chunksize = 3*10^4,
                        maxit = 20)
 cat("done!\n")
-cat("Performing regression analysis with interaction ... ")
-SNPLogRegInt <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean +
+cat("Performing regression analysis with  HWE SNPs only... ")
+SNPLogRegIntHWE <- bigglm(blnSNPHWE ~  TriNuc + L1VarCount_Flank + CoverMean +
                          L1Width + PropMismatch + Genes + Exons + Promoters +
                          blnFull + NonSyn + Coding +
                          Coding*blnFull + NonSyn*blnFull,
@@ -584,13 +573,16 @@ SNPLogRegInt <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean +
                        family = binomial(), chunksize = 3*10^4,
                        maxit = 20)
 cat("done!\n")
+cat("Performing regression analysis with coding sequences only ... ")
 SNPLogRegInt_CodeOnly <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean +
-                      L1Width + PropMismatch + Genes + Promoters +
+                         L1Width + PropMismatch + Genes + Promoters +
                         blnFull + #NonSyn +
                         NonSyn:blnFull,
                     data = L1CoverTable[L1CoverTable$Syn | L1CoverTable$NonSyn, ], 
                     family = binomial(), chunksize = 3*10^4,
                     maxit = 20)
+cat("done!\n")
+cat("Performing regression analysis with coding sequences and HWE SNPs only ... ")
 SNPLogRegInt_CodeOnlyHWE <- bigglm(blnSNPHWE ~  TriNuc + L1VarCount_Flank + CoverMean +
                                   L1Width + PropMismatch + Genes + Promoters +
                                   blnFull + #NonSyn +
@@ -599,11 +591,14 @@ SNPLogRegInt_CodeOnlyHWE <- bigglm(blnSNPHWE ~  TriNuc + L1VarCount_Flank + Cove
                                   family = binomial(), chunksize = 3*10^4,
                                   maxit = 20)
 
+cat("done!\n")
 
 # Export data frame with regression results
 SNPLogRegInt_Summary             <- summary(SNPLogRegInt)
+SNPLogRegIntHWE_Summary             <- summary(SNPLogRegIntHWE)
 SNPLogRegInt_CodeOnly_Summary    <- summary(SNPLogRegInt_CodeOnly)
 SNPLogRegInt_CodeOnlyHWE_Summary <- summary(SNPLogRegInt_CodeOnlyHWE)
+SNPLogRegIntHWE_Summary
 SNPLogRegInt_CodeOnlyHWE_Summary 
 SNPLogRegInt_CodeOnly_Summary
 SNPLogRegInt_SumDF  <- as.data.frame(SNPLogRegInt_Summary$mat)
@@ -635,41 +630,59 @@ hist(L1CoverTable$PosFromL1Start[L1CoverTable$blnFull],
      breaks = 0:6500)
 
 # Get mean number of SNPs per L1 position of full-length L1
-MeanSNPPerPos <- aggregate(L1CoverTable$blnSNP[L1CoverTable$blnFull],
-                           by = list(L1CoverTable$PosFromL1Start[L1CoverTable$blnFull]),
-                           FUN = mean)
+AggPerL1Pos <- AggDataFrame(L1CoverTable[L1CoverTable$blnFull,], 
+                         GroupCol = "PosFromL1Start", 
+                         MeanCols = c("blnSNP", "CoverMean"), 
+                         LengthCols = "blnSNP", VarCols = c("blnSNP", "CoverMean"), 
+                         Addcols = c("Chromosome", "Pos")
+)
 
-plot(MeanSNPPerPos$x, type = "l")
-segments(x0 = c(startORF1, startORF2, start3UTR),
-         y0=0, y1 = 1, col = "red")
-plot(MeanSNPPerPos$x, type = "l", xlim = c(1, 500),
-     ylim =c(0, 0.3))
-plot(MeanSNPPerPos$x, type = "l", xlim = c(500, 1500),
-     ylim =c(0, 0.03))
-segments(x0 = c(startORF1, startORF2, start3UTR),
-         y0=0, y1 = 1, col = "red")
-plot(MeanSNPPerPos$x, xlim = c(startORF1, startORF1 + 100),
-     ylim =c(0, 0.03))
-ThirdPosORF1 <- seq(startORF1 + 1, startORF2, 3)
-blnThirdPosORF1 <- as.numeric(MeanSNPPerPos$Group.1) %in% ThirdPosORF1
-points(as.numeric(MeanSNPPerPos$Group.1)[blnThirdPosORF1],
-       MeanSNPPerPos$x[blnThirdPosORF1], pch = 16)
+# Smooth mean and standard error for SNP density and coverage
+SmSNP <- SmoothedCIandMean(x     = AggPerL1Pos$PosFromL1Start, 
+                           yMean = AggPerL1Pos$blnSNP_mean, 
+                           yN    = AggPerL1Pos$blnSNP_N,
+                           yVar  = AggPerL1Pos$blnSNP_var, yMin = 0)
+SmCov <- SmoothedCIandMean(x     = AggPerL1Pos$PosFromL1Start, 
+                           yMean = AggPerL1Pos$CoverMean_mean, 
+                           yN    = AggPerL1Pos$blnSNP_N,
+                           yVar  = AggPerL1Pos$CoverMean_var, yMin = 0)
 
-MeanPerPosSmoothed <- supsmu(as.numeric(MeanSNPPerPos$Group.1), 
-                             MeanSNPPerPos$x)
-par(mfrow = c(1, 1))
-plot(MeanSNPPerPos$x, type = "l", xlab = "Position on L1", 
-     ylab = "SNP probability per bp", col = rgb(0, 0, 0, 0.3),
-     ylim = c(0, max(MeanPerPosSmoothed$y)))
-rect(xleft = c(startORF1, startORF2), ybottom = 0, 
-     xright = c(endORF1, start3UTR - 1), ytop = max(MeanPerPosSmoothed$y), 
+# Set up plot paramters
+par(mfrow = c(3, 1), mai = c(0.1, 1, 0.1, 1))
+
+# Plot smoothed coverage
+plot(SmCov$MeanX, SmCov$MeanY, type = "n", bty = "n", ylim = c(0, 10),
+     xaxt = "n", xlab = "", ylab = "Mean coverage")
+polygon(x = SmCov$PolyX, y = SmCov$PolyY, col = "grey", border = NA)
+lines(SmCov$MeanX, SmCov$MeanY)
+
+# Plot smoothed SNP density
+plot(SmSNP$MeanX, SmSNP$MeanY, type = "n", ylim =c(0, 0.08), bty = "n",
+     xaxt = "n", xlab = "", ylab = "Mean proportion with SNPs")
+polygon(x = SmSNP$PolyX, y = SmSNP$PolyY, col = "grey", border = NA)
+lines(SmSNP$MeanX, SmSNP$MeanY)
+
+# Plot  reading frames
+plot(SmSNP$MeanX, rep(1, length(SmSNP$MeanX)), type = "n", bty = "n", 
+     xaxt = "n", yaxt = "n", ylim = c(-2, 2), ylab = "",
+     xlab = "LINE-1")
+
+lines(c(0, max(SmSNP$MeanX)), c(0.5, 0.5))
+rect(xleft = c(startORF1, startORF2), ybottom = 0.5, 
+     xright = c(endORF1, start3UTR - 1), ytop = 1, 
      col = rgb(0, 0, 0, 0.1))
-lines(MeanPerPosSmoothed$x, MeanPerPosSmoothed$y)
-# segments(x0 = c(startORF1, endORF1, startORF2, start3UTR),
-#       y0=0, y1 = 1, col = "red")
-CreateDisplayPdf('D:/L1polymORF/Figures/SNPsPerFullL1.pdf',
+text(x = c(0.5*(startORF1 + endORF1), 0.5*(startORF2 + start3UTR - 1)),
+     y = c(0.75, 0.75), c("ORF1", "ORF2"))
+text(x = 3000, y = 0, "LINE-1")
+CreateDisplayPdf('D:/L1ManuscriptFigures/SNPsPerFullL1.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
-                 height = 4, width = 7)
+                 height = 5, width = 5)
+
+######################################################
+#                                                    #
+#     Plot SNP probability along full-length L1      #
+#                                                    #
+######################################################
 
 # Overlaps between individual bp and L1
 OL_bpL1NonSyn <- findOverlaps(L1Cover_GR, GRNonSynInt)
@@ -691,10 +704,7 @@ MeanSNPPerORF2Pos <- aggregate(L1CoverTable$blnSNP[L1CoverTable$blnFull & L1Cove
                                by = list(L1CoverTable$PosFromORFStart[L1CoverTable$blnFull &
                                                                         L1CoverTable$blnORF2]),
                                FUN = mean)
-MeanSNPPerNonSyn <- aggregate(L1CoverTable$blnSNP[L1CoverTable$blnFull],
-                               by = list(L1CoverTable$NonSyn[L1CoverTable$blnFull]),
-                               FUN = mean)
-barplot(MeanSNPPerNonSyn$x)
+
 MeanSNPPerNonSynORF <- aggregate(L1CoverTable$blnSNP[L1CoverTable$blnFull],
                               by = list(L1CoverTable$NonSyn[L1CoverTable$blnFull]),
                               FUN = mean)
@@ -764,19 +774,51 @@ L1VarCountPerRange <- rbind(
              Width = width(GR_ORF2_full),
              stringsAsFactors = F))
 
+MeanSNPPerNonSyn_Full <- aggregate(L1CoverTable$blnSNP[L1CoverTable$blnFull],
+                                   by = list(L1CoverTable$NonSyn[L1CoverTable$blnFull]),
+                                   FUN = mean)
+MeanSNPPerNonSyn_Fragm <- aggregate(L1CoverTable$blnSNP[!L1CoverTable$blnFull],
+                                    by = list(L1CoverTable$NonSyn[!L1CoverTable$blnFull]),
+                                    FUN = mean)
+
+# Get mean number of SNPs per ORF type position
+AggPerORFPos <- AggDataFrame(L1CoverTable[L1CoverTable$NonSyn | L1CoverTable$Syn,], 
+                            GroupCol = c("blnFull", "NonSyn"), 
+                            MeanCols = c("blnSNP"), 
+                            LengthCols = "blnSNP", VarCols = c("blnSNP"))
 
 
-par(mfrow = c(1, 2),  mai = c(1, 0.5, 0.2, 0.1), 
+# Plot SNP density for different L1 regions
+#layout(rbind(c(1, 2), c(3, 3)))
+par(mai = c(1, 0.5, 0.7, 0.1), mfrow = c(2, 2),
     oma = c( 0.2,  2,  0.2,  0.2))
 boxplot(L1VarCount / width(L1GR) ~ blnFull, names = c("fragment", "full-length"),
-        ylab = "SNPs/bp", main = "A")
-
+        ylab = "", main = "A", xlab = "LINE-1 type")
 boxplot(Count/Width ~ Region, data = L1VarCountPerRange, ylab = "",
+        xlab = "LINE-1 region",
         main = "B")
-mtext(side =2, "SNPs/bp", outer = T)
-CreateDisplayPdf('D:/L1polymORF/Figures/VariantCounts.pdf',
+
+BP1 <- barplot(AggPerORFPos$blnSNP_mean[!AggPerORFPos$blnFull], main = "C",
+               names = c("synonymous", "non-synonymous"), ylim = c(0, 0.015)) 
+AddErrorBars(Vertical = T, MidX = BP1, 
+             MidY = AggPerORFPos$blnSNP_mean[!AggPerORFPos$blnFull],
+             ErrorRange = sqrt(AggPerORFPos$blnSNP_var[!AggPerORFPos$blnFull]/
+                                 AggPerORFPos$blnSNP_N[!AggPerORFPos$blnFull]),
+             TipWidth = 0.1)
+BP2 <- barplot(AggPerORFPos$blnSNP_mean[AggPerORFPos$blnFull], main = "D",
+               names = c("synonymous", "non-synonymous"), ylim = c(0, 0.002))
+AddErrorBars(Vertical = T, MidX = BP2, 
+             MidY = AggPerORFPos$blnSNP_mean[AggPerORFPos$blnFull],
+             ErrorRange = sqrt(AggPerORFPos$blnSNP_var[AggPerORFPos$blnFull]/
+                                 AggPerORFPos$blnSNP_N[AggPerORFPos$blnFull]),
+             TipWidth = 0.1)
+lines(BP2, c(0.0017, 0.0017))
+text(x = mean(BP2), y = 0.0018, "P < 0.001", cex = 1)
+
+mtext(side = 2, "Polymorphic positions per LINE-1 bp", outer = T)
+CreateDisplayPdf('D:/L1ManuscriptFigures/VariantCounts.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
-                 height = 4, width = 7)
+                 height = 7, width = 7)
 
 
 # # Get UTR5, ORF1, ORF2, and UTR3, of full-length L1

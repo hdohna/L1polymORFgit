@@ -132,15 +132,11 @@ CreateAndCallSlurmScript(file = "runVcftools_L1Right",
 # Get file names, loop over files and do the filtering
 # Example file name: ALL.chr2.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf
 DataFolder <- "/labs/dflev/hzudohna/1000Genomes/"
-FilePrefix <- "HWE"
 AllFiles <- list.files(DataFolder, pattern = "phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf", 
                        full.names = T)
 AllFiles <- AllFiles[-grep("vcf.", AllFiles)]
 PopFiles <- list.files(DataFolder, pattern = "1000G_SuperPop", 
                        full.names = T)
-AllFiles
-InFile <- AllFiles[11]
-PopFile <- PopFiles[1]
 HWEOutFilesL1    <- c()
 HWEOutFilesLeft  <- c()
 HWEOutFilesRight <- c()
@@ -149,12 +145,12 @@ for (InFile in AllFiles){
   OutFile      <- paste(InFileSplit[1:2], collapse = "")
   OutFileLeft  <- gsub("ALL", "HWE_LeftFlank_", OutFile)
   OutFileRight <- gsub("ALL", "HWE_RightFlank_", OutFile)
-  cat("*****   Calculating HWE for", InFileSplit[2], "    ****************\n\n")
+  cat("\n*****   Calculating HWE for", InFileSplit[2], "    ****************\n\n")
   for (PopFile in PopFiles){
     PopFileSplit  <- strsplit(PopFile, "\\_")[[1]]
     OutFileL1     <- gsub("ALL", paste("HWE_L1_Pop", PopFileSplit[3], sep = "_"), OutFile)
     cat("HWE for", PopFileSplit[3], "\n")
-    FileName <- paste("vcfHWE", PopFileSplit[3], sep = "_")
+    FileName <- paste("vcfHWE", InFileSplit[2], PopFileSplit[3], sep = "_")
     CreateAndCallSlurmScript(file = FileName, 
                              scriptName = FileName,
                              SlurmCommandLines = 
@@ -173,11 +169,44 @@ for (InFile in AllFiles){
 # Get all files with HWE for L1 and concatenate them
 HWEOutFilesL1 <- list.files(DataFolder, pattern = "HWE_L1_Pop", 
                             full.names = T)
-HWE_L1 <- read.table(HWEOutFilesL1[1], header = T)
-for (i in 2:length(HWEOutFilesL1)){
-  HWE_Local <- read.table(HWEOutFilesL1[i], header = T)
-  HWE_L1    <- rbind(HWE_L1, HWE_Local)
+# Make genomic ranges
+HWEGR <- GRanges()
+
+for (i in 1:length(HWEOutFilesL1)){
+  
+  cat("Processing file", i, "of", length(HWEOutFilesL1), "\n")
+  # Read in HWE data
+  HWE_Local  <- read.table(HWEOutFilesL1[i], header = T)
+  
+  # Get observed and expected heterozygotes
+  blnObsHetGreater <- as.data.frame(t(sapply(1:nrow(HWE_Local), function(i){
+    ObsHetChar <- strsplit(as.character(HWE_Local$OBS.HOM1.HET.HOM2.[i]), "/")[[1]][2]
+    ExpHetChar <- strsplit(as.character(HWE_Local$E.HOM1.HET.HOM2.[i]), "/")[[1]][2]
+    as.numeric(ObsHetChar) > as.numeric(ExpHetChar)
+  })))
+  
+  # Subset to get only entries with P <= 0.05 and observed heterozygosity
+  # greater 
+  HWE_Local <- HWE_Local[which(HWE_Local$P <= 0.05 & blnObsHetGreater), ]
+  
+  if(nrow(HWE_Local) > 0){
+    # Get genomic ranges
+    HWE_Local$chrom <- paste("chr", HWE_Local$CHR, sep = "")
+    HWEGR_Local <- makeGRangesFromDataFrame(HWE_Local, seqnames.field = "chrom",
+                                            start.field = "POS",
+                                            end.field = "POS")
+    HWEGR <- union(HWEGR, HWEGR_Local)
+  }
+  
+  cat("Total SNPs found:", length(HWEGR), "\n")
 }
+
+
+Explanation <- c("This R workspace contains genomic ranges of SNPs that",
+                 "differ significantly from HWE and have more heterozygotes",
+                 "than expected.")
+save(list = c("HWEGR", "Explanation"), 
+     file = paste(DataFolder, "SNPsDifferFromHWE.RData", sep = ""))
 
 # # Get all files with HWE for left flank and concatenate them
 # HWEOutFilesLeft <- list.files(DataFolder, pattern = "HWE_Left", 
