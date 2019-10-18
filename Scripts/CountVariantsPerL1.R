@@ -10,6 +10,7 @@ library(Rsamtools)
 library(rtracklayer)
 library(BSgenome.Hsapiens.UCSC.hg19)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+library(pracma)
 
 # Load data with HWE values
 
@@ -782,40 +783,127 @@ MeanSNPPerNonSyn_Fragm <- aggregate(L1CoverTable$blnSNP[!L1CoverTable$blnFull],
                                     FUN = mean)
 
 # Get mean number of SNPs per ORF type position
-AggPerORFPos <- AggDataFrame(L1CoverTable[L1CoverTable$NonSyn | L1CoverTable$Syn,], 
+AggPerORFPos <- AggDataFrame(DF = L1CoverTable[L1CoverTable$NonSyn | L1CoverTable$Syn,], 
                             GroupCol = c("blnFull", "NonSyn"), 
                             MeanCols = c("blnSNP"), 
                             LengthCols = "blnSNP", VarCols = c("blnSNP"))
 
+# Get mean number of SNPs per full-length and fragment L1
+AggPerL1Pos_FullFrag <- AggDataFrame(DF = L1CoverTable, 
+                             GroupCol = "blnFull", 
+                             MeanCols = c("blnSNP"), 
+                             LengthCols = "blnSNP", VarCols = c("blnSNP"))
+
+# Get mean number of SNPs per full-length and fragment L1
+AggPerL1Pos_ORFvsUTR <- AggDataFrame(DF = L1CoverTable[L1CoverTable$blnFull, ], 
+                                GroupCol = "Coding", 
+                                MeanCols = c("blnSNP"), 
+                                LengthCols = "blnSNP", VarCols = c("blnSNP"))
+
+# Function to create barplot of mean SNPs and error bars
+PlotMeanSNP <- function(AggDF, NameV, YLab = "", YLim = c(0, 0.02), Main = "",
+                        PlotP = T){
+  BP <- barplot(AggDF$blnSNP_mean, main = Main,
+                ylab = YLab,
+                names = NameV, ylim = YLim) 
+  AddErrorBars(Vertical = T, MidX = BP, 
+               MidY = AggDF$blnSNP_mean,
+               ErrorRange = sqrt(AggDF$blnSNP_var/ AggDF$blnSNP_N),
+               TipWidth = 0.1)
+  if (PlotP){
+    LX <- 1.1 * max(AggDF$blnSNP_mean, na.rm = T)
+    TX <- 1.2 * max(AggDF$blnSNP_mean, na.rm = T)
+    lines(BP, c(LX, LX))
+    text(x = mean(BP), y = TX, "P < 0.001", cex = 1)
+  }
+  
+  return(BP)
+}
+
+# load data for selection coefficient plot
+load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1SelectionResults_MELT_GroupwithSim.RData")
+
+# Get sample size and create a range of s-values
+max(1 / L1TotData$L1Freq)
+LengthVals <- c(seq(0, 5800, 200), 5950, 6000, 6200)
+Full <- LengthVals >= 6000
+SSize      <- L1TotData$SampleSize[1]
+SVals <- ModelFit_pracma$ML_abc$par[1] + ModelFit_pracma$ML_abc$par[2]*Full +
+  ModelFit_pracma$ML_abc$par[3] * LengthVals
+SValsTa <- ML_L1WidthFullTa_nonTa$par[1] + ML_L1WidthFullTa_nonTa$pa[2]*Full +
+  ML_L1WidthFullTa_nonTa$par[4] * LengthVals
+SValsnonTa <-ML_L1WidthFullTa_nonTa$par[1] + ML_L1WidthFullTa_nonTa$pa[3]*Full +
+  ML_L1WidthFullTa_nonTa$par[4] * LengthVals
+
+DetectProb <- L1TotData$DetectProb[1]
+ML_L1WidthFullTa_nonTa
+plot(SVals, SValsTa)
+plot(SVals, SValsnonTa)
+lines(c(-10, 10), c(-10, 10))
+
+# Calculate expected frequency per L1 width
+cat("\nCalculate expected frequency per L1 width ...")
+ExpL1WidthTa <- sapply(1:length(SVals), function(i) {
+  ExpAlleleFreq_pracma(s = SValsTa[i], N = PopSize, SampleSize = SSize,
+                       DetectProb = DetectProb, blnIns = T, 
+                       LogRegCoeff = LogRegL1Ref$coefficients)
+})
+ExpL1Width_nonTa <- ExpL1WidthTa
+ExpL1Width_nonTa[Full] <- sapply(which(Full), function(i) {
+  ExpAlleleFreq_pracma(s = SValsnonTa[i], N = PopSize, SampleSize = SSize,
+                       DetectProb = DetectProb, blnIns = T, 
+                       LogRegCoeff = LogRegL1Ref$coefficients)
+})
+cat("done!\n")
+
+# Plot individual points (length and frequency values)
+layout(matrix(c(1, 1, 2, 3, 4, 5), 3, 2, byrow = TRUE))
+par(oma = c(0.1,  0.2,  0.1,  0.2), 
+     mai = c(0.7, 1, 0.2, 1), cex.lab = 1.2)
+plot(L1TotData$L1width, 
+     L1TotData$Freq/SSize, xlab = "LINE-1 length [bp]",
+     ylab = "LINE-1 frequency", col = rgb(0, 0, 0, alpha = 0.2), 
+     pch = 16, ylim = c(0, 0.04), main = "A")
+L1FreqLengthSmoothed <- supsmu(L1TotData$L1width, 
+                               L1TotData$Freq/SSize, bass = 5)
+lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, lwd = 2, col = "green")
+lines(LengthVals, ExpL1WidthTa, lwd = 2, col = "red")
+lines(LengthVals, ExpL1Width_nonTa, lwd = 2, col = "red")
+
+# Plot estimated selection coefficient
+par(new = T)
+LengthVals2 <- seq(0, 6200, 20)
+Full      <- LengthVals2 >= 6000
+SVals2 <- ModelFit_pracma$ML_abc$par[1] + ModelFit_pracma$ML_abc$par[2]*Full +
+  ModelFit_pracma$ML_abc$par[3] * LengthVals2
+
+plot(LengthVals2, SVals2, type = "l", xaxt = "n", yaxt = "n", ylab = "", 
+     xlab = "", lwd = 2,col = "blue")
+axis(side = 4)
+mtext(side = 4, line = 3, 'Selection coefficient', cex = 0.87)
 
 # Plot SNP density for different L1 regions
 #layout(rbind(c(1, 2), c(3, 3)))
-par(mai = c(1, 0.5, 0.7, 0.1), mfrow = c(2, 2),
-    oma = c( 0.2,  2,  0.2,  0.2))
-boxplot(L1VarCount / width(L1GR) ~ blnFull, names = c("fragment", "full-length"),
-        ylab = "", main = "A", xlab = "LINE-1 type")
-boxplot(Count/Width ~ Region, data = L1VarCountPerRange, ylab = "",
-        xlab = "LINE-1 region",
-        main = "B")
+par(page = F, mai = c(0.5, 1, 0.2, 0.1))
+# boxplot(L1VarCount / width(L1GR) ~ blnFull, names = c("fragment", "full-length"),
+#         ylab = "SNPsper LINE-1 bp", main = "B", xlab = "LINE-1 type")
+# boxplot(Count/Width ~ Region, data = L1VarCountPerRange, ylab = "",
+#         xlab = "LINE-1 region",
+#         main = "C")
 
-BP1 <- barplot(AggPerORFPos$blnSNP_mean[!AggPerORFPos$blnFull], main = "C",
-               names = c("synonymous", "non-synonymous"), ylim = c(0, 0.015)) 
-AddErrorBars(Vertical = T, MidX = BP1, 
-             MidY = AggPerORFPos$blnSNP_mean[!AggPerORFPos$blnFull],
-             ErrorRange = sqrt(AggPerORFPos$blnSNP_var[!AggPerORFPos$blnFull]/
-                                 AggPerORFPos$blnSNP_N[!AggPerORFPos$blnFull]),
-             TipWidth = 0.1)
-BP2 <- barplot(AggPerORFPos$blnSNP_mean[AggPerORFPos$blnFull], main = "D",
-               names = c("synonymous", "non-synonymous"), ylim = c(0, 0.002))
-AddErrorBars(Vertical = T, MidX = BP2, 
-             MidY = AggPerORFPos$blnSNP_mean[AggPerORFPos$blnFull],
-             ErrorRange = sqrt(AggPerORFPos$blnSNP_var[AggPerORFPos$blnFull]/
-                                 AggPerORFPos$blnSNP_N[AggPerORFPos$blnFull]),
-             TipWidth = 0.1)
-lines(BP2, c(0.0017, 0.0017))
-text(x = mean(BP2), y = 0.0018, "P < 0.001", cex = 1)
+# Get mean number of SNPs per full-length and fragment L1
+PlotMeanSNP(AggPerL1Pos_FullFrag, NameV = c("Fragment", "Full-length"),
+            Main = "B", YLim = c(0, 0.025), YLab = "SNPs per LINE-1 bp")
+PlotMeanSNP(AggPerL1Pos_ORFvsUTR, NameV = c("UTR", "ORF"),
+            Main = "C", YLim = c(0, 0.025))
+PlotMeanSNP(AggPerORFPos[!AggPerORFPos$blnFull, ], 
+            NameV = c("synonymous", "non-synonymous"),
+            YLim = c(0, 0.02), Main = "D", PlotP = F, YLab = "SNPs per LINE-1 bp")
+PlotMeanSNP(AggPerORFPos[AggPerORFPos$blnFull, ], 
+            NameV = c("synonymous", "non-synonymous"),
+            YLim = c(0, 0.002), Main = "E")
 
-mtext(side = 2, "Polymorphic positions per LINE-1 bp", outer = T)
+
 CreateDisplayPdf('D:/L1ManuscriptFigures/VariantCounts.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 7, width = 7)
