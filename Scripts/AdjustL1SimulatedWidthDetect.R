@@ -6,10 +6,11 @@ library(GenomicRanges)
 library(MASS)
 library(fields)
 library(raster)
+library(lattice)
 
 # Source start script
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
-
+par(mfrow = c(1, 1))
 ##########################################
 #                                        #
 #     Define functions                   #
@@ -17,7 +18,7 @@ source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 ##########################################
 
 # Function to add columns to L1 detection dataframe
-AddCols2L1Detect <- function(L1DetectDF){
+AddCols2L1Detect <- function(L1DetectDF, L1WBreaks = seq(0, 6500, 500)){
   L1DetectDF$L1StartTrue    <- as.numeric(as.character(L1DetectDF$L1StartTrue))
   L1DetectDF$L1EndTrue      <- as.numeric(as.character(L1DetectDF$L1EndTrue))
   L1DetectDF$blnPass        <- L1DetectDF$EstFilter == "PASS"
@@ -33,6 +34,8 @@ AddCols2L1Detect <- function(L1DetectDF){
   L1DetectDF$L1PosAbsDiff   <- abs(L1DetectDF$PosTrue - L1DetectDF$PosEst)
   L1DetectDF$blnFullTrue    <- L1DetectDF$L1widthTrue >= 6000
   L1DetectDF$blnFullEst     <- L1DetectDF$L1widthEst >= 6000
+  L1DetectDF$L1widthTrueBin <- cut(L1DetectDF$L1widthTrue, breaks = L1WBreaks)
+  L1DetectDF$L1widthEstBin <- cut(L1DetectDF$L1widthEst, breaks = L1WBreaks)
   L1DetectDF
 }
 
@@ -80,8 +83,8 @@ AggL1Detect <- function(L1DetectDF, L1PosRange = 30){
 #                                        #
 ##########################################
 
-# Load data and add columns
-load("D:/L1polymORF/Data/L1Simulated_MELT.RData")
+# Load data (created in file CompareSimulatedEstimated L1and add columns
+load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1Simulated_MELT.RData")
 L1Detect       <- AddCols2L1Detect(L1Detect)
 L1Detect_Group <- AddCols2L1Detect(L1Detect_Group)
 
@@ -104,6 +107,36 @@ for (i in idxEstGenoCol){
   L1DetectAgg_Group[,i] <- sapply(L1DetectAgg_Group[,i], GetFromVcfGeno_GenoNum)
 }
 L1DetectAgg_Group$EstFreq  <- rowSums(L1DetectAgg_Group[, idxEstGenoCol], na.rm = T)
+
+##########################################
+#                                        #
+#     Plot joint frequencies           #
+#                                        #
+##########################################
+
+L1widthBreaks <- seq(0, 6500, 500)
+
+# Cut true and estimated L1 width into bins
+SimL1widthTrueCut <- cut(L1DetectAgg_Group$L1widthTrue, breaks = L1widthBreaks)
+SimL1widthEstCut  <- cut(L1DetectAgg_Group$L1widthEst, breaks  = L1widthBreaks)
+
+# Get combinations of L1 width classes among estimated 
+L1combos <- table(SimL1widthTrueCut, SimL1widthEstCut)
+levelplot(L1combos,  scales = list(x = list(rot = 90)), xlab = "True LINE-1 width", 
+          ylab = "Estimated LINE-1 width")
+CreateDisplayPdf('D:/L1ManuscriptFigures/TrueVsEstL1Length.pdf',
+                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+                 height = 7, width = 7)
+
+# par(mai = c(2, 2, 0.1, 2))
+# image(L1combos, xaxt = "n", yaxt = "n", col = topo.colors(50))
+# axis(1, at = seq(0, 1, 1/(length(L1widthBreaks) - 2)), labels = row.names(L1combos),
+#      las = 2)
+# axis(2, at = seq(0, 1, 1/(length(L1widthBreaks) - 2)), labels = row.names(L1combos),
+#      las = 2)
+# mtext(text = "Estimated L1 width", side = 1, las = 1, line = 8)
+# mtext(text = "Estimated L1 width", side = 1, las = 1, line = 8)
+# legend("topright")
 
 ##########################################
 #                                        #

@@ -863,13 +863,15 @@ par(oma = c(0.1,  0.2,  0.1,  0.2),
 plot(L1TotData$L1width, 
      L1TotData$Freq/SSize, xlab = "LINE-1 length [bp]",
      ylab = "LINE-1 frequency", col = rgb(0, 0, 0, alpha = 0.2), 
-     pch = 16, ylim = c(0, 0.04), main = "A")
+     pch = 16, #ylim = c(0, 0.04), 
+     main = "A")
 L1FreqLengthSmoothed <- supsmu(L1TotData$L1width, 
                                L1TotData$Freq/SSize, bass = 5)
-lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, lwd = 2, col = "green")
 lines(LengthVals, ExpL1WidthTa, lwd = 2, col = "red")
 lines(LengthVals, ExpL1Width_nonTa, lwd = 2, col = "red")
-
+lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, lwd = 2, col = "green")
+sum(L1TotData$Freq/SSize > 0.04)
+sum(L1TotData$Freq/SSize > 0.04) / sum(!is.na(L1TotData$Freq))
 # Plot estimated selection coefficient
 par(new = T)
 LengthVals2 <- seq(0, 6200, 20)
