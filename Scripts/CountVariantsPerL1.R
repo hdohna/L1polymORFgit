@@ -505,7 +505,28 @@ GR_HWE <- L1VarGR[!overlapsAny(L1VarGR, HWEGR)]
 # Overlaps between individual bp and L1
 OL_bpL1  <- findOverlaps(L1Cover_GR, L1GR)
 OL_bpHWE <- findOverlaps(L1Cover_GR, GR_HWE)
+OL_FullL1nonSyn  <- findOverlaps(L1GR[width(L1GR) >= 6000], GRNonSynInt)
+OL_FullL1Syn  <- findOverlaps(L1GR[width(L1GR) >= 6000],  GRSynInt)
+VarNonVarNonSyn <- sapply(unique(OL_FullL1nonSyn@from), function(x){
+  idxGR  <- OL_FullL1nonSyn@to[OL_FullL1nonSyn@from == x]
+  blnVar <- overlapsAny(GRNonSynInt[idxGR], L1VarGR)
+  c(NrVar = sum(blnVar), NonVar = sum(!blnVar))
+})
+VarNonVarSyn <- sapply(unique(OL_FullL1Syn@from), function(x){
+  idxGR  <- OL_FullL1Syn@to[OL_FullL1Syn@from == x]
+  blnVar <- overlapsAny(GRSynInt[idxGR], L1VarGR)
+  c(NrVar = sum(blnVar), NonVar = sum(!blnVar))
+})
+all(unique(OL_FullL1nonSyn@from) == unique(OL_FullL1Syn@from))
 
+PVals <- sapply(1:ncol(VarNonVarNonSyn), function(x){
+  fisher.test(cbind(VarNonVarNonSyn[,x], VarNonVarSyn[,x]))$p.value
+})
+hist(PVals)
+p.adjust(PVals)
+NrSites <- colSums(VarNonVarNonSyn) + colSums(VarNonVarSyn)
+hist(NrSites)
+  
 # Add columns with different info
 L1CoverTable$blnSNP    <- overlapsAny(L1Cover_GR, L1VarGR)
 L1CoverTable$blnSNPHWE <- overlapsAny(L1Cover_GR, GR_HWE)
