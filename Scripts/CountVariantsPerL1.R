@@ -492,6 +492,9 @@ L1VarGR <- makeGRangesFromDataFrame(L1Variants,
                                     start.field = "POS",
                                     end.field = "POS")
 
+# Subset GRanges for high quality SNPs
+L1VarGR_HighQual <- L1VarGR[L1Variants$QUAL >= 100]
+table(L1Variants$FILTER)
 # Count the number of variants per L1
 L1VarCount <- countOverlaps(L1GR, L1VarGR)
 L1VarCount_Left  <- countOverlaps(L1GR_left, L1VarGR_Left)
@@ -503,22 +506,27 @@ cor.test(L1VarCount_Left, L1VarCount_Right)
 GR_HWE <- L1VarGR[!overlapsAny(L1VarGR, HWEGR)]
 
 # Overlaps between individual bp and L1
+GRNonSynInt$mcols.ORFType == "ORF1"
 OL_bpL1  <- findOverlaps(L1Cover_GR, L1GR)
 OL_bpHWE <- findOverlaps(L1Cover_GR, GR_HWE)
-OL_FullL1nonSyn  <- findOverlaps(L1GR[width(L1GR) >= 6000], GRNonSynInt)
-OL_FullL1Syn  <- findOverlaps(L1GR[width(L1GR) >= 6000],  GRSynInt)
+GRNonSynInt1 <- GRNonSynInt[GRNonSynInt$mcols.ORFType == "ORF2"]
+GRSynInt1    <- GRSynInt[GRSynInt$mcols.ORFType == "ORF2"]
+OL_FullL1nonSyn  <- findOverlaps(L1GR[width(L1GR) >= 6000], GRNonSynInt1)
+width(GRNonSynInt1)
+OL_FullL1Syn  <- findOverlaps(L1GR[width(L1GR) >= 6000],  GRSynInt1)
 VarNonVarNonSyn <- sapply(unique(OL_FullL1nonSyn@from), function(x){
   idxGR  <- OL_FullL1nonSyn@to[OL_FullL1nonSyn@from == x]
-  blnVar <- overlapsAny(GRNonSynInt[idxGR], L1VarGR)
+  blnVar <- overlapsAny(GRNonSynInt1[idxGR], L1VarGR)
   c(NrVar = sum(blnVar), NonVar = sum(!blnVar))
 })
 VarNonVarSyn <- sapply(unique(OL_FullL1Syn@from), function(x){
   idxGR  <- OL_FullL1Syn@to[OL_FullL1Syn@from == x]
-  blnVar <- overlapsAny(GRSynInt[idxGR], L1VarGR)
+  blnVar <- overlapsAny(GRSynInt1[idxGR], L1VarGR)
   c(NrVar = sum(blnVar), NonVar = sum(!blnVar))
 })
 all(unique(OL_FullL1nonSyn@from) == unique(OL_FullL1Syn@from))
-
+plot(jitter(VarNonVarSyn[1,]), jitter(VarNonVarNonSyn[1,]))
+lines(c(0, 100), c(0, 200))
 PVals <- sapply(1:ncol(VarNonVarNonSyn), function(x){
   fisher.test(cbind(VarNonVarNonSyn[,x], VarNonVarSyn[,x]))$p.value
 })
@@ -529,7 +537,9 @@ hist(NrSites)
   
 # Add columns with different info
 L1CoverTable$blnSNP    <- overlapsAny(L1Cover_GR, L1VarGR)
+L1CoverTable$blnSNP_HighQual <- overlapsAny(L1Cover_GR, L1VarGR_HighQual)
 L1CoverTable$blnSNPHWE <- overlapsAny(L1Cover_GR, GR_HWE)
+L1CoverTable$blnSNP_both <- L1CoverTable$blnSNPHWE & L1CoverTable$blnSNP_HighQual
 L1CoverTable$blnUTR5   <- overlapsAny(L1Cover_GR, UTR5_GR)
 L1CoverTable$blnORF1   <- overlapsAny(L1Cover_GR, ORF1_GR)
 L1CoverTable$blnORF2   <- overlapsAny(L1Cover_GR, ORF2_GR)
@@ -578,7 +588,7 @@ sum(L1CoverTable$blnSNPHWE)
 
 # Perform analysis with interaction
 cat("Performing regression analysis with all SNPs... ")
-SNPLogRegInt <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean +
+SNPLogRegInt <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                          L1Width + PropMismatch + Genes + Exons + Promoters +
                          blnFull + NonSyn + Coding +
                          Coding*blnFull + NonSyn*blnFull,
@@ -586,17 +596,17 @@ SNPLogRegInt <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean +
                        family = binomial(), chunksize = 3*10^4,
                        maxit = 20)
 cat("done!\n")
-cat("Performing regression analysis with  HWE SNPs only... ")
-SNPLogRegIntHWE <- bigglm(blnSNPHWE ~  TriNuc + L1VarCount_Flank + CoverMean +
-                         L1Width + PropMismatch + Genes + Exons + Promoters +
-                         blnFull + NonSyn + Coding +
-                         Coding*blnFull + NonSyn*blnFull,
-                       data = L1CoverTable, 
-                       family = binomial(), chunksize = 3*10^4,
-                       maxit = 20)
-cat("done!\n")
+# cat("Performing regression analysis with  HWE SNPs only... ")
+# SNPLogRegIntHWE <- bigglm(blnSNPHWE ~  TriNuc + L1VarCount_Flank + CoverMean +
+#                          L1Width + PropMismatch + Genes + Exons + Promoters +
+#                          blnFull + NonSyn + Coding +
+#                          Coding*blnFull + NonSyn*blnFull,
+#                        data = L1CoverTable, 
+#                        family = binomial(), chunksize = 3*10^4,
+#                        maxit = 20)
+# cat("done!\n")
 cat("Performing regression analysis with coding sequences only ... ")
-SNPLogRegInt_CodeOnly <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean +
+SNPLogRegInt_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                          L1Width + PropMismatch + Genes + Promoters +
                         blnFull + #NonSyn +
                         NonSyn:blnFull,
@@ -604,27 +614,44 @@ SNPLogRegInt_CodeOnly <- bigglm(blnSNP ~  TriNuc + L1VarCount_Flank + CoverMean 
                     family = binomial(), chunksize = 3*10^4,
                     maxit = 20)
 cat("done!\n")
-cat("Performing regression analysis with coding sequences and HWE SNPs only ... ")
-SNPLogRegInt_CodeOnlyHWE <- bigglm(blnSNPHWE ~  TriNuc + L1VarCount_Flank + CoverMean +
-                                  L1Width + PropMismatch + Genes + Promoters +
-                                  blnFull + #NonSyn +
-                                  NonSyn:blnFull,
-                                  data = L1CoverTable[L1CoverTable$Syn | L1CoverTable$NonSyn, ], 
-                                  family = binomial(), chunksize = 3*10^4,
-                                  maxit = 20)
+# cat("Performing regression analysis with coding sequences and HWE SNPs only ... ")
+# SNPLogRegInt_CodeOnlyHWE <- bigglm(blnSNPHWE ~  TriNuc + L1VarCount_Flank + CoverMean +
+#                                   L1Width + PropMismatch + Genes + Promoters +
+#                                   blnFull + #NonSyn +
+#                                   NonSyn:blnFull,
+#                                   data = L1CoverTable[L1CoverTable$Syn | L1CoverTable$NonSyn, ], 
+#                                   family = binomial(), chunksize = 3*10^4,
+#                                   maxit = 20)
+# 
+# cat("done!\n")
 
-cat("done!\n")
+# cat("Performing regression analysis with coding sequences and high quality SNPs only ... ")
+# SNPLogRegInt_CodeOnlyHighQual <- bigglm(blnSNP_HighQual ~  TriNuc + L1VarCount_Flank + CoverMean +
+#                                      L1Width + PropMismatch + Genes + Promoters +
+#                                      blnFull + #NonSyn +
+#                                      NonSyn:blnFull,
+#                                    data = L1CoverTable[L1CoverTable$Syn | L1CoverTable$NonSyn, ], 
+#                                    family = binomial(), chunksize = 3*10^4,
+#                                    maxit = 20)
+# 
+# cat("done!\n")
+# 
+# cat("Performing regression analysis with coding sequences and high quality SNPs only ... ")
+# SNPLogRegInt_CodeOnlyBoth<- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
+#                                           L1Width + PropMismatch + Genes + Promoters +
+#                                           blnFull + #NonSyn +
+#                                           NonSyn:blnFull,
+#                                         data = L1CoverTable[L1CoverTable$Syn | L1CoverTable$NonSyn, ], 
+#                                         family = binomial(), chunksize = 3*10^4,
+#                                         maxit = 20)
+# 
+# cat("done!\n")
 
 # Export data frame with regression results
-SNPLogRegInt_Summary             <- summary(SNPLogRegInt)
-SNPLogRegIntHWE_Summary             <- summary(SNPLogRegIntHWE)
-SNPLogRegInt_CodeOnly_Summary    <- summary(SNPLogRegInt_CodeOnly)
-SNPLogRegInt_CodeOnlyHWE_Summary <- summary(SNPLogRegInt_CodeOnlyHWE)
-SNPLogRegIntHWE_Summary
-SNPLogRegInt_CodeOnlyHWE_Summary 
-SNPLogRegInt_CodeOnly_Summary
-SNPLogRegInt_SumDF  <- as.data.frame(SNPLogRegInt_Summary$mat)
-SNPLogRegInt_CodeOnlyDF  <- as.data.frame(SNPLogRegInt_CodeOnly_Summary$mat)
+SNPLogRegInt_Summary           <- summary(SNPLogRegInt)
+SNPLogRegInt_CodeOnly_Summary  <- summary(SNPLogRegInt_CodeOnly)
+SNPLogRegInt_SumDF             <- as.data.frame(SNPLogRegInt_Summary$mat)
+SNPLogRegInt_CodeOnlyDF        <- as.data.frame(SNPLogRegInt_CodeOnly_Summary$mat)
 SNPLogRegInt_SumDF$ExpCoef <- exp(SNPLogRegInt_SumDF$Coef) 
 SNPLogRegInt_CodeOnlyDF$ExpCoef <- exp(SNPLogRegInt_CodeOnlyDF$Coef) 
 ResultPathAll <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_all_2019-09-22.csv"
@@ -884,12 +911,27 @@ layout(matrix(c(1, 1, 2, 3, 4, 5), 3, 2, byrow = TRUE))
 par(oma = c(0.1,  0.2,  0.1,  0.2), 
      mai = c(0.7, 1, 0.2, 1), cex.lab = 1.2)
 plot(L1TotData$L1width, 
-     L1TotData$Freq/SSize, xlab = "LINE-1 length [bp]",
-     ylab = "LINE-1 frequency", col = rgb(0, 0, 0, alpha = 0.2), 
-     pch = 16, ylim = c(0, 0.04), 
-     main = "a")
+     L1TotData$Freq/SSize, xlab = "LINE-1 length [kb]",
+     ylab = "LINE-1 frequency", type = "n",
+     # col = rgb(0, 0, 0, alpha = 0.2), 
+     # pch = 16, 
+     ylim = c(0, 0.04), 
+    # xlim = c(0, 7000),
+     main = "a",xaxt = "n")
+axis(side = 1, at = seq(0, 6000, 1000), labels = 0:6)
+legend(3300, 0.045, c("Fitted mean", "Smoothed data", "Selection coefficient"),
+       cex = 1.2, 
+       lty = 1, bty = "n", lwd = 2,
+       y.intersp = 0.3, 
+       col = ColPal)
+points(L1TotData$L1width, cex = 2,
+     L1TotData$Freq/SSize, col = rgb(0, 0, 0, alpha = 0.07), 
+     pch = 16)
 L1FreqLengthSmoothed <- supsmu(L1TotData$L1width, 
                                L1TotData$Freq/SSize, bass = 5)
+blnNAWidthFreq <- is.na(L1TotData$L1width) | is.na(L1TotData$Freq)
+# L1FreqLengthSmoothed <- smooth.spline(L1TotData$L1width[!blnNAWidthFreq], 
+#                                L1TotData$Freq[!blnNAWidthFreq]/SSize)
 lines(LengthVals, ExpL1WidthTa, lwd = 2, col = ColPal[1])
 lines(LengthVals, ExpL1Width_nonTa, lwd = 2, col = ColPal[1])
 lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, lwd = 2, col = ColPal[2])
@@ -904,8 +946,10 @@ SVals2 <- ModelFit_pracma$ML_abc$par[1] + ModelFit_pracma$ML_abc$par[2]*Full +
 
 plot(LengthVals2, SVals2, type = "l", xaxt = "n", yaxt = "n", ylab = "", 
      xlab = "", lwd = 2,col = ColPal[3])
-axis(side = 4)
-mtext(side = 4, line = 3, 'Selection coefficient', cex = 0.87)
+axis(side = 4, at = -10^(-5)*c(3:7), labels = -c(3:7))
+
+mtext(side = 4, line = 3, expression(paste("Selection coefficient (", N[e], italic(s),")")), 
+      cex = 0.87)
 
 # Plot SNP density for different L1 regions
 #layout(rbind(c(1, 2), c(3, 3)))
