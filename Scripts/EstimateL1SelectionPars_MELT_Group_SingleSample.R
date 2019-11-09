@@ -10,7 +10,7 @@
 args = commandArgs(trailingOnly=TRUE)
 
 # Source start script
-source('/home/hzudohna/L1polymORFgit/_Start_L1polymORF_scg4.R')
+source('/home/hzudohna/L1polymORFgit/Scripts/_Start_L1polymORF_scg4.R')
 
 # Load packages
 library(GenomicRanges)
