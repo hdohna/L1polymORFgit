@@ -19,7 +19,7 @@ library(pracma)
 # Load data
 load("/labs/dflev/hzudohna/1000Genomes/L1SelectionResults_MELT_GroupwithSim.RData")
 
-
+cat("Generating sample", args[1], "\n")
 cat("\n********   Estimating effect of insertion length   **********\n")
   blnL1widthNA <- is.na(L1TotData$L1width)
   L1TotData$L1width_sample <- NA
