@@ -8,7 +8,7 @@
 ##########################################
 
 # Source start script
-source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
+source('D:/OneDrive - American University of Beirut/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load packages
 library(GenomicRanges)
@@ -21,15 +21,15 @@ library(pracma)
 ##########################################
 
 # Specify file paths
-DataPath            <- 'D:/L1polymORF/Data/'
-MeltInsPath         <- "D:/L1polymORF/Data/nstd144.GRCh37.variant_call.vcf"
-MeltDelPath         <- "D:/L1polymORF/Data/DEL.final_comp.vcf"
-ChrLPath            <- 'D:/L1polymORF/Data/ChromLengthsHg19.Rdata'
-InputPath           <- 'D:/L1polymORF/Data/SingletonAnalysis_unphased.RData'
-L1RefPath           <- 'D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
-L1RefRangePath      <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
-RegrOutputPath      <- "D:/L1polymORF/Data/L1RegressionResults.RData"
-SelectResultOutPath <- "D:/L1polymORF/Data/L1SelectionResults_MELT_GroupwithSim.RData"
+DataPath            <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/'
+MeltInsPath         <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/nstd144.GRCh37.variant_call.vcf"
+MeltDelPath         <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/DEL.final_comp.vcf"
+ChrLPath            <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/ChromLengthsHg19.Rdata'
+InputPath           <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/SingletonAnalysis_unphased.RData'
+L1RefPath           <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
+L1RefRangePath      <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/L1RefRanges_hg19.Rdata'
+RegrOutputPath      <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1RegressionResults.RData"
+SelectResultOutPath <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1SelectionResults_MELT_GroupwithSim.RData"
 
 # False discovery rate for selected L1
 FDR <- 0.1
@@ -55,10 +55,10 @@ MEInsSamplesize <- 2453
 cat("\n\nLoading and processing data ...")
 
 # Load simulation results
-load("D:/L1polymORF/Data/L1Simulated_AdditionalInfo_MELT.RData")
+load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1Simulated_AdditionalInfo_MELT.RData")
 
 # Source start script again
-source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
+source('D:/OneDrive - American University of Beirut/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Read in vcf file with MELT insertion calls
 MEInsCall <- read.table(MeltInsPath, 
@@ -88,7 +88,7 @@ MEInsCall$SampleSize <- 1/min(MEInsCall$AF)
 # MEInsCall$SampleSize <- 2 * MEInsSamplesize
 MEInsCall$Freq <- ceiling(MEInsCall$SampleSize * MEInsCall$AF) # TODO: Figure out why not integers!
 MEInsCall$blnFull <- MEInsCall$L1width >= MinLengthFullL1
-
+length(unique(MEInsCall$Freq))
 # Create GRanges object for MEInsCall
 MEInsCall$ChromName <- paste("chr", MEInsCall$Chrom, sep = "")
 MEIns_GR <- makeGRangesFromDataFrame(df = MEInsCall,
@@ -127,7 +127,7 @@ load(L1GRPath)
 load(ChrLPath)
 load(L1RefRangePath)
 load(RegrOutputPath)
-load("D:/L1polymORF/Data/DelVsL1Length.RData")
+load("D:/OneDrive - American University of Beirut/L1polymORF/Data/DelVsL1Length.RData")
 
 # Load table with L1 reference data
 L1RefTable <- read.csv(L1RefPath, as.is = T)
@@ -188,7 +188,7 @@ SampleTrueL1Width(
   SimL1Freq = L1DetectAgg_withL1$EstFreq,
   EstL1width = L1TotData$L1width[!blnL1widthNA],
   ObsL1Freq = L1TotData$Freq[!blnL1widthNA],
-  L1widthBreaks = seq(0, 6500, 500), PlotPath = "D:/L1polymORF/Figures/PL1TrueWidthVsFreq.pdf")
+  L1widthBreaks = seq(0, 6500, 500), PlotPath = "D:/OneDrive - American University of Beirut/L1polymORF/Figures/PL1TrueWidthVsFreq.pdf")
 cat("done!\n")
 
 # Test for frequency difference between L1 labelled Ta and not Ta
