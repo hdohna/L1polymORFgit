@@ -4,7 +4,7 @@
 #
 #   The following function calculates the probability log-likelihood of sampled
 #   frequencies of alleles under selection (equation after Boissinot at al. 2006 PNAS)
-#   accounting for variable 
+#   accounting for variable L1 length estimation
 
 # Input:
 #

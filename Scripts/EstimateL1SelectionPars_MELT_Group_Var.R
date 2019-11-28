@@ -270,63 +270,12 @@ FreqLengthDF <- AggDataFrame (L1TotData[L1TotData$blnIns,],
 blnNA <- sapply(1:nrow(FreqLengthDF), function(x) any(is.na(FreqLengthDF[x,])))
 FreqLengthDF <- FreqLengthDF[!blnNA, ]
 
-# Specify parameters that will go into function
-a = 0
-b = 0
-c = 0
-N = 10^5
-LogRegCoeff = LogRegL1Ref$coefficients
-DetectProb = 0.8
-LengthFull = 6000
-SampleSize = 2*MEInsSamplesize
 
-# Determine which length classes are full-length
-blnClassFull <- L1MidPts >= LengthFull
-
-# Calculate selection coefficients
-sVals = a + b*L1MidPts + c * blnClassFull
-
-# Calculate integration constants
-IntConsts <- sapply(sVals, function(x){
-  AlleleFreqIntConst(s = x, N = N, SampleSize = SampleSize,
-                     DetectProb = DetectProb,
-                     LogRegCoeff = LogRegCoeff, blnIns = T)
-})
-
-
-i <- 1
-
-LProbs <- sapply(1:nrow(FreqLengthDF), function(i){
-  # Get index of current length
-  idxLength <- FreqLengthDF$L1widthIdx_mean[i]
-  
-  # Get length values associated with current length and their characteristics
-  LengthTrueEst <- L1TrueGivenEstList[[idxLength]] 
-  blnFullOther <- LengthTrueEst$L1Length >= LengthFull
-  sValsOther    <- a + b * LengthTrueEst$L1Length + c * blnFullOther
-  
-  # Calculate the probability of observed length at oberved frequency
-  ProbObs <- FreqLengthDF$ProbSameLength_mean[i]  * 
-    AlleleFreqSampleVarDiscrete1(FreqLengthDF$Freq_mean[i], 
-                                 s = sVals[idxLength], 
-                                 N = N, IntConst = IntConsts[idxLength], 
-                                 SampleSize = SampleSize, DetectProb = DetectProb,
-                                 LogRegCoeff = LogRegCoeff, blnIns = T) +
-    
-    (1 - FreqLengthDF$ProbSameLength_mean[i])  * 
-    sum(sapply(1:nrow(LengthTrueEst), function(x){
-      LengthTrueEst$Probs[x] *
-        AlleleFreqSampleVarDiscrete1(FreqLengthDF$Freq_mean[i], 
-                                     s = sValsOther[x], 
-                                     N = N, IntConst = IntConsts[LengthTrueEst$idxNonZero[x]], 
-                                     SampleSize = MEInsSamplesize, DetectProb = DetectProb,
-                                     LogRegCoeff = LogRegCoeff, blnIns = T)
-    }))
-  
-  FreqLengthDF$N_sum[i] * log(ProbObs)
-  
-})
-sum(LProbs)
+##########################################
+#                                        #
+#     Maximize likelihood                #
+#                                        #
+##########################################
 
 # Estimate maximum likelihood for a single selection coefficient
 cat("Estimate maximum likelihood for a single selection coefficient\n")
@@ -384,6 +333,34 @@ ML_ab <-  constrOptim(theta = c(a = ML_a$par[1], b = 0),
                      method = "Nelder-Mead")
 cat("done!\n")
 
+ML_ac <-  constrOptim(theta = c(a = ML_a$par[1], c = 0),
+                      f = function(x) 
+                        -AlleleFreqLogLikVar_4Par(FreqLengthDF = FreqLengthDF, 
+                                                  L1TrueGivenEstList = L1TrueGivenEstList, 
+                                                  L1MidPts = L1MidPts,
+                                                  a = x[1], 
+                                                  b = 0, 
+                                                  c = x[2], 
+                                                  d = 0, 
+                                                  SD = NULL, 
+                                                  N = PopSize, 
+                                                  SampleSize = SampleSize,
+                                                  blnIns = T, 
+                                                  LogRegCoeff = LogRegCoeff,
+                                                  DetectProb = 0.9,
+                                                  verbose = T, showInfIndices = F,
+                                                  LowerS = -1,
+                                                  UpperS = 1),
+                      
+                      
+                      grad = NULL,
+                      ui = rbind(c(1, 0),  c(0, 1),   
+                                 c(-1, 0), c(0, -1)),
+                      ci = c(a = -0.01, b = -10^-3, 
+                             a = -0.01, b = -10^-3),
+                      method = "Nelder-Mead")
+cat("done!\n")
+
 ML_abc <-  constrOptim(theta = c(a = ML_ab$par[1], b = ML_ab$par[2], 0),
                       f = function(x) 
                         -AlleleFreqLogLikVar_4Par(FreqLengthDF = FreqLengthDF, 
@@ -412,4 +389,12 @@ ML_abc <-  constrOptim(theta = c(a = ML_ab$par[1], b = ML_ab$par[2], 0),
                       method = "Nelder-Mead")
 cat("done!\n")
 
+# Function to extract AIC from optim results
+GetAIC <- function(OptimResults){
+  round(2 * (length(OptimResults$par) + OptimResults$value), 2)
+}
+GetAIC(ML_abc)
+GetAIC(ML_ab)
+GetAIC(ML_ac)
+GetAIC(ML_a)
 
