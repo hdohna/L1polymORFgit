@@ -327,7 +327,105 @@ LProbs <- sapply(1:nrow(FreqLengthDF), function(i){
   
 })
 sum(LProbs)
-FreqLengthDF[is.infinite(LProbs), ]
-FreqLengthDF[FreqLengthDF$Freq_mean >= 2500, ]
-sum(FreqLengthDF$Freq_mean >= 2464)
-sum(is.infinite(LProbs))
+
+# Estimate maximum likelihood for a single selection coefficient
+cat("Estimate maximum likelihood for a single selection coefficient\n")
+ML_a <-  constrOptim(theta = c(a = 0),
+                     f = function(x) 
+                       -AlleleFreqLogLikVar_4Par(FreqLengthDF = FreqLengthDF, 
+                                                 L1TrueGivenEstList = L1TrueGivenEstList, 
+                                                 L1MidPts = L1MidPts,
+                                                 a = x[1], 
+                                                 b = 0, 
+                                                 c = 0, 
+                                                 d = 0, 
+                                                 SD = NULL, 
+                                                 N = PopSize, 
+                                                 SampleSize = SampleSize,
+                                                 blnIns = T, 
+                                                 LogRegCoeff = LogRegCoeff,
+                                                 DetectProb = 0.9,
+                                                 verbose = T, showInfIndices = F,
+                                                             LowerS = -1,
+                                                             UpperS = 1),
+                         
+                       
+                     grad = NULL,
+                     ui = rbind(1, -1),
+                     ci = c(a = -0.001, a = -0.001),
+                     method = "Nelder-Mead")
+cat("done!\n")
+
+ML_ab <-  constrOptim(theta = c(a = ML_a$par[1], b = 0),
+                     f = function(x) 
+                       -AlleleFreqLogLikVar_4Par(FreqLengthDF = FreqLengthDF, 
+                                                 L1TrueGivenEstList = L1TrueGivenEstList, 
+                                                 L1MidPts = L1MidPts,
+                                                 a = x[1], 
+                                                 b = x[2], 
+                                                 c = 0, 
+                                                 d = 0, 
+                                                 SD = NULL, 
+                                                 N = PopSize, 
+                                                 SampleSize = SampleSize,
+                                                 blnIns = T, 
+                                                 LogRegCoeff = LogRegCoeff,
+                                                 DetectProb = 0.9,
+                                                 verbose = T, showInfIndices = F,
+                                                 LowerS = -1,
+                                                 UpperS = 1),
+                     
+                     
+                     grad = NULL,
+                     ui = rbind(c(1, 0),  c(0, 1),   
+                                c(-1, 0), c(0, -1)),
+                     ci = c(a = -0.01, b = -10^-3, 
+                            a = -0.01, b = -10^-3),
+                     method = "Nelder-Mead")
+cat("done!\n")
+
+ML_abc <-  constrOptim(theta = c(a = ML_ab$par[1], b = ML_ab$par[2], 0),
+                      f = function(x) 
+                        -AlleleFreqLogLikVar_4Par(FreqLengthDF = FreqLengthDF, 
+                                                  L1TrueGivenEstList = L1TrueGivenEstList, 
+                                                  L1MidPts = L1MidPts,
+                                                  a = x[1], 
+                                                  b = x[2], 
+                                                  c = x[3], 
+                                                  d = 0, 
+                                                  SD = NULL, 
+                                                  N = PopSize, 
+                                                  SampleSize = SampleSize,
+                                                  blnIns = T, 
+                                                  LogRegCoeff = LogRegCoeff,
+                                                  DetectProb = 0.9,
+                                                  verbose = T, showInfIndices = F,
+                                                  LowerS = -1,
+                                                  UpperS = 1),
+                      
+                      
+                      grad = NULL,
+                      ui = rbind(c(1, 0, 0),  c(0, 1, 0),  c(0, 0, 1), 
+                                 c(-1, 0, 0), c(0, -1, 0), c(0, 0, -1)),
+                      ci = c(a = -0.01, b = -10^-3, c = -0.01, 
+                             a = -0.01, b = -10^-3, c = -0.01),
+                      method = "Nelder-Mead")
+cat("done!\n")
+
+
+AlleleFreqLogLikVar_4Par(FreqLengthDF = FreqLengthDF, 
+                         L1TrueGivenEstList = L1TrueGivenEstList, 
+                         L1MidPts = L1MidPts,
+                         a = -0.001, 
+                         b = 0, 
+                         c = 0, 
+                         d = 0, 
+                         SD = NULL, 
+                         N = PopSize, 
+                         SampleSize = SampleSize,
+                         blnIns = T, 
+                         LogRegCoeff = LogRegCoeff,
+                         DetectProb = 0.9,
+                         verbose = T, showInfIndices = F,
+                         LowerS = -1,
+                         UpperS = 1)
