@@ -413,19 +413,3 @@ ML_abc <-  constrOptim(theta = c(a = ML_ab$par[1], b = ML_ab$par[2], 0),
 cat("done!\n")
 
 
-AlleleFreqLogLikVar_4Par(FreqLengthDF = FreqLengthDF, 
-                         L1TrueGivenEstList = L1TrueGivenEstList, 
-                         L1MidPts = L1MidPts,
-                         a = -0.001, 
-                         b = 0, 
-                         c = 0, 
-                         d = 0, 
-                         SD = NULL, 
-                         N = PopSize, 
-                         SampleSize = SampleSize,
-                         blnIns = T, 
-                         LogRegCoeff = LogRegCoeff,
-                         DetectProb = 0.9,
-                         verbose = T, showInfIndices = F,
-                         LowerS = -1,
-                         UpperS = 1)
