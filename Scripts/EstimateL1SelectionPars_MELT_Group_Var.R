@@ -29,7 +29,7 @@ InputPath           <- 'D:/OneDrive - American University of Beirut/L1polymORF/D
 L1RefPath           <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
 L1RefRangePath      <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/L1RefRanges_hg19.Rdata'
 RegrOutputPath      <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1RegressionResults.RData"
-SelectResultOutPath <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1SelectionResults_MELT_GroupwithSim.RData"
+SelectResultOutPath <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1SelectionResults_MELT_GroupUncertainty.RData"
 
 # False discovery rate for selected L1
 FDR <- 0.1
@@ -89,7 +89,7 @@ MEInsCall$AF <- sapply(MEInsCall$Info, GetAF)
 MEInsCall <- MEInsCall[!is.na(MEInsCall$AF), ]
 MEInsCall$L1width <- sapply(MEInsCall$Info, GetLength)
 MEInsCall$SampleSize <- 1/min(MEInsCall$AF) 
-# MEInsCall$SampleSize <- 2 * MEInsSamplesize
+MEInsCall$SampleSize <- 2 * MEInsSamplesize
 MEInsCall$Freq <- ceiling(MEInsCall$SampleSize * MEInsCall$AF) # TODO: Figure out why not integers!
 MEInsCall$blnFull <- MEInsCall$L1width >= MinLengthFullL1
 length(unique(MEInsCall$Freq))
@@ -190,10 +190,9 @@ Nnf <- nrow(L1TotData)
 # Group L1 width into classes
 L1TotData$L1widthClass <- cut(L1TotData$L1width, breaks = L1widthBreaks)
 
+L1TotData$blnTa <- 1:nrow(L1TotData) %in% grep("L1Ta", L1TotData$Info)
+
 # Group L1 width into classes
-# L1WidthFreqTable <- table(L1TotData$L1widthClass, L1TotData$Freq)
-# L1WidthFreqDF1 <- as.data.frame(L1WidthFreqTable)
-# L1WidthFreqDF1 <- L1WidthFreqDF1[L1WidthFreqDF1$Var2 != "0", ]
 L1WidthFreqDF <- aggregate(rep(1, nrow(L1TotData)), 
                            by = list(L1TotData$L1widthClass, L1TotData$Freq),
               FUN = sum)
@@ -206,13 +205,6 @@ L1DetectAgg_withL1 <- L1DetectAgg_Group[
   which(L1DetectAgg_Group$L1widthTrue > 0 & L1DetectAgg_Group$L1widthEst > 0 ),]
 L1DetectAgg_withL1$L1widthTrue
 L1DetectAgg_withL1
-
-# L1SampleMat <- SampleMatTrueL1Width(SimL1widthTrue = L1DetectAgg_withL1$L1widthTrue, 
-#                        SimL1widthEst  = L1DetectAgg_withL1$L1widthEst,
-#                        SimL1Freq = L1DetectAgg_withL1$EstFreq,
-#                        EstL1width = L1TotData$L1width[!blnL1widthNA],
-#                        ObsL1Freq = L1TotData$Freq[!blnL1widthNA],
-#                        L1widthBreaks = L1widthBreaks)
 
 # Cut true and estimated L1 width into bins
 SimL1widthTrueCut <- cut(L1DetectAgg_withL1$L1widthTrue, breaks = L1widthBreaks)
@@ -266,10 +258,10 @@ FreqLengthDF <- AggDataFrame (L1TotData[L1TotData$blnIns,],
                               GroupCol = "FreqLength", 
                               MeanCols = c("Freq", "L1widthIdx", "FreqIdx",
                                            "ProbSameLength"), 
-                                         SumCols = "N")
-blnNA <- sapply(1:nrow(FreqLengthDF), function(x) any(is.na(FreqLengthDF[x,])))
+                                         SumCols = c("N", "blnTa"))
+blnNA        <- sapply(1:nrow(FreqLengthDF), function(x) any(is.na(FreqLengthDF[x,])))
 FreqLengthDF <- FreqLengthDF[!blnNA, ]
-
+FreqLengthDF$blnTa_sum
 
 ##########################################
 #                                        #
@@ -292,7 +284,7 @@ ML_a <-  constrOptim(theta = c(a = 0),
                                                  N = PopSize, 
                                                  SampleSize = SampleSize,
                                                  blnIns = T, 
-                                                 LogRegCoeff = LogRegCoeff,
+                                                 LogRegCoeff = LogRegL1Ref$coefficients,
                                                  DetectProb = 0.9,
                                                  verbose = T, showInfIndices = F,
                                                              LowerS = -1,
@@ -318,7 +310,7 @@ ML_ab <-  constrOptim(theta = c(a = ML_a$par[1], b = 0),
                                                  N = PopSize, 
                                                  SampleSize = SampleSize,
                                                  blnIns = T, 
-                                                 LogRegCoeff = LogRegCoeff,
+                                                 LogRegCoeff = LogRegL1Ref$coefficients,
                                                  DetectProb = 0.9,
                                                  verbose = T, showInfIndices = F,
                                                  LowerS = -1,
@@ -346,7 +338,7 @@ ML_ac <-  constrOptim(theta = c(a = ML_a$par[1], c = 0),
                                                   N = PopSize, 
                                                   SampleSize = SampleSize,
                                                   blnIns = T, 
-                                                  LogRegCoeff = LogRegCoeff,
+                                                  LogRegCoeff = LogRegL1Ref$coefficients,
                                                   DetectProb = 0.9,
                                                   verbose = T, showInfIndices = F,
                                                   LowerS = -1,
@@ -374,7 +366,7 @@ ML_abc <-  constrOptim(theta = c(a = ML_ab$par[1], b = ML_ab$par[2], 0),
                                                   N = PopSize, 
                                                   SampleSize = SampleSize,
                                                   blnIns = T, 
-                                                  LogRegCoeff = LogRegCoeff,
+                                                  LogRegCoeff = LogRegL1Ref$coefficients,
                                                   DetectProb = 0.9,
                                                   verbose = T, showInfIndices = F,
                                                   LowerS = -1,
@@ -389,12 +381,119 @@ ML_abc <-  constrOptim(theta = c(a = ML_ab$par[1], b = ML_ab$par[2], 0),
                       method = "Nelder-Mead")
 cat("done!\n")
 
+cat("Fitting model where intercept differs between Ta and non-Ta L1\n")
+ML_abcd_intercept <-  constrOptim(theta = c(a = ML_abc$par[1], b = ML_abc$par[2], c = ML_abc$par[3],
+                                  d = 0),
+                       f = function(x) 
+                         -AlleleFreqLogLikVar_4Par(FreqLengthDF = FreqLengthDF, 
+                                                   L1TrueGivenEstList = L1TrueGivenEstList, 
+                                                   L1MidPts = L1MidPts,
+                                                   a = x[1], 
+                                                   b = x[2], 
+                                                   c = x[3], 
+                                                   d = x[4], 
+                                                   SD = NULL, 
+                                                   N = PopSize, 
+                                                   SampleSize = SampleSize,
+                                                   blnIns = T, 
+                                                   LogRegCoeff = LogRegL1Ref$coefficients,
+                                                   DetectProb = 0.9,
+                                                   verbose = T, showInfIndices = F,
+                                                   LowerS = -1,
+                                                   UpperS = 1),
+                       
+                       
+                       grad = NULL,
+                       ui = rbind(c(1, 0, 0, 0),  c(0, 1, 0, 0),  c(0, 0, 1, 0), c(0, 0, 0, 1),
+                                  c(-1, 0, 0, 0),  c(0, -1, 0, 0),  c(0, 0,- 1, 0), c(0, 0, 0, -1)),
+                       ci = c(a = -0.003, b = -10^(-4), c = -10^(-3), d = -10^(-3), 
+                              a = -0.003, b = -10^(-4), c = -10^(-3), d = -10^(-3)),
+                       method = "Nelder-Mead")
+cat("done!\n")
+
+cat("Fitting model where slope differs between Ta and non-Ta L1\n")
+ML_abcd_slope <-  constrOptim(theta = c(a = ML_abc$par[1], b = ML_abc$par[2], c = ML_abc$par[3],
+                                            d = 0),
+                                  f = function(x) 
+                                    -AlleleFreqLogLikVar_4Par(FreqLengthDF = FreqLengthDF, 
+                                                              L1TrueGivenEstList = L1TrueGivenEstList, 
+                                                              L1MidPts = L1MidPts,
+                                                              a = x[1], 
+                                                              b = x[2], 
+                                                              c = x[3], 
+                                                              d = x[4], 
+                                                              SD = NULL, 
+                                                              N = PopSize, 
+                                                              SampleSize = SampleSize,
+                                                              blnIns = T, 
+                                                              LogRegCoeff = LogRegL1Ref$coefficients,
+                                                              DetectProb = 0.9,
+                                                              verbose = T, showInfIndices = F,
+                                                              LowerS = -1,
+                                                              UpperS = 1,
+                                                              TaInteraction = "L1Width"),
+                                  
+                                  
+                                  grad = NULL,
+                                  ui = rbind(c(1, 0, 0, 0),  c(0, 1, 0, 0),  c(0, 0, 1, 0), c(0, 0, 0, 1),
+                                             c(-1, 0, 0, 0),  c(0, -1, 0, 0),  c(0, 0,- 1, 0), c(0, 0, 0, -1)),
+                                  ci = c(a = -0.003, b = -10^(-4), c = -10^(-3), d = -10^(-3), 
+                                         a = -0.003, b = -10^(-4), c = -10^(-3), d = -10^(-3)),
+                                  method = "Nelder-Mead")
+cat("done!\n")
+
+cat("Fitting model where effect of full-length differs between Ta and non-Ta L1\n")
+ML_abcd_FullL <-  constrOptim(theta = c(a = ML_abc$par[1], b = ML_abc$par[2], c = ML_abc$par[3],
+                                        d = 0),
+                              f = function(x) 
+                                -AlleleFreqLogLikVar_4Par(FreqLengthDF = FreqLengthDF, 
+                                                          L1TrueGivenEstList = L1TrueGivenEstList, 
+                                                          L1MidPts = L1MidPts,
+                                                          a = x[1], 
+                                                          b = x[2], 
+                                                          c = x[3], 
+                                                          d = x[4], 
+                                                          SD = NULL, 
+                                                          N = PopSize, 
+                                                          SampleSize = SampleSize,
+                                                          blnIns = T, 
+                                                          LogRegCoeff = LogRegL1Ref$coefficients,
+                                                          DetectProb = 0.9,
+                                                          verbose = T, showInfIndices = F,
+                                                          LowerS = -1,
+                                                          UpperS = 1,
+                                                          TaInteraction = "FullLength"),
+                              
+                              
+                              grad = NULL,
+                              ui = rbind(c(1, 0, 0, 0),  c(0, 1, 0, 0),  c(0, 0, 1, 0), c(0, 0, 0, 1),
+                                         c(-1, 0, 0, 0),  c(0, -1, 0, 0),  c(0, 0,- 1, 0), c(0, 0, 0, -1)),
+                              ci = c(a = -0.003, b = -10^(-4), c = -10^(-3), d = -10^(-3), 
+                                     a = -0.003, b = -10^(-4), c = -10^(-3), d = -10^(-3)),
+                              method = "Nelder-Mead")
+cat("done!\n")
+
 # Function to extract AIC from optim results
 GetAIC <- function(OptimResults){
   round(2 * (length(OptimResults$par) + OptimResults$value), 2)
 }
+GetAIC(ML_abcd_intercept)
+GetAIC(ML_abcd_slope)
+GetAIC(ML_abcd_FullL)
+GetAIC(ML_abcd)
 GetAIC(ML_abc)
 GetAIC(ML_ab)
 GetAIC(ML_ac)
 GetAIC(ML_a)
 
+GetAIC(ML_abcd_intercept) - GetAIC(ML_abcd_slope)
+GetAIC(ML_abcd_slope) - GetAIC(ML_abcd_slope)
+GetAIC(ML_abcd_FullL) - GetAIC(ML_abcd_slope)
+GetAIC(ML_abcd) - GetAIC(ML_abcd_slope)
+GetAIC(ML_abc) - GetAIC(ML_abcd_slope)
+GetAIC(ML_ab) - GetAIC(ML_abcd_slope)
+GetAIC(ML_ac) - GetAIC(ML_abcd_slope)
+GetAIC(ML_a) - GetAIC(ML_abcd_slope)
+
+save.image(SelectResultOutPath)
+load(SelectResultOutPath)

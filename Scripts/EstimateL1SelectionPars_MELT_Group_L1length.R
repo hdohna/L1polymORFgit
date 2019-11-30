@@ -463,8 +463,9 @@ ML_L1WidthFullTa1_nonTa1 <- constrOptim(theta = c(a = ModelFit_pracma$ML_abc$`pa
 cat("done!\n")
 
 # Get AIC
-GetAIC(ML_L1WidthFullTa1_nonTa1)
-
+GetAIC(ML_L1WidthFullTa1_nonTa1) - GetAIC(ML_L1WidthFull_SlopeTa_nonTa)
+GetAIC(ML_L1WidthFull_InterceptTa_nonTa) - GetAIC(ML_L1WidthFull_SlopeTa_nonTa)
+as.numeric(as.character(ModelFit_pracma$AICTab$AIC)) - GetAIC(ML_L1WidthFull_SlopeTa_nonTa)
 
 # # Fit model including  an effect of full-length L1 that differs between Ta1 and non-Ta1
 # blnTa1 <- 1:nrow(L1TotData) %in% grep("L1Ta1", L1TotData$Info)
