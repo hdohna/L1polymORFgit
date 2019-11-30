@@ -230,7 +230,7 @@ for (i in 1:nrow(L1WidthAggregated)){
   
 }
 mtext(side = 1, line = 3, 'Population frequency', outer = T)
-mtext(side = 2, line = 3, 'Number of LINE-1', outer = T)
+mtext(side = 2, line = 3, 'Number of LINE-1s', outer = T)
 
 CreateDisplayPdf('D:/L1polymORF/Figures/ObsExpFreq.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
