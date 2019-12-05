@@ -259,7 +259,7 @@ blnORFProperInt <- NULL
 ORFType        <- NULL
 ORFTypeInt     <- NULL
 ORFPosInt      <- NULL
-ORFPos0Int      <- NULL
+ORFPos0Int     <- NULL
 L1Start        <- start(L1GR)
 L1End          <- end(L1GR)
 cat("Getting genomic ranges of synonymous and nonsynonymous coding positions ...")
@@ -307,7 +307,7 @@ for (i in idxORFEnd){
   }
   
   # Update vectors
-  ORFPosInt  <- c(ORFPosInt, c(ORF1PosInt, ORF2PosInt))
+  ORFPosInt  <- c(ORFPosInt,  c(ORF1PosInt, ORF2PosInt))
   ORFPos0Int <- c(ORFPos0Int, c(ORF1Pos0Int, ORF2Pos0Int))
   StartNonSyn    <- c(StartNonSyn, NewStartNonSyn)
   StartNonSynInt <- c(StartNonSynInt, NewStartNonSynInt)
@@ -366,21 +366,50 @@ length(GRNonSynInt) / length(GRNonSyn)
 sum(blnORFFull) / length(GRNonSyn)
 sum(blnORFProper) / length(GRNonSyn)
 
-# Check that all first two nucleotides are AT (start codon = ATG)
-getSeq(BSgenome.Hsapiens.UCSC.hg19, 
-       GRNonSynInt[GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == 1
-         & GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF1"])
-getSeq(BSgenome.Hsapiens.UCSC.hg19, 
-       GRNonSynInt[GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == 1
-                    & GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF2"])
+# Check that most of first nucleotides match amon non
+SynPos    <- seq(3, 9, 3)
+NonSynPos <- setdiff(1:9, SynPos)
+blnORF1_Nonsyn <- GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF1"
+blnORF2_Nonsyn <- GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF2"
+idxMismatchNonSyn <- lapply(NonSynPos, function(i){
+  cat("Analyzing sequence position", i, "\n")
+  Nuc1 <- substr(StartSeqORF1, i, i)
+  Nuc2 <- substr(StartSeqORF2, i, i)
+  GR_Pos_ORF1 <- GRNonSynInt[blnORF1_Nonsyn &
+                               GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == i - 1]
+  Nuc_ORF1 <- as.character(getSeq(BSgenome.Hsapiens.UCSC.hg19, GR_Pos_ORF1))
+  GR_Pos_ORF2 <- GRNonSynInt[blnORF2_Nonsyn &
+                               GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == i - 1]
+  Nuc_ORF2 <- as.character(getSeq(BSgenome.Hsapiens.UCSC.hg19, GR_Pos_ORF2))
+  idxMismatch_ORF1 <- which(Nuc_ORF1 != Nuc1)
+  cat(length(idxMismatch_ORF1), "L1s with mismatching nuc on ORF1\n")
+  idxMismatch_ORF2 <- which(Nuc_ORF2 != Nuc2)
+  cat(length(idxMismatch_ORF2), "L1s with mismatching nuc on ORF2\n")
+  list(idxMismatch_ORF1 = idxMismatch_ORF1,
+       idxMismatch_ORF2 = idxMismatch_ORF2)
+  
+})
 
-# Check that all next two nucleotides are GG for ORF1 and AC for ORF2
-getSeq(BSgenome.Hsapiens.UCSC.hg19, 
-       GRNonSynInt[GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == 3
-                   & GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF1"])
-getSeq(BSgenome.Hsapiens.UCSC.hg19, 
-       GRNonSynInt[GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == 3
-                   & GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF2"])
+blnORF1_Syn <- GRSynInt@elementMetadata@listData$mcols.ORFType == "ORF1"
+blnORF2_Syn <- GRSynInt@elementMetadata@listData$mcols.ORFType == "ORF2"
+idxMismatchSyn <- lapply(SynPos, function(i){
+  cat("Analyzing sequence position", i, "\n")
+  Nuc1 <- substr(StartSeqORF1, i, i)
+  Nuc2 <- substr(StartSeqORF2, i, i)
+  GR_Pos_ORF1 <- GRSynInt[blnORF1_Syn &
+                               GRSynInt@elementMetadata@listData$mcols.ORFPos0 == i - 1]
+  Nuc_ORF1 <- as.character(getSeq(BSgenome.Hsapiens.UCSC.hg19, GR_Pos_ORF1))
+  GR_Pos_ORF2 <- GRSynInt[blnORF2_Syn &
+                               GRSynInt@elementMetadata@listData$mcols.ORFPos0 == i - 1]
+  Nuc_ORF2 <- as.character(getSeq(BSgenome.Hsapiens.UCSC.hg19, GR_Pos_ORF2))
+  idxMismatch_ORF1 <- which(Nuc_ORF1 != Nuc1)
+  cat(length(idxMismatch_ORF1), "L1s with mismatching nuc on ORF1\n")
+  idxMismatch_ORF2 <- which(Nuc_ORF2 != Nuc2)
+  cat(length(idxMismatch_ORF2), "L1s with mismatching nuc on ORF2\n")
+  list(idxMismatch_ORF1 = idxMismatch_ORF1,
+       idxMismatch_ORF2 = idxMismatch_ORF2)
+  
+})
 
 # Plot how often a particular position within L1 is counted among non-
 # synymous positions
@@ -891,6 +920,11 @@ lines(c(-10, 10), c(-10, 10))
 
 # Calculate expected frequency per L1 width
 cat("\nCalculate expected frequency per L1 width ...")
+ExpL1Width <- sapply(1:length(SVals), function(i) {
+  ExpAlleleFreq_pracma(s = SVals[i], N = PopSize, SampleSize = SSize,
+                       DetectProb = DetectProb, blnIns = T, 
+                       LogRegCoeff = LogRegL1Ref$coefficients)
+})
 ExpL1WidthTa <- sapply(1:length(SVals), function(i) {
   ExpAlleleFreq_pracma(s = SValsTa[i], N = PopSize, SampleSize = SSize,
                        DetectProb = DetectProb, blnIns = T, 
@@ -932,8 +966,8 @@ L1FreqLengthSmoothed <- supsmu(L1TotData$L1width,
 blnNAWidthFreq <- is.na(L1TotData$L1width) | is.na(L1TotData$Freq)
 # L1FreqLengthSmoothed <- smooth.spline(L1TotData$L1width[!blnNAWidthFreq], 
 #                                L1TotData$Freq[!blnNAWidthFreq]/SSize)
-lines(LengthVals, ExpL1WidthTa, lwd = 2, col = ColPal[1])
-lines(LengthVals, ExpL1Width_nonTa, lwd = 2, col = ColPal[1])
+lines(LengthVals, ExpL1Width, lwd = 2, col = ColPal[1])
+#lines(LengthVals, ExpL1Width_nonTa, lwd = 2, col = ColPal[1])
 lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, lwd = 2, col = ColPal[2])
 sum(L1TotData$Freq/SSize > 0.04)
 sum(L1TotData$Freq/SSize > 0.04) / sum(!is.na(L1TotData$Freq))
@@ -1144,4 +1178,5 @@ CreateDisplayPdf('D:/L1ManuscriptFigures/VariantCounts.pdf',
 #      ylab = "Number variants")
 # 
 save.image("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantCount.RData")
+load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantCount.RData")
 # 

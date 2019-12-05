@@ -7,12 +7,13 @@
 #                                        #
 ##########################################
 
-# Source start script
-source('D:/OneDrive - American University of Beirut/L1polymORFgit/Scripts/_Start_L1polymORF.R')
-
 # Load packages
 library(GenomicRanges)
 library(pracma)
+
+# Source start script
+source('D:/OneDrive - American University of Beirut/L1polymORFgit/Scripts/_Start_L1polymORF.R')
+
 
 ##########################################
 #                                        #
@@ -20,12 +21,18 @@ library(pracma)
 #                                        #
 ##########################################
 
+# Load previously generated objects
+#load('D:/OneDrive - American University of Beirut/L1polymORF/Data/SingletonAnalysis_unphased.RData')
+
+# Load simulation results
+load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1Simulated_AdditionalInfo_MELT.RData")
+
 # Specify file paths
 DataPath            <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/'
+L1GRPath            <-  "D:/OneDrive - American University of Beirut/L1polymORF/Data/GRanges_L1_1000Genomes.RData"
 MeltInsPath         <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/nstd144.GRCh37.variant_call.vcf"
 MeltDelPath         <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/DEL.final_comp.vcf"
 ChrLPath            <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/ChromLengthsHg19.Rdata'
-InputPath           <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/SingletonAnalysis_unphased.RData'
 L1RefPath           <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
 L1RefRangePath      <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/L1RefRanges_hg19.Rdata'
 RegrOutputPath      <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1RegressionResults.RData"
@@ -53,9 +60,6 @@ MEInsSamplesize <- 2453
 ##########################################
 
 cat("\n\nLoading and processing data ...")
-
-# Load simulation results
-load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1Simulated_AdditionalInfo_MELT.RData")
 
 # Source start script again
 source('D:/OneDrive - American University of Beirut/L1polymORFgit/Scripts/_Start_L1polymORF.R')
@@ -103,6 +107,7 @@ MEDel_GR  <- makeGRangesFromDataFrame(df = MEDelCall,
                                      start.field = "POS",
                                      end.field = "POS")
 colnames(MEDelCall)
+MEDelCall$INFO[1:5]
 
 # function to get numeric genotype
 GetNumericGenotype <- function(x){
@@ -121,8 +126,6 @@ L1RefNumGen <- 2 - sapply(GTCols, function(x){
 MEDelCall$Freq       <- rowSums(L1RefNumGen, na.rm = T)
 MEDelCall$SampleSize <- apply(L1RefNumGen, 1, function(x) 2*sum(!is.na(x)))
 
-# Load previously generated objects
-load(InputPath)
 load(L1GRPath)
 load(ChrLPath)
 load(L1RefRangePath)

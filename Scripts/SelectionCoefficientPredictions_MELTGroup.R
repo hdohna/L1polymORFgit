@@ -8,7 +8,7 @@
 ##########################################
 
 # Source start script
-source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
+source('D:/OneDrive - American University of Beirut/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load packages
 library(pracma)
@@ -20,7 +20,7 @@ library(pracma)
 ##########################################
 
 # Specify file paths
-InputPath <- "D:/L1polymORF/Data/L1SelectionResults_MELT_GroupwithSim.RData"
+InputPath <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1SelectionResults_MELT_GroupwithSim.RData"
 
 ##########################################
 #                                        #
@@ -65,6 +65,11 @@ plot(SVals, SValsnonTa)
 lines(c(-10, 10), c(-10, 10))
 # Calculate expected frequency per L1 width
 cat("\nCalculate expected frequency per L1 width ...")
+ExpL1Width <- sapply(1:length(SVals), function(i) {
+  ExpAlleleFreq_pracma(s = SVals[i], N = PopSize, SampleSize = SSize,
+                       DetectProb = DetectProb, blnIns = T, 
+                       LogRegCoeff = LogRegL1Ref$coefficients)
+})
 ExpL1WidthTa <- sapply(1:length(SVals), function(i) {
   ExpAlleleFreq_pracma(s = SValsTa[i], N = PopSize, SampleSize = SSize,
                 DetectProb = DetectProb, blnIns = T, 
@@ -232,6 +237,6 @@ for (i in 1:nrow(L1WidthAggregated)){
 mtext(side = 1, line = 3, 'Population frequency', outer = T)
 mtext(side = 2, line = 3, 'Number of LINE-1s', outer = T)
 
-CreateDisplayPdf('D:/L1polymORF/Figures/ObsExpFreq.pdf',
+CreateDisplayPdf('D:/L1ManuscriptFigures/ObsExpFreq.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 5, width = 5)
