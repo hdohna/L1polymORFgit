@@ -17,7 +17,7 @@
 
 ##############################################
 
-FitSelectionModels_romberg <- function(PredictMat,  Freqs, 
+FitSelectionModels_quadgr <- function(PredictMat,  Freqs, 
                                Counts, PopSize, SampleSize,
                                blnIns, 
                                LogRegCoeff,
@@ -32,7 +32,7 @@ FitSelectionModels_romberg <- function(PredictMat,  Freqs,
   # Estimate maximum likelihood for a single selection coefficient
   cat("Estimate maximum likelihood for a single selection coefficient\n")
   ML_a <-  constrOptim(theta = c(a = 0),
-                          f = function(x) -AlleleFreqLogLik_4Par_romberg(
+                          f = function(x) -AlleleFreqLogLik_4Par_quadgr(
                             Freqs = Freqs,
                             Counts = rep(1, length(Freqs)),
                             Predict = PredictMat,
@@ -51,7 +51,7 @@ FitSelectionModels_romberg <- function(PredictMat,  Freqs,
   # Get maximum likelihood estimate for effect of L1 start on selection
   cat("Estimate effect of", colnames(PredictMat)[1], "on selection ...\n")
   ML_ab <-  constrOptim(theta = c(a = ML_a$par, b = 0),
-                             f = function(x) -AlleleFreqLogLik_4Par_romberg(
+                             f = function(x) -AlleleFreqLogLik_4Par_quadgr(
                                Freqs = Freqs,
                                Counts = rep(1, length(Freqs)),
                                Predict = PredictMat,
@@ -71,7 +71,7 @@ FitSelectionModels_romberg <- function(PredictMat,  Freqs,
   # Get maximum likelihood estimate for effect of full-length L1 on selection
   cat("Estimate effect of", colnames(PredictMat)[2], "on selection ...\n")
   ML_ac <-  constrOptim(theta = c(a = ML_a$par, c = 0),
-                            f = function(x) -AlleleFreqLogLik_4Par_romberg(
+                            f = function(x) -AlleleFreqLogLik_4Par_quadgr(
                               Freqs = Freqs,
                               Counts = rep(1, length(Freqs)),
                               Predict = PredictMat,
@@ -95,7 +95,7 @@ FitSelectionModels_romberg <- function(PredictMat,  Freqs,
   ML_abc <- constrOptim(theta = c(a = ML_ab$par[1], 
                                             b = ML_ab$par[2], 
                                             c = ML_ac$par[2]),
-                                  f = function(x) -AlleleFreqLogLik_4Par_romberg(
+                                  f = function(x) -AlleleFreqLogLik_4Par_quadgr(
                                     Freqs = Freqs,
                                     Counts = rep(1, length(Freqs)),
                                     Predict = PredictMat,

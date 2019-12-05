@@ -29,56 +29,54 @@ AlleleFreqSample_romberg <- function(k, s, N, SampleSize = 2504, DetectProb = 1,
     ExpCoeff <- exp(LogRegCoeff[1] + LogRegCoeff[2] * x)
     ExpCoeff / (1 + ExpCoeff)
   }
-  # The lines below are for insertions relative to the reference
-  if (blnIns){
+  if (blnIns){  
+    AFTime <- function(x, s, N, SampleSize, DetectProb) {
+      AlleleFreqTime(x, s, N) * (1 - ProbRef(x))
+    }
+    AFTimeSample <- function(x, s, N, SampleSize, DetectProb) {
+      AlleleFreqTime(x, s, N) * (1 - DetectProb * x)^SampleSize * (1 - ProbRef(x))
+    }
+    AFTimeBinom <- function(x, s, N, k, SampleSize, DetectProb) {
+      AlleleFreqTime(x, s, N) * (1 - ProbRef(x)) * 
+        dbinom(k, SampleSize, DetectProb * x)
+    }
+    AFTimeSampleBinom <- function(x, s, N, k, SampleSize, DetectProb) {
+      AlleleFreqTime(x, s, N) * (1 - DetectProb * x)^SampleSize * (1 - ProbRef(x)) * 
+        dbinom(k, SampleSize, DetectProb * x)
+    }
     
-    # Calculate integration constant
-    IntConst <- romberg(function(x) {
-        AlleleFreqTime(x, s, N) * (1 - ProbRef(x))
-      },  0, 1) - 
-    romberg(function(x) {
-        AlleleFreqTime(x, s, N) * (1 - DetectProb * x)^SampleSize * (1 - ProbRef(x))
-      },  0, 1)
-    
-    # Calculate probability of obtaining k alleles in a sample of size 
-    # SampleSize
-    log(
-      romberg(function(x) {
-          AlleleFreqTime(x, s, N) * (1 - ProbRef(x)) * 
-          dbinom(k, SampleSize, DetectProb * x)
-        }, 0, 1) - 
-      romberg(function(x) {
-          AlleleFreqTime(x, s, N) * (1 - DetectProb * x)^SampleSize * (1 - ProbRef(x)) * 
-            dbinom(k, SampleSize, DetectProb * x)
-        }, 0, 1)
-      ) -
-      log(IntConst)
-    # The lines below are for deletions relative to the reference
   } else {
+    AFTime <- function(x, s, N, SampleSize, DetectProb) {
+      AlleleFreqTime(x, s, N) * ProbRef(x)
+    }
+    AFTimeSample <- function(x, s, N, SampleSize, DetectProb) {
+      AlleleFreqTime(x, s, N) * (1 - (1-x)*DetectProb)^SampleSize * ProbRef(x)
+    }
+    AFTimeBinom <- function(x, s, N, k, SampleSize, DetectProb) {
+      AlleleFreqTime(x, s, N) * ProbRef(x) * 
+        dbinom(k, SampleSize, DetectProb * (1 - x))
+    }
+    AFTimeSampleBinom <- function(x, s, N, k, SampleSize, DetectProb) {
+      AlleleFreqTime(x, s, N) * (1 - (1-x)*DetectProb)^SampleSize * ProbRef(x) * 
+        dbinom(k, SampleSize, DetectProb * (1 - x))
+    }
     
-    # Calculate integration constant
-    IntConst <- romberg(function(x) {
-         AlleleFreqTime(x, s, N) * ProbRef(x)
-      },  0, 1) - 
-    romberg(function(x) {
-        AlleleFreqTime(x, s, N) * (1 - (1-x)*DetectProb)^SampleSize * ProbRef(x)
-      },  0, 1)
+  }
+
+     # Calculate integration constant
+    IntConst <- romberg(AFTime,  0, 1, s = s, N = N, SampleSize = SampleSize, 
+                        DetectProb = DetectProb)$value - 
+    romberg(AFTimeSample,  0, 1, s = s, N = N, SampleSize = SampleSize, 
+            DetectProb = DetectProb)$value
     
     # Calculate probability of obtaining k alleles in a sample of size 
     # SampleSize
     log(
-      romberg(function(x) {
-          AlleleFreqTime(x, s, N) * ProbRef(x) * 
-          dbinom(k, SampleSize, DetectProb * (1 - x))
-        }, 0, 1) - 
-      romberg(function(x) {
-        AlleleFreqTime(x, s, N) * (1 - (1-x)*DetectProb)^SampleSize * ProbRef(x) * 
-          dbinom(k, SampleSize, DetectProb * (1 - x))
-      }, 0, 1)
-    ) - log(IntConst)
-  }
+      romberg(AFTimeBinom, 0, 1, s = s, N = N, k = k, SampleSize = SampleSize, 
+              DetectProb = DetectProb)$value - 
+      romberg(AFTimeBinom, 0, 1, s = s, N = N, k = k, SampleSize = SampleSize, 
+              DetectProb = DetectProb)$value
+      ) - log(IntConst)
   
-  
-}
-
+} 
 

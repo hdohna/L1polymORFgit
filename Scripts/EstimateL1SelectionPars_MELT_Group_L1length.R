@@ -212,16 +212,40 @@ PredictMat <- L1TotData[, c("blnFull", "L1width", "Freq")]
 blnNA <- sapply(1:nrow(L1TotData), function(x) any(is.na(PredictMat[x,])))
 sum(blnNA)
 
-AlleleFreqLogLik_4Par_pracma(
-  Freqs = round(L1TotData$Freq[!blnNA], 0), 
-  Counts = rep(1, sum(!blnNA)), 
-  Predict = PredictMat[!blnNA, 1:3],
-  a =  ModelFit_pracma$ML_abc$`par`[1], b = ModelFit_pracma$ML_abc$`par`[2], 
-  c = ModelFit_pracma$ML_abc$`par`[3], d = 0, N = PopSize, 
-  SampleSize = L1TotData$SampleSize[!blnNA],
-  blnIns = L1TotData$blnIns[!blnNA], 
-  LogRegCoeff = LogRegL1Ref$coefficients,
-  DetectProb = L1TotData$DetectProb[!blnNA])
+# AlleleFreqLogLik_4Par_pracma(
+#   Freqs = round(L1TotData$Freq[!blnNA], 0), 
+#   Counts = rep(1, sum(!blnNA)), 
+#   Predict = PredictMat[!blnNA, 1:3],
+#   a =  ModelFit_pracma$ML_abc$`par`[1], b = ModelFit_pracma$ML_abc$`par`[2], 
+#   c = ModelFit_pracma$ML_abc$`par`[3], d = 0, N = PopSize, 
+#   SampleSize = L1TotData$SampleSize[!blnNA],
+#   blnIns = L1TotData$blnIns[!blnNA], 
+#   LogRegCoeff = LogRegL1Ref$coefficients,
+#   DetectProb = L1TotData$DetectProb[!blnNA])
+
+cat("\n********   Estimating effect of insertion length: true length   **********\n")
+# ModelFit_romberg <- FitSelectionModels_romberg(PredictMat[!blnNA, 1:3],  
+#                                              Freqs = round(L1TotData$Freq[!blnNA], 0), 
+#                                              Counts = rep(1, sum(!blnNA)), 
+#                                              PopSize = PopSize, 
+#                                              SampleSize = L1TotData$SampleSize[!blnNA],
+#                                              blnIns = L1TotData$blnIns[!blnNA], 
+#                                              LogRegCoeff = LogRegL1Ref$coefficients,
+#                                              DetectProb = L1TotData$DetectProb[!blnNA],
+#                                              aBorder = 0.003, 
+#                                              bBorder = 10^(-2), 
+#                                              cBorder = 10^(-5))
+ModelFit_quadgr <- FitSelectionModels_quadgr(PredictMat[!blnNA, 1:3],  
+                                               Freqs = round(L1TotData$Freq[!blnNA], 0), 
+                                               Counts = rep(1, sum(!blnNA)), 
+                                               PopSize = PopSize, 
+                                               SampleSize = L1TotData$SampleSize[!blnNA],
+                                               blnIns = L1TotData$blnIns[!blnNA], 
+                                               LogRegCoeff = LogRegL1Ref$coefficients,
+                                               DetectProb = L1TotData$DetectProb[!blnNA],
+                                               aBorder = 0.003, 
+                                               bBorder = 10^(-2), 
+                                               cBorder = 10^(-5))
 
 cat("\n********   Estimating effect of insertion length: true length   **********\n")
 ModelFit_pracma <- FitSelectionModels_pracma(PredictMat[!blnNA, 1:3],  
