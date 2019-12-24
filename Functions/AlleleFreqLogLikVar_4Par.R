@@ -8,9 +8,19 @@
 
 # Input:
 #
-#     FreqLengthDF:  data.frame containing
-#     L1MidPts: vector of counts midpoints of L1 length classes
-#     L1TrueGivenEstList: 
+#     FreqLengthDF:  data.frame containing the following columns
+#                    - L1widthIdx_mean: index of current length within length
+#                         class vector
+#                    - Freq_mean: population frequency
+#                    - ProbSameLength_mean: probability that estimated and
+#                         true length are the same
+#     L1MidPts:      vector of counts midpoints of L1 length classes
+#     L1TrueGivenEstList: a list that gives for each estimated length class a 
+#                    data.frame that contains the following columns:
+#                    - Probs: probabilities of true length classes
+#                    - idxNonZero: indices of true length classes
+#                    true length classes with non-zero probability and their
+#                    probabilities
 #     Predict: matrix (n x 2) of predictor variable values
 #     a:      intercept
 #     b:      slope for first predictor
@@ -57,7 +67,7 @@ AlleleFreqLogLikVar_4Par <- function(FreqLengthDF,
                        LogRegCoeff = LogRegCoeff, blnIns = T)
   })
   
-  if (d == 0) {
+  if (d == 0) { # No difference between Ta and non-Ta LINE-1
     LProbs <- sapply(1:nrow(FreqLengthDF), function(i){
       
       # Get index of current length
@@ -69,28 +79,34 @@ AlleleFreqLogLikVar_4Par <- function(FreqLengthDF,
       sValsOther    <- a + b * LengthTrueEst$L1Length + c * blnFullOther
       
       # Calculate the probability of observed length at oberved frequency
-      ProbObs <- FreqLengthDF$ProbSameLength_mean[i]  * 
-        AlleleFreqSampleVarDiscrete1(k = FreqLengthDF$Freq_mean[i], 
-                                     s = sVals[idxLength], 
-                                     N = N, IntConst = IntConsts[idxLength], 
-                                     SampleSize = SampleSize, DetectProb = DetectProb,
-                                     LogRegCoeff = LogRegCoeff, blnIns = T) +
+      ProbObs <- 
         
+        # Likelihood given that estimated length == true length
+        FreqLengthDF$ProbSameLength_mean[i]  * 
+        AlleleFreqSampleVarDiscrete1(
+          k = FreqLengthDF$Freq_mean[i], 
+          s = sVals[idxLength], 
+          N = N, IntConst = IntConsts[idxLength], 
+          SampleSize = SampleSize, DetectProb = DetectProb,
+          LogRegCoeff = LogRegCoeff, blnIns = T) +
+        
+        # Likelihood given that estimated length != true length
         (1 - FreqLengthDF$ProbSameLength_mean[i])  * 
-        sum(sapply(1:nrow(LengthTrueEst), function(j){
+        sum(sapply(1:nrow(LengthTrueEst), function(j){ # sum over all possible length values
           LengthTrueEst$Probs[j] *
-            AlleleFreqSampleVarDiscrete1(k = FreqLengthDF$Freq_mean[i], 
-                                         s = sValsOther[j], 
-                                         N = N, IntConst = IntConsts[LengthTrueEst$idxNonZero[j]], 
-                                         SampleSize = MEInsSamplesize, DetectProb = DetectProb,
-                                         LogRegCoeff = LogRegCoeff, blnIns = T)
+            AlleleFreqSampleVarDiscrete1(
+              k = FreqLengthDF$Freq_mean[i], 
+              s = sValsOther[j], 
+              N = N, IntConst = IntConsts[LengthTrueEst$idxNonZero[j]], 
+              SampleSize = SampleSize, DetectProb = DetectProb,
+              LogRegCoeff = LogRegCoeff, blnIns = T)
         }))
       
       FreqLengthDF$N_sum[i] * log(ProbObs)
       
     })
     
-  } else {
+  } else { # Difference between Ta and non-Ta LINE-1
     IntConstsTa <- sapply(sValsTa, function(z){
       AlleleFreqIntConst(s = z, N = N, SampleSize = SampleSize,
                          DetectProb = DetectProb,
@@ -123,11 +139,12 @@ AlleleFreqLogLikVar_4Par <- function(FreqLengthDF,
         (1 - FreqLengthDF$ProbSameLength_mean[i])  * 
         sum(sapply(1:nrow(LengthTrueEst), function(j){
           LengthTrueEst$Probs[j] *
-            AlleleFreqSampleVarDiscrete1(k = FreqLengthDF$Freq_mean[i], 
-                                         s = sValsOther[j], 
-                                         N = N, IntConst = IntConsts[LengthTrueEst$idxNonZero[j]], 
-                                         SampleSize = MEInsSamplesize, DetectProb = DetectProb,
-                                         LogRegCoeff = LogRegCoeff, blnIns = T)
+            AlleleFreqSampleVarDiscrete1(
+              k = FreqLengthDF$Freq_mean[i], 
+              s = sValsOther[j], 
+              N = N, IntConst = IntConsts[LengthTrueEst$idxNonZero[j]], 
+              SampleSize = SampleSize, DetectProb = DetectProb,
+              LogRegCoeff = LogRegCoeff, blnIns = T)
         }))
       
       # Calculate the probability of observed length at oberved frequency for non-Ta L1
@@ -144,7 +161,7 @@ AlleleFreqLogLikVar_4Par <- function(FreqLengthDF,
             AlleleFreqSampleVarDiscrete1(k = FreqLengthDF$Freq_mean[i], 
                                          s = sValsOtherTa[j], 
                                          N = N, IntConst = IntConsts[LengthTrueEst$idxNonZero[j]], 
-                                         SampleSize = MEInsSamplesize, DetectProb = DetectProb,
+                                         SampleSize = SampleSize, DetectProb = DetectProb,
                                          LogRegCoeff = LogRegCoeff, blnIns = T)
         }))
       (FreqLengthDF$N_sum[i] - FreqLengthDF$blnTa_sum[i]) * log(ProbObs) + 

@@ -36,14 +36,14 @@ AlleleFreqSampleVarDiscrete1 <- function(k, s, N, IntConst,
     # Calculate probability of obtaining k alleles in a sample of size 
     # SampleSize
 #    log(
-      (integrate(function(x) {
+      (integral(function(x) {
           AlleleFreqTime(x, s, N) * (1 - ProbRef(x)) * 
           dbinom(k, SampleSize, DetectProb * x)
-        }, 0, 1)$value - 
-      integrate(function(x) {
+        }, 0, 1) - 
+         integral(function(x) {
           AlleleFreqTime(x, s, N) * (1 - DetectProb * x)^SampleSize * (1 - ProbRef(x)) * 
             dbinom(k, SampleSize, DetectProb * x)
-        }, 0, 1)$value) /
+        }, 0, 1)) /
 #      ) -
        IntConst
     # The lines below are for deletions relative to the reference
@@ -53,14 +53,14 @@ AlleleFreqSampleVarDiscrete1 <- function(k, s, N, IntConst,
     # Calculate probability of obtaining k alleles in a sample of size 
     # SampleSize
 #    log(
-      (integrate(function(x) {
+      (integral(function(x) {
           AlleleFreqTime(x, s, N) * ProbRef(x) * 
           dbinom(k, SampleSize, DetectProb * (1 - x))
-        }, 0, 1)$value - 
-      integrate(function(x) {
+        }, 0, 1) - 
+         integral(function(x) {
         AlleleFreqTime(x, s, N) * (1 - (1-x)*DetectProb)^SampleSize * ProbRef(x) * 
           dbinom(k, SampleSize, DetectProb * (1 - x))
-      }, 0, 1)$value) /
+      }, 0, 1)) /
 #    ) - 
    IntConst
   }

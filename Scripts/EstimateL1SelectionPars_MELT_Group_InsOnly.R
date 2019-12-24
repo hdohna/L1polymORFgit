@@ -36,7 +36,7 @@ ChrLPath            <- 'D:/OneDrive - American University of Beirut/L1polymORF/D
 L1RefPath           <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
 L1RefRangePath      <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/L1RefRanges_hg19.Rdata'
 RegrOutputPath      <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1RegressionResults.RData"
-SelectResultOutPath <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1SelectionResults_MELT_GroupwithSim.RData"
+SelectResultOutPath <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1SelectionResults_MELT_GroupInsOnly.RData"
 
 # False discovery rate for selected L1
 FDR <- 0.1
