@@ -176,7 +176,7 @@ CreateDisplayPdf('D:/L1polymORF/Figures/FreqVarVsL1Width_Group.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 5, width = 5)
 
-
+plot(L1WidthAggregated$L1width_mean, L1WidthAggregated$Freq_mean)
 ###############################################################
 #                                                             #
 #   Plot expected and observed allele frequency distribution  #
@@ -184,7 +184,7 @@ CreateDisplayPdf('D:/L1polymORF/Figures/FreqVarVsL1Width_Group.pdf',
 ###############################################################
 
 FreqCountV <- 1:30
-
+FreqCountV/SSize
 # Get per L1 width bin the site-frequency spectrum (SFS) and calculate a 
 # multinomial probability per SFS
 LBinsUnique <- unique(L1TotData$InsLengthClass)
@@ -218,6 +218,16 @@ ExpMat <- sapply(1:nrow(L1WidthAggregated), function(x){
   })
 })
 cat("done!\n")
+ExpMat2 <- sapply(1:nrow(L1WidthAggregated), function(x){
+  L1WidthAggregated$Freq_N[x]*
+    sapply(FreqCountV, function(y) {
+      exp(AlleleFreqSample_simplified3(k = y, s = L1WidthAggregated$sVals_mean[x], N = PopSize,
+                                  SampleSize = SSize,
+                                  DetectProb = 0.8,
+                                  LogRegCoeff = LogRegL1Ref$coefficients,
+                                  blnIns = T))
+    })
+})
 
 
 # Sum probabilities per frequency value to get expected frequencies
@@ -241,7 +251,7 @@ for (i in 1:nrow(L1WidthAggregated)){
   HF <- hist(Counts, breaks = 0:5000,
              xlim = c(0, 30), main = x, xlab = "",
              ylab = "")
-  lines(HF$mids[1:30], ExpMat[,i])
+  lines(HF$mids[1:30], ExpMat2[,i])
   
 }
 mtext(side = 1, line = 3, 'Population frequency', outer = T)

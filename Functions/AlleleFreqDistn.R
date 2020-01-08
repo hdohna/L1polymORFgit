@@ -18,7 +18,7 @@
 
 AlleleFreqDistn <- function(y, s, N = 10^4){
     
-  IntConst <- integrate(function(x) AlleleFreqTime(x, s, N), 0, 1)$value
+  IntConst <- integral(function(x) AlleleFreqTime(x, s, N), 0, 1)
   
   # Calculate expected frequency
   AlleleFreqTime(y, s, N) / IntConst

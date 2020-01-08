@@ -44,6 +44,15 @@ CreateDisplayPdf('D:/L1polymORF/Figures/FreqDistPerSelectCoeff.pdf',
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
                  height = 7, width = 7)
 
+plot(FreqVals, Distn1, type = "l", xlim = c(0.0002, 0.006),
+     xlab = "Allele frequency",
+     ylab = "Probability density")
+for (i in 1:length(SCoeffs)){
+  Distn <- sapply(FreqVals, function(x) AlleleFreqDistn(y = x, s = SCoeffs[i], N = 10^5))
+  lines(FreqVals, Distn, col = Cols[i])
+}
+
+
 #####################################################################
 #                                                                   #
 #       Plot distribution of observed frequencies in a sample       #

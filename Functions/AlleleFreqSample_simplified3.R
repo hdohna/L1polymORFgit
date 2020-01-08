@@ -27,17 +27,17 @@ AlleleFreqSample_simplified3 <- function(k, s, N, SampleSize = 2504, DetectProb 
     
 
     # Calculate integration constant
-    IntConst <- integrate(function(x) {
+    IntConst <- integral(function(x) {
         AlleleFreqTime(x, s, N) 
-      },  0, 1)$value
+      },  0, 1)
     
     # Calculate probability of obtaining k alleles in a sample of size 
     # SampleSize
     #log(
-      integrate(function(x) {
+      integral(function(x) {
           AlleleFreqTime(x, s, N) * 
           dbinom(k, SampleSize, x)
-        }, 0, 1)$value /
+        }, 0, 1) /
       #) -
       IntConst
   }
