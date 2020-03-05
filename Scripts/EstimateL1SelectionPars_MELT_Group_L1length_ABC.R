@@ -22,15 +22,15 @@ library(abc)
 ##########################################
 
 # Specify file paths
-DataPath            <- 'D:/L1polymORF/Data/'
-MeltInsPath         <- "D:/L1polymORF/Data/nstd144.GRCh37.variant_call.vcf"
-MeltDelPath         <- "D:/L1polymORF/Data/DEL.final_comp.vcf"
-ChrLPath            <- 'D:/L1polymORF/Data/ChromLengthsHg19.Rdata'
-InputPath           <- 'D:/L1polymORF/Data/SingletonAnalysis_unphased.RData'
-L1RefPath           <- 'D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
-L1RefRangePath      <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
-RegrOutputPath      <- "D:/L1polymORF/Data/L1RegressionResults.RData"
-SelectResultOutPath <- "D:/L1polymORF/Data/L1SelectionResults_MELT_GroupwithSim.RData"
+DataPath            <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/'
+MeltInsPath         <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/nstd144.GRCh37.variant_call.vcf"
+MeltDelPath         <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/DEL.final_comp.vcf"
+ChrLPath            <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/ChromLengthsHg19.Rdata'
+InputPath           <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/SingletonAnalysis_unphased.RData'
+L1RefPath           <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/L1HS_repeat_table_Hg19.csv'
+L1RefRangePath      <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/L1RefRanges_hg19.Rdata'
+RegrOutputPath      <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1RegressionResults.RData"
+SelectResultOutPath <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1SelectionResults_MELT_GroupwithSim.RData"
 
 # False discovery rate for selected L1
 FDR <- 0.1
@@ -59,7 +59,7 @@ FreqCountV <- 1:30
 cat("\n\nLoading and processing data ...")
 
 # Load simulation results
-load("D:/L1polymORF/Data/L1Simulated_AdditionalInfo_MELT.RData")
+load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1Simulated_AdditionalInfo_MELT.RData")
 
 # Source start script again
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
@@ -177,6 +177,7 @@ SimMat <- t(sapply(1:20, function(x){
   })
 }))
 blnInf <- apply(SimMat, 1, FUN = function(x) any(is.infinite(x)))
+dim(SimMat)
 abc(DMulti, ParCombos[which(!blnInf), ], SimMat[!blnInf, ], tol = 0.01, method = "loclinear")
 
 ###################################################
