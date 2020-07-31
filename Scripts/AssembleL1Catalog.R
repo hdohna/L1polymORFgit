@@ -24,7 +24,7 @@
 ########################################
 
 # Source start script
-source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
+source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.r')
 
 # Load packages
 library(BSgenome.Hsapiens.UCSC.hg38)

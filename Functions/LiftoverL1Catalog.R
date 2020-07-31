@@ -43,6 +43,7 @@ LiftoverL1Catalog <- function(L1Catalog,
   
   # Get genomic ranges for hg19
   GRCatalogue_hg19 <- unlist(GRCatalogue_hg19[idxUniqueMapped])
+  GRCatalogue_hg19@elementMetadata$Acession <- L1Catalog$Accession[idxUniqueMapped]
   
   # Append new columns for hg19 coordinates to L1Catalog
   L1CatalogWithHG19 <- L1Catalog
