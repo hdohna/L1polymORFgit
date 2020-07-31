@@ -64,12 +64,36 @@ table(unlist(lapply(ORFStartEndList, function(x) x$ORF1Start)))
 table(unlist(lapply(ORFStartEndList, function(x) x$ORF1End)))
 table(unlist(lapply(ORFStartEndList, function(x) x$ORF2Start)))
 table(unlist(lapply(ORFStartEndList, function(x) x$ORF2End)))
+ORF1Start <- 1682
+ORF1End   <- 2733
+ORF2Start <- 2798
+ORF2End   <- 6990
 
 # Determine overlaps between SNPs and LINE-1
-OL <- findOverlaps(L1GR, L1VarGR)
-idxMinus <- 1 + c(as.vector(strand(L1GR)) == "-")
-StartEnd <- cbind(start(L1GR), end(L1GR))
+L1GRNames <-  paste(as.vector(seqnames(L1GR)), start(L1GR), end(L1GR), sep = "_")
+L1Match <- match(names(L1Aligned), L1GRNames)
+L1GRFull <- L1GR[L1Match]
+OL <- findOverlaps(L1GRFull, L1VarGR)
+idxMinus <- 1 + c(as.vector(strand(L1GRFull)) == "-")
+StartEnd <- cbind(start(L1GRFull), end(L1GRFull))
 L1Starts <- sapply(seq_along(idxMinus), function(i) StartEnd[i, idxMinus[i]])
 
-SNPpos <- abs(start(L1Starts)[OL@from] - start(L1VarGR)[OL@to]) + 1
+SNPpos <- abs(start(L1GRFull)[OL@from] - start(L1VarGR)[OL@to]) + 1
+SNPposAlign <- unlist(lapply(unique(OL@from), function(x){
+  Seq    <- L1Aligned[[x]]
+  idxSeq <-  which(Seq != "-")
+  SNPposSeq <- SNPpos[OL@from == x]
+  idxSeq[SNPposSeq]
+}))
+
+
+length(SNPpos)
+
+# PLOT SNPs and TFB Regions on L1
+plot(c(1, max(SNPposAlign)), c(0, 1), type= "n", xlab = "",ylab="",xaxt="n",frame=F,
+     yaxt = "n")
+segments(1,0.5,max(SNPposAlign),0.5) #utr5
+rect(c(ORF1Start, ORF2Start), c(0.4, 0.4), c(ORF1End, ORF2End), 0.6, 
+     border = "black", col=c("lightblue", "lightgrey")) #orf2
+segments(SNPposAlign, 0.65, SNPposAlign, 0.75, col= rgb(1, 0, 1, 0.03), lwd = 0.1)
 
