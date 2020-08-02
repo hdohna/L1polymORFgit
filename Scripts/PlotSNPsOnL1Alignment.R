@@ -9,13 +9,21 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 library(GenomicRanges)
 library(seqinr)
 
-
 # Sequence of start and end of ORF1 and ORF2
 StartSeqORF1 <- "ATGGGGAAA"
 StartSeqORF2 <- "ATGACAGGA"
 EndSeqORF1   <- "GCCAAAATGTAA"
 EndSeqORF2   <- "GGTGGGAATTGA"
 
+# Load data on L1 coverage
+load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1CoverageResults.RData")
+
+# Create genomic ranges
+L1CoverTable$Chromosome <- paste("chr", L1CoverTable$Chromosome, sep = "")
+L1Cover_GR <- makeGRangesFromDataFrame(L1CoverTable, 
+                                       seqnames.field = "Chromosome",
+                                       start.field = "Pos",
+                                       end.field = "Pos")
 # Read repeat masker table for L1HS
 L1Table <- read.csv("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1HS_repeat_table_Hg19.csv", as.is = T)
 
@@ -69,31 +77,113 @@ ORF1End   <- 2733
 ORF2Start <- 2798
 ORF2End   <- 6990
 
-# Determine overlaps between SNPs and LINE-1
+# Get genomic ranges of L1 in the alignment
 L1GRNames <-  paste(as.vector(seqnames(L1GR)), start(L1GR), end(L1GR), sep = "_")
-L1Match <- match(names(L1Aligned), L1GRNames)
+L1Match  <- match(names(L1Aligned), L1GRNames)
 L1GRFull <- L1GR[L1Match]
-OL <- findOverlaps(L1GRFull, L1VarGR)
+
+# Determine the start of the L1s depending on strand 
 idxMinus <- 1 + c(as.vector(strand(L1GRFull)) == "-")
 StartEnd <- cbind(start(L1GRFull), end(L1GRFull))
 L1Starts <- sapply(seq_along(idxMinus), function(i) StartEnd[i, idxMinus[i]])
 
-SNPpos <- abs(start(L1GRFull)[OL@from] - start(L1VarGR)[OL@to]) + 1
-SNPposAlign <- unlist(lapply(unique(OL@from), function(x){
-  Seq    <- L1Aligned[[x]]
-  idxSeq <-  which(Seq != "-")
-  SNPposSeq <- SNPpos[OL@from == x]
-  idxSeq[SNPposSeq]
-}))
+# Function to find a set of genomic positions (specified as genomic ranges 
+# PosGR) on an alignment
+GenPos2AlignPos <- function(PosGR){
+  
+  # Overlap between two sets of genomic ranges
+  OL_Pos   <- findOverlaps(L1GRFull, PosGR)
+  
+  # Determine the positions relative to the L1 start
+  RelPos <- abs(start(L1GRFull)[OL_Pos@from] - start(PosGR)[OL_Pos@to]) + 1
+  
+  # Determine the positions on the alignment
+  idxPosDf <- data.frame() 
+  for(x in unique(OL_Pos@from)){
+    Seq    <- L1Aligned[[x]]
+    idxSeq <-  which(Seq != "-")
+    blnL1  <- OL_Pos@from == x
+    PosSeq <- RelPos[blnL1]
+    NewDf <- data.frame(PosInAlign = idxSeq[PosSeq],
+                        idxInGR    = OL_Pos@to[blnL1])
+    idxPosDf <- rbind(idxPosDf, NewDf)
+  }
+  idxPosDf
+  # unlist(lapply(unique(OL_Pos@from), function(x){
+  #   Seq    <- L1Aligned[[x]]
+  #   idxSeq <-  which(Seq != "-")
+  #   PosSeq <- RelPos[OL_Pos@from == x]
+  #   idxSeq[PosSeq]
+  # }))
+}
 
+# Get positions of SNPs in alignment
+SNPposDF <- GenPos2AlignPos(L1VarGR)
+SNPposAlign <- SNPposDF$PosInAlign
 
-length(SNPpos)
+# Get positions of coverage data in alignment
+blnCoverInL1  <- overlapsAny(L1Cover_GR, L1GRFull)
+L1CoverSubset <- L1CoverTable[blnCoverInL1,]
+CoverPosDF    <- GenPos2AlignPos(L1Cover_GR[blnCoverInL1])
+
+L1CoverSubset$CoverSt <- (L1CoverSubset$CoverMean - min(L1CoverSubset$CoverMean))/
+  (max(L1CoverSubset$CoverMean) - min(L1CoverSubset$CoverMean))
+
+# Average coverage per alignment position
+CoverMeanPerAlign <- aggregate(L1CoverSubset$CoverMean[CoverPosDF$idxInGR], 
+                              by = list(CoverPosDF$PosInAlign),
+                              FUN = mean)
+CoverPosCount <- table(CoverPosDF$PosInAlign)
+CountMatch <- match(CoverMeanPerAlign$Group.1, names(CoverPosCount))
+CoverMeanPerAlign$Count <- CoverPosCount[CountMatch]
+
+# Determine proportion of blanks per position
+L1IndelMat <- t(sapply(L1Aligned, function(x) x == "-"))
+PropIndel <- colMeans(L1IndelMat)
+
 
 # PLOT SNPs and TFB Regions on L1
-plot(c(1, max(SNPposAlign)), c(0, 1), type= "n", xlab = "",ylab="",xaxt="n",frame=F,
-     yaxt = "n")
-segments(1,0.5,max(SNPposAlign),0.5) #utr5
-rect(c(ORF1Start, ORF2Start), c(0.4, 0.4), c(ORF1End, ORF2End), 0.6, 
-     border = "black", col=c("lightblue", "lightgrey")) #orf2
-segments(SNPposAlign, 0.65, SNPposAlign, 0.75, col= rgb(1, 0, 1, 0.03), lwd = 0.1)
+layout(matrix(c(1, 1, 2, 3, 4, 5), 3, 2, byrow = TRUE))
+# par(oma = c(0.1,  0.2,  0.1,  0.2), 
+#     mai = c(0.7, 1, 0.2, 1), cex.lab = 1.2)
 
+par(mfrow = c(1, 1))
+plot(c(-300, max(SNPposAlign)), c(0, 1), type= "n", xlab = "", ylab="",xaxt="n",frame=F,
+     yaxt = "n")
+segments(1, 0.05, max(SNPposAlign), 0.05) # UTRs
+rect(c(ORF1Start, ORF2Start), c(0, 0), c(ORF1End, ORF2End), 0.1, 
+     border = "black", col ="lightgrey") # ORFs
+text(0.5 * c(ORF1Start + ORF1End, ORF2Start + ORF2End), 0.05, c("ORF1", "ORF2"), cex = 0.75)
+
+segments(SNPposAlign, 0.15, SNPposAlign, 0.2, col= rgb(0, 0, 0, 0.03), lwd = 0.1)
+text(c(-300, -300), c(0.175, 0.275), c("SNP", "Indel"), cex = 0.75)
+segments(1:ncol(L1IndelMat), 0.25, 1:ncol(L1IndelMat), 0.3, col= rgb(0, 0, 0, 0.1*(1 - PropIndel)), 
+         lwd = 0.1)
+lines(CoverMeanPerAlign$Group.1[CoverMeanPerAlign$Count >= 10], 
+      0.1 + CoverMeanPerAlign$x[CoverMeanPerAlign$Count >= 10] / 10)
+min(CoverMeanPerAlign$x[CoverMeanPerAlign$Count >= 10])
+max(CoverMeanPerAlign$x[CoverMeanPerAlign$Count >= 10])
+axis(2, at = 0.1 + seq(0.4, 0.8, 0.2), labels = seq(4, 8, 2))
+mtext("Coverage", side = 2, line = 2,  at = 0.7)
+
+
+par(page = F, mai = c(0.5, 1, 0.2, 0.1))
+# boxplot(L1VarCount / width(L1GR) ~ blnFull, names = c("fragment", "full-length"),
+#         ylab = "SNPsper LINE-1 bp", main = "B", xlab = "LINE-1 type")
+# boxplot(Count/Width ~ Region, data = L1VarCountPerRange, ylab = "",
+#         xlab = "LINE-1 region",
+#         main = "C")
+
+# Get mean number of SNPs per full-length and fragment L1
+PlotMeanSNP(AggPerL1Pos_FullFrag, NameV = c("Fragment", "Full-length"),
+            Main = "b", YLim = c(0, 0.025), YLab = "SNPs per LINE-1 bp", Border = NA,
+            PlotP = "P < 0.0001")
+PlotMeanSNP(AggPerL1Pos_ORFvsUTR, NameV = c("UTR", "ORF"),
+            Main = "c", YLim = c(0, 0.025), Border = NA, PlotP = "P < 0.0001")
+PlotMeanSNP(AggPerORFPos[!AggPerORFPos$blnFull, ], 
+            NameV = c("synonymous", "non-synonymous"),
+            YLim = c(0, 0.02), Main = "d", YLab = "SNPs per LINE-1 bp", Border = NA)
+PlotMeanSNP(AggPerORFPos[AggPerORFPos$blnFull, ], 
+            NameV = c("synonymous", "non-synonymous"),
+            YLim = c(0, 0.002), Main = "e", Border = NA,
+            PlotP = "P = 0.003")
