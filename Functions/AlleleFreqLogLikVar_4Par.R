@@ -23,8 +23,8 @@
 #                    probabilities
 #     Predict: matrix (n x 2) of predictor variable values
 #     a:      intercept
-#     b:      slope for first predictor
-#     c:      slope for second predictor
+#     b:      coefficient for L1 length
+#     c:      coefficient for full-length L1
 #     N:      population size
 #     DetectProb: probability to detect and insertion
 

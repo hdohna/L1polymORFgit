@@ -50,6 +50,7 @@ MEInsSamplesize <- 2453
 L1widthBreaks <- seq(0, 6500, 500)
 L1MidPts <- 0.5*(L1widthBreaks[-1] + L1widthBreaks[-length(L1widthBreaks)])
 
+SampleSize = 5000
 ##########################################
 #                                        #
 #     Load and process data              #
@@ -412,88 +413,92 @@ ML_abcd_intercept <-  constrOptim(theta = c(a = ML_abc$par[1], b = ML_abc$par[2]
 cat("done!\n")
 
 cat("Fitting model where slope differs between Ta and non-Ta L1\n")
-ML_abcd_slope <-  constrOptim(theta = c(a = ML_abc$par[1], b = ML_abc$par[2], c = ML_abc$par[3],
-                                            d = 0),
-                                  f = function(x) 
-                                    -AlleleFreqLogLikVar_4Par(FreqLengthDF = FreqLengthDF, 
-                                                              L1TrueGivenEstList = L1TrueGivenEstList, 
-                                                              L1MidPts = L1MidPts,
-                                                              a = x[1], 
-                                                              b = x[2], 
-                                                              c = x[3], 
-                                                              d = x[4], 
-                                                              SD = NULL, 
-                                                              N = PopSize, 
-                                                              SampleSize = SampleSize,
-                                                              blnIns = T, 
-                                                              LogRegCoeff = LogRegL1Ref$coefficients,
-                                                              DetectProb = 0.9,
-                                                              verbose = T, showInfIndices = F,
-                                                              LowerS = -1,
-                                                              UpperS = 1,
-                                                              TaInteraction = "L1Width"),
-                                  
-                                  
-                                  grad = NULL,
-                                  ui = rbind(c(1, 0, 0, 0),  c(0, 1, 0, 0),  c(0, 0, 1, 0), c(0, 0, 0, 1),
-                                             c(-1, 0, 0, 0),  c(0, -1, 0, 0),  c(0, 0,- 1, 0), c(0, 0, 0, -1)),
-                                  ci = c(a = -0.003, b = -10^(-4), c = -10^(-3), d = -10^(-3), 
-                                         a = -0.003, b = -10^(-4), c = -10^(-3), d = -10^(-3)),
-                                  method = "Nelder-Mead")
-cat("done!\n")
-
-cat("Fitting model where effect of full-length differs between Ta and non-Ta L1\n")
-ML_abcd_FullL <-  constrOptim(theta = c(a = ML_abc$par[1], b = ML_abc$par[2], c = ML_abc$par[3],
-                                        d = 0),
-                              f = function(x) 
-                                -AlleleFreqLogLikVar_4Par(FreqLengthDF = FreqLengthDF, 
-                                                          L1TrueGivenEstList = L1TrueGivenEstList, 
-                                                          L1MidPts = L1MidPts,
-                                                          a = x[1], 
-                                                          b = x[2], 
-                                                          c = x[3], 
-                                                          d = x[4], 
-                                                          SD = NULL, 
-                                                          N = PopSize, 
-                                                          SampleSize = SampleSize,
-                                                          blnIns = T, 
-                                                          LogRegCoeff = LogRegL1Ref$coefficients,
-                                                          DetectProb = 0.9,
-                                                          verbose = T, showInfIndices = F,
-                                                          LowerS = -1,
-                                                          UpperS = 1,
-                                                          TaInteraction = "FullLength"),
-                              
-                              
-                              grad = NULL,
-                              ui = rbind(c(1, 0, 0, 0),  c(0, 1, 0, 0),  c(0, 0, 1, 0), c(0, 0, 0, 1),
-                                         c(-1, 0, 0, 0),  c(0, -1, 0, 0),  c(0, 0,- 1, 0), c(0, 0, 0, -1)),
-                              ci = c(a = -0.003, b = -10^(-4), c = -10^(-3), d = -10^(-3), 
-                                     a = -0.003, b = -10^(-4), c = -10^(-3), d = -10^(-3)),
-                              method = "Nelder-Mead")
-cat("done!\n")
+# ML_abcd_slope <-  constrOptim(theta = c(a = ML_abc$par[1], b = ML_abc$par[2], c = ML_abc$par[3],
+#                                             d = 0),
+#                                   f = function(x) 
+#                                     -AlleleFreqLogLikVar_4Par(FreqLengthDF = FreqLengthDF, 
+#                                                               L1TrueGivenEstList = L1TrueGivenEstList, 
+#                                                               L1MidPts = L1MidPts,
+#                                                               a = x[1], 
+#                                                               b = x[2], 
+#                                                               c = x[3], 
+#                                                               d = x[4], 
+#                                                               SD = NULL, 
+#                                                               N = PopSize, 
+#                                                               SampleSize = SampleSize,
+#                                                               blnIns = T, 
+#                                                               LogRegCoeff = LogRegL1Ref$coefficients,
+#                                                               DetectProb = 0.9,
+#                                                               verbose = T, showInfIndices = F,
+#                                                               LowerS = -1,
+#                                                               UpperS = 1,
+#                                                               TaInteraction = "L1Width"),
+#                                   
+#                                   
+#                                   grad = NULL,
+#                                   ui = rbind(c(1, 0, 0, 0),  c(0, 1, 0, 0),  c(0, 0, 1, 0), c(0, 0, 0, 1),
+#                                              c(-1, 0, 0, 0),  c(0, -1, 0, 0),  c(0, 0,- 1, 0), c(0, 0, 0, -1)),
+#                                   ci = c(a = -0.003, b = -10^(-4), c = -10^(-3), d = -10^(-3), 
+#                                          a = -0.003, b = -10^(-4), c = -10^(-3), d = -10^(-3)),
+#                                   method = "Nelder-Mead")
+# cat("done!\n")
+# 
+# cat("Fitting model where effect of full-length differs between Ta and non-Ta L1\n")
+# ML_abcd_FullL <-  constrOptim(theta = c(a = ML_abc$par[1], b = ML_abc$par[2], c = ML_abc$par[3],
+#                                         d = 0),
+#                               f = function(x) 
+#                                 -AlleleFreqLogLikVar_4Par(FreqLengthDF = FreqLengthDF, 
+#                                                           L1TrueGivenEstList = L1TrueGivenEstList, 
+#                                                           L1MidPts = L1MidPts,
+#                                                           a = x[1], 
+#                                                           b = x[2], 
+#                                                           c = x[3], 
+#                                                           d = x[4], 
+#                                                           SD = NULL, 
+#                                                           N = PopSize, 
+#                                                           SampleSize = SampleSize,
+#                                                           blnIns = T, 
+#                                                           LogRegCoeff = LogRegL1Ref$coefficients,
+#                                                           DetectProb = 0.9,
+#                                                           verbose = T, showInfIndices = F,
+#                                                           LowerS = -1,
+#                                                           UpperS = 1,
+#                                                           TaInteraction = "FullLength"),
+#                               
+#                               
+#                               grad = NULL,
+#                               ui = rbind(c(1, 0, 0, 0),  c(0, 1, 0, 0),  c(0, 0, 1, 0), c(0, 0, 0, 1),
+#                                          c(-1, 0, 0, 0),  c(0, -1, 0, 0),  c(0, 0,- 1, 0), c(0, 0, 0, -1)),
+#                               ci = c(a = -0.003, b = -10^(-4), c = -10^(-3), d = -10^(-3), 
+#                                      a = -0.003, b = -10^(-4), c = -10^(-3), d = -10^(-3)),
+#                               method = "Nelder-Mead")
+# cat("done!\n")
 
 # Function to extract AIC from optim results
 GetAIC <- function(OptimResults){
   round(2 * (length(OptimResults$par) + OptimResults$value), 2)
 }
-GetAIC(ML_abcd_intercept)
-GetAIC(ML_abcd_slope)
-GetAIC(ML_abcd_FullL)
+# GetAIC(ML_abcd_intercept)
+# GetAIC(ML_abcd_slope)
+# GetAIC(ML_abcd_FullL)
 GetAIC(ML_abcd)
 GetAIC(ML_abc)
 GetAIC(ML_ab)
 GetAIC(ML_ac)
 GetAIC(ML_a)
 
-GetAIC(ML_abcd_intercept) - GetAIC(ML_abcd_slope)
-GetAIC(ML_abcd_slope) - GetAIC(ML_abcd_slope)
-GetAIC(ML_abcd_FullL) - GetAIC(ML_abcd_slope)
-GetAIC(ML_abcd) - GetAIC(ML_abcd_slope)
-GetAIC(ML_abc) - GetAIC(ML_abcd_slope)
-GetAIC(ML_ab) - GetAIC(ML_abcd_slope)
-GetAIC(ML_ac) - GetAIC(ML_abcd_slope)
-GetAIC(ML_a) - GetAIC(ML_abcd_slope)
+GetAIC(ML_ab) - GetAIC(ML_abc)
+GetAIC(ML_ac) - GetAIC(ML_abc)
+GetAIC(ML_a) - GetAIC(ML_abc)
+
+# GetAIC(ML_abcd_intercept) - GetAIC(ML_abcd_slope)
+# GetAIC(ML_abcd_slope) - GetAIC(ML_abcd_slope)
+# GetAIC(ML_abcd_FullL) - GetAIC(ML_abcd_slope)
+# GetAIC(ML_abcd) - GetAIC(ML_abcd_slope)
+# GetAIC(ML_abc) - GetAIC(ML_abcd_slope)
+# GetAIC(ML_ab) - GetAIC(ML_abcd_slope)
+# GetAIC(ML_ac) - GetAIC(ML_abcd_slope)
+# GetAIC(ML_a) - GetAIC(ML_abcd_slope)
 
 save.image(SelectResultOutPath)
 load(SelectResultOutPath)
