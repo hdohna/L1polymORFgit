@@ -10,7 +10,7 @@ library(Rsamtools)
 library(rtracklayer)
 library(BSgenome.Hsapiens.UCSC.hg19)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
-#library(pracma)
+library(seqinr)
 
 # Load data with HWE values
 
@@ -1160,7 +1160,7 @@ L1Seq    <- getSeq(BSgenome.Hsapiens.UCSC.hg19, L1GR)
 SeqNames <- paste(as.vector(seqnames(L1GR)), start(L1GR), end(L1GR), sep = "_")
 
 # Form different subsets and write them out as fasta files
-L1Aligned <- read.fasta(file = "file:///D:/OneDrive - American University of Beirut/L1polymORF/Data/L1seqHg19_minLength6000_aligned.txt")
+L1Aligned <- read.fasta(file = "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1seqHg19_minLength6000_aligned.txt")
 # L1Aligned <- read.alignment(file = "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1seqHg19_minLength6000_aligned.txt",
 #                             format = "fasta")
 
@@ -1177,7 +1177,6 @@ L1VarGR <- makeGRangesFromDataFrame(L1Variants,
 idxSeqPosList <- lapply(L1Aligned, function(x) which(x != "-"))
 
 # Identify start and end of ORF1 and ORF2 on alignment
-i <- 1
 ORFStartEndList <- lapply(1:length(L1Aligned), function(i){
   Seq <- L1Aligned[[i]]
   idxSeq <-  which(Seq != "-")
@@ -1265,20 +1264,21 @@ L1IndelMat <- t(sapply(L1Aligned, function(x) x == "-"))
 PropIndel <- colMeans(L1IndelMat)
 
 FigDim = 4000
-layout(matrix(c(1, 1, 2, 3, 4, 5), 3, 2, byrow = TRUE))
 jpeg(filename = 'D:/L1ManuscriptFigures/NewFig1.jpg',
      width = FigDim, height = FigDim, pointsize = FigDim/480*12,
      quality = 100)
+layout(matrix(c(1, 1, 2, 3, 4, 5), 3, 2, byrow = TRUE))
 plot(c(-300, max(SNPposAlign)), c(0, 1), type= "n", xlab = "", ylab="",xaxt="n",frame=F,
-     yaxt = "n")
+     yaxt = "n", main = "a")
 segments(1, 0.05, max(SNPposAlign), 0.05) # UTRs
 rect(c(ORF1Start, ORF2Start), c(0, 0), c(ORF1End, ORF2End), 0.1, 
      border = "black", col ="lightgrey") # ORFs
 text(0.5 * c(ORF1Start + ORF1End, ORF2Start + ORF2End), 0.05, c("ORF1", "ORF2"), cex = 0.75)
 
-segments(SNPposAlign, 0.15, SNPposAlign, 0.2, col= rgb(0, 0, 0, 0.03), lwd = 0.1)
-text(c(-300, -300), c(0.175, 0.275), c("SNP", "Indel"), cex = 0.75)
-segments(1:ncol(L1IndelMat), 0.25, 1:ncol(L1IndelMat), 0.3, col= rgb(0, 0, 0, 0.1*(1 - PropIndel)), 
+segments(SNPposAlign, 0.15, SNPposAlign, 0.25, col= rgb(0, 0, 0, 0.1), lwd = 0.4)
+text(c(-300, -300), c(0.2, 0.35), c("SNP", "Indel"), cex = 1)
+ncol(L1IndelMat)
+segments(1:ncol(L1IndelMat), 0.3, 1:ncol(L1IndelMat), 0.4, col= rgb(0, 0, 0, 0.3*(1 - PropIndel)), 
          lwd = 0.1)
 lines(CoverMeanPerAlign$Group.1[CoverMeanPerAlign$Count >= 10], 
       0.1 + CoverMeanPerAlign$x[CoverMeanPerAlign$Count >= 10] / 10)
