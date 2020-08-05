@@ -12,7 +12,7 @@ library(pracma)
 source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 
 # Load 1000 genome data
-load("D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData")
+load("D:/OneDrive - American University of Beirut/L1polymORF/Data/GRanges_L1_1000Genomes.RData")
 
 #####################################################################
 #                                                                   #
@@ -25,11 +25,12 @@ FreqVals <- seq(0, 1, 0.001)
 SCoeffs  <- seq(-10^-3, 10^-3, 5*10^-4)
 Cols     <- rainbow(length(SCoeffs))
 
-jpeg(file = "D:/OneDrive - American University of Beirut/Teaching/Population genetics Fall 2019/Slides/Scoeff.jpeg",
-     width = 700, height = 500, quality = 100)
+png(file = "D:/OneDrive - American University of Beirut/L1polymORF/Figures/Scoeff.png",
+     width = 2000, height = 1500)
 
 # Create values of probability density (Distn1) and plot then
 Distn1   <- sapply(FreqVals, function(x) AlleleFreqDistn(y = x, s = 0, N = 10^5))
+par(cex = 3, lwd = 3)
 plot(FreqVals, Distn1, type = "l", ylim = c(0, 20), xlim = c(0, 1),
      xlab = "Allele frequency",
      ylab = "Probability density")
@@ -40,9 +41,9 @@ for (i in 1:length(SCoeffs)){
 legend("topright", legend = paste("s =", SCoeffs), col = Cols, 
        lty = rep(1, length(SCoeffs)), y.intersp = 0.9)
 dev.off()
-CreateDisplayPdf('D:/L1polymORF/Figures/FreqDistPerSelectCoeff.pdf',
-                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
-                 height = 7, width = 7)
+# CreateDisplayPdf('D:/L1polymORF/Figures/FreqDistPerSelectCoeff.pdf',
+#                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+#                  height = 7, width = 7)
 
 plot(FreqVals, Distn1, type = "l", xlim = c(0.0002, 0.006),
      xlab = "Allele frequency",
