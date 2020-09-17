@@ -27,7 +27,7 @@
 # sapply(AllFunctions, source)
 
 # Source all functions from Functions folder
-AllFunctions <- list.files(path = "/home/hzudohna/L1polymORFgit/Functions/", 
+AllFunctions <- list.files(path = "/home/hb54/L1polymORFgit/Functions/", 
                            pattern = ".[rR]", full.names = T)
 sapply(AllFunctions, source)
 
