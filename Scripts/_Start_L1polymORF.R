@@ -28,10 +28,9 @@
 
 # Source all functions from GeneralRFunctions folder
 AllFunctions <- list.files(path = "D:/OneDrive - American University of Beirut/GeneralRFunctions/", 
-                           pattern = ".[rR]", full.names = T)
-sapply(AllFunctions, source)
+                           pattern = "\\.[rR]", full.names = T)
 
 # Source all functions from Functions folder
 AllFunctions <- list.files(path = "D:/L1polymORFgit/Functions/", 
-                           pattern = ".[rR]", full.names = T)
+                           pattern = "\\.[rR]", full.names = T)
 sapply(AllFunctions, source)
