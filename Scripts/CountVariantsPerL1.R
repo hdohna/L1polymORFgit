@@ -84,12 +84,12 @@ StartsNonSynORF1 <- seq(0, 1022, 3)
 StartsNonSynORF2 <- seq(0, 3822, 3)
 StartsNonSynORF2 <- seq(0, 3842, 3)
 
-StartSeqORF1 <- "ATGGGGAAA"
+StartSeqORF1      <- "ATGGGGAAA"
 StartSeqORF1_long <- "ATGGGGAAAAAACAGAACAGA"
-StartSeqORF2 <- "ATGACAGGA"
+StartSeqORF2      <- "ATGACAGGA"
 StartSeqORF2_long <- "ATGACAGGATCAAATTCACACATA"
-EndSeqORF1   <- "GCCAAAATGTAA"
-EndSeqORF2   <- "GGTGGGAATTGA"
+EndSeqORF1        <- "GCCAAAATGTAA"
+EndSeqORF2        <- "GGTGGGAATTGA"
 
 # Read repeat masker table for L1HS
 L1Table <- read.csv("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1HS_repeat_table_Hg19.csv", as.is = T)
@@ -161,6 +161,31 @@ L1Var_Right <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/D
 L1Variants$chromosome <- paste("chr", L1Variants$X.CHROM, sep = "")
 L1Var_Left$chromosome <- paste("chr", L1Var_Left$X.CHROM, sep = "")
 L1Var_Right$chromosome <- paste("chr", L1Var_Right$X.CHROM, sep = "")
+L1Variants$VarID <- paste(L1Variants$X.CHROM, L1Variants$POS)
+
+# Read vcf with variants in L1
+L1Variants2  <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_1KG.recode.vcf")
+L1Variants2  <- L1Variants2[grep("VT=SNP", L1Variants2$INFO),]
+L1Variants2$AlleleFreq <- sapply(L1Variants2$INFO, function(x){
+  InfoSplit <- strsplit(x, ";")[[1]]
+  AF <- grep("AF=", InfoSplit, value = T)
+  AF <- AF[-grep("_AF=", AF)]
+  as.numeric(strsplit(AF, "AF=")[[1]][2])
+})
+hist(L1Variants2$AlleleFreq)
+L1Variants2$VarID <- paste(L1Variants2$X.CHROM, L1Variants2$POS)
+varMatch <- match(L1Variants2$VarID, L1Variants$VarID)
+sum(is.na(varMatch))
+
+# Read in variants from PacBio sequencing of HG002
+L1VarPacBio <- read.table("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_HG002_PacBio.012.pos",
+                          col.names = c("chrNr", "pos"))
+L1VarPacBio$chromosome <- paste("chr", L1VarPacBio$chrNr, sep = "")
+
+# Create a GRanges object of variants inside L1s and their flanking regions
+L1VarGRPacBio <- makeGRangesFromDataFrame(L1VarPacBio, 
+                                    start.field = "pos",
+                                    end.field = "pos")
 
 # Create GRanges objects with L1 Seqences
 L1GR <- makeGRangesFromDataFrame(L1Table, seqnames.field = "genoName",
@@ -607,6 +632,7 @@ hist(NrSites)
   
 # Add columns with different info
 L1CoverTable$blnSNP    <- overlapsAny(L1Cover_GR, L1VarGR)
+L1CoverTable$blnSNPPacBio    <- overlapsAny(L1Cover_GR, L1VarGRPacBio)
 L1CoverTable$blnSNP_HighQual <- overlapsAny(L1Cover_GR, L1VarGR_HighQual)
 L1CoverTable$blnSNPHWE <- overlapsAny(L1Cover_GR, GR_HWE)
 L1CoverTable$blnSNP_both <- L1CoverTable$blnSNPHWE & L1CoverTable$blnSNP_HighQual
@@ -659,6 +685,14 @@ mean(L1CoverTable$blnSNPHWE)
 sum(L1CoverTable$blnSNP)
 sum(L1CoverTable$blnSNPHWE)
 
+mean(L1CoverTable$blnSNP [L1CoverTable$NonSyn]) 
+mean(L1CoverTable$blnSNP [L1CoverTable$Syn]) 
+mean(L1CoverTable$NonSyn & L1CoverTable$blnSNPPacBio) 
+mean(L1CoverTable$Syn & L1CoverTable$blnSNPPacBio) 
+mean( L1CoverTable$blnSNPPacBio [L1CoverTable$blnFull & L1CoverTable$NonSyn]) 
+mean(L1CoverTable$blnSNPPacBio [L1CoverTable$blnFull & L1CoverTable$Syn]) 
+sum(L1CoverTable$blnSNPPacBio)
+
 ######################################################
 #                                                    #
 #           Perform logistic regression              #
@@ -675,6 +709,19 @@ SNPLogRegInt <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                        family = binomial(), chunksize = 3*10^4,
                        maxit = 20)
 cat("done!\n")
+
+# Perform analysis with interaction
+cat("Performing regression analysis with SNPs from PacBio genome... ")
+SNPLogRegPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
+                         L1Width + PropMismatch + Genes + Exons + Promoters +
+                         blnFull + NonSyn + Coding + Freq +
+                         Coding*blnFull + NonSyn*blnFull,
+                       data = L1CoverTable, 
+                       family = binomial(), chunksize = 3*10^4,
+                       maxit = 20)
+summary(SNPLogRegPacBio)
+cat("done!\n")
+#
 # cat("Performing regression analysis with  HWE SNPs only... ")
 # SNPLogRegIntHWE <- bigglm(blnSNPHWE ~  TriNuc + L1VarCount_Flank + CoverMean +
 #                          L1Width + PropMismatch + Genes + Exons + Promoters +
@@ -687,21 +734,34 @@ cat("done!\n")
 cat("Performing regression analysis with coding sequences only ... ")
 SNPLogRegInt_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                          L1Width + PropMismatch + Genes + Promoters +
-                        blnFull + #NonSyn +
-                        NonSyn:blnFull,
-                    data = L1CoverTable[L1CoverTable$Syn | L1CoverTable$NonSyn, ], 
+                        #blnFull + 
+                          NonSyn, #+
+                        #NonSyn:blnFull,
+                    data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
                     family = binomial(), chunksize = 3*10^4,
                     maxit = 20)
+summary(SNPLogRegInt_CodeOnly)
+SNPLogReg_CodeOnlyPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
+                                  L1Width + PropMismatch + Genes + Promoters +
+                                  #blnFull + 
+                                  NonSyn, #+
+                                #NonSyn:blnFull,
+                                data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
+                                family = binomial(), chunksize = 3*10^4,
+                                maxit = 20)
+summary(SNPLogReg_CodeOnlyPacBio)
+
 cat("done!\n")
 cat("Performing regression analysis with coding sequences only ... ")
 SNPLogRegInt_CodeProperOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                                   L1Width + PropMismatch + Genes + Promoters +
-                                  blnFull + #NonSyn +
+                                  blnFull + NonSyn +
                                   NonSyn:blnFull,
-                                data = L1CoverTable[L1CoverTable$Syn_Proper | 
-                                                      L1CoverTable$NonSyn_Proper, ], 
+                                data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn_Proper | 
+                                                      L1CoverTable$NonSyn_Proper), ], 
                                 family = binomial(), chunksize = 3*10^4,
                                 maxit = 20)
+
 cat("done!\n")
 # cat("Performing regression analysis with coding sequences and HWE SNPs only ... ")
 # SNPLogRegInt_CodeOnlyHWE <- bigglm(blnSNPHWE ~  TriNuc + L1VarCount_Flank + CoverMean +
@@ -916,10 +976,19 @@ L1VarCountPerRange <- rbind(
 MeanSNPPerNonSyn_Full <- aggregate(L1CoverTable$blnSNP[L1CoverTable$blnFull],
                                    by = list(L1CoverTable$NonSyn[L1CoverTable$blnFull]),
                                    FUN = mean)
+aggregate(L1CoverTable$blnSNPPacBio[L1CoverTable$NonSyn | L1CoverTable$Syn],
+          by = list(L1CoverTable$NonSyn[L1CoverTable$NonSyn | L1CoverTable$Syn]),
+          FUN = mean)
+aggregate(L1CoverTable$blnSNP[L1CoverTable$blnFull & (L1CoverTable$NonSyn | L1CoverTable$Syn)],
+          by = list(L1CoverTable$NonSyn[L1CoverTable$blnFull & (L1CoverTable$NonSyn | L1CoverTable$Syn)]),
+          FUN = mean)
+aggregate(L1CoverTable$Freq[L1CoverTable$blnFull & (L1CoverTable$NonSyn | L1CoverTable$Syn)],
+          by = list(L1CoverTable$NonSyn[L1CoverTable$blnFull & (L1CoverTable$NonSyn | L1CoverTable$Syn)]),
+          FUN = mean)
 MeanSNPPerNonSyn_Fragm <- aggregate(L1CoverTable$blnSNP[!L1CoverTable$blnFull],
                                     by = list(L1CoverTable$NonSyn[!L1CoverTable$blnFull]),
                                     FUN = mean)
-
+table(L1CoverTable$Freq)
 # Get mean number of SNPs per ORF type position
 AggPerORFPos <- AggDataFrame(DF = L1CoverTable[L1CoverTable$NonSyn | L1CoverTable$Syn,], 
                             GroupCol = c("blnFull", "NonSyn"), 
