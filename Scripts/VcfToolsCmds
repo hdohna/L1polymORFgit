@@ -34,6 +34,21 @@ vcftools --gzvcf /reference/1KGenomes/Variants/release/20130502/ALL.wgs.phase3_s
 --012 \
 --out /labs/dflev/hzudohna/1000Genomes/VariantsInL1_geno
 
+# Get genotypes of all variants within L1s from PacBio data on AUB HPC
+module load vcftools
+vcftools --vcf /home/hb54/PacBioData/HG002_hs37d5_DeepVariant-CCS-hapsort.vcf \
+--bed /home/hb54/RefSeqData/L1HSRefRanges_hg19.bed \
+--012 \
+--out /home/hb54/PacBioData/VariantsInL1_HG002_PacBio
+
+# Get genotypes of all variants within L1s from 1KG data on AUB HPC
+module load vcftools
+vcftools --gzvcf /home/hb54/1000GenomeData/ALL.wgs.phase3_shapeit2_mvncall_integrated_v5b.20130502.sites.vcf.gz \
+--bed /home/hb54/RefSeqData/L1HSRefRanges_hg19.bed \
+--recode \
+--recode-INFO-all \
+--out /home/hb54/1000GenomeData/VariantsInL1_1KG
+
 vcftools --vcf /labs/dflev/hzudohna/1000Genomes/ALL.chr1.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf \
 --bed /labs/dflev/hzudohna/RefSeqData/L1Ranges.bed \
 --hardy
