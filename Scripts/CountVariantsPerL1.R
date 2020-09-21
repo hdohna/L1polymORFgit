@@ -155,7 +155,16 @@ L1Table$bln5UTRPresent <- L1Table$repStart <= 300
 L1Table$bln5UTRPresent[blnMinus] <- (L1Table$repLeft <= 300)[blnMinus]
 
 # Read vcf with variants in LINE-1s 
-L1Variants  <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1.recode.vcf")
+#L1Variants  <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1.recode.vcf")
+L1Variants  <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_1KG.recode.vcf")
+L1Variants  <- L1Variants[grep("VT=SNP", L1Variants$INFO),]
+L1Variants$AlleleFreq <- sapply(L1Variants$INFO, function(x){
+  InfoSplit <- strsplit(x, ";")[[1]]
+  AF <- grep("AF=", InfoSplit, value = T)
+  AF <- AF[-grep("_AF=", AF)]
+  as.numeric(strsplit(AF, "AF=")[[1]][2])
+})
+hist(L1Variants$AlleleFreq)
 L1Var_Left  <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_leftFlank.recode.vcf")
 L1Var_Right <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_rightFlank.recode.vcf")
 L1Variants$chromosome <- paste("chr", L1Variants$X.CHROM, sep = "")
@@ -164,18 +173,9 @@ L1Var_Right$chromosome <- paste("chr", L1Var_Right$X.CHROM, sep = "")
 L1Variants$VarID <- paste(L1Variants$X.CHROM, L1Variants$POS)
 
 # Read vcf with variants in L1
-L1Variants2  <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_1KG.recode.vcf")
-L1Variants2  <- L1Variants2[grep("VT=SNP", L1Variants2$INFO),]
-L1Variants2$AlleleFreq <- sapply(L1Variants2$INFO, function(x){
-  InfoSplit <- strsplit(x, ";")[[1]]
-  AF <- grep("AF=", InfoSplit, value = T)
-  AF <- AF[-grep("_AF=", AF)]
-  as.numeric(strsplit(AF, "AF=")[[1]][2])
-})
-hist(L1Variants2$AlleleFreq)
-L1Variants2$VarID <- paste(L1Variants2$X.CHROM, L1Variants2$POS)
-varMatch <- match(L1Variants2$VarID, L1Variants$VarID)
-sum(is.na(varMatch))
+# L1Variants2$VarID <- paste(L1Variants2$X.CHROM, L1Variants2$POS)
+# varMatch <- match(L1Variants2$VarID, L1Variants$VarID)
+# sum(is.na(varMatch))
 
 # Read in variants from PacBio sequencing of HG002
 L1VarPacBio <- read.table("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_HG002_PacBio.012.pos",
@@ -603,6 +603,7 @@ GR_HWE <- L1VarGR[!overlapsAny(L1VarGR, HWEGR)]
 OL_bpL1_MEDel <- findOverlaps(L1Cover_GR, MEDel_GR)
 GRNonSynInt$mcols.ORFType == "ORF1"
 OL_bpL1  <- findOverlaps(L1Cover_GR, L1GR)
+OL_bpL1Var  <- findOverlaps(L1Cover_GR, L1VarGR)
 OL_bpHWE <- findOverlaps(L1Cover_GR, GR_HWE)
 GRNonSynInt1 <- GRNonSynInt[GRNonSynInt$mcols.ORFType == "ORF2"]
 GRSynInt1    <- GRSynInt[GRSynInt$mcols.ORFType == "ORF2"]
@@ -651,7 +652,10 @@ L1CoverTable$L1Width          <- NA
 L1CoverTable$L1Width[OL_bpL1@from] <- L1Width[OL_bpL1@to]
 L1CoverTable$blnFull          <- NA
 L1CoverTable$blnFull[OL_bpL1@from] <- blnFull[OL_bpL1@to]
-
+L1CoverTable$AlleleFreq          <- NA
+L1CoverTable$AlleleFreq[OL_bpL1Var@from] <- L1Variants$AlleleFreq[OL_bpL1Var@to]
+sum(is.na(L1CoverTable$AlleleFreq))
+sum(!is.na(L1CoverTable$AlleleFreq))
 
 L1CoverTable$Freq <- 2*length(GTCols)
 L1CoverTable$Freq[OL_bpL1_MEDel@from] <- MEDelCall$Freq[OL_bpL1_MEDel@to]
@@ -687,11 +691,48 @@ sum(L1CoverTable$blnSNPHWE)
 
 mean(L1CoverTable$blnSNP [L1CoverTable$NonSyn]) 
 mean(L1CoverTable$blnSNP [L1CoverTable$Syn]) 
+mean(L1CoverTable$AlleleFreq [L1CoverTable$NonSyn], na.rm = T) 
+mean(L1CoverTable$AlleleFreq [L1CoverTable$Syn], na.rm = T) 
 mean(L1CoverTable$NonSyn & L1CoverTable$blnSNPPacBio) 
 mean(L1CoverTable$Syn & L1CoverTable$blnSNPPacBio) 
 mean( L1CoverTable$blnSNPPacBio [L1CoverTable$blnFull & L1CoverTable$NonSyn]) 
 mean(L1CoverTable$blnSNPPacBio [L1CoverTable$blnFull & L1CoverTable$Syn]) 
+mean( L1CoverTable$AlleleFreq [L1CoverTable$blnFull & L1CoverTable$NonSyn], na.rm = T) 
+mean(L1CoverTable$AlleleFreq [L1CoverTable$blnFull & L1CoverTable$Syn], na.rm = T) 
+median( L1CoverTable$AlleleFreq [L1CoverTable$blnFull & L1CoverTable$NonSyn], na.rm = T) 
+median(L1CoverTable$AlleleFreq [L1CoverTable$blnFull & L1CoverTable$Syn], na.rm = T) 
+wilcox.test( L1CoverTable$AlleleFreq [L1CoverTable$blnFull & L1CoverTable$NonSyn],
+         L1CoverTable$AlleleFreq [L1CoverTable$blnFull & L1CoverTable$Syn],
+         alternative =  "less") 
+kruskal.test( x = L1CoverTable$AlleleFreq [L1CoverTable$blnFull & 
+                                             ( L1CoverTable$NonSyn |  L1CoverTable$Syn)],
+         g = L1CoverTable$NonSyn [L1CoverTable$blnFull& 
+                                    ( L1CoverTable$NonSyn |  L1CoverTable$Syn)]) 
+sum(L1CoverTable$blnFull& (!is.na(L1CoverTable$AlleleFreq)) &
+      ( L1CoverTable$NonSyn |  L1CoverTable$Syn))
+median(L1CoverTable$AlleleFreq [L1CoverTable$blnFull & L1CoverTable$Syn], na.rm = T) 
+
+boxplot(L1CoverTable$AlleleFreq [L1CoverTable$blnFull] ~ L1CoverTable$Syn[L1CoverTable$blnFull]) 
 sum(L1CoverTable$blnSNPPacBio)
+
+blnSubset <- L1CoverTable$blnFull & (!is.na(L1CoverTable$AlleleFreq)) & (L1CoverTable$NonSyn |L1CoverTable$Syn)
+sum(blnSubset)
+
+aggregate(L1CoverTable$AlleleFreq[blnSubset],
+          by =list(OL_bpL1@to[blnSubset], L1CoverTable$NonSyn[blnSubset]), 
+          FUN = mean)
+
+# Get the number of SNPs per ORF
+NSNPPerORF <- aggregate(L1CoverTable$blnSNP[blnSubset],
+          by =list(OL_bpL1@to[blnSubset]), 
+          FUN = sum)
+hist(NSNPPerORF$x, breaks = 0:100)
+NSNPPerL1 <- aggregate(L1CoverTable$blnSNP[OL_bpL1@from],
+                        by =list(OL_bpL1@to), 
+                        FUN = sum)
+hist(NSNPPerL1$x, breaks = 0:500)
+mean(NSNPPerL1$x)
+sqrt(var(NSNPPerL1$x))
 
 ######################################################
 #                                                    #
@@ -1234,13 +1275,13 @@ L1Aligned <- read.fasta(file = "D:/OneDrive - American University of Beirut/L1po
 #                             format = "fasta")
 
 # Read vcf with variants in LINE-1s 
-L1Variants  <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1.recode.vcf")
-L1Variants$chromosome <- paste("chr", L1Variants$X.CHROM, sep = "")
-
-# Create a GRanges object of variants inside L1s and their flanking regions
-L1VarGR <- makeGRangesFromDataFrame(L1Variants, 
-                                    start.field = "POS",
-                                    end.field = "POS")
+# L1Variants  <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1.recode.vcf")
+# L1Variants$chromosome <- paste("chr", L1Variants$X.CHROM, sep = "")
+# 
+# # Create a GRanges object of variants inside L1s and their flanking regions
+# L1VarGR <- makeGRangesFromDataFrame(L1Variants, 
+#                                     start.field = "POS",
+#                                     end.field = "POS")
 
 # Get indicies of sequenced positions
 idxSeqPosList <- lapply(L1Aligned, function(x) which(x != "-"))
