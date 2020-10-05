@@ -14,7 +14,10 @@ library(seqinr)
 
 # Load data with HWE values
 
-# Load genomic ranges 
+# Load genomic ranges of TF binding sits on L1 
+load("D:/OneDrive - American University of Beirut/L1Evolution/Data/L1_TFBGR.RData")
+
+# Load genomic ranges of SNPS that differ from HWE
 load("D:/OneDrive - American University of Beirut/L1polymORF/Data/SNPsDifferFromHWE.RData")
 
 # Load data with proportion mismatch
@@ -644,6 +647,7 @@ L1CoverTable$blnUTR3   <- overlapsAny(L1Cover_GR, UTR3_GR)
 L1CoverTable$Exons     <- overlapsAny(L1Cover_GR, Exons)
 L1CoverTable$Genes     <- overlapsAny(L1Cover_GR, Genes)
 L1CoverTable$Promoters <- overlapsAny(L1Cover_GR, Promoters)
+L1CoverTable$TFB       <- overlapsAny(L1Cover_GR, unlist(GRangesList(TFBGR)))
 L1CoverTable$L1VarCount_Flank <- NA
 L1CoverTable$L1VarCount_Flank[OL_bpL1@from] <- L1VarCount_Flank[OL_bpL1@to]
 L1CoverTable$PropMismatch     <- NA
@@ -743,12 +747,13 @@ sqrt(var(NSNPPerL1$x))
 # Perform analysis with interaction
 cat("Performing regression analysis with all SNPs... ")
 SNPLogRegInt <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
-                         L1Width + PropMismatch + Genes + Exons + Promoters +
+                         PropMismatch + Genes + Exons + Promoters + TFB +
                          blnFull + NonSyn + Coding + Freq +
                          Coding*blnFull + NonSyn*blnFull,
                        data = L1CoverTable, 
                        family = binomial(), chunksize = 3*10^4,
                        maxit = 20)
+summary(SNPLogRegInt)
 cat("done!\n")
 
 # Perform analysis with interaction
@@ -774,8 +779,7 @@ cat("done!\n")
 # cat("done!\n")
 cat("Performing regression analysis with coding sequences only ... ")
 SNPLogRegInt_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
-                         L1Width + PropMismatch + Genes + Promoters +
-                        #blnFull + 
+                         PropMismatch + Genes + Promoters + TFB +
                           NonSyn, #+
                         #NonSyn:blnFull,
                     data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
@@ -791,6 +795,15 @@ SNPLogReg_CodeOnlyPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + C
                                 family = binomial(), chunksize = 3*10^4,
                                 maxit = 20)
 summary(SNPLogReg_CodeOnlyPacBio)
+
+cat("Performing regression analysis with full L1 only ... ")
+SNPLogRegInt_Full <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
+                                  PropMismatch + TFB +
+                              Coding*NonSyn, #+
+                                 data = L1CoverTable[L1CoverTable$blnFull, ], 
+                                family = binomial(), chunksize = 3*10^4,
+                                maxit = 20)
+summary(SNPLogRegInt_Full)
 
 cat("done!\n")
 cat("Performing regression analysis with coding sequences only ... ")
