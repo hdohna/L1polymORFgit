@@ -684,50 +684,77 @@ L1CoverTable$Coding_Gene <- overlapsAny(L1Cover_GR, c(GRSyn_Gene, GRNonSyn_Gene)
 L1CoverTable$bln5UTRPresent <- NA
 L1CoverTable$bln5UTRPresent[OL_bpL1@from] <- L1Table$bln5UTRPresent[OL_bpL1@to]
 
-sum(blnORFFull) / sum(blnORFProper)
-sum(L1CoverTable$Coding_Full)
-sum(L1CoverTable$NonSyn_Full)
-sum(blnORFFull)
-mean(L1CoverTable$blnSNP)
-mean(L1CoverTable$blnSNPHWE)
-sum(L1CoverTable$blnSNP)
-sum(L1CoverTable$blnSNPHWE)
+######################################################
+#                                                    #
+#          Analyze allele frequencies               #
+#                                                    #
+######################################################
 
-mean(L1CoverTable$blnSNP [L1CoverTable$NonSyn]) 
-mean(L1CoverTable$blnSNP [L1CoverTable$Syn]) 
-mean(L1CoverTable$AlleleFreq [L1CoverTable$NonSyn], na.rm = T) 
-mean(L1CoverTable$AlleleFreq [L1CoverTable$Syn], na.rm = T) 
-mean(L1CoverTable$NonSyn & L1CoverTable$blnSNPPacBio) 
-mean(L1CoverTable$Syn & L1CoverTable$blnSNPPacBio) 
-mean( L1CoverTable$blnSNPPacBio [L1CoverTable$blnFull & L1CoverTable$NonSyn]) 
-mean(L1CoverTable$blnSNPPacBio [L1CoverTable$blnFull & L1CoverTable$Syn]) 
-mean( L1CoverTable$AlleleFreq [L1CoverTable$blnFull & L1CoverTable$NonSyn], na.rm = T) 
-mean(L1CoverTable$AlleleFreq [L1CoverTable$blnFull & L1CoverTable$Syn], na.rm = T) 
-median( L1CoverTable$AlleleFreq [L1CoverTable$blnFull & L1CoverTable$NonSyn], na.rm = T) 
-median(L1CoverTable$AlleleFreq [L1CoverTable$blnFull & L1CoverTable$Syn], na.rm = T) 
-wilcox.test( L1CoverTable$AlleleFreq [L1CoverTable$blnFull & L1CoverTable$NonSyn],
-         L1CoverTable$AlleleFreq [L1CoverTable$blnFull & L1CoverTable$Syn],
-         alternative =  "less") 
-kruskal.test( x = L1CoverTable$AlleleFreq [L1CoverTable$blnFull & 
-                                             ( L1CoverTable$NonSyn |  L1CoverTable$Syn)],
-         g = L1CoverTable$NonSyn [L1CoverTable$blnFull& 
-                                    ( L1CoverTable$NonSyn |  L1CoverTable$Syn)]) 
-sum(L1CoverTable$blnFull& (!is.na(L1CoverTable$AlleleFreq)) &
-      ( L1CoverTable$NonSyn |  L1CoverTable$Syn))
-median(L1CoverTable$AlleleFreq [L1CoverTable$blnFull & L1CoverTable$Syn], na.rm = T) 
 
-boxplot(L1CoverTable$AlleleFreq [L1CoverTable$blnFull] ~ L1CoverTable$Syn[L1CoverTable$blnFull]) 
-sum(L1CoverTable$blnSNPPacBio)
+# Susbet to obtain SNPs with measured allele frequencies
+blnSubset <- L1CoverTable$blnFull & 
+  (!is.na(L1CoverTable$AlleleFreq)) & (L1CoverTable$NonSyn |L1CoverTable$Syn)
+L1CoverTableSubset <- L1CoverTable[blnSubset, ]
+L1CoverTableSubset$L1ID <- OL_bpL1@to[blnSubset]
+L1CoverTableSubset$SNPSyn    <- L1CoverTableSubset$blnSNP & (!L1CoverTableSubset$NonSyn)
+L1CoverTableSubset$SNPNonSyn <- L1CoverTableSubset$blnSNP & L1CoverTableSubset$NonSyn
+L1CoverTableSubset$SNPSynPacBio    <- L1CoverTableSubset$blnSNPPacBio & (!L1CoverTableSubset$NonSyn)
+L1CoverTableSubset$SNPNonSynPacBio <- L1CoverTableSubset$blnSNPPacBio & L1CoverTableSubset$NonSyn
 
-blnSubset <- L1CoverTable$blnFull & (!is.na(L1CoverTable$AlleleFreq)) & (L1CoverTable$NonSyn |L1CoverTable$Syn)
-sum(blnSubset)
+# Calculate mean allele frequency per L1 and position type
+AlleleFreqPerL1andPosType <- aggregate(L1CoverTable$AlleleFreq[blnSubset],
+                                       by =list(OL_bpL1@to[blnSubset], L1CoverTable$NonSyn[blnSubset]), 
+                                       FUN = mean)
+NSNPPerL1andPosType <- AggDataFrame(L1CoverTableSubset, GroupCol = "L1ID", MeanCols = "AlleleFreq", 
+                         SumCols = c("SNPSyn", "SNPNonSyn", "SNPSynPacBio", "SNPNonSynPacBio"))
+plot(NSNPPerL1andPosType$SNPSyn_sum, NSNPPerL1andPosType$SNPNonSyn_sum,
+     col = rgb(0, 0, 0, alpha = 0.15), pch = 16,
+     xlab = "Number of synonymous SNPs", ylab = "Number of non-synonymous SNPs")  
+lines(c(0, 100), c(0, 200))
+plot(jitter(NSNPPerL1andPosType$SNPSynPacBio_sum), 
+     jitter(NSNPPerL1andPosType$SNPNonSynPacBio_sum),
+     col = rgb(0, 0, 0, alpha = 0.15), pch = 16,
+     xlab = "Number of synonymous SNPs", ylab = "Number of non-synonymous SNPs")  
+lines(c(0, 100), c(0, 200))
 
-aggregate(L1CoverTable$AlleleFreq[blnSubset],
-          by =list(OL_bpL1@to[blnSubset], L1CoverTable$NonSyn[blnSubset]), 
-          FUN = mean)
+
+
+# Observed difference in mean allele frequencies
+ObsMeanDiff <- mean(L1CoverTableSubset$AlleleFreq[!L1CoverTableSubset$NonSyn]) -  
+mean(L1CoverTableSubset$AlleleFreq[L1CoverTableSubset$NonSyn]) 
+
+# Sample differences
+TotNonSyn <- sum(L1CoverTableSubset$NonSyn)
+TotNuc  <- sum(blnSubset)
+idxVect <- 1:TotNuc
+NSamples <- 10000
+SampledMeanDiffs <- sapply(1:NSamples, function(x){
+  idxNonSyn <- sample.int(TotNuc, size = TotNonSyn)
+  idxSyn    <- setdiff(idxVect, idxNonSyn)
+  mean(L1CoverTableSubset$AlleleFreq[idxSyn]) -  
+    mean(L1CoverTableSubset$AlleleFreq[idxNonSyn]) 
+})
+sum(SampledMeanDiffs >= ObsMeanDiff) / NSamples
+
+L1Count <- table(AlleleFreqPerL1andPosType$Group.1)
+L1Both <- as.numeric(names(L1Count)[L1Count == 2])
+SNPSPerL1 <- t(sapply(L1Both, function(x){
+  blnL1 <- AlleleFreqPerL1andPosType$Group.1 == x
+  c(NonSyn = AlleleFreqPerL1andPosType$x[AlleleFreqPerL1andPosType$Group.2 & blnL1],
+    Syn = AlleleFreqPerL1andPosType$x[!AlleleFreqPerL1andPosType$Group.2 & blnL1])
+}))
+
+length(unique(OL_bpL1@to[blnSubset]))
 
 # Get the number of SNPs per ORF
-NSNPPerORF <- aggregate(L1CoverTable$blnSNP[blnSubset],
+NSNPPerORF <- # Get mean number of SNPs per L1 position of full-length L1
+  AggPerL1Pos <- AggDataFrame(L1CoverTable[L1CoverTable$blnFull,], 
+                              GroupCol = "PosFromL1Start", 
+                              MeanCols = c("blnSNP", "CoverMean"), 
+                              LengthCols = "blnSNP", VarCols = c("blnSNP", "CoverMean"), 
+                              Addcols = c("Chromosome", "Pos")
+  )
+aggregate(L1CoverTable$blnSNP[blnSubset],
           by =list(OL_bpL1@to[blnSubset]), 
           FUN = sum)
 hist(NSNPPerORF$x, breaks = 0:100)
@@ -787,10 +814,8 @@ SNPLogRegInt_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + Cover
                     maxit = 20)
 summary(SNPLogRegInt_CodeOnly)
 SNPLogReg_CodeOnlyPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
-                                  L1Width + PropMismatch + Genes + Promoters +
-                                  #blnFull + 
+                                 PropMismatch + Genes + Promoters + TFB +
                                   NonSyn, #+
-                                #NonSyn:blnFull,
                                 data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
                                 family = binomial(), chunksize = 3*10^4,
                                 maxit = 20)
