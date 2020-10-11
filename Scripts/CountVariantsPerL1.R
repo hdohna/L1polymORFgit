@@ -711,14 +711,27 @@ plot(NSNPPerL1andPosType$SNPSyn_sum, NSNPPerL1andPosType$SNPNonSyn_sum,
      col = rgb(0, 0, 0, alpha = 0.15), pch = 16,
      xlab = "Number of synonymous SNPs", ylab = "Number of non-synonymous SNPs")  
 lines(c(0, 100), c(0, 200))
+OL_L1SNO_L1Cat <- findOverlaps(L1GR[NSNPPerL1andPosType$L1ID],
+                               L1CatalogGR_hg19)
+NSNPPerL1andPosType$Activity <- NA
+NSNPPerL1andPosType$Activity[OL_L1SNO_L1Cat@from] <- 
+  L1CatalogL1Mapped$ActivityNum[OL_L1SNO_L1Cat@to]
+idxHigh <- which(NSNPPerL1andPosType$Activity > 0)
+points(NSNPPerL1andPosType$SNPSyn_sum[idxHigh], NSNPPerL1andPosType$SNPNonSyn_sum[idxHigh],
+       col = "red")
+
+plot(NSNPPerL1andPosType$SNPNonSyn_sum, NSNPPerL1andPosType$Activity)
 plot(jitter(NSNPPerL1andPosType$SNPSynPacBio_sum), 
      jitter(NSNPPerL1andPosType$SNPNonSynPacBio_sum),
      col = rgb(0, 0, 0, alpha = 0.15), pch = 16,
      xlab = "Number of synonymous SNPs", ylab = "Number of non-synonymous SNPs")  
 lines(c(0, 100), c(0, 200))
+L1GR[NSNPPerL1andPosType$L1ID[NSNPPerL1andPosType$SNPSyn_sum >= 15]]
 
-
-
+load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1CatalogGRanges.RData")
+findOverlaps(L1GR[NSNPPerL1andPosType$L1ID[NSNPPerL1andPosType$SNPSyn_sum >= 20]],
+             L1CatalogGR_hg19)
+NSNPPerL1andPosType
 # Observed difference in mean allele frequencies
 ObsMeanDiff <- mean(L1CoverTableSubset$AlleleFreq[!L1CoverTableSubset$NonSyn]) -  
 mean(L1CoverTableSubset$AlleleFreq[L1CoverTableSubset$NonSyn]) 
