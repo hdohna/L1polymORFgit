@@ -720,7 +720,11 @@ idxHigh <- which(NSNPPerL1andPosType$Activity > 0)
 points(NSNPPerL1andPosType$SNPSyn_sum[idxHigh], NSNPPerL1andPosType$SNPNonSyn_sum[idxHigh],
        col = "red")
 
+# Plot L1 activity against non-synonymous SNPS
 plot(NSNPPerL1andPosType$SNPNonSyn_sum, NSNPPerL1andPosType$Activity)
+plot(NSNPPerL1andPosType$SNPNonSyn_sum + 
+       NSNPPerL1andPosType$SNPSyn_sum, NSNPPerL1andPosType$Activity)
+
 plot(jitter(NSNPPerL1andPosType$SNPSynPacBio_sum), 
      jitter(NSNPPerL1andPosType$SNPNonSynPacBio_sum),
      col = rgb(0, 0, 0, alpha = 0.15), pch = 16,
