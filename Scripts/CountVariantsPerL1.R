@@ -848,17 +848,17 @@ SNPSPerL1 <- t(sapply(L1Both, function(x){
 length(unique(OL_bpL1@to[blnSubset]))
 
 # Get the number of SNPs per ORF
-NSNPPerORF <- # Get mean number of SNPs per L1 position of full-length L1
-  AggPerL1Pos <- AggDataFrame(L1CoverTable[L1CoverTable$blnFull,], 
-                              GroupCol = "PosFromL1Start", 
-                              MeanCols = c("blnSNP", "CoverMean"), 
-                              LengthCols = "blnSNP", VarCols = c("blnSNP", "CoverMean"), 
-                              Addcols = c("Chromosome", "Pos")
-  )
+#NSNPPerORF <- # Get mean number of SNPs per L1 position of full-length L1
+  # AggPerL1Pos <- AggDataFrame(L1CoverTable[L1CoverTable$blnFull,], 
+  #                             GroupCol = "PosFromL1Start", 
+  #                             MeanCols = c("blnSNP", "CoverMean"), 
+  #                             LengthCols = "blnSNP", VarCols = c("blnSNP", "CoverMean"), 
+  #                             Addcols = c("Chromosome", "Pos")
+  # )
 aggregate(L1CoverTable$blnSNP[blnSubset],
           by =list(OL_bpL1@to[blnSubset]), 
           FUN = sum)
-hist(NSNPPerORF$x, breaks = 0:100)
+#hist(NSNPPerORF$x, breaks = 0:100)
 NSNPPerL1 <- aggregate(L1CoverTable$blnSNP[OL_bpL1@from],
                         by =list(OL_bpL1@to), 
                         FUN = sum)
@@ -875,7 +875,7 @@ sqrt(var(NSNPPerL1$x))
 # Perform analysis with interaction
 cat("Performing regression analysis with all SNPs... ")
 SNPLogRegInt <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
-                         PropMismatch + Genes + Exons + Promoters + TFB +
+                         PropMismatch + Genes + Exons + Promoters + #TFB +
                          blnFull + NonSyn + Coding + Freq +
                          Coding*blnFull + NonSyn*blnFull,
                        data = L1CoverTable, 
@@ -907,7 +907,7 @@ cat("done!\n")
 # cat("done!\n")
 cat("Performing regression analysis with coding sequences only ... ")
 SNPLogRegInt_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
-                         PropMismatch + Genes + Promoters + TFB +
+                         PropMismatch + Genes + Promoters + # TFB +
                           NonSyn, #+
                         #NonSyn:blnFull,
                     data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
@@ -915,7 +915,7 @@ SNPLogRegInt_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + Cover
                     maxit = 20)
 summary(SNPLogRegInt_CodeOnly)
 SNPLogReg_CodeOnlyPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
-                                 PropMismatch + Genes + Promoters + TFB +
+                                 PropMismatch + Genes + Promoters + #TFB +
                                   NonSyn, #+
                                 data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
                                 family = binomial(), chunksize = 3*10^4,
@@ -924,7 +924,7 @@ summary(SNPLogReg_CodeOnlyPacBio)
 
 cat("Performing regression analysis with full L1 only ... ")
 SNPLogRegInt_Full <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
-                                  PropMismatch + TFB +
+                                  PropMismatch + # TFB +
                               Coding*NonSyn, #+
                                  data = L1CoverTable[L1CoverTable$blnFull, ], 
                                 family = binomial(), chunksize = 3*10^4,
