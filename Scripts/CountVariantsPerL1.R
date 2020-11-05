@@ -160,20 +160,26 @@ L1Table$bln5UTRPresent[blnMinus] <- (L1Table$repLeft <= 300)[blnMinus]
 # Read vcf with variants in LINE-1s 
 #L1Variants  <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1.recode.vcf")
 L1Variants  <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_1KG.recode.vcf")
-L1Variants  <- L1Variants[grep("VT=SNP", L1Variants$INFO),]
+L1VariantsCNV  <- L1Variants[grep("VT=CNV", L1Variants$INFO),]
+L1Variants$VT <- sapply(L1Variants$INFO, function(x) {
+  Split1 <- strsplit(x, ";")[[1]]
+  grep("VT=", Split1, value = T)
+  })
 L1Variants$AlleleFreq <- sapply(L1Variants$INFO, function(x){
   InfoSplit <- strsplit(x, ";")[[1]]
   AF <- grep("AF=", InfoSplit, value = T)
   AF <- AF[-grep("_AF=", AF)]
   as.numeric(strsplit(AF, "AF=")[[1]][2])
 })
+L1Variants$chromosome <- paste("chr", L1Variants$X.CHROM, sep = "")
+L1Variants$VarID <- paste(L1Variants$X.CHROM, L1Variants$POS)
+L1Variants_Indel <- L1Variants[L1Variants$VT == "VT=INDEL",]
+L1Variants  <- L1Variants[grep("VT=SNP", L1Variants$INFO),]
 hist(L1Variants$AlleleFreq)
 L1Var_Left  <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_leftFlank.recode.vcf")
 L1Var_Right <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_rightFlank.recode.vcf")
-L1Variants$chromosome <- paste("chr", L1Variants$X.CHROM, sep = "")
 L1Var_Left$chromosome <- paste("chr", L1Var_Left$X.CHROM, sep = "")
 L1Var_Right$chromosome <- paste("chr", L1Var_Right$X.CHROM, sep = "")
-L1Variants$VarID <- paste(L1Variants$X.CHROM, L1Variants$POS)
 
 # Read vcf with variants in L1
 # L1Variants2$VarID <- paste(L1Variants2$X.CHROM, L1Variants2$POS)
@@ -583,12 +589,72 @@ UTR3_GR <- makeGRangesFromDataFrame(
   L1Table[blnUTR3, c("genoName", "start3UTR", "end3UTR", "strand", "idx")], 
   seqnames.field = "genoName", start.field = "start3UTR",
   end.field = "end3UTR", keep.extra.columns = T)
+ORF12_GR <- c(ORF1_GR, ORF2_GR)
+UTR35_GR <- c(UTR3_GR, UTR5_GR)
 
 # Create a GRanges object of variants inside L1s and their flanking regions
 L1VarGR <- makeGRangesFromDataFrame(L1Variants, 
                                     start.field = "POS",
                                     end.field = "POS")
 
+# Create a GRanges object of indels inside L1s and their flanking regions
+L1VarIndelGR <- makeGRangesFromDataFrame(L1Variants_Indel, 
+                                    start.field = "POS",
+                                    end.field = "POS")
+
+# Calculate the number of basepars that differ between indels and the reference
+L1Variants_Indel$bpDiff <- sapply(1:nrow(L1Variants_Indel), function(x) {
+  NC1 <- nchar(L1Variants_Indel$REF[x])
+  Split2 <- strsplit(L1Variants_Indel$ALT[x], ",")[[1]]
+  NC1 - max(nchar(Split2))
+})
+
+# Indicator variable of whether indel is divisible by 3 
+L1Variants_Indel$bln3 <- (L1Variants_Indel$bpDiff %% 3) == 0
+
+# Indicator variable of whether indel overlaps with an ORF
+L1Variants_Indel$blnORF <- overlapsAny(L1VarIndelGR, ORF12_GR)
+
+# GRanges for full-length L1s, their ORFs and UTRs
+L1GRFull     <- L1GR[width(L1GR) >= 6000]
+ORF12_GRFull <- subsetByOverlaps(ORF12_GR, L1GRFull)
+UTR35_GRFull <- subsetByOverlaps(UTR35_GR, L1GRFull)
+
+# Indicator variable for whether Indel is in full-length L1
+L1Variants_Indel$blnFull <- overlapsAny(L1VarIndelGR, L1GRFull)
+L1Variants_IndelFull  <- L1Variants_Indel[L1Variants_Indel$blnFull, ]
+L1VarIndelGRFull      <- L1VarIndelGR[L1Variants_Indel$blnFull]
+
+# Test whether indels divisible by 3 are more common in ORFs
+# of full-length L1
+chisq.test(table(L1Variants_Indel$bln3[L1Variants_Indel$blnFull], 
+                 L1Variants_Indel$blnORF[L1Variants_Indel$blnFull]))
+chisq.test(table(L1Variants_Indel$bln3, 
+      L1Variants_Indel$blnORF))
+aggregate(abs(L1Variants_Indel$bpDiff), 
+          by = list(L1Variants_Indel$blnORF), FUN = mean)
+
+# Get overlaps between indels and L1
+OL_Indel_All <- findOverlaps(L1VarIndelGR, c(ORF12_GR, UTR35_GR))
+L1Variants_Indel$GRID <- NA
+L1Variants_Indel$GRID[OL_Indel_All@from] <- OL_Indel_All@to
+table(L1Variants_Indel$GRID)
+
+OL_Indel_ORF <- findOverlaps(L1VarIndelGRFull, ORF12_GRFull)
+
+IndelSumORF <- aggregate(L1Variants_IndelFull$bpDiff[OL_Indel_ORF@from], 
+                         by = list(OL_Indel_ORF@to), FUN = sum)
+sum((IndelSumORF$x %% 3) == 0)
+OL_Indel_UTR <- findOverlaps(L1VarIndelGRFull, UTR35_GRFull)
+IndelSumUTR  <- aggregate(L1Variants_IndelFull$bpDiff[OL_Indel_UTR@from], 
+                         by = list(OL_Indel_UTR@to), FUN = sum)
+ConTab <- cbind(c(sum((IndelSumORF$x %% 3) == 0), sum((IndelSumORF$x %% 3) != 0)),
+                c(sum((IndelSumUTR$x %% 3) == 0), sum((IndelSumUTR$x %% 3) != 0)))
+ConTab[1,] / colSums(ConTab)
+chisq.test(ConTab)
+sum((IndelSumUTR$x %% 3) == 0)
+
+UTR35_GR
 # Subset GRanges for high quality SNPs
 L1VarGR_HighQual <- L1VarGR[L1Variants$QUAL >= 100]
 table(L1Variants$FILTER)
