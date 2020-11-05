@@ -802,11 +802,12 @@ load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1CatalogGRang
 findOverlaps(L1GR[NSNPPerL1andPosType$L1ID[NSNPPerL1andPosType$SNPSyn_sum >= 20]],
              L1CatalogGR_hg19)
 NSNPPerL1andPosType
+
 # Observed difference in mean allele frequencies
 ObsMeanDiff <- mean(L1CoverTableSubset$AlleleFreq[!L1CoverTableSubset$NonSyn]) -  
 mean(L1CoverTableSubset$AlleleFreq[L1CoverTableSubset$NonSyn]) 
 
-# Sample differences
+# Sample mean differences
 TotNonSyn <- sum(L1CoverTableSubset$NonSyn)
 TotNuc  <- sum(blnSubset)
 idxVect <- 1:TotNuc
@@ -818,6 +819,23 @@ SampledMeanDiffs <- sapply(1:NSamples, function(x){
     mean(L1CoverTableSubset$AlleleFreq[idxNonSyn]) 
 })
 sum(SampledMeanDiffs >= ObsMeanDiff) / NSamples
+
+# Observed difference in mean allele frequencies
+ObsMedianDiff <- median(L1CoverTableSubset$AlleleFreq[!L1CoverTableSubset$NonSyn]) -  
+  median(L1CoverTableSubset$AlleleFreq[L1CoverTableSubset$NonSyn]) 
+
+# Sample mean differences
+TotNonSyn <- sum(L1CoverTableSubset$NonSyn)
+TotNuc  <- sum(blnSubset)
+idxVect <- 1:TotNuc
+NSamples <- 10000
+SampledMedianDiffs <- sapply(1:NSamples, function(x){
+  idxNonSyn <- sample.int(TotNuc, size = TotNonSyn)
+  idxSyn    <- setdiff(idxVect, idxNonSyn)
+  median(L1CoverTableSubset$AlleleFreq[idxSyn]) -  
+    median(L1CoverTableSubset$AlleleFreq[idxNonSyn]) 
+})
+sum(SampledMedianDiffs >= ObsMedianDiff) / NSamples
 
 L1Count <- table(AlleleFreqPerL1andPosType$Group.1)
 L1Both <- as.numeric(names(L1Count)[L1Count == 2])
