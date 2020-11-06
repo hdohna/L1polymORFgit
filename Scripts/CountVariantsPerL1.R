@@ -905,7 +905,7 @@ cat("done!\n")
 #                        family = binomial(), chunksize = 3*10^4,
 #                        maxit = 20)
 # cat("done!\n")
-cat("Performing regression analysis with coding sequences only ... ")
+cat("Performing regression analysis with coding sequences only ... \n")
 SNPLogRegInt_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                          PropMismatch + Genes + Promoters + # TFB +
                           NonSyn, #+
