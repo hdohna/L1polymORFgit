@@ -908,7 +908,7 @@ cat("done!\n")
 cat("Performing regression analysis with coding sequences only ... \n")
 SNPLogRegInt_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                          PropMismatch + Genes + Promoters + # TFB +
-                          NonSyn, #+
+                          CNonSyn, #+
                         #NonSyn:blnFull,
                     data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
                     family = binomial(), chunksize = 3*10^4,
@@ -922,10 +922,10 @@ SNPLogReg_CodeOnlyPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + C
                                 maxit = 20)
 summary(SNPLogReg_CodeOnlyPacBio)
 
-cat("Performing regression analysis with full L1 only ... ")
+cat("Performing regression analysis with full L1 only ... \n")
 SNPLogRegInt_Full <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                                   PropMismatch + # TFB +
-                              Coding*NonSyn, #+
+                              Coding + NonSyn, #+
                                  data = L1CoverTable[L1CoverTable$blnFull, ], 
                                 family = binomial(), chunksize = 3*10^4,
                                 maxit = 20)
