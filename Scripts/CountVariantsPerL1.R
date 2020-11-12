@@ -12,7 +12,11 @@ library(BSgenome.Hsapiens.UCSC.hg19)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(seqinr)
 
-# Load data with HWE values
+######################################
+#                                    #
+#        Load and process data       #
+#                                    #
+######################################
 
 # Load genomic ranges of TF binding sits on L1 
 load("D:/OneDrive - American University of Beirut/L1Evolution/Data/L1_TFBGR.RData")
@@ -33,9 +37,6 @@ MEDelCall$chromosome <- paste("chr", MEDelCall$X.CHROM, sep = "")
 MEDel_GR  <- makeGRangesFromDataFrame(df = MEDelCall,
                                       start.field = "POS",
                                       end.field = "POS")
-
-colnames(MEDelCall)
-MEDelCall$INFO[1:5]
 
 # function to get numeric genotype
 GetNumericGenotype <- function(x){
@@ -308,6 +309,66 @@ idxORF1Start  <- which(blnORF1Start)
 idxORF2Start  <- which(blnORF2Start)
 blnBothORFs   <- blnORF1End & blnORF2End
 
+# Get ranges of L1s and their flanks
+L1GR_left <- makeGRangesFromDataFrame(L1Table, 
+                                      seqnames.field = "genoName",
+                                      start.field = "genoStartMinus1000",
+                                      end.field = "genoStart")
+
+L1GR_right <- makeGRangesFromDataFrame(L1Table, 
+                                       seqnames.field = "genoName",
+                                       start.field = "genoEnd",
+                                       end.field = "genoEndPlus1000")
+
+# Get ranges for UTR5, ORF1, ORF2, and UTR3, of full-length L1
+blnUTR5 <- L1Table$start5UTR <= L1Table$end5UTR
+blnORF1 <- L1Table$startORF1 <= L1Table$endORF1
+blnORF2 <- L1Table$startORF2 <= L1Table$endORF2
+blnUTR3 <- L1Table$start3UTR <= L1Table$end3UTR
+any(L1Table$endUTR5 > L1Table$genoEnd)
+any(L1Table$endORF1 > L1Table$genoEnd)
+any(L1Table$blnORF2 > L1Table$genoEnd)
+any(L1Table$blnUTR3 > L1Table$genoEnd)
+sum(L1Table$start5UTR < L1Table$genoStart)
+sum((L1Table$start5UTR - L1Table$genoStart)[L1Table$start5UTR < L1Table$genoStart])
+any(L1Table$startORF1 < L1Table$genoStart)
+any(L1Table$start3UTR < L1Table$genoStart)
+any(L1Table$start3UTR < L1Table$genoStart)
+UTR5_GR <- makeGRangesFromDataFrame(
+  L1Table[blnUTR5, c("genoName", "start5UTR", "end5UTR", "strand", "idx")], 
+  seqnames.field = "genoName", start.field = "start5UTR",
+  end.field = "end5UTR", keep.extra.columns = T)
+ORF1_GR <- makeGRangesFromDataFrame(
+  L1Table[blnORF1, c("genoName", "startORF1", "endORF1", "strand", "idx")], 
+  seqnames.field = "genoName", start.field = "startORF1",
+  end.field = "endORF1", keep.extra.columns = T)
+ORF2_GR <- makeGRangesFromDataFrame(
+  L1Table[blnORF2, c("genoName", "startORF2", "endORF2", "strand", "idx")], 
+  seqnames.field = "genoName", start.field = "startORF2",
+  end.field = "endORF2", keep.extra.columns = T)
+UTR3_GR <- makeGRangesFromDataFrame(
+  L1Table[blnUTR3, c("genoName", "start3UTR", "end3UTR", "strand", "idx")], 
+  seqnames.field = "genoName", start.field = "start3UTR",
+  end.field = "end3UTR", keep.extra.columns = T)
+ORF12_GR <- c(ORF1_GR, ORF2_GR)
+UTR35_GR <- c(UTR3_GR, UTR5_GR)
+
+# Create a GRanges object of variants inside L1s and their flanking regions
+L1VarGR <- makeGRangesFromDataFrame(L1Variants, 
+                                    start.field = "POS",
+                                    end.field = "POS")
+
+# Create a GRanges object of indels inside L1s and their flanking regions
+L1VarIndelGR <- makeGRangesFromDataFrame(L1Variants_Indel, 
+                                         start.field = "POS",
+                                         end.field = "POS")
+
+#####################################################
+#                                                   #
+#    Identify non-synonymous positions on ORFs      #
+#                                                   #
+#####################################################
+
 # Initialize objects needed for loop that defines non-synonymous positions
 StartNonSyn    <- NULL
 StartSyn       <- NULL
@@ -434,13 +495,36 @@ GRSynInt <- GRanges(seqnames = ChrVCodeInt, IRanges(start = StartNonSynInt + 2,
                                        ORFPos0 = ORFPos0Int + 2,
                                        ORFType = ORFTypeInt))
 
+#################################################################
+#                                                               #
+#    Check identification non-synonymous positions on ORFs      #
+#                                                               #
+#################################################################
+
+# Check what proportion of starting positions of ORF1 and ORF2 correspond
+# to positions based on repeat masker
+GR1_ORF1 <- GRNonSynInt[GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == 0 &
+  GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF1"]
+OL1 <- findOverlaps(ORF1_GR, GR1_ORF1)
+sapply(-15:15, function(i) sum(start(ORF1_GR)[OL1@from] == start(GR1_ORF1)[OL1@to] + i))
+cbind(start(ORF1_GR)[OL1@from],start(GR1_ORF1)[OL1@to] )
+start(GR1_ORF1)[OL1@to] - start(ORF1_GR)[OL1@from]
+
+GR1_ORF2 <- GRNonSynInt[GRNonSynInt@elementMetadata@listData$mcols.ORFPos0 == 0 &
+                          GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF2"]
+OL2 <- findOverlaps(ORF2_GR, GR1_ORF2)
+sapply(-15:15, function(i) sum(start(ORF1_GR)[OL1@from] == start(GR1_ORF1)[OL1@to] + i))
+cbind(start(ORF2_GR)[OL2@from], start(GR1_ORF2)[OL2@to])
+start(GR1_ORF2)[OL2@to] - start(ORF2_GR)[OL2@from]
+sum(start(ORF2_GR)[OL2@from] == start(GR1_ORF2)[OL2@to])
+
 # Check what proportion of position is discovered by forming intersection
 # or checking for appropriate ORF length
 length(GRNonSynInt) / length(GRNonSyn)
 sum(blnORFFull) / length(GRNonSyn)
 sum(blnORFProper) / length(GRNonSyn)
 
-# Check that most of first nucleotides match amon non
+# Check that most of first nucleotides match among non synonymous 
 SynPos    <- seq(3, 21, 3)
 NonSynPos <- setdiff(1:21, SynPos)
 blnORF1_Nonsyn <- GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF1"
@@ -548,59 +632,6 @@ GRSyn_Gene <- GRanges(seqnames = ChrVCode_Gene, IRanges(start = SynStart,
 getSeq(BSgenome.Hsapiens.UCSC.hg19, GRNonSyn[1])
 getSeq(BSgenome.Hsapiens.UCSC.hg19, GRSyn[1])
 
-# Get ranges of L1s and their flanks
-L1GR_left <- makeGRangesFromDataFrame(L1Table, 
-                                      seqnames.field = "genoName",
-                                      start.field = "genoStartMinus1000",
-                                      end.field = "genoStart")
-
-L1GR_right <- makeGRangesFromDataFrame(L1Table, 
-                                               seqnames.field = "genoName",
-                                               start.field = "genoEnd",
-                                               end.field = "genoEndPlus1000")
-
-# Get ranges for UTR5, ORF1, ORF2, and UTR3, of full-length L1
-blnUTR5 <- L1Table$start5UTR <= L1Table$end5UTR
-blnORF1 <- L1Table$startORF1 <= L1Table$endORF1
-blnORF2 <- L1Table$startORF2 <= L1Table$endORF2
-blnUTR3 <- L1Table$start3UTR <= L1Table$end3UTR
-any(L1Table$endUTR5 > L1Table$genoEnd)
-any(L1Table$endORF1 > L1Table$genoEnd)
-any(L1Table$blnORF2 > L1Table$genoEnd)
-any(L1Table$blnUTR3 > L1Table$genoEnd)
-sum(L1Table$start5UTR < L1Table$genoStart)
-sum((L1Table$start5UTR - L1Table$genoStart)[L1Table$start5UTR < L1Table$genoStart])
-any(L1Table$startORF1 < L1Table$genoStart)
-any(L1Table$start3UTR < L1Table$genoStart)
-any(L1Table$start3UTR < L1Table$genoStart)
-UTR5_GR <- makeGRangesFromDataFrame(
-             L1Table[blnUTR5, c("genoName", "start5UTR", "end5UTR", "strand", "idx")], 
-             seqnames.field = "genoName", start.field = "start5UTR",
-             end.field = "end5UTR", keep.extra.columns = T)
-ORF1_GR <- makeGRangesFromDataFrame(
-  L1Table[blnORF1, c("genoName", "startORF1", "endORF1", "strand", "idx")], 
-  seqnames.field = "genoName", start.field = "startORF1",
-  end.field = "endORF1", keep.extra.columns = T)
-ORF2_GR <- makeGRangesFromDataFrame(
-  L1Table[blnORF2, c("genoName", "startORF2", "endORF2", "strand", "idx")], 
-  seqnames.field = "genoName", start.field = "startORF2",
-  end.field = "endORF2", keep.extra.columns = T)
-UTR3_GR <- makeGRangesFromDataFrame(
-  L1Table[blnUTR3, c("genoName", "start3UTR", "end3UTR", "strand", "idx")], 
-  seqnames.field = "genoName", start.field = "start3UTR",
-  end.field = "end3UTR", keep.extra.columns = T)
-ORF12_GR <- c(ORF1_GR, ORF2_GR)
-UTR35_GR <- c(UTR3_GR, UTR5_GR)
-
-# Create a GRanges object of variants inside L1s and their flanking regions
-L1VarGR <- makeGRangesFromDataFrame(L1Variants, 
-                                    start.field = "POS",
-                                    end.field = "POS")
-
-# Create a GRanges object of indels inside L1s and their flanking regions
-L1VarIndelGR <- makeGRangesFromDataFrame(L1Variants_Indel, 
-                                    start.field = "POS",
-                                    end.field = "POS")
 
 # Calculate the number of basepars that differ between indels and the reference
 L1Variants_Indel$bpDiff <- sapply(1:nrow(L1Variants_Indel), function(x) {
@@ -908,7 +939,7 @@ cat("done!\n")
 cat("Performing regression analysis with coding sequences only ... \n")
 SNPLogRegInt_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                          PropMismatch + Genes + Promoters + # TFB +
-                          CNonSyn, #+
+                          NonSyn, #+
                         #NonSyn:blnFull,
                     data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
                     family = binomial(), chunksize = 3*10^4,
@@ -932,13 +963,14 @@ SNPLogRegInt_Full <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean
 summary(SNPLogRegInt_Full)
 
 cat("done!\n")
-cat("Performing regression analysis with coding sequences only ... ")
+cat("Performing regression analysis with coding sequences only ... \n")
+blnSubset <- (L1CoverTable$Syn_Proper |  L1CoverTable$NonSyn_Proper)
+any(is.na(blnSubset))
 SNPLogRegInt_CodeProperOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                                   L1Width + PropMismatch + Genes + Promoters +
                                   blnFull + NonSyn +
                                   NonSyn:blnFull,
-                                data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn_Proper | 
-                                                      L1CoverTable$NonSyn_Proper), ], 
+                                data = L1CoverTable[, ], 
                                 family = binomial(), chunksize = 3*10^4,
                                 maxit = 20)
 
@@ -1096,37 +1128,28 @@ points(MeanSNPPerORF1Pos$Group.1[idx3ORF1], MeanSNPPerORF1Pos$x[idx3ORF1],
 
 
 # Analyze the proportion of SNPs on non-synonymous sites 
-NonsynEffect <- sapply(1:length(L1GR), function(i){
+i <- 1
+idxFull - which(width(L1GR) >= 6000)
+NonsynEffect <- sapply(idxFull, function(i){
   L1Subset <- L1CoverTable[OL_bpL1@from[OL_bpL1@to == i], ]
   L1Subset <- L1Subset[L1Subset$Coding, ]
   if(any(L1Subset$blnSNP)){
     print(i)
-    LReg <- glm(blnSNP ~ NonSyn, data = L1Subset)
+    LReg <- glm(blnSNP ~ NonSyn, data = L1Subset, family = binomial)
     LRegCoeffs <- summary(LReg)$coefficients
     LRegCoeffs <- rbind(LRegCoeffs, rep(NA, 4))
-    LRegCoeffs[2, c("Estimate", "Std. Error", "Pr(>|t|)")]
+    LRegCoeffs[2, c("Estimate", "Std. Error", "Pr(>|z|)")]
   } else {
     c(NA, NA, NA)
   }
 })
 hist(NonsynEffect[1,])
-which(NonsynEffect[1,] < -0.4)
-L1Table[630, ]
-NonsynEffect[,630]
 hist(NonsynEffect[3,], breaks = seq(0, 1, 0.01))
-hist(NonsynEffect[3, NonsynEffect[1,] < 0], breaks = seq(0, 1, 0.01))
-hist(NonsynEffect[3, blnFull], breaks = seq(0, 1, 0.01))
-hist(NonsynEffect[1, blnFull])
-plot(width(L1GR), NonsynEffect[1,])
-plot(width(L1GR), NonsynEffect[1,], ylim = c(-5*10^-2, 5*10^-2))
-plot(width(L1GR), NonsynEffect[3,])
-lines(c(0, 10000), c(0,0), col = "red")
-t.test(NonsynEffect[1,] ~ blnFull)
-blnNoOutlier <- NonsynEffect[1,] < 0.05 &  NonsynEffect[1,] > -0.05 
-LM <- lm(NonsynEffect[1,blnNoOutlier] ~ width(L1GR)[blnNoOutlier], 
-         weights = 1/NonsynEffect[2,blnNoOutlier])
-summary(LM)
-
+PAdj <- p.adjust(NonsynEffect[3,])
+sum(PAdj < 0.05, na.rm = T)
+min(PAdj, na.rm = T)
+NonsynEffect[,which.min(PAdj)]
+L1GR[idxFull[which.min(PAdj)]]
 
 
 # Count overlaps per region
@@ -1135,9 +1158,6 @@ L1VarCount_UTR3 <- countOverlaps(GR_UTR3_full, L1VarGR)
 L1VarCount_ORF1 <- countOverlaps(GR_ORF1_full, L1VarGR) 
 L1VarCount_ORF2 <- countOverlaps(GR_ORF2_full, L1VarGR) 
 
-
-plot(L1VarCount[blnFull], L1VarCount_UTR5 + L1VarCount_UTR3 +
-       L1VarCount_ORF1 + L1VarCount_ORF2)
 
 L1VarCountPerRange <- rbind(
   data.frame(Region = "UTR5", Count = L1VarCount_UTR5, 
@@ -1217,84 +1237,83 @@ Full <- LengthVals >= 6000
 SSize      <- L1TotData$SampleSize[1]
 SVals <- ModelFit_pracma$ML_abc$par[1] + ModelFit_pracma$ML_abc$par[2]*Full +
   ModelFit_pracma$ML_abc$par[3] * LengthVals
-SValsTa <- ML_L1WidthFullTa_nonTa$par[1] + ML_L1WidthFullTa_nonTa$pa[2]*Full +
-  ML_L1WidthFullTa_nonTa$par[4] * LengthVals
-SValsnonTa <-ML_L1WidthFullTa_nonTa$par[1] + ML_L1WidthFullTa_nonTa$pa[3]*Full +
-  ML_L1WidthFullTa_nonTa$par[4] * LengthVals
+# SValsTa <- ML_L1WidthFullTa_nonTa$par[1] + ML_L1WidthFullTa_nonTa$pa[2]*Full +
+#   ML_L1WidthFullTa_nonTa$par[4] * LengthVals
+# SValsnonTa <-ML_L1WidthFullTa_nonTa$par[1] + ML_L1WidthFullTa_nonTa$pa[3]*Full +
+#   ML_L1WidthFullTa_nonTa$par[4] * LengthVals
 
 DetectProb <- L1TotData$DetectProb[1]
-ML_L1WidthFullTa_nonTa
-plot(SVals, SValsTa)
-plot(SVals, SValsnonTa)
-lines(c(-10, 10), c(-10, 10))
+# plot(SVals, SValsTa)
+# plot(SVals, SValsnonTa)
+# lines(c(-10, 10), c(-10, 10))
 
 # Calculate expected frequency per L1 width
 cat("\nCalculate expected frequency per L1 width ...")
-ExpL1Width <- sapply(1:length(SVals), function(i) {
-  ExpAlleleFreq_pracma(s = SVals[i], N = PopSize, SampleSize = SSize,
-                       DetectProb = DetectProb, blnIns = T, 
-                       LogRegCoeff = LogRegL1Ref$coefficients)
-})
-ExpL1WidthTa <- sapply(1:length(SVals), function(i) {
-  ExpAlleleFreq_pracma(s = SValsTa[i], N = PopSize, SampleSize = SSize,
-                       DetectProb = DetectProb, blnIns = T, 
-                       LogRegCoeff = LogRegL1Ref$coefficients)
-})
-ExpL1Width_nonTa <- ExpL1WidthTa
-ExpL1Width_nonTa[Full] <- sapply(which(Full), function(i) {
-  ExpAlleleFreq_pracma(s = SValsnonTa[i], N = PopSize, SampleSize = SSize,
-                       DetectProb = DetectProb, blnIns = T, 
-                       LogRegCoeff = LogRegL1Ref$coefficients)
-})
-cat("done!\n")
-
-# Plot individual points (length and frequency values)
-ColPal <- rainbow(5)
-ColPal <- c("magenta", "green", "blue")
-layout(matrix(c(1, 1, 2, 3, 4, 5), 3, 2, byrow = TRUE))
-par(oma = c(0.1,  0.2,  0.1,  0.2), 
-     mai = c(0.7, 1, 0.2, 1), cex.lab = 1.2)
-plot(L1TotData$L1width, 
-     L1TotData$Freq/SSize, xlab = "LINE-1 length [kb]",
-     ylab = "LINE-1 frequency", type = "n",
-     # col = rgb(0, 0, 0, alpha = 0.2), 
-     # pch = 16, 
-     ylim = c(0, 0.04), 
-    # xlim = c(0, 7000),
-     main = "a",xaxt = "n")
-axis(side = 1, at = seq(0, 6000, 1000), labels = 0:6)
-legend(3300, 0.045, c("Fitted mean", "Smoothed data", "Selection coefficient"),
-       cex = 1.2, 
-       lty = 1, bty = "n", lwd = 2,
-       y.intersp = 0.3, 
-       col = ColPal)
-points(L1TotData$L1width, cex = 2,
-     L1TotData$Freq/SSize, col = rgb(0, 0, 0, alpha = 0.07), 
-     pch = 16)
-L1FreqLengthSmoothed <- supsmu(L1TotData$L1width, 
-                               L1TotData$Freq/SSize, bass = 5)
-blnNAWidthFreq <- is.na(L1TotData$L1width) | is.na(L1TotData$Freq)
-# L1FreqLengthSmoothed <- smooth.spline(L1TotData$L1width[!blnNAWidthFreq], 
-#                                L1TotData$Freq[!blnNAWidthFreq]/SSize)
-lines(LengthVals, ExpL1Width, lwd = 2, col = ColPal[1])
-#lines(LengthVals, ExpL1Width_nonTa, lwd = 2, col = ColPal[1])
-lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, lwd = 2, col = ColPal[2])
-sum(L1TotData$Freq/SSize > 0.04)
-sum(L1TotData$Freq/SSize > 0.04) / sum(!is.na(L1TotData$Freq))
-# Plot estimated selection coefficient
-par(new = T)
-LengthVals2 <- seq(0, 6200, 20)
-Full      <- LengthVals2 >= 6000
-SVals2 <- ModelFit_pracma$ML_abc$par[1] + ModelFit_pracma$ML_abc$par[2]*Full +
-  ModelFit_pracma$ML_abc$par[3] * LengthVals2
-
-plot(LengthVals2, SVals2, type = "l", xaxt = "n", yaxt = "n", ylab = "", 
-     xlab = "", lwd = 2,col = ColPal[3])
-axis(side = 4, at = -10^(-5)*c(3:7), labels = -c(3:7))
-
-mtext(side = 4, line = 3, expression(paste("Selection coefficient (", N[e], italic(s),")")), 
-      cex = 0.87)
-
+# ExpL1Width <- sapply(1:length(SVals), function(i) {
+#   ExpAlleleFreq_pracma(s = SVals[i], N = PopSize, SampleSize = SSize,
+#                        DetectProb = DetectProb, blnIns = T, 
+#                        LogRegCoeff = LogRegL1Ref$coefficients)
+# })
+# ExpL1WidthTa <- sapply(1:length(SVals), function(i) {
+#   ExpAlleleFreq_pracma(s = SValsTa[i], N = PopSize, SampleSize = SSize,
+#                        DetectProb = DetectProb, blnIns = T, 
+#                        LogRegCoeff = LogRegL1Ref$coefficients)
+# })
+# ExpL1Width_nonTa <- ExpL1WidthTa
+# ExpL1Width_nonTa[Full] <- sapply(which(Full), function(i) {
+#   ExpAlleleFreq_pracma(s = SValsnonTa[i], N = PopSize, SampleSize = SSize,
+#                        DetectProb = DetectProb, blnIns = T, 
+#                        LogRegCoeff = LogRegL1Ref$coefficients)
+# })
+# cat("done!\n")
+# 
+# # Plot individual points (length and frequency values)
+# ColPal <- rainbow(5)
+# ColPal <- c("magenta", "green", "blue")
+# layout(matrix(c(1, 1, 2, 3, 4, 5), 3, 2, byrow = TRUE))
+# par(oma = c(0.1,  0.2,  0.1,  0.2), 
+#      mai = c(0.7, 1, 0.2, 1), cex.lab = 1.2)
+# plot(L1TotData$L1width, 
+#      L1TotData$Freq/SSize, xlab = "LINE-1 length [kb]",
+#      ylab = "LINE-1 frequency", type = "n",
+#      # col = rgb(0, 0, 0, alpha = 0.2), 
+#      # pch = 16, 
+#      ylim = c(0, 0.04), 
+#     # xlim = c(0, 7000),
+#      main = "a",xaxt = "n")
+# axis(side = 1, at = seq(0, 6000, 1000), labels = 0:6)
+# legend(3300, 0.045, c("Fitted mean", "Smoothed data", "Selection coefficient"),
+#        cex = 1.2, 
+#        lty = 1, bty = "n", lwd = 2,
+#        y.intersp = 0.3, 
+#        col = ColPal)
+# points(L1TotData$L1width, cex = 2,
+#      L1TotData$Freq/SSize, col = rgb(0, 0, 0, alpha = 0.07), 
+#      pch = 16)
+# L1FreqLengthSmoothed <- supsmu(L1TotData$L1width, 
+#                                L1TotData$Freq/SSize, bass = 5)
+# blnNAWidthFreq <- is.na(L1TotData$L1width) | is.na(L1TotData$Freq)
+# # L1FreqLengthSmoothed <- smooth.spline(L1TotData$L1width[!blnNAWidthFreq], 
+# #                                L1TotData$Freq[!blnNAWidthFreq]/SSize)
+# lines(LengthVals, ExpL1Width, lwd = 2, col = ColPal[1])
+# #lines(LengthVals, ExpL1Width_nonTa, lwd = 2, col = ColPal[1])
+# lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, lwd = 2, col = ColPal[2])
+# sum(L1TotData$Freq/SSize > 0.04)
+# sum(L1TotData$Freq/SSize > 0.04) / sum(!is.na(L1TotData$Freq))
+# # Plot estimated selection coefficient
+# par(new = T)
+# LengthVals2 <- seq(0, 6200, 20)
+# Full      <- LengthVals2 >= 6000
+# SVals2 <- ModelFit_pracma$ML_abc$par[1] + ModelFit_pracma$ML_abc$par[2]*Full +
+#   ModelFit_pracma$ML_abc$par[3] * LengthVals2
+# 
+# plot(LengthVals2, SVals2, type = "l", xaxt = "n", yaxt = "n", ylab = "", 
+#      xlab = "", lwd = 2,col = ColPal[3])
+# axis(side = 4, at = -10^(-5)*c(3:7), labels = -c(3:7))
+# 
+# mtext(side = 4, line = 3, expression(paste("Selection coefficient (", N[e], italic(s),")")), 
+#       cex = 0.87)
+# 
 # Plot SNP density for different L1 regions
 #layout(rbind(c(1, 2), c(3, 3)))
 par(page = F, mai = c(0.5, 1, 0.2, 0.1))
