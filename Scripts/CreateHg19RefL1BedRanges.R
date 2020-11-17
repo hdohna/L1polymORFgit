@@ -8,11 +8,11 @@ source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.R')
 library(rtracklayer)
 
 # Load L1 reference ranges
-load('D:/L1polymORF/Data/L1RefRanges_hg19.Rdata')
+load('D:/OneDrive - American University of Beirut/L1polymORF/Data/L1RefRanges_hg19.Rdata')
 width(L1GRanges)
 
 # Read in vcf file with MELT deletion calls
-MEDelCall <- ReadVCF("D:/L1polymORF/Data/DEL.final_comp.vcf")
+MEDelCall <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/DEL.final_comp.vcf")
 MEDelCall$chromosome <- paste("chr", MEDelCall$X.CHROM, sep = "")
 MEDelCall$end <- sapply(MEDelCall$INFO, function(x){
   Split1 <- strsplit(x, ";")[[1]]
@@ -31,5 +31,6 @@ ChrNames <- as.vector(seqnames(L1GRangesNoPoly))
 L1GRangesNoPoly <- GRanges(seqnames = substr(ChrNames, 4, nchar(ChrNames)),
                            ranges = IRanges(start = start(L1GRangesNoPoly),
                                             end = end(L1GRangesNoPoly)))
- 
-export.bed(L1GRangesNoPoly, "D:/L1polymORF/Data/L1GRangesNoPoly.bed")
+L1GRangesNoPolyFull <-  L1GRangesNoPoly[width(L1GRangesNoPoly) >= 6000]
+export.bed(L1GRangesNoPoly, "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1GRangesNoPoly.bed")
+export.bed(L1GRangesNoPolyFull, "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1GRangesNoPolyFull.bed")
