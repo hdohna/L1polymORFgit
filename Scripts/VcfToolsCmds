@@ -49,6 +49,12 @@ vcftools --gzvcf /home/hb54/1000GenomeData/ALL.wgs.phase3_shapeit2_mvncall_integ
 --recode-INFO-all \
 --out /home/hb54/1000GenomeData/VariantsInL1_1KG
 
+vcftools --gzvcf /home/hb54/1000GenomeData/ALL.chr1.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf \
+--bed /home/hb54/RefSeqData/L1GRangesNoPolyFull.bed \
+--hap-r2 \
+--out /home/hb54/1000GenomeData/LD_chr1
+
+
 vcftools --vcf /labs/dflev/hzudohna/1000Genomes/ALL.chr1.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf \
 --bed /labs/dflev/hzudohna/RefSeqData/L1Ranges.bed \
 --hardy
