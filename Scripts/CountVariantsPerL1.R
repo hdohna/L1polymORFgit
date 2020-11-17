@@ -236,6 +236,22 @@ ORF2EndList      <- vmatchPattern(EndSeqORF2, L1Seq, max.mismatch = 2)
 blnORF2Start     <- sapply(ORF2StartList, function(x) length(x) > 0)
 blnORF2End       <- sapply(ORF2EndList, function(x) length(x) > 0)
 blnORF2StartEnd  <- blnORF2Start & blnORF2End
+x <- 2
+ORFSummaries <- as.data.frame(t(sapply(1:length(L1GR), function(x){
+  print(x)
+  MaxORF1width = max(end(ORF1EndList[[x]]) - start(ORF1StartList[[x]]))
+  if (length(ORF1StartList[[x]]) > 0 & length(ORF1EndList[[x]]) > 0){
+    MaxORF1width = max(end(ORF1EndList[[x]]) - start(ORF1StartList[[x]]))
+  } else {
+    MaxORF1width = NA
+  }
+  c(NrORF1Start = length(ORF1StartList[[x]]),
+    NrORF1End  =  length(ORF1EndList[[x]]),
+    MaxORF1width = max(end(ORF1EndList[[x]]) - start(ORF1StartList[[x]])),
+    NrORF2Start = length(ORF2StartList[[x]]),
+    NrORF2End  =  length(ORF2EndList[[x]]),
+    L1Width = width(L1GR)[x])
+})))
 
 # Return summaries of ORF starts and ends
 cat(sum(blnORF1Start), "L1 with ORF1 start motif\n")
@@ -248,7 +264,7 @@ cat(sum(blnORF2Start),  "L1 with ORF2 start motif\n")
 cat(sum(blnORF2End),    "L1 with ORF2 end motif\n")
 cat(sum(blnORF2StartEnd), "L1 with ORF2 start and end motif\n")
 cat(sum(blnORF2StartEnd & blnFull), "full-length L1 with ORF2 start and end motif\n")
-
+sum(blnFull)
 # Check that all full-length LINE-1 have ends of ORF1 and 2
 all(blnORF1End[blnFull])
 all(blnORF2End[blnFull])
@@ -410,6 +426,8 @@ for (i in idxORFEnd){
     blnNeg2 <- ORF2Pos < 0
     ORF1Pos <- ORF1Pos[!blnNeg1]
     ORF2Pos <- ORF2Pos[!blnNeg2]
+    
+    # Form intersection of codon positions counted from the start and end
     ORF1PosInt <- intersect(ORF1Pos_st, ORF1Pos)
     ORF2PosInt <- intersect(ORF2Pos_st, ORF2Pos)
     ORF1PosIntMatch <- match(ORF1PosInt, ORF1Pos_st)
@@ -418,23 +436,28 @@ for (i in idxORFEnd){
     ORF2Pos0Int     <- StartsNonSynORF2[ORF2PosIntMatch]
     NewStartNonSyn    <- L1Start[i] + c(ORF1Pos, ORF2Pos) - 1
     NewStartNonSynInt <- L1Start[i] + c(ORF1PosInt, ORF2PosInt) - 1
-  } else { # L1 on negative strand
-    ORF1Pos_st <- ORF1Starts[l] + StartsNonSynORF1 + 1
-    ORF2Pos_st <- ORF2Starts[m] + StartsNonSynORF2 + 1
-    ORF1Pos    <- ORf1Ends[j] - StartsNonSynORF1 - 1
-    ORF2Pos    <- ORf2Ends[k] - StartsNonSynORF2 - 1
-    blnNeg1    <- ORF1Pos < 0
-    blnNeg2    <- ORF2Pos < 0
-    ORF1Pos    <- ORF1Pos[!blnNeg1]
-    ORF2Pos    <- ORF2Pos[!blnNeg2]
-    ORF1PosInt <- intersect(ORF1Pos_st, ORF1Pos)
-    ORF2PosInt <- intersect(ORF2Pos_st, ORF2Pos)
-    ORF1PosIntMatch <- match(ORF1PosInt, ORF1Pos_st)
-    ORF2PosIntMatch <- match(ORF2PosInt, ORF2Pos_st)
-    ORF1Pos0Int     <- StartsNonSynORF1[ORF1PosIntMatch]
-    ORF2Pos0Int     <- StartsNonSynORF2[ORF2PosIntMatch]
-    NewStartNonSyn    <- L1End[i] - c(ORF1Pos, ORF2Pos) + 1
-    NewStartNonSynInt <- L1End[i] - c(ORF1PosInt, ORF2PosInt) + 1
+  
+    } else { # L1 on negative strand
+      
+      # Count codon starts from the start
+      ORF1Pos_st <- ORF1Starts[l] + StartsNonSynORF1 + 1
+      ORF2Pos_st <- ORF2Starts[m] + StartsNonSynORF2 + 1
+    
+      # Count codon starts from the end 
+      ORF1Pos    <- ORf1Ends[j] - StartsNonSynORF1 - 1
+      ORF2Pos    <- ORf2Ends[k] - StartsNonSynORF2 - 1
+      blnNeg1    <- ORF1Pos < 0
+      blnNeg2    <- ORF2Pos < 0
+      ORF1Pos    <- ORF1Pos[!blnNeg1]
+      ORF2Pos    <- ORF2Pos[!blnNeg2]
+      ORF1PosInt <- intersect(ORF1Pos_st, ORF1Pos)
+      ORF2PosInt <- intersect(ORF2Pos_st, ORF2Pos)
+      ORF1PosIntMatch <- match(ORF1PosInt, ORF1Pos_st)
+      ORF2PosIntMatch <- match(ORF2PosInt, ORF2Pos_st)
+      ORF1Pos0Int     <- StartsNonSynORF1[ORF1PosIntMatch]
+      ORF2Pos0Int     <- StartsNonSynORF2[ORF2PosIntMatch]
+      NewStartNonSyn    <- L1End[i] - c(ORF1Pos, ORF2Pos) + 1
+      NewStartNonSynInt <- L1End[i] - c(ORF1PosInt, ORF2PosInt) + 1
   }
   
   # Update vectors
@@ -1085,9 +1108,9 @@ rect(xleft = c(startORF1, startORF2), ybottom = 0.5,
 text(x = c(0.5*(startORF1 + endORF1), 0.5*(startORF2 + start3UTR - 1)),
      y = c(0.75, 0.75), c("ORF1", "ORF2"))
 text(x = 3000, y = 0, "LINE-1")
-CreateDisplayPdf('D:/L1ManuscriptFigures/SNPsPerFullL1.pdf',
-                 PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
-                 height = 5, width = 5)
+# CreateDisplayPdf('D:/L1ManuscriptFigures/SNPsPerFullL1.pdf',
+#                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
+#                  height = 5, width = 5)
 
 ######################################################
 #                                                    #
