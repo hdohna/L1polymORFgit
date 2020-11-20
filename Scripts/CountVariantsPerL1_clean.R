@@ -13,6 +13,7 @@ library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(seqinr)
 
 # File paths
+ResultPathCombined  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_combined_2020-11-15.csv"
 ResultPathAll  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_all_2020-11-15.csv"
 ResultPathFull <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_full_2020-11-15.csv"
 ResultPathAllPacBio  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_all_PacBio_2020-11-15.csv"
@@ -907,6 +908,63 @@ sqrt(var(NSNPPerL1$x))
 
 ######################################################
 #                                                    #
+#           Analyze LD             #
+#                                                    #
+######################################################
+
+# Read in files with linkage disequilibrium
+LD_Chr1 <- read.delim("file:///D:/OneDrive - American University of Beirut/L1polymORF/Data/LD_chr1.hap.ld")
+LD_Chr2 <- read.delim("file:///D:/OneDrive - American University of Beirut/L1polymORF/Data/LD_chr2.hap.ld")
+LD_Chr3 <- read.delim("file:///D:/OneDrive - American University of Beirut/L1polymORF/Data/LD_chr3.hap.ld")
+#LD_Chr <- LD_Chr2
+LD_Chr <- rbind(LD_Chr1, LD_Chr2, LD_Chr3)
+LD_Chr$chromosome <- paste0("chr", LD_Chr$CHR)
+hist(LD_Chr$Dprime)
+hist(LD_Chr$D, breaks = seq(-0.3, 0.3, 0.001), ylim = c(0, 200))
+
+# Create genomic ranges for pairs of SNPs
+LD_Chr_GR1 <- makeGRangesFromDataFrame(LD_Chr,
+                                        seqnames.field = "chromosome",
+                                        start.field = "POS1",
+                                        end.field = "POS1")
+LD_Chr_GR2 <- makeGRangesFromDataFrame(LD_Chr,
+                                        seqnames.field = "chromosome",
+                                        start.field = "POS2",
+                                        end.field = "POS2")
+# Add boolean variables indicating whether SNP is synonymous or 
+# non-synynymous
+LD_Chr$NonSyn1 <- overlapsAny(LD_Chr_GR1, GRNonSynInt) 
+LD_Chr$NonSyn2 <- overlapsAny(LD_Chr_GR2, GRNonSynInt) 
+LD_Chr$blnBothNonSyn <- LD_Chr$NonSyn1 & LD_Chr$NonSyn2
+
+# Match SNPs to individual LINE-1s
+OL_LD1 <- findOverlaps(LD_Chr_GR1, L1GR)
+OL_LD2 <- findOverlaps(LD_Chr_GR2, L1GR)
+LD_Chr$L1ID1 <- NA
+LD_Chr$L1ID1[OL_LD1@from] <- OL_LD1@to
+LD_Chr$L1ID2 <- NA
+LD_Chr$L1ID2[OL_LD2@from] <- OL_LD2@to
+blnSameL1 <- LD_Chr$L1ID1 == LD_Chr$L1ID2
+sum(!blnSameL1, na.rm = T)
+t.test(D ~ blnBothNonSyn, data = LD_Chr[blnSameL1, ])
+t.test(D ~ blnBothNonSyn, data = LD_Chr[!blnSameL1, ])
+wilcox.test(Dprime ~ blnBothNonSyn, data = LD_Chr[blnSameL1, ])
+wilcox.test(Dprime ~ blnBothNonSyn, data = LD_Chr[!blnSameL1, ], FUN = mean)
+aggregate(Dprime ~ blnBothNonSyn, data = LD_Chr[blnSameL1, ], FUN = mean)
+aggregate(Dprime ~ blnBothNonSyn, data = LD_Chr[!blnSameL1, ], FUN = mean)
+wilcox.test(D ~ blnBothNonSyn, data = LD_Chr[blnSameL1, ])
+wilcox.test(D ~ blnBothNonSyn, data = LD_Chr[!blnSameL1, ], FUN = mean)
+aggregate(D ~ blnBothNonSyn, data = LD_Chr[blnSameL1, ], FUN = mean)
+aggregate(D ~ blnBothNonSyn, data = LD_Chr[!blnSameL1, ], FUN = mean)
+
+hist(LD_Chr$Dprime)
+hist(LD_Chr$D[blnBothNonSyn], 
+     breaks = seq(-0.3, 0.3, 0.001), ylim = c(0, 100))
+hist(LD_Chr$D[!blnBothNonSyn], 
+     breaks = seq(-0.3, 0.3, 0.001), ylim = c(0, 2000))
+
+######################################################
+#                                                    #
 #           Perform logistic regression              #
 #                                                    #
 ######################################################
@@ -938,30 +996,30 @@ cat("done!\n")
 # Perform analysis with interaction with SNPs from PacBio genome
 cat("Performing regression analysis with SNPs from PacBio genome... ")
 SNPLogRegPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
-                         L1Width + PropMismatch + Genes + Exons + Promoters +
-                         blnFull + NonSyn + Coding + 
-                         Coding*blnFull + NonSyn*blnFull,
+                            PropMismatch + Genes + Exons + Promoters + 
+                            blnFull + NonSyn + Coding + 
+                            Coding*blnFull + NonSyn*blnFull,
                        data = L1CoverTable, 
                        family = binomial(), chunksize = 3*10^4,
                        maxit = 20)
 summary(SNPLogRegPacBio)
 cat("done!\n")
 
-cat("Performing regression analysis with coding sequences on full L1 only ... \n")
-SNPLogReg_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
-                         PropMismatch + Genes + Promoters + 
-                         NonSyn, 
-                    data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
-                    family = binomial(), chunksize = 3*10^4,
-                    maxit = 20)
-summary(SNPLogReg_CodeOnly)
-SNPLogReg_CodeOnlyPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
-                                 PropMismatch + Genes + Promoters + 
-                                  NonSyn, 
-                                data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
-                                family = binomial(), chunksize = 3*10^4,
-                                maxit = 20)
-summary(SNPLogReg_CodeOnlyPacBio)
+# cat("Performing regression analysis with coding sequences on full L1 only ... \n")
+# SNPLogReg_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
+#                          PropMismatch + Genes + Promoters + 
+#                          NonSyn, 
+#                     data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
+#                     family = binomial(), chunksize = 3*10^4,
+#                     maxit = 20)
+# summary(SNPLogReg_CodeOnly)
+# SNPLogReg_CodeOnlyPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
+#                                  PropMismatch + Genes + Promoters + 
+#                                   NonSyn, 
+#                                 data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
+#                                 family = binomial(), chunksize = 3*10^4,
+#                                 maxit = 20)
+# summary(SNPLogReg_CodeOnlyPacBio)
 
 cat("Performing regression analysis with full L1 only ... \n")
 SNPLogReg_Full <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
@@ -992,8 +1050,10 @@ cat("done!\n")
 SummaryDF <- function(LM){
   Summary <- summary(LM)
   SummaryDF <- as.data.frame(Summary$mat)
-  SummaryDF$ExpCoef <- exp(SummaryDF$Coef) 
-  SummaryDF
+  SummaryDF$Predictor <- row.names(SummaryDF)
+  SummaryDF$Coef <- round(SummaryDF$Coef, 2) 
+  SummaryDF$ExpCoef <- round(exp(SummaryDF$Coef), 2) 
+  SummaryDF[,c("Predictor", "Coef", "ExpCoef", "p")]
 }
 
 
@@ -1002,8 +1062,18 @@ SNPLogRegInt_Summary   <- SummaryDF(SNPLogRegInt)
 SNPLogReg_Full_Summary <- SummaryDF(SNPLogReg_Full)
 SNPLogRegIntPacBio_Summary   <- SummaryDF(SNPLogRegPacBio)
 SNPLogReg_FullPacBio_Summary <- SummaryDF(SNPLogReg_FullPacBio)
+SNPLogRegMerged <- merge(SNPLogRegInt_Summary, 
+                         SNPLogRegIntPacBio_Summary,
+                         by = "Predictor")
+SNPLogRegMerged <- merge(SNPLogRegMerged, 
+                         SNPLogReg_Full_Summary,
+                         by = "Predictor", all = T)
+SNPLogRegMerged <- merge(SNPLogRegMerged, 
+                         SNPLogReg_FullPacBio_Summary,
+                         by = "Predictor", all = T)
 
-cat("Writing regression results to", ResultPathAll, "\n")
+cat("Writing regression results to", ResultPathCombined, "\n")
+write.csv(SNPLogRegMerged, ResultPathCombined)
 write.csv(SNPLogRegInt_Summary, ResultPathAll)
 write.csv(SNPLogReg_Full_Summary, ResultPathFull)
 write.csv(SNPLogRegIntPacBio_Summary, ResultPathAllPacBio)
