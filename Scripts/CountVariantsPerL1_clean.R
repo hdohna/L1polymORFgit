@@ -200,6 +200,14 @@ L1VarPacBio$chromosome <- paste("chr", L1VarPacBio$chrNr, sep = "")
 L1VarGRPacBio <- makeGRangesFromDataFrame(L1VarPacBio, 
                                     start.field = "pos",
                                     end.field = "pos")
+# Read in 1000 genome variants of HG002
+L1VarHG002 <- read.table("D:/OneDrive - American University of Beirut/L1polymORF/Data/SNPsInHG002_all.vcf")
+L1VarHG002$I
+
+# Create a GRanges object of variants inside L1s and their flanking regions
+L1VarGRPacBio <- makeGRangesFromDataFrame(L1VarPacBio, 
+                                          start.field = "pos",
+                                          end.field = "pos")
 
 # Create GRanges objects with L1 Seqences
 L1GR <- makeGRangesFromDataFrame(L1Table, seqnames.field = "genoName",
