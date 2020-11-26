@@ -13,11 +13,11 @@ library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(seqinr)
 
 # File paths
-ResultPathCombined  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_combined_2020-11-15.csv"
-ResultPathAll  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_all_2020-11-15.csv"
-ResultPathFull <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_full_2020-11-15.csv"
-ResultPathAllPacBio  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_all_PacBio_2020-11-15.csv"
-ResultPathFullPacBio <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_full_PacBio_2020-11-15.csv"
+ResultPathCombined  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_combined_2020-11-21.csv"
+ResultPathAll  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_all_2020-11-21.csv"
+ResultPathFull <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_full_2020-11-21.csv"
+ResultPathAllPacBio  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_all_PacBio_2020-11-21.csv"
+ResultPathFullPacBio <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_full_PacBio_2020-11-21.csv"
 
 
 ######################################
@@ -981,8 +981,8 @@ hist(LD_Chr$D[!blnBothNonSyn],
 cat("Performing regression analysis with all SNPs... ")
 SNPLogRegInt <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                          PropMismatch + Genes + Exons + Promoters + 
-                         blnFull + NonSyn + Coding + 
-                         Coding*blnFull + NonSyn*blnFull,
+                         blnFull + Syn + Coding + 
+                         Coding*blnFull + Syn*blnFull,
                        data = L1CoverTable, 
                        family = binomial(), chunksize = 3*10^4,
                        maxit = 20)
@@ -1005,8 +1005,8 @@ cat("done!\n")
 cat("Performing regression analysis with SNPs from PacBio genome... ")
 SNPLogRegPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
                             PropMismatch + Genes + Exons + Promoters + 
-                            blnFull + NonSyn + Coding + 
-                            Coding*blnFull + NonSyn*blnFull,
+                            blnFull + Syn + Coding + 
+                            Coding*blnFull + Syn*blnFull,
                        data = L1CoverTable, 
                        family = binomial(), chunksize = 3*10^4,
                        maxit = 20)
@@ -1014,25 +1014,53 @@ summary(SNPLogRegPacBio)
 cat("done!\n")
 
 # cat("Performing regression analysis with coding sequences on full L1 only ... \n")
-# SNPLogReg_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
-#                          PropMismatch + Genes + Promoters + 
-#                          NonSyn, 
-#                     data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
-#                     family = binomial(), chunksize = 3*10^4,
-#                     maxit = 20)
-# summary(SNPLogReg_CodeOnly)
-# SNPLogReg_CodeOnlyPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
-#                                  PropMismatch + Genes + Promoters + 
-#                                   NonSyn, 
-#                                 data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
-#                                 family = binomial(), chunksize = 3*10^4,
-#                                 maxit = 20)
-# summary(SNPLogReg_CodeOnlyPacBio)
+SNPLogReg_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
+                               PropMismatch + Genes + Promoters +
+                               blnFull + Syn + blnFull*Syn,
+                             data = L1CoverTable[(L1CoverTable$Syn | L1CoverTable$NonSyn), ],
+                             family = binomial(), chunksize = 3*10^4,
+                             maxit = 20)
+summary(SNPLogReg_CodeOnly)
+SNPLogReg_CodeOnlyPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
+                               PropMismatch + Genes + Promoters +
+                               blnFull + Syn + blnFull*Syn,
+                             data = L1CoverTable[(L1CoverTable$Syn | L1CoverTable$NonSyn), ],
+                             family = binomial(), chunksize = 3*10^4,
+                             maxit = 20)
+summary(SNPLogReg_CodeOnlyPacBio)
+SNPLogReg_CodeOnlyFull <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
+                         PropMismatch + Genes + Promoters +
+                         Syn,
+                    data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ],
+                    family = binomial(), chunksize = 3*10^4,
+                    maxit = 20)
+summary(SNPLogReg_CodeOnly)
+SNPLogReg_CodeOnlyPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
+                                 PropMismatch + Genes + Promoters +
+                                  Syn,
+                                data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ],
+                                family = binomial(), chunksize = 3*10^4,
+                                maxit = 20)
+summary(SNPLogReg_CodeOnlyPacBio)
+SNPLogReg_CodeOnlyNotFull <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
+                               PropMismatch + Genes + Promoters +
+                               Syn,
+                             data = L1CoverTable[!L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ],
+                             family = binomial(), chunksize = 3*10^4,
+                             maxit = 20)
+summary(SNPLogReg_CodeOnlyNotFull)
+SNPLogReg_CodeOnlyNotFullPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
+                                     PropMismatch + Genes + Promoters +
+                                     Syn,
+                                   data = L1CoverTable[!L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ],
+                                   family = binomial(), chunksize = 3*10^4,
+                                   maxit = 20)
+summary(SNPLogReg_CodeOnlyNotFullPacBio)
 
 cat("Performing regression analysis with full L1 only ... \n")
 SNPLogReg_Full <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                            PropMismatch + Genes + Exons + Promoters + 
-                              Coding + NonSyn, 
+                              Coding + Syn, 
                                  data = L1CoverTable[L1CoverTable$blnFull, ], 
                                 family = binomial(), chunksize = 3*10^4,
                                 maxit = 20)
@@ -1046,7 +1074,7 @@ SNPLogReg_FullbyORF <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMe
 summary(SNPLogReg_FullbyORF)
 SNPLogReg_FullPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
                                  PropMismatch + Genes + Exons + Promoters + 
-                                 Coding + NonSyn, 
+                                 Coding + Syn, 
                                    data = L1CoverTable[L1CoverTable$blnFull, ], 
                                    family = binomial(), chunksize = 3*10^4,
                                    maxit = 20)
@@ -1623,11 +1651,6 @@ mtext("Coverage", side = 2, line = 2,  at = 0.7)
 # Plot SNP density for different L1 regions
 #layout(rbind(c(1, 2), c(3, 3)))
 par(page = F, mai = c(0.5, 1, 0.2, 0.1) * FigDim/480)
-# boxplot(L1VarCount / width(L1GR) ~ blnFull, names = c("fragment", "full-length"),
-#         ylab = "SNPsper LINE-1 bp", main = "B", xlab = "LINE-1 type")
-# boxplot(Count/Width ~ Region, data = L1VarCountPerRange, ylab = "",
-#         xlab = "LINE-1 region",
-#         main = "C")
 
 # Get mean number of SNPs per full-length and fragment L1
 PlotMeanSNP(AggPerL1Pos_FullFrag, NameV = c("Fragment", "Full-length"),
@@ -1643,172 +1666,6 @@ PlotMeanSNP(AggPerORFPos[AggPerORFPos$blnFull, ],
             YLim = c(0, 0.002), Main = "e", Border = NA,
             PlotP = "P = 0.003")
 dev.off()
-
-# # Get UTR5, ORF1, ORF2, and UTR3, of full-length L1
-# GR_UTR5_full <- L1GR[blnFull]
-# GR_UTR5_full[blnPlusFull]  <- resize(L1GR[blnFull & blnPlus], startORF1)
-# GR_UTR5_full[!blnPlusFull] <- resize(L1GR[blnFull & (!blnPlus)], startORF1, fix = "end")
-# 
-# GR_ORF1_full <- L1GR[blnFull]
-# GR_ORF1_full[blnPlusFull]  <- narrow(L1GR[blnFull & blnPlus], start = 909, 
-#                                      end = -4126)
-# GR_ORF1_full[!blnPlusFull] <- narrow(L1GR[blnFull & (!blnPlus)], start = 4126, 
-#                                      end = -909)
-# 
-# GR_ORF2_full <- L1GR[blnFull]
-# GR_ORF2_full[blnPlusFull]  <- narrow(L1GR[blnFull & blnPlus], start = startORF2, 
-#                                      end = -236)
-# GR_ORF2_full[!blnPlusFull] <- narrow(L1GR[blnFull & (!blnPlus)], start = 236, 
-#                                      end = -startORF2)
-# 
-# GR_UTR3_full <- L1GR[blnFull]
-# GR_UTR3_full[blnPlusFull]  <- resize(L1GR[blnFull & blnPlus], 235, fix = "end")
-# GR_UTR3_full[!blnPlusFull] <- resize(L1GR[blnFull & (!blnPlus)], 235)
-
-# L1VarGR_Left <- makeGRangesFromDataFrame(L1Var_Left, 
-#                                     start.field = "POS",
-#                                     end.field = "POS")
-# L1VarGR_Right <- makeGRangesFromDataFrame(L1Var_Right, 
-#                                     start.field = "POS",
-#                                     end.field = "POS")
-
-
-# Create data frame that keeps track for each triplet whether it contains a
-# SNP, the type of triplet, the L1 region, the neighboring SNP density
-# and whether the L1 is full-length or fragment
-# Seq_UTR5 <- getSeq(BSgenome.Hsapiens.UCSC.hg19, UTR5_GR[1])
-# TriFreq  <- trinucleotideFrequency(Seq_UTR5[[1]]) 
-# TriNucRC <- sapply(names(TriFreq), function(x) {
-#   DNASt <- DNAString(x)
-#   as.character(reverseComplement(DNASt))
-# })
-# TriNucMatch <- match(names(TriFreq), TriNucRC)
-# idxLeft     <- 1:length(TriNucMatch)
-# idxUnique   <- NULL
-# while (length(idxLeft) > 0){
-#   idxUnique <- c(idxUnique, idxLeft[1])
-#   idxLeft <- setdiff(idxLeft, c(idxLeft[1], TriNucMatch[idxLeft[1]]))
-# }
-# 
-# # Resize variants to get trinucleotides
-# L1VarGR_Tri        <- resize(L1VarGR, 3, fix = "center")
-# L1Var_TriNucSeq    <- getSeq(BSgenome.Hsapiens.UCSC.hg19, L1VarGR_Tri)
-# L1Var_TriNucSeq_RC <- reverseComplement(L1Var_TriNucSeq)
-# L1Var_TriNuc       <- as.character(L1Var_TriNucSeq)
-# blnNoMatch         <- ! L1Var_TriNuc %in% names(TriFreq)[idxUnique]
-# L1Var_TriNuc[blnNoMatch] <- as.character(L1Var_TriNucSeq_RC)[blnNoMatch]
-# 
-# # Function to put the data together
-# PutDataTogether <- function(GR, L1Region, TriNucMatch = TriNucMatch, 
-#                             idxUnique = idxUnique, L1VarGR = L1VarGR,
-#                             L1Var_TriNuc = L1Var_TriNuc,
-#                             MaxCounter = 100){
-#   
-#   # Get ssequences of each genomic region
-#   SeqSet <- getSeq(BSgenome.Hsapiens.UCSC.hg19, GR)
-#   TriFreq  <- c()
-#   
-#   # Count how often each trinucleotide occurs in each genomic region
-#   for(i in which(width(GR) >= 3)){
-#     TriFreq_local <- trinucleotideFrequency(SeqSet[[i]]) 
-#     TriFreq_local <- TriFreq_local + TriFreq_local[TriNucMatch]
-#     TriFreq       <- c(TriFreq, TriFreq_local[idxUnique])
-#   }
-#   
-#   # Create one row for each tri-nucleotide
-#   idxGRRegion_Unrep <- rep(which(width(GR) >= 3), each = length(idxUnique))
-#   idxGRRegion       <- rep(idxGRRegion_Unrep, TriFreq)
-#   idxGR_Unrep       <- rep(GR@elementMetadata@listData$idx[width(GR) >= 3],
-#                              each = length(idxUnique))
-#   idxGR             <- rep(idxGR_Unrep, TriFreq)
-#   SNPData <- data.frame(TriNames = rep(names(TriFreq), TriFreq),
-#                idxGR =    idxGR,
-#                idxGRRegion = idxGRRegion,
-#                blnSNP = 0,
-#                VarCount_Flank = L1VarCount_Flank[idxGR],
-#                L1Region = L1Region,
-#                blnFull = blnFull[idxGR],
-#                L1Width = L1Width[idxGR],
-#                PropMismatch = PropMismatch[idxGR])
-#    
-#   # Create vector of trinucleotide IDs
-#   TriNucIDs0 <- paste(SNPData$TriNames, SNPData$idxGRRegion)
-#   
-#   # Resize variants to get trinucleotides
-#   OL_L1Var      <- findOverlaps(GR, L1VarGR)
-#   TriNucIDs1    <- paste(L1Var_TriNuc[OL_L1Var@to], OL_L1Var@from)
-#   TriMatch      <- match(TriNucIDs1, TriNucIDs0)
-# 
-#   sum(is.na(TriMatch)) / length(TriMatch)
-#   # Replace SNP indicator by one for all SNPs
-#   TriNuc2replace <- TriNucIDs1[!is.na(TriMatch)]
-#   idx2ReplLeft   <- 1:length(TriNucIDs0)
-#   idx2Replace    <- c()
-#   Counter <- 0
-#   while (any(duplicated(TriNuc2replace)) & Counter < MaxCounter){
-#     cat(sum(duplicated(TriNuc2replace)), "duplicated entries\n")
-#     idx2ReplaceLocal <- unique(match(TriNuc2replace, TriNucIDs0))
-#     idx2ReplaceRev   <- match(TriNucIDs0[idx2ReplaceLocal], TriNuc2replace)
-#     TriNuc2replace   <- TriNuc2replace[-unique(idx2ReplaceRev)]
-#     idx2Replace      <- c(idx2Replace, idx2ReplaceLocal)
-#     Counter          <- Counter + 1
-#   }
-#   length(idx2Replace)
-#   sum(!is.na(TriMatch))
-#   SNPData$blnSNP[idx2Replace] <- 1
-#   SNPData
-#   
-# }
-# cat("Building data for 5' UTR ...\n")
-# SNPInfo_UTR5 <- PutDataTogether(GR = UTR5_GR, L1Region = "UTR5", 
-#                                 TriNucMatch = TriNucMatch, idxUnique = idxUnique,
-#                                 L1VarGR = L1VarGR,
-#                                 L1Var_TriNuc = L1Var_TriNuc)
-# cat("Building data for ORF1 ...\n")
-# SNPInfo_ORF1 <- PutDataTogether(ORF1_GR, "ORF1", 
-#                                 TriNucMatch = TriNucMatch, idxUnique = idxUnique,
-#                                 L1VarGR = L1VarGR,
-#                                 L1Var_TriNuc = L1Var_TriNuc)
-# cat("Building data for ORF2 ...\n")
-# SNPInfo_ORF2 <- PutDataTogether(ORF2_GR, "ORF2", 
-#                                 TriNucMatch = TriNucMatch, idxUnique = idxUnique,
-#                                 L1VarGR = L1VarGR,
-#                                 L1Var_TriNuc = L1Var_TriNuc)
-# cat("Building data for 3' UTR ...\n")
-# SNPInfo_UTR3 <- PutDataTogether(UTR3_GR, "UTR3", 
-#                                 TriNucMatch = TriNucMatch, idxUnique = idxUnique,
-#                                 L1VarGR = L1VarGR,
-#                                 L1Var_TriNuc = L1Var_TriNuc)
-# SNPInfo <- rbind(SNPInfo_UTR5, SNPInfo_ORF1, SNPInfo_ORF2, SNPInfo_UTR3)
-# cat("... done!\n")
-# SNPLogRegInt <- bigglm(blnSNP ~  TriNames + VarCount_Flank + L1Region + blnFull +
-#                          PropMismatch + L1Region*blnFull,
-#                        data = SNPInfo, family = binomial(), chunksize = 3*10^4,
-#                        maxit = 20)
-# 
-
-
-
-# VarPerRegion <- lm(Count/Width ~ Region, data = L1VarCountPerRange)
-# anova(VarPerRegion)
-# 
-# # Perform poisson regression 
-# VarCountGLM <- glm(L1VarCount ~ width(L1GR) + blnFull, 
-#                    family = poisson(link = "identity"))
-# summary(VarCountGLM)
-# VarCountGLM <- glm(L1VarCount ~ width(L1GR) + blnFull, 
-#                    family = poisson(link = "log"))
-# summary(VarCountGLM)
-
-# L1widthOrder <- order(width(L1GR))
-# L1VarCountSmoothed <- supsmu(width(L1GR), L1VarCount)
-# plot(width(L1GR), L1VarCount, col = rgb(0, 0, 0, alpha = 0.2), xlab = "L1 length",
-#      ylab = "Number variants")
-# lines(width(L1GR)[L1widthOrder], predict(VarCountGLM)[L1widthOrder],
-#       col = "red")
-# plot(width(L1GR), L1VarCount / width(L1GR), col = rgb(0, 0, 0, alpha = 0.2), xlab = "L1 length",
-#      ylab = "Number variants")
-# 
 
 
 save.image("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantCount.RData")
