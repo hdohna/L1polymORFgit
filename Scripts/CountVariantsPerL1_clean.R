@@ -201,7 +201,6 @@ L1VarPacBio <- L1VarPacBio[L1VarPacBio$INFO == "VRT=1", ]
 
 # Create a GRanges object of variants inside L1s and their flanking regions
 L1VarGRPacBio <- makeGRangesFromDataFrame(L1VarPacBio, 
-<<<<<<< Updated upstream
                                     start.field = "pos",
                                     end.field = "pos")
 # Read in 1000 genome variants of HG002
@@ -212,10 +211,8 @@ L1VarHG002$I
 L1VarGRPacBio <- makeGRangesFromDataFrame(L1VarPacBio, 
                                           start.field = "pos",
                                           end.field = "pos")
-=======
                                     start.field = "POS",
                                     end.field = "POS")
->>>>>>> Stashed changes
 
 # Create GRanges objects with L1 Seqences
 L1GR <- makeGRangesFromDataFrame(L1Table, seqnames.field = "genoName",
