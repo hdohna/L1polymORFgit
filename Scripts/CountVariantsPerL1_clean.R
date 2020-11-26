@@ -192,12 +192,16 @@ L1Var_Left$chromosome <- paste("chr", L1Var_Left$X.CHROM, sep = "")
 L1Var_Right$chromosome <- paste("chr", L1Var_Right$X.CHROM, sep = "")
 
 # Read in variants from PacBio sequencing of HG002
-L1VarPacBio <- read.table("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_HG002_PacBio.012.pos",
-                          col.names = c("chrNr", "pos"))
-L1VarPacBio$chromosome <- paste("chr", L1VarPacBio$chrNr, sep = "")
+# L1VarPacBio <- read.table("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_HG002_PacBio.012.pos",
+#                           col.names = c("chrNr", "pos"))
+L1VarPacBio <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_HG002_PacBio_withInfo.recode.vcf")
+L1VarPacBio$chromosome <- paste("chr", L1VarPacBio$X.CHROM, sep = "")
+# Subset to retain only SNPs
+L1VarPacBio <- L1VarPacBio[L1VarPacBio$INFO == "VRT=1", ]
 
 # Create a GRanges object of variants inside L1s and their flanking regions
 L1VarGRPacBio <- makeGRangesFromDataFrame(L1VarPacBio, 
+<<<<<<< Updated upstream
                                     start.field = "pos",
                                     end.field = "pos")
 # Read in 1000 genome variants of HG002
@@ -208,6 +212,10 @@ L1VarHG002$I
 L1VarGRPacBio <- makeGRangesFromDataFrame(L1VarPacBio, 
                                           start.field = "pos",
                                           end.field = "pos")
+=======
+                                    start.field = "POS",
+                                    end.field = "POS")
+>>>>>>> Stashed changes
 
 # Create GRanges objects with L1 Seqences
 L1GR <- makeGRangesFromDataFrame(L1Table, seqnames.field = "genoName",
@@ -966,9 +974,9 @@ aggregate(D ~ blnBothNonSyn, data = LD_Chr[blnSameL1, ], FUN = mean)
 aggregate(D ~ blnBothNonSyn, data = LD_Chr[!blnSameL1, ], FUN = mean)
 
 hist(LD_Chr$Dprime)
-hist(LD_Chr$D[blnBothNonSyn], 
+hist(LD_Chr$D[LD_Chr$blnBothNonSyn], 
      breaks = seq(-0.3, 0.3, 0.001), ylim = c(0, 100))
-hist(LD_Chr$D[!blnBothNonSyn], 
+hist(LD_Chr$D[!LD_Chr$blnBothNonSyn], 
      breaks = seq(-0.3, 0.3, 0.001), ylim = c(0, 2000))
 
 ######################################################
@@ -981,8 +989,8 @@ hist(LD_Chr$D[!blnBothNonSyn],
 cat("Performing regression analysis with all SNPs... ")
 SNPLogRegInt <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                          PropMismatch + Genes + Exons + Promoters + 
-                         blnFull + Syn + Coding + 
-                         Coding*blnFull + Syn*blnFull,
+                         blnFull + Coding + 
+                         Coding*blnFull,
                        data = L1CoverTable, 
                        family = binomial(), chunksize = 3*10^4,
                        maxit = 20)
@@ -1005,29 +1013,32 @@ cat("done!\n")
 cat("Performing regression analysis with SNPs from PacBio genome... ")
 SNPLogRegPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
                             PropMismatch + Genes + Exons + Promoters + 
-                            blnFull + Syn + Coding + 
-                            Coding*blnFull + Syn*blnFull,
+                            blnFull + Coding + 
+                            Coding*blnFull,
                        data = L1CoverTable, 
                        family = binomial(), chunksize = 3*10^4,
                        maxit = 20)
 summary(SNPLogRegPacBio)
 cat("done!\n")
 
-# cat("Performing regression analysis with coding sequences on full L1 only ... \n")
+# cat("Performing regression analysis with coding sequences only ... \n")
 SNPLogReg_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                                PropMismatch + Genes + Promoters +
-                               blnFull + Syn + blnFull*Syn,
+                               blnFull + blnFull*Syn,
                              data = L1CoverTable[(L1CoverTable$Syn | L1CoverTable$NonSyn), ],
                              family = binomial(), chunksize = 3*10^4,
                              maxit = 20)
 summary(SNPLogReg_CodeOnly)
 SNPLogReg_CodeOnlyPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
                                PropMismatch + Genes + Promoters +
-                               blnFull + Syn + blnFull*Syn,
+                               blnFull + blnFull*Syn,
                              data = L1CoverTable[(L1CoverTable$Syn | L1CoverTable$NonSyn), ],
                              family = binomial(), chunksize = 3*10^4,
                              maxit = 20)
 summary(SNPLogReg_CodeOnlyPacBio)
+
+
+# cat("Performing regression analysis with coding sequences on full-length L1 only ... \n")
 SNPLogReg_CodeOnlyFull <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                          PropMismatch + Genes + Promoters +
                          Syn,
@@ -1035,13 +1046,15 @@ SNPLogReg_CodeOnlyFull <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + Cove
                     family = binomial(), chunksize = 3*10^4,
                     maxit = 20)
 summary(SNPLogReg_CodeOnly)
-SNPLogReg_CodeOnlyPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
+SNPLogReg_CodeOnlyFullPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
                                  PropMismatch + Genes + Promoters +
                                   Syn,
                                 data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ],
                                 family = binomial(), chunksize = 3*10^4,
                                 maxit = 20)
 summary(SNPLogReg_CodeOnlyPacBio)
+
+# cat("Performing regression analysis with coding sequences on fragement L1 only ... \n")
 SNPLogReg_CodeOnlyNotFull <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                                PropMismatch + Genes + Promoters +
                                Syn,
@@ -1089,31 +1102,38 @@ SummaryDF <- function(LM){
   SummaryDF$Predictor <- row.names(SummaryDF)
   SummaryDF$Coef <- round(SummaryDF$Coef, 2) 
   SummaryDF$ExpCoef <- round(exp(SummaryDF$Coef), 2) 
-  SummaryDF[,c("Predictor", "Coef", "ExpCoef", "p")]
+#  SummaryDF[,c("Predictor", "Coef", "ExpCoef", "p")]
+  SummaryDF[,c("Predictor", "Coef", "p")]
 }
 
 
 # Export data frame with regression results
 SNPLogRegInt_Summary   <- SummaryDF(SNPLogRegInt)
-SNPLogReg_Full_Summary <- SummaryDF(SNPLogReg_Full)
+SNPLogReg_Full_Summary <- SummaryDF(SNPLogReg_CodeOnlyFull)
+SNPLogReg_NotFull_Summary  <- SummaryDF(SNPLogReg_CodeOnlyNotFull)
 SNPLogRegIntPacBio_Summary   <- SummaryDF(SNPLogRegPacBio)
-SNPLogReg_FullPacBio_Summary <- SummaryDF(SNPLogReg_FullPacBio)
-SNPLogRegMerged <- merge(SNPLogRegInt_Summary, 
+SNPLogReg_FullPacBio_Summary <- SummaryDF(SNPLogReg_CodeOnlyFullPacBio)
+SNPLogReg_NotFullPacBio_Summary  <- SummaryDF(SNPLogReg_CodeOnlyNotFullPacBio)
+SNPLogRegMergedAll <- merge(SNPLogRegInt_Summary, 
                          SNPLogRegIntPacBio_Summary,
                          by = "Predictor")
-SNPLogRegMerged <- merge(SNPLogRegMerged, 
-                         SNPLogReg_Full_Summary,
+SNPLogRegMergedFull <- merge(SNPLogReg_Full_Summary, 
+                             SNPLogReg_FullPacBio_Summary,
+                         by = "Predictor", all = T)
+SNPLogRegMergedFragm <- merge(SNPLogReg_NotFull_Summary, 
+                              SNPLogReg_NotFullPacBio_Summary,
+                         by = "Predictor", all = T)
+SNPLogRegMerged <- merge(SNPLogRegMergedAll, 
+                         SNPLogRegMergedFull,
                          by = "Predictor", all = T)
 SNPLogRegMerged <- merge(SNPLogRegMerged, 
-                         SNPLogReg_FullPacBio_Summary,
+                         SNPLogRegMergedFragm,
                          by = "Predictor", all = T)
 
 cat("Writing regression results to", ResultPathCombined, "\n")
 write.csv(SNPLogRegMerged, ResultPathCombined)
-write.csv(SNPLogRegInt_Summary, ResultPathAll)
-write.csv(SNPLogReg_Full_Summary, ResultPathFull)
-write.csv(SNPLogRegIntPacBio_Summary, ResultPathAllPacBio)
-write.csv(SNPLogReg_FullPacBio_Summary, ResultPathFullPacBio)
+write.csv(SNPLogRegMergedAll, ResultPathAll)
+write.csv(SNPLogRegMergedFull, ResultPathFull)
 
 ######################################################
 #                                                    #
