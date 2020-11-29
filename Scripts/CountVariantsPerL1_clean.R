@@ -205,14 +205,15 @@ L1VarGRPacBio <- makeGRangesFromDataFrame(L1VarPacBio,
                                     end.field = "pos")
 # Read in 1000 genome variants of HG002
 L1VarHG002 <- read.table("D:/OneDrive - American University of Beirut/L1polymORF/Data/SNPsInHG002_all.vcf")
-L1VarHG002$I
-
+L1VarHG002$chromosome <- paste("chr", L1VarHG002$X.CHROM, sep = "")
+idxSNP <- grep("VT=SNP", L1VarHG002$INFO)
+L1VarHG002 <- L1VarHG002$INFO[idxSNP, ]
 # Create a GRanges object of variants inside L1s and their flanking regions
-L1VarGRPacBio <- makeGRangesFromDataFrame(L1VarPacBio, 
-                                          start.field = "pos",
-                                          end.field = "pos")
-                                    start.field = "POS",
-                                    end.field = "POS")
+L1VarGRHG002 <- makeGRangesFromDataFrame(L1VarHG002, 
+                                          start.field = "POS",
+                                          end.field = "POS")
+mean(overlapsAny(L1VarGRPacBio, L1VarGRHG002))
+mean(overlapsAny(L1VarGRHG002, L1VarGRPacBio))
 
 # Create GRanges objects with L1 Seqences
 L1GR <- makeGRangesFromDataFrame(L1Table, seqnames.field = "genoName",
