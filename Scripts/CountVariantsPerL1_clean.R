@@ -208,6 +208,7 @@ L1VarHG002 <- read.table("D:/OneDrive - American University of Beirut/L1polymORF
 L1VarHG002$chromosome <- paste("chr", L1VarHG002$X.CHROM, sep = "")
 idxSNP <- grep("VT=SNP", L1VarHG002$INFO)
 L1VarHG002 <- L1VarHG002$INFO[idxSNP, ]
+
 # Create a GRanges object of variants inside L1s and their flanking regions
 L1VarGRHG002 <- makeGRangesFromDataFrame(L1VarHG002, 
                                           start.field = "POS",
