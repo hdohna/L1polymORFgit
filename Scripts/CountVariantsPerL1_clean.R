@@ -980,8 +980,11 @@ hist(LD_Chr$D[!LD_Chr$blnBothNonSyn],
 ######################################################
 #                                                    #
 #           Perform logistic regression              #
+#           to compare 1000G and PacBio              #
 #                                                    #
 ######################################################
+
+# 
 
 ######################################################
 #                                                    #
@@ -1017,20 +1020,14 @@ cat("done!\n")
 cat("Performing regression analysis with SNPs from PacBio genome... ")
 SNPLogRegPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
                             PropMismatch + Genes + Exons + Promoters + 
-<<<<<<< Updated upstream
-                            blnFull + Coding + 
-                            Coding*blnFull,
-=======
                             blnFull + NonSyn + Coding + 
                             Coding*blnFull + NonSyn*blnFull,
->>>>>>> Stashed changes
                        data = L1CoverTable, 
                        family = binomial(), chunksize = 3*10^4,
                        maxit = 20)
 summary(SNPLogRegPacBio)
 cat("done!\n")
 
-<<<<<<< Updated upstream
 # cat("Performing regression analysis with coding sequences only ... \n")
 SNPLogReg_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                                PropMismatch + Genes + Promoters +
@@ -1079,23 +1076,6 @@ SNPLogReg_CodeOnlyNotFullPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Fl
                                    family = binomial(), chunksize = 3*10^4,
                                    maxit = 20)
 summary(SNPLogReg_CodeOnlyNotFullPacBio)
-=======
-# cat("Performing regression analysis with coding sequences on full L1 only ... \n")
-# SNPLogReg_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
-#                          PropMismatch + Genes + Promoters + 
-#                          NonSyn, 
-#                     data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
-#                     family = binomial(), chunksize = 3*10^4,
-#                     maxit = 20)
-# summary(SNPLogReg_CodeOnly)
-# SNPLogReg_CodeOnlyPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
-#                                  PropMismatch + Genes + Promoters + 
-#                                   NonSyn, 
-#                                 data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ], 
-#                                 family = binomial(), chunksize = 3*10^4,
-#                                 maxit = 20)
-# summary(SNPLogReg_CodeOnlyPacBio)
->>>>>>> Stashed changes
 
 cat("Performing regression analysis with full L1 only ... \n")
 SNPLogReg_Full <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
