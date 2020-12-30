@@ -813,7 +813,7 @@ L1CoverTable$bln5UTRPresent[OL_bpL1@from] <- L1Table$bln5UTRPresent[OL_bpL1@to]
 
 ######################################################
 #                                                    #
-#          Analyze allele frequencies               #
+#          Analyze allele frequencies                #
 #                                                    #
 ######################################################
 
@@ -986,13 +986,8 @@ hist(LD_Chr$D[!LD_Chr$blnBothNonSyn],
 cat("Performing regression analysis with all SNPs... ")
 SNPLogRegInt <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                          PropMismatch + Genes + Exons + Promoters + 
-<<<<<<< Updated upstream
-                         blnFull + Coding + 
-                         Coding*blnFull,
-=======
                          blnFull + NonSyn + Coding + 
                          Coding*blnFull + NonSyn*blnFull,
->>>>>>> Stashed changes
                        data = L1CoverTable, 
                        family = binomial(), chunksize = 3*10^4,
                        maxit = 20)
