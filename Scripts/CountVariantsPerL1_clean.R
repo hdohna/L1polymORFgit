@@ -976,6 +976,13 @@ hist(LD_Chr$D[LD_Chr$blnBothNonSyn],
 hist(LD_Chr$D[!LD_Chr$blnBothNonSyn], 
      breaks = seq(-0.3, 0.3, 0.001), ylim = c(0, 2000))
 
+
+######################################################
+#                                                    #
+#           Perform logistic regression              #
+#                                                    #
+######################################################
+
 ######################################################
 #                                                    #
 #           Perform logistic regression              #
