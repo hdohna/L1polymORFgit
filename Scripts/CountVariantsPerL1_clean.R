@@ -13,10 +13,10 @@ library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(seqinr)
 
 # File paths
-ResultPathCombined  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_combined_2020-11-15.csv"
-ResultPathAll  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_all_2020-11-15.csv"
-ResultPathFull <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_full_2020-11-15.csv"
-ResultPathAllPacBio  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_all_PacBio_2020-11-15.csv"
+ResultPathCombined  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_combined_2021-01-02.csv"
+ResultPathAll  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_all_2021-01-02.csv"
+ResultPathFull <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_full_2021-01-02.csv"
+ResultPathAllPacBio  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_all_PacBio_2021-01-02.csv"
 ResultPathFullPacBio <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_full_PacBio_2020-11-15.csv"
 
 
@@ -875,7 +875,7 @@ cat("done!\n")
 # Perform analysis with interaction with SNPs from PacBio genome
 cat("Performing regression analysis with SNPs from PacBio genome... ")
 SNPLogRegPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
-                            PropMismatch + Genes + Exons + Promoters + 
+                            PropMismatch + Genes + Exons + Promoters + Dist2Edge + 
                             blnFull + Syn + Coding + 
                             Coding*blnFull + Syn*blnFull,
                        data = L1CoverTable, 
@@ -958,13 +958,22 @@ summary(SNPLogReg_FullPacBio)
 cat("done!\n")
 
 # Function to create summary dataframe
+NZeroDigits <- function(x)  min(c(10, which(abs(x) %/% 10^-(1:10) > 0)))
+NZeroDigits(0.002)
+round(0.000000234777, NZeroDigits(0.000000234777)+1)
 SummaryDF <- function(LM){
   Summary <- summary(LM)
   SummaryDF <- as.data.frame(Summary$mat)
+  NZeroDigitM <- sapply(1:nrow(SummaryDF), function(x){
+    c(Coef = NZeroDigits(SummaryDF$Coef[x]),
+      ExpCoef = NZeroDigits(exp(SummaryDF$Coef[x])),
+      p = NZeroDigits(SummaryDF$p[x]))
+  })
   SummaryDF$Predictor <- row.names(SummaryDF)
-  SummaryDF$Coef <- round(SummaryDF$Coef, 2) 
-  SummaryDF$ExpCoef <- round(exp(SummaryDF$Coef), 2) 
-#  SummaryDF[,c("Predictor", "Coef", "ExpCoef", "p")]
+  SummaryDF$Coef      <- round(SummaryDF$Coef, NZeroDigitM["Coef",] + 1) 
+  SummaryDF$ExpCoef   <- round(exp(SummaryDF$Coef), NZeroDigitM["ExpCoef",] + 1) 
+  SummaryDF$p         <- round(SummaryDF$p, NZeroDigitM["p",] + 1) 
+  #  SummaryDF[,c("Predictor", "Coef", "ExpCoef", "p")]
   SummaryDF[,c("Predictor", "Coef", "p")]
 }
 
