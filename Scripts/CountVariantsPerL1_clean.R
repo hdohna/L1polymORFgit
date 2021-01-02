@@ -507,8 +507,7 @@ NonSynStart   <- NULL
 SynStart      <- NULL
 ChrVCode_Gene <- NULL
 
-
-# Calculate the number of basepars that differ between indels and the reference
+# Calculate the number of basepairs that differ between indels and the reference
 L1Variants_Indel$bpDiff <- sapply(1:nrow(L1Variants_Indel), function(x) {
   NC1 <- nchar(L1Variants_Indel$REF[x])
   Split2 <- strsplit(L1Variants_Indel$ALT[x], ",")[[1]]
@@ -533,6 +532,7 @@ L1VarIndelGRFull      <- L1VarIndelGR[L1Variants_Indel$blnFull]
 # Subset GRanges for high quality SNPs
 L1VarGR_HighQual <- L1VarGR[L1Variants$QUAL >= 100]
 table(L1Variants$FILTER)
+
 # Count the number of variants per L1
 L1VarCount <- countOverlaps(L1GR, L1VarGR)
 L1VarCount_Left  <- countOverlaps(L1GR_left, L1VarGR_Left)
@@ -546,9 +546,9 @@ GR_HWE <- L1VarGR[!overlapsAny(L1VarGR, HWEGR)]
 # Overlaps between individual bp and L1
 OL_bpL1_MEDel <- findOverlaps(L1Cover_GR, MEDel_GR)
 GRNonSynInt$mcols.ORFType == "ORF1"
-OL_bpL1  <- findOverlaps(L1Cover_GR, L1GR)
-OL_bpL1Var  <- findOverlaps(L1Cover_GR, L1VarGR)
-OL_bpHWE <- findOverlaps(L1Cover_GR, GR_HWE)
+OL_bpL1      <- findOverlaps(L1Cover_GR, L1GR)
+OL_bpL1Var   <- findOverlaps(L1Cover_GR, L1VarGR)
+OL_bpHWE     <- findOverlaps(L1Cover_GR, GR_HWE)
 GRNonSynInt1 <- GRNonSynInt[GRNonSynInt$mcols.ORFType == "ORF2"]
 GRSynInt1    <- GRSynInt[GRSynInt$mcols.ORFType == "ORF2"]
 
@@ -583,10 +583,14 @@ p.adjust(PVals)
 L1CoverTable$blnSNP       <- overlapsAny(L1Cover_GR, L1VarGR)
 L1CoverTable$blnSNPPacBio <- overlapsAny(L1Cover_GR, L1VarGRPacBio)
 L1CoverTable$blnSNPHG002  <- overlapsAny(L1Cover_GR, L1VarGRHG002)
-
 L1CoverTable$blnSNP_HighQual <- overlapsAny(L1Cover_GR, L1VarGR_HighQual)
 L1CoverTable$blnSNPHWE <- overlapsAny(L1Cover_GR, GR_HWE)
 L1CoverTable$blnSNP_both <- L1CoverTable$blnSNPHWE & L1CoverTable$blnSNP_HighQual
+L1CoverTable$Dist2Edge <- NA
+L1CoverTable$Dist2Edge[OL_bpL1@from] <- pmin(abs(start(L1Cover_GR)[OL_bpL1@from] - 
+                                     start(L1GR)[OL_bpL1@to]),
+                               abs(start(L1Cover_GR)[OL_bpL1@from] - 
+                                     end(L1GR)[OL_bpL1@to]))
 L1CoverTable$Exons     <- overlapsAny(L1Cover_GR, Exons)
 L1CoverTable$Genes     <- overlapsAny(L1Cover_GR, Genes)
 L1CoverTable$Promoters <- overlapsAny(L1Cover_GR, Promoters)
@@ -847,7 +851,7 @@ summary(SNPLogReg_NonPacBio3)
 # Perform analysis with interaction
 cat("Performing regression analysis with all SNPs... ")
 SNPLogRegInt <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
-                         PropMismatch + Genes + Exons + Promoters + 
+                         PropMismatch + Genes + Exons + Promoters + Dist2Edge +
                          blnFull + Syn + Coding + 
                          Coding*blnFull + Syn*blnFull,
                        data = L1CoverTable, 
