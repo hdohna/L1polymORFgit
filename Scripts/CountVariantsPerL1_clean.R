@@ -434,9 +434,9 @@ sum(start(ORF2_GR)[OL2@from] == start(GR1_ORF2)[OL2@to])
 
 # Check what proportion of position is discovered by forming intersection
 # or checking for appropriate ORF length
-length(GRNonSynInt) / length(GRNonSyn)
-sum(blnORFFull) / length(GRNonSyn)
-sum(blnORFProper) / length(GRNonSyn)
+# length(GRNonSynInt) / length(GRNonSyn)
+# sum(blnORFFull) / length(GRNonSyn)
+# sum(blnORFProper) / length(GRNonSyn)
 
 # Check that most of first nucleotides match among non synonymous 
 SynPos    <- seq(3, 21, 3)
