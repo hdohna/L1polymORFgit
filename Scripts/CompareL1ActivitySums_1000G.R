@@ -17,9 +17,9 @@ library(rtracklayer)
 library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 
 # Specify file paths
-G1000SamplePath <- 'D:/L1polymORF/Data/1000GenomeSampleInfo.txt'
-L1GRPath        <- 'D:/L1polymORF/Data/GRanges_L1_1000Genomes.RData'
-L1RefRangePath  <- 'D:/L1polymORF/Data/L1RefRanges_hg19.Rdata'
+G1000SamplePath <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/1000GenomeSampleInfo.txt'
+L1GRPath        <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/GRanges_L1_1000Genomes.RData'
+L1RefRangePath  <- 'D:/OneDrive - American University of Beirut/L1polymORF/Data/L1RefRanges_hg19.Rdata'
 
 # Specify parameters
 NrInfoCols <- 9
@@ -45,7 +45,7 @@ SampleInfo_1000Genome <- read.table(G1000SamplePath, as.is = T, header = T)
 table(SampleInfo_1000Genome$super_pop)
 
 # Read in table with known L1 
-L1Catalogue <- read.csv("D:/L1polymORF/Data/L1CatalogExtended.csv", as.is = T)
+L1Catalogue <- read.csv("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1CatalogExtended.csv", as.is = T)
 L1Catalogue$Allele[is.na(L1Catalogue$Allele)] <- 1
 
 # Retain only entries with mapped L1 insertions and allele 1
@@ -70,18 +70,18 @@ DistCat2_1000G <- Dist2Closest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
 # Get indices of 1000 Genome and catalog elements that match
 idx1000G <- nearest(L1CatalogGR, L1_1000G_GRList_hg38$LiftedRanges)
 L1_1000G_GRList_hg38$idxUniqueMapped
-L1CatalogMatch1000G <- L1CatalogL1Mapped[DistCat2_1000G < 100, ]
-idx1000GMatchCat    <- L1_1000G_GRList_hg38$idxUniqueMapped[idx1000G[DistCat2_1000G < 100]]
-L1CatalogGRMatched  <- L1CatalogGR[DistCat2_1000G < 100]
-sum(DistCat2_1000G < 100)
-sum(DistCat2_1000G < 10)
+L1CatalogMatch1000G <- L1CatalogL1Mapped[which(DistCat2_1000G < 100), ]
+idx1000GMatchCat    <- L1_1000G_GRList_hg38$idxUniqueMapped[idx1000G[which(DistCat2_1000G < 100)]]
+L1CatalogGRMatched  <- L1CatalogGR[which(DistCat2_1000G < 100)]
+sum(DistCat2_1000G < 100, na.rm = T)
+sum(DistCat2_1000G < 10, na.rm = T)
 L1_1000G$InsLength[idx1000GMatchCat]
 L1_1000G$InsLength[idx1000GMatchCat]
 
 blnSameStrand <- L1CatalogMatch1000G$strand_L1toRef == Strand1000G[idx1000GMatchCat]
-boxplot(L1_1000G$InsLength[idx1000GMatchCat] ~ blnSameStrand)
-t.test(L1_1000G$InsLength[idx1000GMatchCat] ~ blnSameStrand)
-table(L1CatalogMatch1000G$strand_L1toRef, Strand1000G[idx1000GMatchCat])
+# boxplot(L1_1000G$InsLength[idx1000GMatchCat] ~ blnSameStrand)
+# t.test(L1_1000G$InsLength[idx1000GMatchCat] ~ blnSameStrand)
+# table(L1CatalogMatch1000G$strand_L1toRef, Strand1000G[idx1000GMatchCat])
 
 # add a column with dummy activity sums
 L1CatalogMatch1000G$ActivityDummy <- 1
@@ -218,7 +218,7 @@ hist(RandCor["CorAll", ], main = "", xlab = "Correlation",
 segments(cor(ObservedAct, NrAll, method = "spearman"), y0 = 0, y1 = 1000, 
          col = "red")
 par(mfrow = c(1, 1))
-CreateDisplayPdf(Filenamepath = 'D:/L1polymORF/Figures/L1ActSumCorrelations.pdf', 
+CreateDisplayPdf(Filenamepath = 'D:/OneDrive - American University of Beirut/L1polymORF/Figures/L1ActSumCorrelations.pdf', 
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
 
 #################################################
@@ -496,7 +496,7 @@ cor.test(L1_1000G_reduced$Frequency, Dist2ClosestGene, method = "kendall")
 # hist(SampledVars, main = "", xlab = "Variance in activity sum")
 # segments(var(ObservedAct), y0 = 0, y1 = 50, col = "red")
 # PVar <- mean(SampledVars <= var(ObservedAct))
-# CreateDisplayPdf('D:/L1polymORF/Figures/L1VarianceOfActivitySums.pdf', 
+# CreateDisplayPdf('D:/OneDrive - American University of Beirut/L1polymORF/Figures/L1VarianceOfActivitySums.pdf', 
 #                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
 # 
 # 
@@ -526,7 +526,7 @@ cor.test(L1_1000G_reduced$Frequency, Dist2ClosestGene, method = "kendall")
 # sum(blnOutside)
 # points(QQ1$x[blnOutside],  QQ1$y[blnOutside], col = "red")
 #   
-# CreateDisplayPdf('D:/L1polymORF/Figures/L1ActivitySums.pdf', 
+# CreateDisplayPdf('D:/OneDrive - American University of Beirut/L1polymORF/Figures/L1ActivitySums.pdf', 
 #                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
 # 
 # # Plot variance histogram and quantiles
@@ -551,7 +551,7 @@ cor.test(L1_1000G_reduced$Frequency, Dist2ClosestGene, method = "kendall")
 # sum(blnOutside)
 # points(QQ1$x[blnOutside],  QQ1$y[blnOutside], col = "red")
 # 
-# CreateDisplayPdf('D:/L1polymORF/Figures/L1VarianceAndQQActivitySums.pdf', height = 4,
+# CreateDisplayPdf('D:/OneDrive - American University of Beirut/L1polymORF/Figures/L1VarianceAndQQActivitySums.pdf', height = 4,
 #                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
 # 
 # # Compare histogram of observed activity sum with histograms of simulated sums
@@ -591,7 +591,7 @@ cor.test(L1_1000G_reduced$Frequency, Dist2ClosestGene, method = "kendall")
 ##########################################
 
 # Total number of samples
-NrSamplesPerPop <- 100
+NrSamplesPerPop <- 1000
 
 # Sample individual activity sums
 cat("Sampling L1 activity sums with population structure\n")
@@ -636,7 +636,7 @@ dim(SampleMat)
 
 # Get samples of variances
 SampledVars_P <- apply(SampleMat, 2, var)
-
+mean(colMeans(SampleMat) <= mean(ObservedAct))
 # Get 99% range of each quantile
 QuantV = seq(0, 1, 0.0001) 
 LowerQ = 0.005
@@ -686,7 +686,7 @@ blnOutside <- (QQ1$y < QSMat[2, MedianMatch1] | QQ1$y > QSMat[3, MedianMatch1]) 
 sum(blnOutside)
 points(QQ1$x[blnOutside],  QQ1$y[blnOutside], col = "red")
 
-CreateDisplayPdf('D:/L1polymORF/Figures/L1ActivityVarianceAndQQ_PopStr.pdf', 
+CreateDisplayPdf('D:/OneDrive - American University of Beirut/L1polymORF/Figures/L1ActivityVarianceAndQQ_PopStr.pdf', 
                  height = 4,
                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"')
 
