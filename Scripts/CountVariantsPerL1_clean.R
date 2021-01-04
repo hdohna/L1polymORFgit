@@ -121,6 +121,7 @@ L1Variants$VT <- sapply(L1Variants$INFO, function(x) {
   Split1 <- strsplit(x, ";")[[1]]
   grep("VT=", Split1, value = T)
   })
+L1Variants$INFO[1:50]
 L1Variants$AlleleFreq <- sapply(L1Variants$INFO, function(x){
   InfoSplit <- strsplit(x, ";")[[1]]
   AF <- grep("AF=", InfoSplit, value = T)
@@ -140,7 +141,7 @@ L1Var_Right$chromosome <- paste("chr", L1Var_Right$X.CHROM, sep = "")
 # Read in variants from PacBio sequencing of HG002
 L1VarPacBio <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_HG002_PacBio_withInfo.recode.vcf")
 L1VarPacBio$chromosome <- paste("chr", L1VarPacBio$X.CHROM, sep = "")
-
+L1VarPacBio$INFO[1:5]
 # Subset to retain only SNPs
 L1VarPacBio <- L1VarPacBio[L1VarPacBio$INFO == "VRT=1", ]
 
@@ -629,7 +630,8 @@ L1CoverTable$Syn_Proper    <- overlapsAny(L1Cover_GR, GRSynInt[blnORFProperInt])
 #                                                    #
 ######################################################
 
-
+hist(L1CoverTable$AlleleFreq)
+sum(L1CoverTable$AlleleFreq > 0.5, na.rm = T)
 # Susbet to obtain SNPs with measured allele frequencies
 blnSubset <- L1CoverTable$blnFull & 
   (!is.na(L1CoverTable$AlleleFreq)) & (L1CoverTable$NonSyn |L1CoverTable$Syn)
@@ -639,11 +641,14 @@ L1CoverTableSubset$SNPSyn    <- L1CoverTableSubset$blnSNP & (!L1CoverTableSubset
 L1CoverTableSubset$SNPNonSyn <- L1CoverTableSubset$blnSNP & L1CoverTableSubset$NonSyn
 L1CoverTableSubset$SNPSynPacBio    <- L1CoverTableSubset$blnSNPPacBio & (!L1CoverTableSubset$NonSyn)
 L1CoverTableSubset$SNPNonSynPacBio <- L1CoverTableSubset$blnSNPPacBio & L1CoverTableSubset$NonSyn
+#L1CoverTableSubset$AlleleFreq <- pmin(L1CoverTableSubset$AlleleFreq, 1 - L1CoverTableSubset$AlleleFreq)
 
 # Calculate mean allele frequency per L1 and position type
 AlleleFreqPerL1andPosType <- aggregate(L1CoverTable$AlleleFreq[blnSubset],
                                        by =list(OL_bpL1@to[blnSubset], L1CoverTable$NonSyn[blnSubset]), 
                                        FUN = mean)
+
+# Calculate number of synonymous and non-synonymous SNPs per L1
 NSNPPerL1andPosType <- AggDataFrame(L1CoverTableSubset, GroupCol = "L1ID", MeanCols = "AlleleFreq", 
                          SumCols = c("SNPSyn", "SNPNonSyn", "SNPSynPacBio", "SNPNonSynPacBio"))
 plot(NSNPPerL1andPosType$SNPSyn_sum, NSNPPerL1andPosType$SNPNonSyn_sum,
@@ -959,9 +964,7 @@ cat("done!\n")
 
 # Function to create summary dataframe
 NZeroDigits <- function(x)  min(c(10, which(abs(x) %/% 10^-(1:10) > 0)))
-NZeroDigits(0.002)
-round(0.000000234777, NZeroDigits(0.000000234777)+1)
-SummaryDF <- function(LM){
+SummaryDF <- function(LM, MinP = 10^-5){
   Summary <- summary(LM)
   SummaryDF <- as.data.frame(Summary$mat)
   NZeroDigitM <- sapply(1:nrow(SummaryDF), function(x){
@@ -973,6 +976,9 @@ SummaryDF <- function(LM){
   SummaryDF$Coef      <- round(SummaryDF$Coef, NZeroDigitM["Coef",] + 1) 
   SummaryDF$ExpCoef   <- round(exp(SummaryDF$Coef), NZeroDigitM["ExpCoef",] + 1) 
   SummaryDF$p         <- round(SummaryDF$p, NZeroDigitM["p",] + 1) 
+  SummaryDF$p         <- round(SummaryDF$p, NZeroDigitM["p",] + 1) 
+  RepChar <- paste(c("<0.", rep(0, NZeroDigits(MinP) - 1), "1"), collapse = "")
+  SummaryDF$p[SummaryDF$p < MinP] <- RepChar
   #  SummaryDF[,c("Predictor", "Coef", "ExpCoef", "p")]
   SummaryDF[,c("Predictor", "Coef", "p")]
 }
