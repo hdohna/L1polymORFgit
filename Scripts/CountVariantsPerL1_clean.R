@@ -518,7 +518,7 @@ L1Variants_Indel$bpDiff <- sapply(1:nrow(L1Variants_Indel), function(x) {
 L1Variants_Indel$bln3 <- (L1Variants_Indel$bpDiff %% 3) == 0
 
 # Indicator variable of whether indel overlaps with an ORF
-L1Variants_Indel$blnORF <- overlapsAny(L1VarIndelGR, ORF12_GR)
+#L1Variants_Indel$blnORF <- overlapsAny(L1VarIndelGR, ORF12_GR)
 
 # GRanges for full-length L1s, their ORFs and UTRs
 L1GRFull     <- L1GR[width(L1GR) >= 6000]
