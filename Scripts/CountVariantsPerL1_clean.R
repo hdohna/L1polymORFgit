@@ -1179,37 +1179,50 @@ MeanSNPPerNonSyn_Fragm <- aggregate(L1CoverTable$blnSNP[!L1CoverTable$blnFull],
                                     by = list(L1CoverTable$NonSyn[!L1CoverTable$blnFull]),
                                     FUN = mean)
 table(L1CoverTable$Freq)
+L1CoverTable$bln
 # Get mean number of SNPs per ORF type position
 AggPerORFPos <- AggDataFrame(DF = L1CoverTable[L1CoverTable$NonSyn | L1CoverTable$Syn,], 
                             GroupCol = c("blnFull", "NonSyn"), 
-                            MeanCols = c("blnSNP"), 
-                            LengthCols = "blnSNP", VarCols = c("blnSNP"))
+                            MeanCols = c("blnSNP", "blnSNP_both", "blnSNPPacBio",
+                                         "blnSNPHG002"), 
+                            LengthCols = "blnSNP", 
+                            VarCols = c("blnSNP", "blnSNP_both", "blnSNPPacBio",
+                                        "blnSNPHG002"))
 
 # Get mean number of SNPs per full-length and fragment L1
 AggPerL1Pos_FullFrag <- AggDataFrame(DF = L1CoverTable, 
                              GroupCol = "blnFull", 
-                             MeanCols = c("blnSNP"), 
-                             LengthCols = "blnSNP", VarCols = c("blnSNP"))
+                             MeanCols = c("blnSNP", "blnSNP_both", "blnSNPPacBio",
+                                          "blnSNPHG002"), 
+                             LengthCols = "blnSNP", 
+                             VarCols = c("blnSNP", "blnSNP_both", "blnSNPPacBio",
+                                         "blnSNPHG002"))
 
 # Get mean number of SNPs per full-length and fragment L1
 AggPerL1Pos_ORFvsUTR <- AggDataFrame(DF = L1CoverTable[L1CoverTable$blnFull, ], 
                                 GroupCol = "Coding", 
-                                MeanCols = c("blnSNP"), 
-                                LengthCols = "blnSNP", VarCols = c("blnSNP"))
+                                MeanCols = c("blnSNP", "blnSNP_both", "blnSNPPacBio",
+                                             "blnSNPHG002"), 
+                                LengthCols = "blnSNP", 
+                                VarCols = c("blnSNP", "blnSNP_both", "blnSNPPacBio",
+                                            "blnSNPHG002"))
 
 # Function to create barplot of mean SNPs and error bars
-PlotMeanSNP <- function(AggDF, NameV, YLab = "", YLim = c(0, 0.02), Main = "",
+PlotMeanSNP <- function(AggDF, NameV, Col2Plot  = "blnSNP",
+                        YLab = "", YLim = c(0, 0.02), Main = "",
                         PlotP = NULL, Border = T){
-  BP <- barplot(AggDF$blnSNP_mean, main = Main,
+  MeanCol <- paste0(Col2Plot, "_mean")
+  VarCol  <- paste0(Col2Plot, "_var")
+  BP <- barplot(AggDF[,MeanCol], main = Main,
                 ylab = YLab,
                 names = NameV, ylim = YLim, border = Border) 
   AddErrorBars(Vertical = T, MidX = BP, 
-               MidY = AggDF$blnSNP_mean,
-               ErrorRange = sqrt(AggDF$blnSNP_var/ AggDF$blnSNP_N),
+               MidY = AggDF[,MeanCol],
+               ErrorRange = sqrt(AggDF[,VarCol]/ AggDF$blnSNP_N),
                TipWidth = 0.1)
   if (!is.null(PlotP)){
-    LX <- 1.1 * max(AggDF$blnSNP_mean, na.rm = T)
-    TX <- 1.2 * max(AggDF$blnSNP_mean, na.rm = T)
+    LX <- 1.1 * max(AggDF[,MeanCol], na.rm = T)
+    TX <- 1.2 * max(AggDF[,MeanCol], na.rm = T)
     lines(BP, c(LX, LX))
     text(x = mean(BP), y = TX, PlotP, cex = 1)
   }
@@ -1220,11 +1233,6 @@ PlotMeanSNP <- function(AggDF, NameV, YLab = "", YLim = c(0, 0.02), Main = "",
 # Plot SNP density for different L1 regions
 #layout(rbind(c(1, 2), c(3, 3)))
 par(page = F, mai = c(0.5, 1, 0.2, 0.1))
-# boxplot(L1VarCount / width(L1GR) ~ blnFull, names = c("fragment", "full-length"),
-#         ylab = "SNPsper LINE-1 bp", main = "B", xlab = "LINE-1 type")
-# boxplot(Count/Width ~ Region, data = L1VarCountPerRange, ylab = "",
-#         xlab = "LINE-1 region",
-#         main = "C")
 
 # Get mean number of SNPs per full-length and fragment L1
 PlotMeanSNP(AggPerL1Pos_FullFrag, NameV = c("Fragment", "Full-length"),
@@ -1332,17 +1340,6 @@ SeqNames <- paste(as.vector(seqnames(L1GR)), start(L1GR), end(L1GR), sep = "_")
 
 # Form different subsets and write them out as fasta files
 L1Aligned <- read.fasta(file = "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1seqHg19_minLength6000_aligned.txt")
-# L1Aligned <- read.alignment(file = "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1seqHg19_minLength6000_aligned.txt",
-#                             format = "fasta")
-
-# Read vcf with variants in LINE-1s 
-# L1Variants  <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1.recode.vcf")
-# L1Variants$chromosome <- paste("chr", L1Variants$X.CHROM, sep = "")
-# 
-# # Create a GRanges object of variants inside L1s and their flanking regions
-# L1VarGR <- makeGRangesFromDataFrame(L1Variants, 
-#                                     start.field = "POS",
-#                                     end.field = "POS")
 
 # Get indicies of sequenced positions
 idxSeqPosList <- lapply(L1Aligned, function(x) which(x != "-"))
@@ -1402,16 +1399,10 @@ GenPos2AlignPos <- function(PosGR){
     idxPosDf <- rbind(idxPosDf, NewDf)
   }
   idxPosDf
-  # unlist(lapply(unique(OL_Pos@from), function(x){
-  #   Seq    <- L1Aligned[[x]]
-  #   idxSeq <-  which(Seq != "-")
-  #   PosSeq <- RelPos[OL_Pos@from == x]
-  #   idxSeq[PosSeq]
-  # }))
 }
 
 # Get positions of SNPs in alignment
-SNPposDF <- GenPos2AlignPos(L1VarGR)
+SNPposDF    <- GenPos2AlignPos(L1VarGR)
 SNPposAlign <- SNPposDF$PosInAlign
 
 # Get positions of coverage data in alignment
@@ -1461,27 +1452,89 @@ mtext("Coverage", side = 2, line = 2,  at = 0.7)
 # Plot SNP density for different L1 regions
 #layout(rbind(c(1, 2), c(3, 3)))
 par(page = F, mai = c(0.5, 1, 0.2, 0.1) * FigDim/480)
-# boxplot(L1VarCount / width(L1GR) ~ blnFull, names = c("fragment", "full-length"),
-#         ylab = "SNPsper LINE-1 bp", main = "B", xlab = "LINE-1 type")
-# boxplot(Count/Width ~ Region, data = L1VarCountPerRange, ylab = "",
-#         xlab = "LINE-1 region",
-#         main = "C")
 
 # Get mean number of SNPs per full-length and fragment L1
-PlotMeanSNP(AggPerL1Pos_FullFrag, NameV = c("Fragment", "Full-length"),
-            Main = "b", YLim = c(0, 0.025), YLab = "SNPs per LINE-1 bp", Border = NA,
+PlotMeanSNP(AggPerL1Pos_FullFrag, Col2Plot  = "blnSNPPacBio",
+            NameV = c("Fragment", "Full-length"),
+            Main = "b", YLim = c(0, 0.003), YLab = "SNPs per LINE-1 bp", Border = NA,
             PlotP = "P < 0.0001")
 PlotMeanSNP(AggPerL1Pos_ORFvsUTR, NameV = c("UTR", "ORF"),
             Main = "c", YLim = c(0, 0.025), Border = NA, PlotP = "P < 0.0001")
 PlotMeanSNP(AggPerORFPos[!AggPerORFPos$blnFull, ], 
+            Col2Plot  = "blnSNPPacBio",
             NameV = c("synonymous", "non-synonymous"),
-            YLim = c(0, 0.02), Main = "d", YLab = "SNPs per LINE-1 bp", Border = NA)
+            YLim = c(0, 0.003), Main = "d", YLab = "SNPs per LINE-1 bp", Border = NA)
 PlotMeanSNP(AggPerORFPos[AggPerORFPos$blnFull, ], 
+            Col2Plot  = "blnSNPPacBio",
             NameV = c("synonymous", "non-synonymous"),
-            YLim = c(0, 0.002), Main = "e", Border = NA,
+            YLim = c(0, 0.003), Main = "e", Border = NA,
             PlotP = "P = 0.003")
 dev.off()
 
+
+
+save.image("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantCount.RData")
+# 
+
+######################################################
+#                                                    #
+#     Plot SNP probability along full-length L1      #
+#     for 1000 genome and PacBio data
+#                                                    #
+######################################################
+
+# Get positions of PacBio SNPs in alignment
+SNPposDF_PacBio    <- GenPos2AlignPos(L1VarGRPacBio)
+SNPposAlign_PacBio <- SNPposDF_PacBio$PosInAlign
+
+# Calculate the number of SNPs per position
+SmoothedSNPFreq <- function(SNPpos){
+  SNPCount <- rep(0, length(PropIndel))
+  SNPTable <- table(SNPpos)
+  SNPCount[as.numeric(names(SNPTable))] <- SNPTable
+  RelSNPCount <- SNPCount / (1 - PropIndel) / length(L1Aligned)
+  supsmu(x = 1:length(SNPCount), y = RelSNPCount)
+}
+RelSNPCountSmoothed <- SmoothedSNPFreq(SNPposAlign)
+RelSNPCountSmoothed_PacBio <- SmoothedSNPFreq(SNPposAlign_PacBio)
+
+# Set up figure
+FigDim = 4000
+jpeg(filename = 'D:/L1ManuscriptFigures/NewNewFig1.jpg',
+     width = FigDim, height = FigDim, pointsize = FigDim/480*12,
+     quality = 100)
+layout(matrix(c(1, 1, 2, 3), 2, 2, byrow = TRUE))
+plot(c(-300, max(SNPposAlign)), c(0, 0.06), type= "n", xlab = "", ylab="",
+     xaxt="n",frame = F,
+     yaxt = "n", main = "a")
+
+segments(1, 0.005, max(SNPposAlign), 0.005) # UTRs
+rect(c(ORF1Start, ORF2Start), c(0, 0), c(ORF1End, ORF2End), 0.01, 
+     border = "black", col ="lightgrey") # ORFs
+text(0.5 * c(ORF1Start + ORF1End, ORF2Start + ORF2End), 0.005, c("ORF1", "ORF2"), cex = 0.75)
+
+lines(RelSNPCountSmoothed$x, RelSNPCountSmoothed$y + 0.02)
+lines(RelSNPCountSmoothed_PacBio$x, RelSNPCountSmoothed_PacBio$y + 0.02,
+      lty =2)
+axis(2, at = seq(0.02, 0.06, 0.02), labels = seq(0, 0.04, 0.02))
+mtext("SNPs per LINE-1 bp", side = 2, line = 2,  at = 0.04)
+
+# Plot SNP density for different L1 regions
+par(page = F, mai = c(0.5, 1, 0.2, 0.1) * FigDim/480)
+#par(page = F, mai = c(0.5, 1, 0.2, 0.1) )
+
+# Get mean number of SNPs per full-length and fragment L1
+PlotMeanSNP(AggPerORFPos[!AggPerORFPos$blnFull, ], 
+            Col2Plot  = "blnSNPPacBio",
+            NameV = c("synonymous", "non-synonymous"),
+            YLim = c(0, 0.003), Main = "b", 
+            YLab = "SNPs per LINE-1 bp", Border = NA)
+PlotMeanSNP(AggPerORFPos[AggPerORFPos$blnFull, ], 
+            Col2Plot  = "blnSNPPacBio",
+            NameV = c("synonymous", "non-synonymous"),
+            YLim = c(0, 0.003), Main = "c", Border = NA,
+            PlotP = "P = 0.00001")
+dev.off()
 
 
 save.image("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantCount.RData")
