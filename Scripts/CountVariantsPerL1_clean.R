@@ -1008,6 +1008,12 @@ SeqNames <- paste(as.vector(seqnames(L1GR)), start(L1GR), end(L1GR), sep = "_")
 # Form different subsets and write them out as fasta files
 L1Aligned <- read.fasta(file = "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1seqHg19_minLength6000_aligned_withConsens.fas")
 
+# Create a distance matrix for alignment
+L1AlDist  <- dist.alignment(read.alignment(file = "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1seqHg19_minLength6000_aligned_withConsens.fas",
+                                           format = "fasta"))
+L1AlDist <- as.matrix(L1AlDist)
+diag(L1AlDist) <- NA
+
 # Get indicies of sequenced positions
 idxSeqPosList <- lapply(L1Aligned, function(x) which(x != "-"))
 
@@ -1233,11 +1239,27 @@ L1Cover_GRsubset <- L1Cover_GR[blnSubset]
 # Get variation of SNP positions in L1 alignment
 AlPosSNPsubset <- GenPos2AlignPos(L1Cover_GRsubset)
 
+# Nucleotide on consensus sequence
+ConsensNuc <- toupper(L1Aligned$L1HS_L1_Homo_sapiens[AlPosSNPsubset$PosInAlign])
+AlPosSNPsubset$PosInAlign
+AlPosSNPsubset$idxL1
+x <- 1
+ClosestNuc <- sapply(1:nrow(AlPosSNPsubset), function(x){
+  idxL1       <- AlPosSNPsubset$idxL1[x]
+  CurrentDist <- L1AlDist[idxL1,]
+  idxClostest <- which.min(CurrentDist)
+  toupper(L1Aligned[[idxClostest]][AlPosSNPsubset$PosInAlign[x]])
+})
 # Get indices of nonsynonymous SNPs where the alternative nucleotide is equal
 # to the nucleotide on the L1 consensus
-OL_L1subset <- findOverlaps(L1Cover_GRsubset, L1VarGRPacBio)
-ConsensNuc  <- toupper(L1Aligned$L1HS_L1_Homo_sapiens[AlPosSNPNonSynFull$PosInAlign[OL_L1subset@from]])
-idxAltConsens <- which(ConsensNuc == L1VarPacBio$ALT[OL_L1subset@to])  
+OL_L1subsetPacBio   <- findOverlaps(L1Cover_GRsubset, L1VarGRPacBio)
+idxAltConsensPacBio <- OL_L1subsetPacBio@from[ConsensNuc[OL_L1subsetPacBio@from] == 
+                         L1VarPacBio$ALT[OL_L1subsetPacBio@to]] 
+idxAltClosestPacBio <- OL_L1subsetPacBio@from[ClosestNuc[OL_L1subsetPacBio@from] == 
+                                                L1VarPacBio$ALT[OL_L1subsetPacBio@to]] 
+OL_L1subset   <- findOverlaps(L1Cover_GRsubset, L1VarGR)
+idxAltConsens <- OL_L1subset@from[ConsensNuc[OL_L1subset@from] == 
+                                  L1Variants$ALT[OL_L1subset@to]] 
 
 
 ######################################################
@@ -1250,15 +1272,18 @@ hist(L1CoverTable$AlleleFreq)
 sum(L1CoverTable$AlleleFreq > 0.5, na.rm = T)
 
 # Susbet to obtain SNPs with measured allele frequencies
-blnSubset <- L1CoverTable$blnFull & 
-  (!is.na(L1CoverTable$AlleleFreq)) & (L1CoverTable$NonSyn |L1CoverTable$Syn)
 L1CoverTableSubset      <- L1CoverTable[blnSubset, ]
 L1CoverTableSubset$L1ID <- OL_bpL1@to[blnSubset]
 L1CoverTableSubset$SNPSyn    <- L1CoverTableSubset$blnSNP & (!L1CoverTableSubset$NonSyn)
 L1CoverTableSubset$SNPNonSyn <- L1CoverTableSubset$blnSNP & L1CoverTableSubset$NonSyn
 L1CoverTableSubset$SNPSynPacBio    <- L1CoverTableSubset$blnSNPPacBio & (!L1CoverTableSubset$NonSyn)
 L1CoverTableSubset$SNPNonSynPacBio <- L1CoverTableSubset$blnSNPPacBio & L1CoverTableSubset$NonSyn
-#L1CoverTableSubset$AlleleFreq <- pmin(L1CoverTableSubset$AlleleFreq, 1 - L1CoverTableSubset$AlleleFreq)
+
+# Replace SNP frequency by the frequency of the reference allele when the
+# alternative allele is equal to consensus (i.e. likely to be ancestral)
+L1CoverTableSubset$AFDerived <- L1CoverTableSubset$AlleleFreq
+L1CoverTableSubset$AFDerived[idxAltClosestPacBio] <- 
+  (1 - L1CoverTableSubset$AlleleFreq)[idxAltClosestPacBio]
 
 # Calculate mean allele frequency per L1 and position type
 AlleleFreqPerL1andPosType <- aggregate(L1CoverTable$AlleleFreq[blnSubset],
@@ -1299,9 +1324,9 @@ findOverlaps(L1GR[NSNPPerL1andPosType$L1ID[NSNPPerL1andPosType$SNPSyn_sum >= 20]
 NSNPPerL1andPosType
 
 # Observed difference in mean allele frequencies
-#L1CoverTableSubset <- L1CoverTableSubset[L1CoverTableSubset$blnSNPPacBio,]
-ObsMeanDiff <- mean(L1CoverTableSubset$AlleleFreq[!L1CoverTableSubset$NonSyn]) -  
-  mean(L1CoverTableSubset$AlleleFreq[L1CoverTableSubset$NonSyn]) 
+L1CoverTableSubset <- L1CoverTableSubset[L1CoverTableSubset$blnSNPPacBio,]
+ObsMeanDiff <- mean(L1CoverTableSubset$AFDerived[!L1CoverTableSubset$NonSyn]) -  
+  mean(L1CoverTableSubset$AFDerived[L1CoverTableSubset$NonSyn]) 
 
 # Sample mean differences
 TotNonSyn <- sum(L1CoverTableSubset$NonSyn)
@@ -1311,27 +1336,27 @@ NSamples <- 10000
 SampledMeanDiffs <- sapply(1:NSamples, function(x){
   idxNonSyn <- sample.int(TotNuc, size = TotNonSyn)
   idxSyn    <- setdiff(idxVect, idxNonSyn)
-  mean(L1CoverTableSubset$AlleleFreq[idxSyn]) -  
-    mean(L1CoverTableSubset$AlleleFreq[idxNonSyn]) 
+  mean(L1CoverTableSubset$AFDerived[idxSyn]) -  
+    mean(L1CoverTableSubset$AFDerived[idxNonSyn]) 
 })
 sum(SampledMeanDiffs >= ObsMeanDiff) / NSamples
 
 # Observed difference in mean allele frequencies
-ObsMedianDiff <- median(L1CoverTableSubset$AlleleFreq[!L1CoverTableSubset$NonSyn]) -  
-  median(L1CoverTableSubset$AlleleFreq[L1CoverTableSubset$NonSyn]) 
+ObsMedianDiff <- median(L1CoverTableSubset$AFDerived[!L1CoverTableSubset$NonSyn]) -  
+  median(L1CoverTableSubset$AFDerived[L1CoverTableSubset$NonSyn]) 
 
 # Sample mean differences
 SampledMedianDiffs <- sapply(1:NSamples, function(x){
   idxNonSyn <- sample.int(TotNuc, size = TotNonSyn)
   idxSyn    <- setdiff(idxVect, idxNonSyn)
-  median(L1CoverTableSubset$AlleleFreq[idxSyn]) -  
-    median(L1CoverTableSubset$AlleleFreq[idxNonSyn]) 
+  median(L1CoverTableSubset$AFDerived[idxSyn]) -  
+    median(L1CoverTableSubset$AFDerived[idxNonSyn]) 
 })
 sum(SampledMedianDiffs >= ObsMedianDiff) / NSamples
 
 # Get 
 L1Count <- table(AlleleFreqPerL1andPosType$Group.1)
-L1Both <- as.numeric(names(L1Count)[L1Count == 2])
+L1Both  <- as.numeric(names(L1Count)[L1Count == 2])
 SNPSPerL1 <- t(sapply(L1Both, function(x){
   blnL1 <- AlleleFreqPerL1andPosType$Group.1 == x
   c(NonSynFreq = AlleleFreqPerL1andPosType$x[AlleleFreqPerL1andPosType$Group.2 & blnL1],
