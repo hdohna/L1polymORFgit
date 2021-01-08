@@ -1,0 +1,3 @@
+wget http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/phastCons46wayPrimates.txt.gz   
+
+wget http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/phyloP46wayPlacental.txt.gz
