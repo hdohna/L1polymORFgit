@@ -62,6 +62,12 @@ vcftools --gzvcf /scratch/shared/projects/biol_290az_390af/1000GenomeData/ALL.ch
 --hap-r2 \
 --out /home/hb54/1000GenomeData/LD_chr1
 
+vcftools --gzvcf /scratch/hb54/dbSNP/common_all_20180423.vcf.gz \
+--bed /home/hb54/RefSeqData/L1HSRefRanges_hg19.bed \
+--recode \
+--recode-INFO-all \
+--out /home/hb54/1000GenomeData/VariantsInL1_dbSNP
+
 
 vcftools --vcf /labs/dflev/hzudohna/1000Genomes/ALL.chr1.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf \
 --bed /labs/dflev/hzudohna/RefSeqData/L1Ranges.bed \
