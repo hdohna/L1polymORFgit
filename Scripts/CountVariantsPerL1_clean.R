@@ -142,6 +142,7 @@ L1Var_Right$chromosome <- paste("chr", L1Var_Right$X.CHROM, sep = "")
 L1VarPacBio <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_HG002_PacBio_withInfo.recode.vcf")
 L1VarPacBio$chromosome <- paste("chr", L1VarPacBio$X.CHROM, sep = "")
 L1VarPacBio$INFO[1:5]
+
 # Subset to retain only SNPs
 L1VarPacBio <- L1VarPacBio[L1VarPacBio$INFO == "VRT=1", ]
 
@@ -149,6 +150,13 @@ L1VarPacBio <- L1VarPacBio[L1VarPacBio$INFO == "VRT=1", ]
 L1VarGRPacBio <- makeGRangesFromDataFrame(L1VarPacBio, 
                                     start.field = "pos",
                                     end.field = "pos")
+# Read in variants from dbSNP
+L1VarDbSNP <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_dbSNP.recode.vcf")
+L1VarDbSNP$chromosome <- paste("chr", L1VarDbSNP$X.CHROM, sep = "")
+L1VarGRDbSNP <- makeGRangesFromDataFrame(L1VarDbSNP, 
+                                          start.field = "POS",
+                                          end.field = "POS")
+
 # Read in 1000 genome variants of HG002
 L1VarHG002 <- read.table("D:/OneDrive - American University of Beirut/L1polymORF/Data/SNPsInHG002_all.vcf")
 L1VarHG002$chromosome <- paste("chr", L1VarHG002$X.CHROM, sep = "")
@@ -285,6 +293,7 @@ L1GR_right <- makeGRangesFromDataFrame(L1Table,
 L1VarGR <- makeGRangesFromDataFrame(L1Variants, 
                                     start.field = "POS",
                                     end.field = "POS")
+sum(overlapsAny(L1VarGRDbSNP, L1VarGR))
 
 # Create a GRanges object of indels inside L1s and their flanking regions
 L1VarIndelGR <- makeGRangesFromDataFrame(L1Variants_Indel, 
@@ -1021,7 +1030,6 @@ write.csv(SNPLogRegMergedFull, ResultPathFull)
 
 
 # Analyze the proportion of SNPs on non-synonymous sites 
-i <- 1
 idxFull - which(width(L1GR) >= 6000)
 NonsynEffect <- sapply(idxFull, function(i){
   L1Subset <- L1CoverTable[OL_bpL1@from[OL_bpL1@to == i], ]
@@ -1093,102 +1101,6 @@ PlotMeanSNP <- function(AggDF, NameV, Col2Plot  = "blnSNP",
   return(BP)
 }
 
-# Plot SNP density for different L1 regions
-#layout(rbind(c(1, 2), c(3, 3)))
-par(page = F, mai = c(0.5, 1, 0.2, 0.1))
-
-# Get mean number of SNPs per full-length and fragment L1
-PlotMeanSNP(AggPerL1Pos_FullFrag, NameV = c("Fragment", "Full-length"),
-            Main = "b", YLim = c(0, 0.025), YLab = "SNPs per LINE-1 bp", Border = NA,
-            PlotP = "P < 0.0001")
-PlotMeanSNP(AggPerL1Pos_ORFvsUTR, NameV = c("UTR", "ORF"),
-            Main = "c", YLim = c(0, 0.025), Border = NA, PlotP = "P < 0.0001")
-PlotMeanSNP(AggPerORFPos[!AggPerORFPos$blnFull, ], 
-            NameV = c("synonymous", "non-synonymous"),
-            YLim = c(0, 0.02), Main = "d", YLab = "SNPs per LINE-1 bp", Border = NA)
-PlotMeanSNP(AggPerORFPos[AggPerORFPos$blnFull, ], 
-            NameV = c("synonymous", "non-synonymous"),
-            YLim = c(0, 0.002), Main = "e", Border = NA,
-            PlotP = "P = 0.003")
-
-# CreateDisplayPdf('D:/L1ManuscriptFigures/VariantCounts.pdf',
-#                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
-#                  height = 7, width = 7)
-pointsize
-FigDim = 4000
-jpeg(filename = 'D:/L1ManuscriptFigures/Fig1.jpg',
-     width = FigDim, height = FigDim, pointsize = FigDim/480*12,
-     quality = 100)
-ColPal <- rainbow(5)
-ColPal <- c("magenta", "green", "blue")
-layout(matrix(c(1, 1, 2, 3, 4, 5), 3, 2, byrow = TRUE))
-par(oma = c(0.1,  0.2,  0.1,  0.2) * FigDim/480, 
-    mai = c(0.7, 1, 0.2, 1) * FigDim/480, cex.lab = 1.2)
-plot(L1TotData$L1width, 
-     L1TotData$Freq/SSize, xlab = "LINE-1 length [kb]",
-     ylab = "LINE-1 frequency", type = "n",
-     # col = rgb(0, 0, 0, alpha = 0.2), 
-     # pch = 16, 
-     ylim = c(0, 0.04), 
-     # xlim = c(0, 7000),
-     main = "a",xaxt = "n")
-axis(side = 1, at = seq(0, 6000, 1000), labels = 0:6)
-legend(3300, 0.04, c("Fitted mean", "Smoothed data", "Selection coefficient"),
-       cex = 1.2, 
-       lty = 1, bty = "n", lwd = FigDim/480,
-       y.intersp = 0.7, 
-       col = ColPal)
-points(L1TotData$L1width, cex = 2,
-       L1TotData$Freq/SSize, col = rgb(0, 0, 0, alpha = 0.07), 
-       pch = 16)
-L1FreqLengthSmoothed <- supsmu(L1TotData$L1width, 
-                               L1TotData$Freq/SSize, bass = 5)
-blnNAWidthFreq <- is.na(L1TotData$L1width) | is.na(L1TotData$Freq)
-# L1FreqLengthSmoothed <- smooth.spline(L1TotData$L1width[!blnNAWidthFreq], 
-#                                L1TotData$Freq[!blnNAWidthFreq]/SSize)
-lines(LengthVals, ExpL1Width, lwd = FigDim/480, col = ColPal[1])
-#lines(LengthVals, ExpL1Width_nonTa, lwd = 2, col = ColPal[1])
-lines(L1FreqLengthSmoothed$x, L1FreqLengthSmoothed$y, lwd = FigDim/480, col = ColPal[2])
-sum(L1TotData$Freq/SSize > 0.04)
-sum(L1TotData$Freq/SSize > 0.04) / sum(!is.na(L1TotData$Freq))
-# Plot estimated selection coefficient
-par(new = T)
-LengthVals2 <- seq(0, 6200, 20)
-Full      <- LengthVals2 >= 6000
-SVals2 <- ModelFit_pracma$ML_abc$par[1] + ModelFit_pracma$ML_abc$par[2]*Full +
-  ModelFit_pracma$ML_abc$par[3] * LengthVals2
-
-plot(LengthVals2, SVals2, type = "l", xaxt = "n", yaxt = "n", ylab = "", 
-     xlab = "", lwd = 2,col = ColPal[3])
-axis(side = 4, at = -10^(-5)*c(3:7), labels = -c(3:7))
-
-mtext(side = 4, line = 3, expression(paste("Selection coefficient (", N[e], italic(s),")")), 
-      cex = 0.87)
-
-# Plot SNP density for different L1 regions
-#layout(rbind(c(1, 2), c(3, 3)))
-par(page = F, mai = c(0.5, 1, 0.2, 0.1) * FigDim/480)
-# boxplot(L1VarCount / width(L1GR) ~ blnFull, names = c("fragment", "full-length"),
-#         ylab = "SNPsper LINE-1 bp", main = "B", xlab = "LINE-1 type")
-# boxplot(Count/Width ~ Region, data = L1VarCountPerRange, ylab = "",
-#         xlab = "LINE-1 region",
-#         main = "C")
-
-# Get mean number of SNPs per full-length and fragment L1
-PlotMeanSNP(AggPerL1Pos_FullFrag, NameV = c("Fragment", "Full-length"),
-            Main = "b", YLim = c(0, 0.025), YLab = "SNPs per LINE-1 bp", Border = NA,
-            PlotP = "P < 0.0001")
-PlotMeanSNP(AggPerL1Pos_ORFvsUTR, NameV = c("UTR", "ORF"),
-            Main = "c", YLim = c(0, 0.025), Border = NA, PlotP = "P < 0.0001")
-PlotMeanSNP(AggPerORFPos[!AggPerORFPos$blnFull, ], 
-            NameV = c("synonymous", "non-synonymous"),
-            YLim = c(0, 0.02), Main = "d", YLab = "SNPs per LINE-1 bp", Border = NA)
-PlotMeanSNP(AggPerORFPos[AggPerORFPos$blnFull, ], 
-            NameV = c("synonymous", "non-synonymous"),
-            YLim = c(0, 0.002), Main = "e", Border = NA,
-            PlotP = "P = 0.003")
-dev.off()
-
 ######################################################
 #                                                    #
 #     Plot SNP probability along full-length L1      #
@@ -1201,8 +1113,9 @@ L1Seq    <- getSeq(BSgenome.Hsapiens.UCSC.hg19, L1GR)
 SeqNames <- paste(as.vector(seqnames(L1GR)), start(L1GR), end(L1GR), sep = "_")
 
 # Form different subsets and write them out as fasta files
-L1Aligned <- read.fasta(file = "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1seqHg19_minLength6000_aligned.txt")
-
+L1Aligned <- read.fasta(file = "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1seqHg19_minLength6000_aligned_withConsens.fas")
+#L1Aligned <- read.fasta(file = "D:/OneDrive - American University of Beirut/L1Evolution/SawsanScriptsData2020-10-04/FinalScripts&RData/RData_SW/UpdatedFullSeq_withCon.fas")
+names(L1Aligned)
 # Get indicies of sequenced positions
 idxSeqPosList <- lapply(L1Aligned, function(x) which(x != "-"))
 
@@ -1232,7 +1145,7 @@ ORF2End   <- 6990
 # Get genomic ranges of L1 in the alignment
 L1GRNames <-  paste(as.vector(seqnames(L1GR)), start(L1GR), end(L1GR), sep = "_")
 L1Match  <- match(names(L1Aligned), L1GRNames)
-L1GRFull <- L1GR[L1Match]
+L1GRFull <- L1GR[L1Match[-length(L1Match)]]
 
 # Determine the start of the L1s depending on strand 
 idxMinus <- 1 + c(as.vector(strand(L1GRFull)) == "-")
@@ -1257,7 +1170,8 @@ GenPos2AlignPos <- function(PosGR){
     blnL1  <- OL_Pos@from == x
     PosSeq <- RelPos[blnL1]
     NewDf <- data.frame(PosInAlign = idxSeq[PosSeq],
-                        idxInGR    = OL_Pos@to[blnL1])
+                        idxInGR    = OL_Pos@to[blnL1],
+                        idxL1 = x)
     idxPosDf <- rbind(idxPosDf, NewDf)
   }
   idxPosDf
@@ -1267,6 +1181,14 @@ GenPos2AlignPos <- function(PosGR){
 SNPposDF    <- GenPos2AlignPos(L1VarGR)
 SNPposAlign <- SNPposDF$PosInAlign
 
+# Check that nucleotides are the same
+blnSameNuc <- sapply(1:1000, function(x){
+  GenomeNuc <- getSeq(BSgenome.Hsapiens.UCSC.hg19, L1VarGR[SNPposDF$idxInGR[i]])[[1]]
+  as.character(GenomeNuc)== 
+    toupper(L1Aligned[[SNPposDF$idxL1[i]]][SNPposDF$PosInAlign[i]])
+})
+all(blnSameNuc)
+                                   
 # Get positions of coverage data in alignment
 blnCoverInL1  <- overlapsAny(L1Cover_GR, L1GRFull)
 L1CoverSubset <- L1CoverTable[blnCoverInL1,]
@@ -1365,6 +1287,7 @@ jpeg(filename = 'D:/L1ManuscriptFigures/NewNewFig1.jpg',
      width = FigDim, height = FigDim, pointsize = FigDim/480*12,
      quality = 100)
 layout(matrix(c(1, 1, 2, 3), 2, 2, byrow = TRUE))
+par(mai = c(0.5, 1, 0.2, 0.1) * FigDim/480)
 plot(c(-300, max(SNPposAlign)), c(0, 0.06), type= "n", xlab = "", ylab="",
      xaxt="n",frame = F,
      yaxt = "n", main = "a")
@@ -1374,14 +1297,15 @@ rect(c(ORF1Start, ORF2Start), c(0, 0), c(ORF1End, ORF2End), 0.01,
      border = "black", col ="lightgrey") # ORFs
 text(0.5 * c(ORF1Start + ORF1End, ORF2Start + ORF2End), 0.005, c("ORF1", "ORF2"), cex = 0.75)
 
-lines(RelSNPCountSmoothed_HG002$x, RelSNPCountSmoothed_HG002$y + 0.02)
+lines(RelSNPCountSmoothed$x, RelSNPCountSmoothed$y + 0.02,
+      lwd = FigDim/480)
 lines(RelSNPCountSmoothed_PacBio$x, RelSNPCountSmoothed_PacBio$y + 0.02,
-      lty =2)
+      lty =2, lwd = FigDim/480)
 axis(2, at = seq(0.02, 0.06, 0.02), labels = seq(0, 0.04, 0.02))
-mtext("SNPs per LINE-1 bp", side = 2, line = 2,  at = 0.04)
+mtext("SNPs per LINE-1 bp", side = 2, line = 3,  at = 0.04)
 
 # Plot SNP density for different L1 regions
-par(page = F, mai = c(0.5, 1, 0.2, 0.1) * FigDim/480)
+# par(page = F, mai = c(0.5, 1, 0.2, 0.1) * FigDim/480)
 #par(page = F, mai = c(0.5, 1, 0.2, 0.1) )
 
 # Get mean number of SNPs per full-length and fragment L1
@@ -1400,4 +1324,52 @@ dev.off()
 
 
 save.image("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantCount.RData")
+load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantCount.RData")
 # 
+
+######################################################
+#                                                    #
+#           Comparing SNPs with alignment             #
+#                                                    #
+######################################################
+
+# Get Granges of PacBio SNPs on synonymous and non-synonymous positions within
+# full-length L1
+blnNonSynFullVar <- overlapsAny(GRNonSynInt, L1GRFull) &
+  overlapsAny(GRNonSynInt, L1VarGRPacBio)
+blnSynFullVar <- overlapsAny(GRSynInt, L1GRFull) &
+  overlapsAny(GRSynInt, L1VarGRPacBio)
+GRNonSynFullVar <- GRNonSynInt[blnNonSynFullVar]
+GRSynFullVar    <- GRSynInt[blnSynFullVar]    
+
+# Get variation of SNP positions in L1 alignment
+AlPosSNPSynFull    <- GenPos2AlignPos(GRSynFullVar)
+AlPosSNPNonSynFull <- GenPos2AlignPos(GRNonSynFullVar)
+AlPosCountSyn      <- table(AlPosSNPSynFull$PosInAlign)
+AlPosCountNonSyn   <- table(AlPosSNPNonSynFull$PosInAlign)
+AllPosTotal <- c(rep(0, sum(overlapsAny(GRNonSynInt, L1GRFull)) -
+                       length(AlPosCountNonSyn)), AlPosCountNonSyn)
+max(AlPosCountSyn)
+max(AlPosCountNonSyn)
+hist(AlPosCountSyn)
+hist(AlPosCountNonSyn)
+names(L1Aligned)
+AlignNucListSyn <- lapply(1:nrow(AlPosSNPSynFull), function(x){
+  idx <- AlPosSNPSynFull$PosInAlign[x]
+  NucUnique <- unique(sapply(L1Aligned, function(y) y[idx]))
+  toupper(NucUnique)
+})
+mean(sapply(AlignNucListSyn, length))
+AlignNucListNonSyn <- lapply(1:nrow(AlPosSNPNonSynFull), function(x){
+  idx <- AlPosSNPNonSynFull$PosInAlign[x]
+  toupper(unique(sapply(L1Aligned, function(y) y[idx])))
+})
+mean(sapply(AlignNucListNonSyn, length))
+AlPosSNPSynFull$PosInAlign
+AlignNucListNonSyn[1:10]
+
+# Get indices of nonsynonymous SNPs where the alternative nucleotide is equal
+# to the nucleotide on the L1 consensus
+OLL1PacBioNonSyn <- findOverlaps(GRNonSynFullVar, L1VarGRPacBio)
+idxAltConsens <- which(toupper(L1Aligned$L1HS_L1_Homo_sapiens[AlPosSNPNonSynFull$PosInAlign[OLL1PacBioNonSyn@from]]) == 
+  L1VarPacBio$ALT[OLL1PacBioNonSyn@to])                                  
