@@ -14,16 +14,18 @@ DownloadFilesFTP_wget <- function(FileURL, OutputDir = NULL, FileListPath = "Fil
                               RunTime = '12:00:00',
                               Mem = '50G') {
   ScriptName = "DownloadScript"
-  RunTime = '12:00:00'
-  Mem = '50G'
+  RunTime = '3:00:00'
+  Mem = '10G'
   
   source('/home/hb54/L1polymORFgit/Scripts/_Start_L1polymORF_AUB.R')
   OutputDir <- "/home/hb54/1000GenomeData"
   OutputDir <- "/scratch/hb54/dbSNP"
     
   FileURL <- "https://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh37p13/VCF/"
+  FileURL <- "http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20190425_NYGC_GATK/"
   FileListPath <- "1000GenomeFiles"
-  FileListPath <- "dbSNPFiles"
+  FileListPath <- "1000GenomeFiles_high_cover"
+#  FileListPath <- "dbSNPFiles"
   
   CurlCmd <- paste("curl", FileURL, ">", FileListPath)
   system(CurlCmd)
