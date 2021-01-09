@@ -49,6 +49,14 @@ vcftools --vcf /home/hb54/PacBioData/HG002_hs37d5_DeepVariant-CCS-hapsort.vcf \
 --recode-INFO-all \
 --out /home/hb54/PacBioData/VariantsInL1_HG002_PacBio_withInfo
 
+module load vcftools
+vcftools --vcf /home/hb54/PacBioData/HG002_hs37d5_GATKHC.vcf.gz \
+--bed /home/hb54/RefSeqData/L1HSRefRanges_hg19.bed \
+--recode \
+--recode-INFO-all \
+--out /home/hb54/PacBioData/VariantsInL1_HG002_PacBio_withInfo_GATKHC
+
+
 # Get genotypes of all variants within L1s from 1KG data on AUB HPC
 module load vcftools
 vcftools --gzvcf /home/hb54/1000GenomeData/ALL.wgs.phase3_shapeit2_mvncall_integrated_v5b.20130502.sites.vcf.gz \
