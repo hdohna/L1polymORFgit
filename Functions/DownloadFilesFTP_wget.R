@@ -14,15 +14,17 @@ DownloadFilesFTP_wget <- function(FileURL, OutputDir = NULL, FileListPath = "Fil
                               RunTime = '12:00:00',
                               Mem = '50G') {
   ScriptName = "DownloadScript"
-  RunTime = '3:00:00'
-  Mem = '10G'
+  RunTime = '12:00:00'
+  Mem = '50G'
   
   source('/home/hb54/L1polymORFgit/Scripts/_Start_L1polymORF_AUB.R')
   OutputDir <- "/home/hb54/1000GenomeData"
   OutputDir <- "/scratch/hb54/dbSNP"
-    
+  OutputDir <- "/scratch/hb54/1000G_high_coverage"
+  
   FileURL <- "https://ftp.ncbi.nih.gov/snp/organisms/human_9606_b151_GRCh37p13/VCF/"
   FileURL <- "http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20190425_NYGC_GATK/"
+  FileURL <- "http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000G_2504_high_coverage/working/20190425_NYGC_GATK/annotated/"
   FileListPath <- "1000GenomeFiles"
   FileListPath <- "1000GenomeFiles_high_cover"
 #  FileListPath <- "dbSNPFiles"
@@ -37,7 +39,8 @@ DownloadFilesFTP_wget <- function(FileURL, OutputDir = NULL, FileListPath = "Fil
   FileNames <- sapply(FileLines, function(x) strsplit(x, "\"")[[1]][2])
   FileNames <- FileNames[!is.na(FileNames)]
   FileNames
-  writeLines(paste0(FileURL, FileNames), FileListPath)
+  grep(".vcf.gz", FileLines, value = T)
+  writeLines(grep(".vcf.gz", FileLines, value = T), FileListPath)
   
   # Create wget command and run a slurm script with get command
   WgetCmd <- c(paste("cd", OutputDir), paste("wget -i", paste0("/home/hb54/", FileListPath)))
