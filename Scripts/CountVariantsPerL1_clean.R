@@ -144,7 +144,7 @@ L1VarPacBio$chromosome <- paste("chr", L1VarPacBio$X.CHROM, sep = "")
 L1VarPacBio$INFO[1:5]
 
 # Subset to retain only SNPs
-L1VarPacBio <- L1VarPacBio[L1VarPacBio$INFO == "VRT=1", ]
+L1VarPacBio <- L1VarPacBio[grep("VRT=1", L1VarPacBio$INFO), ]
 
 # Create a GRanges object of variants inside L1s and their flanking regions
 L1VarGRPacBio <- makeGRangesFromDataFrame(L1VarPacBio, 
@@ -923,7 +923,7 @@ write.csv(SNPLogRegMergedFull, ResultPathFull)
 
 
 # Analyze the proportion of SNPs on non-synonymous sites 
-idxFull - which(width(L1GR) >= 6000)
+idxFull <- which(width(L1GR) >= 6000)
 NonsynEffect <- sapply(idxFull, function(i){
   L1Subset <- L1CoverTable[OL_bpL1@from[OL_bpL1@to == i], ]
   L1Subset <- L1Subset[L1Subset$Coding, ]
@@ -1284,6 +1284,8 @@ L1CoverTableSubset$SNPNonSynPacBio <- L1CoverTableSubset$blnSNPPacBio & L1CoverT
 L1CoverTableSubset$AFDerived <- L1CoverTableSubset$AlleleFreq
 L1CoverTableSubset$AFDerived[idxAltClosestPacBio] <- 
   (1 - L1CoverTableSubset$AlleleFreq)[idxAltClosestPacBio]
+# L1CoverTableSubset$AFDerived[idxAltConsens] <- 
+#   (1 - L1CoverTableSubset$AlleleFreq)[idxAltConsens]
 
 # Calculate mean allele frequency per L1 and position type
 AlleleFreqPerL1andPosType <- aggregate(L1CoverTable$AlleleFreq[blnSubset],
@@ -1339,8 +1341,8 @@ SampledMeanDiffs <- sapply(1:NSamples, function(x){
   mean(L1CoverTableSubset$AFDerived[idxSyn]) -  
     mean(L1CoverTableSubset$AFDerived[idxNonSyn]) 
 })
-sum(SampledMeanDiffs >= ObsMeanDiff) / NSamples
-
+mean(SampledMeanDiffs >= ObsMeanDiff)
+hist(SampledMeanDiffs)
 # Observed difference in mean allele frequencies
 ObsMedianDiff <- median(L1CoverTableSubset$AFDerived[!L1CoverTableSubset$NonSyn]) -  
   median(L1CoverTableSubset$AFDerived[L1CoverTableSubset$NonSyn]) 
