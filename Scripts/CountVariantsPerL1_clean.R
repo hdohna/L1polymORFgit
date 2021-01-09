@@ -138,8 +138,8 @@ L1Var_Right <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/D
 L1Var_Left$chromosome <- paste("chr", L1Var_Left$X.CHROM, sep = "")
 L1Var_Right$chromosome <- paste("chr", L1Var_Right$X.CHROM, sep = "")
 
-# Read in variants from PacBio sequencing of HG002
-L1VarPacBio <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_HG002_PacBio_withInfo.recode.vcf")
+# Read in variants from PacBio sequencing of HG002 (obtained from https://downloads.pacbcloud.com/public/publications/2019-HG002-CCS/smallvariants/)
+L1VarPacBio <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_HG002_PacBio_withInfo_GATKHC.recode.vcf")
 L1VarPacBio$chromosome <- paste("chr", L1VarPacBio$X.CHROM, sep = "")
 L1VarPacBio$INFO[1:5]
 
