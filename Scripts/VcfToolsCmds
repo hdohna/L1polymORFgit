@@ -50,7 +50,7 @@ vcftools --vcf /home/hb54/PacBioData/HG002_hs37d5_DeepVariant-CCS-hapsort.vcf \
 --out /home/hb54/PacBioData/VariantsInL1_HG002_PacBio_withInfo
 
 module load vcftools
-vcftools --vcf /home/hb54/PacBioData/HG002_hs37d5_GATKHC.vcf.gz \
+vcftools --gzvcf /home/hb54/PacBioData/HG002_hs37d5_GATKHC.vcf.gz \
 --bed /home/hb54/RefSeqData/L1HSRefRanges_hg19.bed \
 --recode \
 --recode-INFO-all \
