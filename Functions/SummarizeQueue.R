@@ -23,8 +23,8 @@
 SummarizeQueue <- function(){
   
     QueueStatus <- system('squeue -u hb54',  intern = T)
-    idxBatch    <- grep("bash", QueueStatus)
-    idxInteract <- setdiff(2:length(QueueStatus), idxBatch)
+    idxInteract   <- grep("bash", QueueStatus)
+    idxBatch     <- setdiff(2:length(QueueStatus), idxInteract)
     idxRunning  <- grep(" R ", QueueStatus)
     idxPending  <- grep(" PD ", QueueStatus)
     cat("\n\n******   Batch jobs:   **********\n")
