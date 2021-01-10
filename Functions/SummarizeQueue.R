@@ -22,7 +22,7 @@
 
 SummarizeQueue <- function(){
   
-    QueueStatus <- system('squeue -u hzudohna',  intern = T)
+    QueueStatus <- system('squeue -u hb54',  intern = T)
     idxBatch    <- grep("batch", QueueStatus)
     idxInteract <- grep("interact", QueueStatus)
     idxRunning  <- grep(" R ", QueueStatus)
