@@ -37,7 +37,7 @@ CheckQueue <- function(MaxNrTrials = 10,
     }
     idxRunning    <- grep(" R ", QueueStatus)
     idxPending    <- grep(" PD ", QueueStatus)
-    QueueFinished <- length(grep("batch", QueueStatus)) == 0
+    QueueFinished <- (length(grep("bash", QueueStatus)) + 1) == length(QueueStatus)
     if (!QueueFinished) cat("queue not yet finished!", 
                             length(idxRunning),
                             "jobs are running and",
