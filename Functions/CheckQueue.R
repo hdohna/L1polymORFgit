@@ -31,7 +31,7 @@ CheckQueue <- function(MaxNrTrials = 10,
     NrTrials <- NrTrials + 1
     cat("Checking queue, trial", NrTrials, "out of", MaxNrTrials, 
         ", ", round((NrTrials - 1) * SleepTime / 60, 2), "min elapsed - ")
-    QueueStatus   <- system('squeue -u hzudohna',  intern = T)
+    QueueStatus   <- system('squeue -u hb54',  intern = T)
     if(!is.null(JobIDs)){
       QueueStatus <- sapply(JobIDs, function(x) grep(x, QueueStatus, value = T))
     }
