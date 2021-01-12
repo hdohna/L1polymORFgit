@@ -31,13 +31,13 @@ CheckQueue <- function(MaxNrTrials = 10,
     NrTrials <- NrTrials + 1
     cat("Checking queue, trial", NrTrials, "out of", MaxNrTrials, 
         ", ", round((NrTrials - 1) * SleepTime / 60, 2), "min elapsed - ")
-    QueueStatus   <- system('squeue -u hzudohna',  intern = T)
+    QueueStatus   <- system('squeue -u hb54',  intern = T)
     if(!is.null(JobIDs)){
       QueueStatus <- sapply(JobIDs, function(x) grep(x, QueueStatus, value = T))
     }
     idxRunning    <- grep(" R ", QueueStatus)
     idxPending    <- grep(" PD ", QueueStatus)
-    QueueFinished <- length(grep("batch", QueueStatus)) == 0
+    QueueFinished <- (length(grep("bash", QueueStatus)) + 1) == length(QueueStatus)
     if (!QueueFinished) cat("queue not yet finished!", 
                             length(idxRunning),
                             "jobs are running and",
