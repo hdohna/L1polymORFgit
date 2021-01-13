@@ -21,8 +21,9 @@ Files1KG <- ReadVCF("/home/hb54/1000GenomeData/1000genomes.high_coverage.GRCh38D
 #
 Files1KG$X.CRAM <- gsub("ftp:/", "http://", Files1KG$X.CRAM)
 RunIDs <- NULL
+BamPath1000G <- Files1KG$X.CRAM[2]
 for (BamPath1000G in Files1KG$X.CRAM[-1]){
-  IndividualID <- strsplit(BamPath1000G, "/")[[1]][9]
+  IndividualID <- strsplit(BamPath1000G, "/")[[1]][10]
   
   cat("*******   Getting coverage for", IndividualID, "    *******\n")
   cat("Job", which(BamPath1000G == Files1KG$X.CRAM),"out of a total of", 
@@ -32,7 +33,7 @@ for (BamPath1000G in Files1KG$X.CRAM[-1]){
   CoverOutPath   <- paste(Path1000G, "L1Coverage_", IndividualID, sep = "")
 
   # Construct samtools command to get filtered bam file
-  SamToolsCmds <- paste("samtools depth -a -b", BedPath_L1, 
+  SamToolsCmds <- paste("/home/hb54/samtools-1.11/bin/samtools depth -a -b", BedPath_L1, 
                           BamPath1000G, ">", CoverOutPath)
  
 
