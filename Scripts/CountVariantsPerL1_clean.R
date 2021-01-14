@@ -1286,6 +1286,12 @@ L1CoverTableSubset$AFDerived[idxAltClosestPacBio] <-
   (1 - L1CoverTableSubset$AlleleFreq)[idxAltClosestPacBio]
 # L1CoverTableSubset$AFDerived[idxAltConsens] <- 
 #   (1 - L1CoverTableSubset$AlleleFreq)[idxAltConsens]
+hist(L1CoverTableSubset$AFDerived)
+hist(log(L1CoverTableSubset$AFDerived))
+
+# Regression 
+LMAleleFreq <- lm(AFDerived ~ PropMismatch + Syn, data = L1CoverTableSubset)
+summary(LMAleleFreq)
 
 # Calculate mean allele frequency per L1 and position type
 AlleleFreqPerL1andPosType <- aggregate(L1CoverTable$AlleleFreq[blnSubset],
