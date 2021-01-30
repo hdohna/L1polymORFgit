@@ -1233,7 +1233,7 @@ load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantCount
 
 # Susbet to obtain SNPs with measured allele frequencies
 blnSubset <- L1CoverTable$blnFull & 
-  (!is.na(L1CoverTable$AlleleFreq)) & (L1CoverTable$NonSyn |L1CoverTable$Syn)
+  (!is.na(L1CoverTable$AlleleFreq)) & (L1CoverTable$NonSyn | L1CoverTable$Syn)
 L1Cover_GRsubset <- L1Cover_GR[blnSubset]
 
 # Get variation of SNP positions in L1 alignment
@@ -1295,11 +1295,14 @@ summary(LMAleleFreq)
 
 # Calculate mean allele frequency per L1 and position type
 AlleleFreqPerL1andPosType <- aggregate(L1CoverTable$AlleleFreq[blnSubset],
-                                       by =list(OL_bpL1@to[blnSubset], L1CoverTable$NonSyn[blnSubset]), 
+                                       by = list(OL_bpL1@to[blnSubset], 
+                                                 L1CoverTable$NonSyn[blnSubset]), 
                                        FUN = mean)
 
 # Calculate number of synonymous and non-synonymous SNPs per L1
-NSNPPerL1andPosType <- AggDataFrame(L1CoverTableSubset, GroupCol = "L1ID", MeanCols = "AlleleFreq", 
+NSNPPerL1andPosType <- AggDataFrame(L1CoverTableSubset, 
+                                    GroupCol = "L1ID", 
+                                    MeanCols = "AlleleFreq", 
                                     SumCols = c("SNPSyn", "SNPNonSyn", "SNPSynPacBio", "SNPNonSynPacBio"))
 plot(NSNPPerL1andPosType$SNPSyn_sum, NSNPPerL1andPosType$SNPNonSyn_sum,
      col = rgb(0, 0, 0, alpha = 0.15), pch = 16,
@@ -1313,7 +1316,13 @@ NSNPPerL1andPosType$Activity[OL_L1SNO_L1Cat@from] <-
 idxHigh <- which(NSNPPerL1andPosType$Activity > 0)
 points(NSNPPerL1andPosType$SNPSyn_sum[idxHigh], NSNPPerL1andPosType$SNPNonSyn_sum[idxHigh],
        col = "red")
+PVals <- sapply(1:nrow(NSNPPerL1andPosType), function(x){
+  NSyn <- NSNPPerL1andPosType$SNPSyn_sum[x]
+  NNonSyn <- NSNPPerL1andPosType$SNPNonSyn_sum[x]
+  pbinom(NNonSyn, NNonSyn + NSyn, prob = 2/3)
+})
 
+LowPIDs <- 
 # Plot L1 activity against non-synonymous SNPS
 plot(NSNPPerL1andPosType$SNPNonSyn_sum, NSNPPerL1andPosType$Activity)
 plot(NSNPPerL1andPosType$SNPNonSyn_sum + 
@@ -1332,7 +1341,7 @@ findOverlaps(L1GR[NSNPPerL1andPosType$L1ID[NSNPPerL1andPosType$SNPSyn_sum >= 20]
 NSNPPerL1andPosType
 
 # Observed difference in mean allele frequencies
-L1CoverTableSubset <- L1CoverTableSubset[L1CoverTableSubset$blnSNPPacBio,]
+L1CoverTableSubset <- L1CoverTableSubset[PVals < 0.1,]
 ObsMeanDiff <- mean(L1CoverTableSubset$AFDerived[!L1CoverTableSubset$NonSyn]) -  
   mean(L1CoverTableSubset$AFDerived[L1CoverTableSubset$NonSyn]) 
 
