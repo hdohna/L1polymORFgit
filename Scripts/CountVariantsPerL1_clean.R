@@ -13,9 +13,9 @@ library(TxDb.Hsapiens.UCSC.hg19.knownGene)
 library(seqinr)
 
 # File paths
-ResultPathCombined  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_combined_2021-01-02.csv"
-ResultPathAll  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_all_2021-01-02.csv"
-ResultPathFull <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_full_2021-01-02.csv"
+ResultPathCombined <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_combined_2021-01-02.csv"
+ResultPathAll      <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_all_2021-01-02.csv"
+ResultPathFull     <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_full_2021-01-02.csv"
 ResultPathAllPacBio  <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_all_PacBio_2021-01-02.csv"
 ResultPathFullPacBio <- "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1VariantRegrResults_full_PacBio_2020-11-15.csv"
 
@@ -121,7 +121,8 @@ L1Variants$VT <- sapply(L1Variants$INFO, function(x) {
   Split1 <- strsplit(x, ";")[[1]]
   grep("VT=", Split1, value = T)
   })
-L1Variants$INFO[1:50]
+
+# Get the allele frequency
 L1Variants$AlleleFreq <- sapply(L1Variants$INFO, function(x){
   InfoSplit <- strsplit(x, ";")[[1]]
   AF <- grep("AF=", InfoSplit, value = T)
@@ -137,6 +138,40 @@ L1Var_Left  <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/D
 L1Var_Right <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_rightFlank.recode.vcf")
 L1Var_Left$chromosome <- paste("chr", L1Var_Left$X.CHROM, sep = "")
 L1Var_Right$chromosome <- paste("chr", L1Var_Right$X.CHROM, sep = "")
+
+# Add a column that says which allele is ancestral
+L1Variants$Ancestral <- NA
+for (i in 1:nrow(L1Variants)){
+  InfoSplit <- strsplit(L1Variants$INFO[i], ";")[[1]]
+  AF <- grep("AF=", InfoSplit, value = T)
+  AF <- AF[-grep("_AF=", AF)]
+  AF <- as.numeric(strsplit(AF, "AF=")[[1]][2])
+  AncAl  <- substr(grep("AA=", InfoSplit, value = T), 4, 4)
+  if (length(AncAl) > 0){
+    RefAlt <- L1Variants[i, c("REF", "ALT")]
+    L1Variants$Ancestral[i] <- colnames(RefAlt)[match(AncAl, RefAlt)]
+    
+  }
+}
+
+# Add derived allele frequency whenever they are known
+L1Variants$AlleleFreqDerived <- NA
+idxRef <- which(L1Variants$Ancestral == "REF")
+idxAlt <- which(L1Variants$Ancestral == "ALT")
+L1Variants$AlleleFreqDerived[idxRef] <- L1Variants$AlleleFreq[idxRef]
+L1Variants$AlleleFreqDerived[idxAlt] <- 1 - L1Variants$AlleleFreq[idxAlt]
+hist(L1Variants$AlleleFreqDerived)
+
+# Get allele frequency per population
+AllFreqPerPop <- data.frame(t(sapply(L1Variants$INFO, function(x){
+  InfoSplit <- strsplit(x, ";")[[1]]
+  AFPop <- grep("_AF=", InfoSplit, value = T)
+  AFPopNameVals <- sapply(AFPop, function(y) strsplit(y, "AF=")[[1]])
+  AFPopVals <- as.numeric(AFPopNameVals[2,])
+  names(AFPopVals) <- AFPopNameVals[1,]
+  AFPopVals
+})))
+
 
 # Read in variants from PacBio sequencing of HG002 (obtained from https://downloads.pacbcloud.com/public/publications/2019-HG002-CCS/smallvariants/)
 L1VarPacBio <- ReadVCF("D:/OneDrive - American University of Beirut/L1polymORF/Data/VariantsInL1_HG002_PacBio_withInfo_GATKHC.recode.vcf")
@@ -505,7 +540,6 @@ plot(table(GRNonSynInt@elementMetadata@listData$mcols.ORFPos[
 ))
 cat("done!\n")
 
-
 # Get ranges of genes, exons' coding sequences, etc.
 Exons <- exons(TxDb.Hsapiens.UCSC.hg19.knownGene)
 Genes <- genes(TxDb.Hsapiens.UCSC.hg19.knownGene)
@@ -591,6 +625,20 @@ p.adjust(PVals)
 
 # Add columns with different info
 L1CoverTable$blnSNP       <- overlapsAny(L1Cover_GR, L1VarGR)
+length(AllFreqPerPop$EAS_[OL_bpL1Var@to])
+length(L1CoverTable$blnSNP_EAS[OL_bpL1Var@from])
+L1CoverTable$blnSNP_EAS  <- NA
+L1CoverTable$blnSNP_AMR  <- NA
+L1CoverTable$blnSNP_AFR  <- NA
+L1CoverTable$blnSNP_EUR  <- NA
+L1CoverTable$blnSNP_SAS  <- NA
+
+L1CoverTable$blnSNP_EAS[OL_bpL1Var@from]  <- AllFreqPerPop$EAS_[OL_bpL1Var@to] > 0
+L1CoverTable$blnSNP_AMR[OL_bpL1Var@from]  <- AllFreqPerPop$AMR_[OL_bpL1Var@to] > 0
+L1CoverTable$blnSNP_AFR[OL_bpL1Var@from]  <- AllFreqPerPop$AFR_[OL_bpL1Var@to] > 0
+L1CoverTable$blnSNP_EUR[OL_bpL1Var@from]  <- AllFreqPerPop$EUR_[OL_bpL1Var@to] > 0
+L1CoverTable$blnSNP_SAS[OL_bpL1Var@from]  <- AllFreqPerPop$SAS_[OL_bpL1Var@to] > 0
+L1CoverTable$blnSNP       <- overlapsAny(L1Cover_GR, L1VarGR)
 L1CoverTable$blnSNPPacBio <- overlapsAny(L1Cover_GR, L1VarGRPacBio)
 L1CoverTable$blnSNPHG002  <- overlapsAny(L1Cover_GR, L1VarGRHG002)
 L1CoverTable$blnSNP_HighQual <- overlapsAny(L1Cover_GR, L1VarGR_HighQual)
@@ -615,6 +663,8 @@ L1CoverTable$blnFull          <- NA
 L1CoverTable$blnFull[OL_bpL1@from] <- blnFull[OL_bpL1@to]
 L1CoverTable$AlleleFreq          <- NA
 L1CoverTable$AlleleFreq[OL_bpL1Var@from] <- L1Variants$AlleleFreq[OL_bpL1Var@to]
+L1CoverTable$AFDerived          <- NA
+L1CoverTable$AFDerived[OL_bpL1Var@from] <- L1Variants$AlleleFreqDerived[OL_bpL1Var@to]
 L1CoverTable$Freq <- 2*length(GTCols)
 L1CoverTable$Freq[OL_bpL1_MEDel@from] <- MEDelCall$Freq[OL_bpL1_MEDel@to]
 L1CoverTable$Coding <- overlapsAny(L1Cover_GR, c(GRSynInt, GRNonSynInt))
@@ -632,6 +682,12 @@ L1CoverTable$Syn_ORF2     <- overlapsAny(L1Cover_GR,
 L1CoverTable$NonSyn_Proper <- overlapsAny(L1Cover_GR, GRNonSynInt[c(blnORFProperInt,
                                                                     blnORFProperInt)])
 L1CoverTable$Syn_Proper    <- overlapsAny(L1Cover_GR, GRSynInt[blnORFProperInt])
+L1CoverTable$L1ID <- NA
+L1CoverTable$L1ID[OL_bpL1@from] <- OL_bpL1@to
+L1CoverTable$AlleleFreqSyn <- NA
+L1CoverTable$AlleleFreqSyn[L1CoverTable$Syn] <- L1CoverTable$AlleleFreq[L1CoverTable$Syn] 
+L1CoverTable$AlleleFreqNonSyn <- NA
+L1CoverTable$AlleleFreqNonSyn[L1CoverTable$NonSyn] <- L1CoverTable$AlleleFreq[L1CoverTable$NonSyn] 
 
 ######################################################
 #                                                    #
@@ -672,10 +728,11 @@ LD_Chr$L1ID1[OL_LD1@from] <- OL_LD1@to
 LD_Chr$L1ID2 <- NA
 LD_Chr$L1ID2[OL_LD2@from] <- OL_LD2@to
 blnSameL1 <- LD_Chr$L1ID1 == LD_Chr$L1ID2
+blnSameSNPType <- LD_Chr$NonSyn1 == LD_Chr$NonSyn2
 sum(!blnSameL1, na.rm = T)
-t.test(D ~ blnBothNonSyn, data = LD_Chr[blnSameL1, ])
+t.test(D ~ blnBothNonSyn, data = LD_Chr[blnSameL1 & blnSameSNPType, ])
 t.test(D ~ blnBothNonSyn, data = LD_Chr[!blnSameL1, ])
-wilcox.test(Dprime ~ blnBothNonSyn, data = LD_Chr[blnSameL1, ])
+wilcox.test(Dprime ~ blnBothNonSyn, data = LD_Chr[blnSameL1 & blnSameSNPType, ])
 wilcox.test(Dprime ~ blnBothNonSyn, data = LD_Chr[!blnSameL1, ], FUN = mean)
 aggregate(Dprime ~ blnBothNonSyn, data = LD_Chr[blnSameL1, ], FUN = mean)
 aggregate(Dprime ~ blnBothNonSyn, data = LD_Chr[!blnSameL1, ], FUN = mean)
@@ -799,6 +856,8 @@ SNPLogReg_CodeOnly <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMea
                              family = binomial(), chunksize = 3*10^4,
                              maxit = 20)
 summary(SNPLogReg_CodeOnly)
+
+
 SNPLogReg_CodeOnlyPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
                                PropMismatch + Genes + Promoters +
                                  blnFull + Syn + blnFull*Syn,
@@ -809,19 +868,35 @@ summary(SNPLogReg_CodeOnlyPacBio)
 
 
 # cat("Performing regression analysis with coding sequences on full-length L1 only ... \n")
-SNPLogReg_CodeOnlyFull <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
+SNPLogReg_CodeOnlyFull <- glm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
                          PropMismatch + Genes + Promoters + Syn,
-                    data = L1CoverTable[L1CoverTable$blnFull & L1CoverTable$Coding, ],
-                    family = binomial(), chunksize = 3*10^4,
-                    maxit = 20)
+                    data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ],
+                    family = binomial())
 summary(SNPLogReg_CodeOnlyFull)
 SNPLogReg_CodeOnlyFullPacBio <- bigglm(blnSNPPacBio ~  TriNuc + L1VarCount_Flank + CoverMean +
                                  PropMismatch + Genes + Promoters +
                                    Syn,
-                                data = L1CoverTable[L1CoverTable$blnFull & (L1CoverTable$Syn | L1CoverTable$NonSyn), ],
+                                data = L1CoverTable[L1CoverTable$blnFull & 
+                                                      (L1CoverTable$Syn | L1CoverTable$NonSyn), ],
                                 family = binomial(), chunksize = 3*10^4,
                                 maxit = 20)
 summary(SNPLogReg_CodeOnlyFullPacBio)
+
+# Perform logistic regression per population
+SNPLogReg_CodeOnlyFullPerPop <- lapply(colnames(AllFreqPerPop), function(x){
+  Pop <- substr(x, 1, 3)
+  FormulaChar <- paste0("blnSNP_", Pop, " ~  TriNuc + L1VarCount_Flank + CoverMean +
+                        PropMismatch + Genes + Promoters + Syn")
+  blnSubset <- eval(parse(text = paste0(
+    "L1CoverTable$blnFull & 
+    (L1CoverTable$Syn | L1CoverTable$NonSyn) & 
+    !is.na(L1CoverTable$blnSNP_", Pop, ")")))
+  SNPLogReg <- glm(eval(parse(text = FormulaChar)),
+                   data = L1CoverTable[blnSubset, ],
+                   family = binomial())
+  summary(SNPLogReg)
+})
+names(SNPLogReg_CodeOnlyFullPerPop) <- substr(colnames(AllFreqPerPop), 1, 3)
 
 # cat("Performing regression analysis with coding sequences on fragement L1 only ... \n")
 SNPLogReg_CodeOnlyNotFull <- bigglm(blnSNP_both ~  TriNuc + L1VarCount_Flank + CoverMean +
@@ -1268,12 +1343,16 @@ idxAltConsens <- OL_L1subset@from[ConsensNuc[OL_L1subset@from] ==
 #                                                    #
 ######################################################
 
+# Susbet to obtain SNPs with measured allele frequencies
+blnSubset <- L1CoverTable$blnFull & 
+  (!is.na(L1CoverTable$AlleleFreq)) & (L1CoverTable$NonSyn | L1CoverTable$Syn)
+L1Cover_GRsubset <- L1Cover_GR[blnSubset]
+
 hist(L1CoverTable$AlleleFreq)
 sum(L1CoverTable$AlleleFreq > 0.5, na.rm = T)
 
 # Susbet to obtain SNPs with measured allele frequencies
-L1CoverTableSubset      <- L1CoverTable[blnSubset, ]
-L1CoverTableSubset$L1ID <- OL_bpL1@to[blnSubset]
+L1CoverTableSubset          <- L1CoverTable[blnSubset, ]
 L1CoverTableSubset$SNPSyn    <- L1CoverTableSubset$blnSNP & (!L1CoverTableSubset$NonSyn)
 L1CoverTableSubset$SNPNonSyn <- L1CoverTableSubset$blnSNP & L1CoverTableSubset$NonSyn
 L1CoverTableSubset$SNPSynPacBio    <- L1CoverTableSubset$blnSNPPacBio & (!L1CoverTableSubset$NonSyn)
@@ -1281,16 +1360,17 @@ L1CoverTableSubset$SNPNonSynPacBio <- L1CoverTableSubset$blnSNPPacBio & L1CoverT
 
 # Replace SNP frequency by the frequency of the reference allele when the
 # alternative allele is equal to consensus (i.e. likely to be ancestral)
-L1CoverTableSubset$AFDerived <- L1CoverTableSubset$AlleleFreq
-L1CoverTableSubset$AFDerived[idxAltClosestPacBio] <- 
-  (1 - L1CoverTableSubset$AlleleFreq)[idxAltClosestPacBio]
+# L1CoverTableSubset$AFDerived <- L1CoverTableSubset$AlleleFreq
+# L1CoverTableSubset$AFDerived[idxAltClosestPacBio] <- 
+#   (1 - L1CoverTableSubset$AlleleFreq)[idxAltClosestPacBio]
 # L1CoverTableSubset$AFDerived[idxAltConsens] <- 
 #   (1 - L1CoverTableSubset$AlleleFreq)[idxAltConsens]
 hist(L1CoverTableSubset$AFDerived)
 hist(log(L1CoverTableSubset$AFDerived))
 
 # Regression 
-LMAleleFreq <- lm(AFDerived ~ PropMismatch + Syn, data = L1CoverTableSubset)
+LMAleleFreq <- lm(AFDerived ~ PropMismatch + Syn, 
+                  data = L1CoverTableSubset)
 summary(LMAleleFreq)
 
 # Calculate mean allele frequency per L1 and position type
@@ -1302,12 +1382,38 @@ AlleleFreqPerL1andPosType <- aggregate(L1CoverTable$AlleleFreq[blnSubset],
 # Calculate number of synonymous and non-synonymous SNPs per L1
 NSNPPerL1andPosType <- AggDataFrame(L1CoverTableSubset, 
                                     GroupCol = "L1ID", 
-                                    MeanCols = "AlleleFreq", 
-                                    SumCols = c("SNPSyn", "SNPNonSyn", "SNPSynPacBio", "SNPNonSynPacBio"))
+                                    MeanCols = c("AlleleFreq", "AlleleFreqSyn", "AlleleFreqNonSyn"), 
+                                    SumCols = c("SNPSyn", "SNPNonSyn", 
+                                                "SNPSynPacBio", "SNPNonSynPacBio"))
+head(NSNPPerL1andPosType)
+
+# Get ratio of synonymous to non-synonymous 
+SNPRatio <- NSNPPerL1andPosType$SNPSyn_sum/NSNPPerL1andPosType$SNPNonSyn_sum
+FreqRatio <- NSNPPerL1andPosType$AlleleFreqSyn_mean/
+  NSNPPerL1andPosType$AlleleFreqNonSyn_mean
+hist(SNPRatio, breaks = seq(0, 4, 0.1))
+SNPRatioPacBio <- NSNPPerL1andPosType$SNPSynPacBio_sum/
+  NSNPPerL1andPosType$SNPNonSynPacBio_sum
+plot(SNPRatioPacBio, SNPRatio)
+blnFiniteRatio <- is.finite(SNPRatio)
+blnFiniteRatioBoth <- is.finite(SNPRatioPacBio) & is.finite(SNPRatio)
+cor.test(SNPRatioPacBio[blnFiniteRatioBoth], SNPRatio[blnFiniteRatioBoth], 
+         use = "pairwise.complete.obs")
+cor.test(SNPRatio[blnFiniteRatio], FreqRatio[blnFiniteRatio], 
+         use = "pairwise.complete.obs")
+plot(SNPRatio[blnFiniteRatio], FreqRatio[blnFiniteRatio],
+     col = rgb(0, 0, 0, alpha = 0.15), pch = 16)
+
+# L1 Ids that have a high ratio of synonymous to non-synonymous SNPs
+L1IDsHighSyn <- NSNPPerL1andPosType$L1ID[SNPRatio >= 1]
+
+# Plot number of non-synonymous against synonymous SNPs
 plot(NSNPPerL1andPosType$SNPSyn_sum, NSNPPerL1andPosType$SNPNonSyn_sum,
      col = rgb(0, 0, 0, alpha = 0.15), pch = 16,
      xlab = "Number of synonymous SNPs", ylab = "Number of non-synonymous SNPs")  
 lines(c(0, 100), c(0, 200))
+lines(c(0, 200), c(0, 200), lty = 2)
+
 OL_L1SNO_L1Cat <- findOverlaps(L1GR[NSNPPerL1andPosType$L1ID],
                                L1CatalogGR_hg19)
 NSNPPerL1andPosType$Activity <- NA
@@ -1322,7 +1428,6 @@ PVals <- sapply(1:nrow(NSNPPerL1andPosType), function(x){
   pbinom(NNonSyn, NNonSyn + NSyn, prob = 2/3)
 })
 
-LowPIDs <- 
 # Plot L1 activity against non-synonymous SNPS
 plot(NSNPPerL1andPosType$SNPNonSyn_sum, NSNPPerL1andPosType$Activity)
 plot(NSNPPerL1andPosType$SNPNonSyn_sum + 
@@ -1338,36 +1443,56 @@ L1GR[NSNPPerL1andPosType$L1ID[NSNPPerL1andPosType$SNPSyn_sum >= 15]]
 load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1CatalogGRanges.RData")
 findOverlaps(L1GR[NSNPPerL1andPosType$L1ID[NSNPPerL1andPosType$SNPSyn_sum >= 20]],
              L1CatalogGR_hg19)
-NSNPPerL1andPosType
 
-# Observed difference in mean allele frequencies
-L1CoverTableSubset <- L1CoverTableSubset[PVals < 0.1,]
-ObsMeanDiff <- mean(L1CoverTableSubset$AFDerived[!L1CoverTableSubset$NonSyn]) -  
-  mean(L1CoverTableSubset$AFDerived[L1CoverTableSubset$NonSyn]) 
-
-# Sample mean differences
-TotNonSyn <- sum(L1CoverTableSubset$NonSyn)
-TotNuc    <- nrow(L1CoverTableSubset)
-idxVect <- 1:TotNuc
-NSamples <- 10000
-SampledMeanDiffs <- sapply(1:NSamples, function(x){
-  idxNonSyn <- sample.int(TotNuc, size = TotNonSyn)
-  idxSyn    <- setdiff(idxVect, idxNonSyn)
-  mean(L1CoverTableSubset$AFDerived[idxSyn]) -  
-    mean(L1CoverTableSubset$AFDerived[idxNonSyn]) 
+# P value for frequency difference for different thresholds
+CutOffPs <- seq(0.05, 0.5, 0.05)
+FreqDiffPs <- sapply(CutOffPs, function(x){
+  L1HighDiff <- NSNPPerL1andPosType$L1ID [PVals <= x]
+  
+  # Observed difference in mean allele frequencies
+  blnSubset2 <- L1CoverTable$blnFull & 
+    (!is.na(L1CoverTable$AlleleFreq)) & 
+    (L1CoverTable$NonSyn | L1CoverTable$Syn) &
+    #  L1CoverTable$L1ID %in% L1IDsHighSyn
+    L1CoverTable$L1ID %in% L1HighDiff
+  
+  # Subset to obtain SNPs with measured allele frequencies on L1s 
+  L1CoverTableSubset2   <- L1CoverTable[blnSubset2, ]
+  L1CoverTableSubset2$AFDerived <- L1CoverTableSubset2$AlleleFreq
+  ObsMeanDiff <- mean(L1CoverTableSubset2$AFDerived[!L1CoverTableSubset2$NonSyn],
+                      na.rm = T) -  
+    mean(L1CoverTableSubset2$AFDerived[L1CoverTableSubset2$NonSyn],
+         na.rm = T) 
+  
+  # Sample mean differences
+  TotNonSyn <- sum(L1CoverTableSubset2$NonSyn)
+  TotNuc    <- nrow(L1CoverTableSubset2)
+  idxVect <- 1:TotNuc
+  NSamples <- 10000
+  SampledMeanDiffs <- sapply(1:NSamples, function(x){
+    idxNonSyn <- sample.int(TotNuc, size = TotNonSyn)
+    idxSyn    <- setdiff(idxVect, idxNonSyn)
+    mean(L1CoverTableSubset2$AFDerived[idxSyn],
+         na.rm = T) -  
+      mean(L1CoverTableSubset2$AFDerived[idxNonSyn],
+           na.rm = T) 
+  })
+  mean(SampledMeanDiffs >= ObsMeanDiff, na.rm = T)
+  
 })
-mean(SampledMeanDiffs >= ObsMeanDiff)
+plot(CutOffPs,FreqDiffPs)
 hist(SampledMeanDiffs)
+
 # Observed difference in mean allele frequencies
-ObsMedianDiff <- median(L1CoverTableSubset$AFDerived[!L1CoverTableSubset$NonSyn]) -  
-  median(L1CoverTableSubset$AFDerived[L1CoverTableSubset$NonSyn]) 
+ObsMedianDiff <- median(L1CoverTableSubset2$AFDerived[!L1CoverTableSubset2$NonSyn]) -  
+  median(L1CoverTableSubset2$AFDerived[L1CoverTableSubset2$NonSyn]) 
 
 # Sample mean differences
 SampledMedianDiffs <- sapply(1:NSamples, function(x){
   idxNonSyn <- sample.int(TotNuc, size = TotNonSyn)
   idxSyn    <- setdiff(idxVect, idxNonSyn)
-  median(L1CoverTableSubset$AFDerived[idxSyn]) -  
-    median(L1CoverTableSubset$AFDerived[idxNonSyn]) 
+  median(L1CoverTableSubset2$AFDerived[idxSyn]) -  
+    median(L1CoverTableSubset2$AFDerived[idxNonSyn]) 
 })
 sum(SampledMedianDiffs >= ObsMedianDiff) / NSamples
 
