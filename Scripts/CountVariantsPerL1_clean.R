@@ -1388,7 +1388,7 @@ NSNPPerL1andPosType <- AggDataFrame(L1CoverTableSubset,
 head(NSNPPerL1andPosType)
 
 # Get ratio of synonymous to non-synonymous 
-SNPRatio <- NSNPPerL1andPosType$SNPSyn_sum/NSNPPerL1andPosType$SNPNonSyn_sum
+SNPRatio  <- NSNPPerL1andPosType$SNPSyn_sum/NSNPPerL1andPosType$SNPNonSyn_sum
 FreqRatio <- NSNPPerL1andPosType$AlleleFreqSyn_mean/
   NSNPPerL1andPosType$AlleleFreqNonSyn_mean
 hist(SNPRatio, breaks = seq(0, 4, 0.1))
@@ -1401,8 +1401,25 @@ cor.test(SNPRatioPacBio[blnFiniteRatioBoth], SNPRatio[blnFiniteRatioBoth],
          use = "pairwise.complete.obs")
 cor.test(SNPRatio[blnFiniteRatio], FreqRatio[blnFiniteRatio], 
          use = "pairwise.complete.obs")
+cor.test(SNPRatio[blnFiniteRatio], FreqRatio[blnFiniteRatio], 
+         use = "pairwise.complete.obs", method = "spearman")
 plot(SNPRatio[blnFiniteRatio], FreqRatio[blnFiniteRatio],
      col = rgb(0, 0, 0, alpha = 0.15), pch = 16)
+
+# Get L1s under selection via EM algorithm
+blnSelect    <- rep(T, length(SNPRatio))
+blnSelectNew <- SNPRatio >= 1
+Counter <- 0
+while(any(blnSelectNew != blnSelect) | Counter < 100){
+  blnSelect <- blnSelectNew
+  REst     <- sum(NSNPPerL1andPosType$SNPNonSyn_sum[blnSelect]) /
+    sum(NSNPPerL1andPosType$SNPSyn_sum[blnSelect])
+  Lambdas  <- NSNPPerL1andPosType$SNPSyn_sum
+  blnSelectNew <- (NSNPPerL1andPosType$SNPNonSyn_sum * (log(REst) - log(2)) +
+                  (2-REst) * Lambdas) > 0
+  Counter <- Counter + 1
+}
+
 
 # L1 Ids that have a high ratio of synonymous to non-synonymous SNPs
 L1IDsHighSyn <- NSNPPerL1andPosType$L1ID[SNPRatio >= 1]
@@ -1412,8 +1429,9 @@ plot(NSNPPerL1andPosType$SNPSyn_sum, NSNPPerL1andPosType$SNPNonSyn_sum,
      col = rgb(0, 0, 0, alpha = 0.15), pch = 16,
      xlab = "Number of synonymous SNPs", ylab = "Number of non-synonymous SNPs")  
 lines(c(0, 100), c(0, 200))
-lines(c(0, 200), c(0, 200), lty = 2)
-
+lines(c(0, 200), c(0, REst*200), lty = 2)
+points(NSNPPerL1andPosType$SNPSyn_sum[blnSelectNew], 
+       NSNPPerL1andPosType$SNPNonSyn_sum[blnSelectNew], col = "red")
 OL_L1SNO_L1Cat <- findOverlaps(L1GR[NSNPPerL1andPosType$L1ID],
                                L1CatalogGR_hg19)
 NSNPPerL1andPosType$Activity <- NA
@@ -1443,11 +1461,13 @@ L1GR[NSNPPerL1andPosType$L1ID[NSNPPerL1andPosType$SNPSyn_sum >= 15]]
 load("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1CatalogGRanges.RData")
 findOverlaps(L1GR[NSNPPerL1andPosType$L1ID[NSNPPerL1andPosType$SNPSyn_sum >= 20]],
              L1CatalogGR_hg19)
-
+max(PVals[blnSelectNew])
+min(PVals[!blnSelectNew])
 # P value for frequency difference for different thresholds
 CutOffPs <- seq(0.05, 0.5, 0.05)
 FreqDiffPs <- sapply(CutOffPs, function(x){
   L1HighDiff <- NSNPPerL1andPosType$L1ID [PVals <= x]
+#  L1HighDiff <- NSNPPerL1andPosType$L1ID [blnSelectNew]
   
   # Observed difference in mean allele frequencies
   blnSubset2 <- L1CoverTable$blnFull & 
@@ -1455,13 +1475,12 @@ FreqDiffPs <- sapply(CutOffPs, function(x){
     (L1CoverTable$NonSyn | L1CoverTable$Syn) &
     #  L1CoverTable$L1ID %in% L1IDsHighSyn
     L1CoverTable$L1ID %in% L1HighDiff
-  
+  sum(blnSubset2)
   # Subset to obtain SNPs with measured allele frequencies on L1s 
   L1CoverTableSubset2   <- L1CoverTable[blnSubset2, ]
-  L1CoverTableSubset2$AFDerived <- L1CoverTableSubset2$AlleleFreq
-  ObsMeanDiff <- mean(L1CoverTableSubset2$AFDerived[!L1CoverTableSubset2$NonSyn],
+  ObsMeanDiff <- mean(L1CoverTableSubset2$AlleleFreq[!L1CoverTableSubset2$NonSyn],
                       na.rm = T) -  
-    mean(L1CoverTableSubset2$AFDerived[L1CoverTableSubset2$NonSyn],
+    mean(L1CoverTableSubset2$AlleleFreq[L1CoverTableSubset2$NonSyn],
          na.rm = T) 
   
   # Sample mean differences
@@ -1472,15 +1491,16 @@ FreqDiffPs <- sapply(CutOffPs, function(x){
   SampledMeanDiffs <- sapply(1:NSamples, function(x){
     idxNonSyn <- sample.int(TotNuc, size = TotNonSyn)
     idxSyn    <- setdiff(idxVect, idxNonSyn)
-    mean(L1CoverTableSubset2$AFDerived[idxSyn],
+    mean(L1CoverTableSubset2$AlleleFreq[idxSyn],
          na.rm = T) -  
-      mean(L1CoverTableSubset2$AFDerived[idxNonSyn],
+      mean(L1CoverTableSubset2$AlleleFreq[idxNonSyn],
            na.rm = T) 
   })
   mean(SampledMeanDiffs >= ObsMeanDiff, na.rm = T)
   
 })
 plot(CutOffPs,FreqDiffPs)
+min(FreqDiffPs)
 hist(SampledMeanDiffs)
 
 # Observed difference in mean allele frequencies
