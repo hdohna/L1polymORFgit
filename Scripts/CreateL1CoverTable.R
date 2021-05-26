@@ -728,21 +728,77 @@ ORF2_AA  <- Biostrings::translate(ORF2_Seq)
 GRNonSyn_ORF1 <- GRNonSynInt[
   GRNonSynInt@elementMetadata@listData$mcols.ORFType == "ORF1"]
 
-OL_NonSyn_ORF1   <- findOverlaps(GRNonSyn_ORF1, ORF1_GR)
-OL_NonSyn_L1Var  <- findOverlaps(GRNonSyn_ORF1, L1VarGR)
-OL_L1Var_ORF1    <- findOverlaps(L1VarGR, ORF1_GR)
 idxORF1NonSynSNP <- which(L1CoverTable$blnSNP & L1CoverTable$NonSyn_ORF1)
 OL_NonSyn_ORF1   <- findOverlaps(L1Cover_GR[idxORF1NonSynSNP], ORF1_GR)
-StrandV_ORF1 <- as.vector(strand(ORF1_GR))[OL_NonSyn_ORF1@to]
-PosOnORF1      <- start(L1Cover_GR[idxORF1NonSynSNP])[OL_NonSyn_ORF1@from] - 
+blnNeg_ORF1      <- as.vector(strand(ORF1_GR))[OL_NonSyn_ORF1@to] == "-"
+PosOnORF1       <- start(L1Cover_GR[idxORF1NonSynSNP])[OL_NonSyn_ORF1@from] - 
                  start(ORF1_GR)[OL_NonSyn_ORF1@to] + 1
-PosOnORF1[StrandV_ORF1 == "-"] <- (end(ORF1_GR)[OL_NonSyn_ORF1@to] -
-  end(L1Cover_GR[idxORF1NonSynSNP])[OL_NonSyn_ORF1@from] + 1)[StrandV_ORF1 == "-"] 
-min(PosOnORF1)
-subseq(ORF1_Seq[OL_NonSyn_ORF1@to], start = PosOnORF1, end = PosOnORF1)
+PosOnORF1[blnNeg_ORF1] <- (end(ORF1_GR)[OL_NonSyn_ORF1@to] -
+  end(L1Cover_GR[idxORF1NonSynSNP])[OL_NonSyn_ORF1@from] + 1)[blnNeg_ORF1] 
+
+RefNuc <- as.character(subseq(ORF1_Seq[OL_NonSyn_ORF1@to], 
+                              start = PosOnORF1, 
+                              end = PosOnORF1))
+RefNucGenome <- L1Variants$REF[OL_bpL1Var@to[idxMatch[OL_NonSyn_ORF1@from]]]
+RefNucGenome[blnNeg_ORF1] <- 
+  as.character(reverseComplement(DNAStringSet(RefNucGenome)))[blnNeg_ORF1]
+all(RefNuc == RefNucGenome)
+
+AltNucGenome <- L1Variants$ALT[OL_bpL1Var@to[idxMatch[OL_NonSyn_ORF1@from]]]
+AltNucGenome <- substr(AltNucGenome, 1, 1)
+AltNucGenome[blnNeg_ORF1] <- 
+  as.character(reverseComplement(DNAStringSet(AltNucGenome)))[blnNeg_ORF1]
+ i <- 44
+sapply(1:length(PosOnORF1), function(i){
+  print(i)
+  print(strand(ORF1_GR[OL_NonSyn_ORF1@to[i]])@values)
+  idxORF <- OL_NonSyn_ORF1@to[i]
+  
+  idxCodon <- (PosOnORF1[i] - 1) %/% 3 + 1
+  idxWithinCodon <- (PosOnORF1[i] - 1) %% 3 + 1
+  CodSeq <- subseq(ORF1_Seq[idxORF], start = 3*(idxCodon - 1) + 1, 
+                   end = 3*(idxCodon - 1) + 3)
+  CodNewSeq <- CodSeq
+  subseq(CodNewSeq, idxWithinCodon, idxWithinCodon) <- AltNucGenome[i]
+  if(Biostrings::translate(CodSeq) != subseq(ORF1_AA[idxORF], idxCodon, idxCodon)){
+    stop("Codon assignment wrong!!")
+  }
+  Biostrings::translate(CodSeq) == Biostrings::translate(CodNewSeq)
+  
+})
+
+NoAAChange <- sapply(1:43, function(i){
+  idxORF <- OL_NonSyn_ORF1@to[i]
+  
+  idxCodon <- (PosOnORF1[i] - 1) %/% 3 + 1
+  idxWithinCodon <- (PosOnORF1[i] - 1) %% 3 + 1
+  CodSeq <- subseq(ORF1_Seq[idxORF], start = 3*(idxCodon - 1) + 1, 
+                   end = 3*(idxCodon - 1) + 3)
+  CodNewSeq <- CodSeq
+  subseq(CodNewSeq, idxWithinCodon, idxWithinCodon) <- AltNucGenome[i]
+  if(Biostrings::translate(CodSeq) != subseq(ORF1_AA[idxORF], idxCodon, idxCodon)){
+    stop("Codon assignment wrong!!")
+  }
+  Biostrings::translate(CodSeq) == Biostrings::translate(CodNewSeq)
+  
+})
+
+0:10 %/% 3 + 1
+0:10 %% 3 + 1
+ORF1_Seq_Alt <- ORF1_Seq
+subseq(ORF1_Seq_Alt[OL_NonSyn_ORF1@to], 
+                       start = PosOnORF1, 
+                       end = PosOnORF1) <- AltNucGenome
+ORF1_Seq[[1]] != ORF1_Seq_Alt[[1]]
+
+
+ORF1_Seq[OL_NonSyn_ORF1@to][blnNeg_ORF1]
+RefSame <- RefNuc == L1Variants$REF[OL_bpL1Var@to[idxMatch[OL_NonSyn_ORF1@from]]]
+all(RefSame)
+all(RefSame[!blnNeg_ORF1])
+all(!RefSame[blnNeg_ORF1])
 idxMatch <- match(idxORF1NonSynSNP, OL_bpL1Var@from)
 L1Variants$ALT[OL_bpL1Var@to[idxMatch]]
-L1Variants$REF[OL_bpL1Var@to[idxMatch[OL_NonSyn_ORF1@from]]]
 
 startL1Cover_GR[idxORF1NonSynSNP]
 ALTNuc <- L1Variants$ALT[]
