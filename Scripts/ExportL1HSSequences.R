@@ -17,18 +17,18 @@
 ##############################################
 
 # Source start script
-source('D:/L1polymORF/Scripts/_Start_L1polymORF.r')
+source('D:/L1polymORFgit/Scripts/_Start_L1polymORF.r')
 
 # Load packages
 library(BSgenome.Hsapiens.UCSC.hg19)
 library(seqinr)
 
 # Load consensus sequence
-L1Consens <- read.fasta("D:/L1polymORF/Data/Homo_sapiens_L1_consensus.fa")
+L1Consens <- read.fasta("D:/OneDrive - American University of Beirut/L1polymORF/Data/Homo_sapiens_L1_consensus.fa")
 L1ConsensDNAST <- DNAString(paste(L1Consens[[1]], collapse = ""))
 
 # Read in repeatMasker table 
-L1Table   <- read.csv("D:/L1polymORF/Data/L1HS_repeat_table_Hg19.csv")
+L1Table   <- read.csv("D:/OneDrive - American University of Beirut/L1polymORF/Data/L1HS_repeat_table_Hg19.csv")
 
 # Genomic ranges for each dataset
 L1GR <- makeGRangesFromDataFrame(L1Table, 
@@ -49,7 +49,7 @@ PropMismatch <- sapply(L1HSSeq, function(x){
 })
 cat("done!\n")
 
-save.image(file = "D:/L1polymORF/Data/L1HS_PropMismatch.RData")
+save.image(file = "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1HS_PropMismatch.RData")
 
 # Test for correlation between proportion of mismatch and length of the L1
 cor.test(width(L1HSSeq), PropMismatch, method = "spearman")
@@ -69,8 +69,8 @@ L1HSSeqList <- lapply(L1HSSeq, function(x) tolower(s2c(as.character(x))))
 names(L1HSSeqList) <- paste(L1Table$genoName, L1Table$genoStart,
                             L1Table$genoEnd, L1Table$strand, sep = "_")
 write.fasta(c(L1Consens, L1HSSeqList), c("L1consensus", names(L1HSSeqList)),
-            file.out = "D:/L1polymORF/Data/L1HS_withConsens_unaligned.fas")
+            file.out = "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1HS_withConsens_unaligned.fas")
             
 write.fasta(list(L1Consens[[1]], tolower(s2c(as.character(L1HSSeq[1])))), 
                  c("L1consensus", "L1fragm"),
-            file.out = "D:/L1polymORF/Data/L1HS_example.fas")
+            file.out = "D:/OneDrive - American University of Beirut/L1polymORF/Data/L1HS_example.fas")
