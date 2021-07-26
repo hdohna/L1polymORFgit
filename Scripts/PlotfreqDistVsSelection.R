@@ -41,6 +41,8 @@ for (i in 1:length(SCoeffs)){
 legend("topright", legend = paste("s =", SCoeffs), col = Cols, 
        lty = rep(1, length(SCoeffs)), y.intersp = 0.9)
 dev.off()
+
+
 # CreateDisplayPdf('D:/L1polymORF/Figures/FreqDistPerSelectCoeff.pdf',
 #                  PdfProgramPath = '"C:\\Program Files (x86)\\Adobe\\Reader 11.0\\Reader\\AcroRd32"',
 #                  height = 7, width = 7)
